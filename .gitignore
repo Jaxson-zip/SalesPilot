@@ -1,0 +1,39 @@
+# 环境与密钥
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# 契约测试本地产物（兼容矩阵已生成到 docs/模型兼容矩阵.md）
+services/gateway/tests/contract/results.json
+
+# 运行数据
+data/
+uploads/
+*.log
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# 课程材料（不进仓库）
+*.pdf

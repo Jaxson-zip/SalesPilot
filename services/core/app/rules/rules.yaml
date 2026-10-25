@@ -1,0 +1,23 @@
+# 通用业务规则（开发规范 §4.1）。阈值只放这里，代码不硬编码。
+# 比例用小数表示；金额单位：分。行业包的 rules.yaml 可以覆盖其中的项。
+
+margin:
+  floor_rate: 0.25            # 报价毛利底线，低于需主管审批
+
+discount:
+  max_rate: 0.10              # 销售折扣权限，超过需主管审批
+
+commission:
+  rates:                      # 按物料类别的提成比例
+    hardware: 0.03
+    software: 0.08
+    service: 0.08
+  low_margin_floor: 0.25      # 合同毛利低于该值时提成减半
+  low_margin_factor: 0.5
+
+expense:
+  entertainment_per_person: 15000   # 客户招待标准：¥150/人（分）
+
+agent:
+  margin_max_retries: 2       # 毛利回退最多重新配置次数
+  max_tool_calls: 8

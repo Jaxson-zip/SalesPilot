@@ -1,0 +1,40 @@
+[project]
+name = "salespilot-gateway"
+version = "0.1.0"
+description = "SalesPilot 模型网关：模型注册表 + 兼容层，对外 OpenAI 格式"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "litellm==1.106.4",
+    "pydantic>=2",
+    "pydantic-settings",
+    "python-dotenv",
+    "pyyaml",
+    "json-repair",
+    "httpx",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "respx",
+    "ruff",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = ["contract: 真实模型契约测试（需要 RUN_CONTRACT=1 和对应 Key）"]

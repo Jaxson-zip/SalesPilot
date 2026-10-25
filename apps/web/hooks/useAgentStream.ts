@@ -1,0 +1,148 @@
+"use client"
+
+import { useCallback, useRef, useState } from "react"
+
+import {
+  applyAgentEvent,
+  applyDecision,
+  closeDanglingSteps,
+  createAssistantTurn,
+  finish,
+  nextId,
+  type AssistantTurn,
+  type ChatTurn,
+} from "@/lib/agent-reducer"
+import { isAbortError, isApiError } from "@/lib/api"
+import { postSSE } from "@/lib/sse"
+import { ErrorCode, type AgentChatRequest, type AgentResumeRequest, type ResumeDecision } from "@/types/api"
+
+const CHAT_PATH = "/api/agent/chat"
+const RESUME_PATH = "/api/agent/resume"
+
+function updateLastAssistant(turns: ChatTurn[], fn: (t: AssistantTurn) => AssistantTurn): ChatTurn[] {
+  for (let i = turns.length - 1; i >= 0; i--) {
+    const t = turns[i]
+    if (t.role === "assistant") {
+      const next = turns.slice()
+      next[i] = fn(t)
+      return next
+    }
+  }
+  return turns
+}
+
+function toError(err: unknown): { code: number; message: string } {
+  if (isApiError(err)) return { code: err.code, message: err.message }
+  return { code: ErrorCode.NETWORK, message: "连接中断，请重试" }
+}
+
+export interface UseAgentStream {
+  turns: ChatTurn[]
+  threadId: string | null
+  isStreaming: boolean
+  send: (message: string, model: string) => void
+  resume: (decision: ResumeDecision) => void
+  stop: () => void
+  retry: () => void
+  reset: () => void
+}
+
+type Patch = (fn: (t: AssistantTurn) => AssistantTurn) => void
+
+/** 执行一次 SSE 请求，把事件逐条应用到最后一条 AI 回复；负责停止 / 断开 / 错误收尾 */
+function useStreamRunner(patch: Patch, onThread: (id: string) => void) {
+  const [isStreaming, setStreaming] = useState(false)
+  const abortRef = useRef<AbortController | null>(null)
+
+  const run = useCallback(
+    async (path: string, body: AgentChatRequest | AgentResumeRequest) => {
+      const ctrl = new AbortController()
+      abortRef.current = ctrl
+      setStreaming(true)
+      try {
+        await postSSE(path, body, {
+          signal: ctrl.signal,
+          onEvent: (ev) => {
+            if (ev.event === "done" && ev.data.thread_id) onThread(ev.data.thread_id)
+            patch((t) => applyAgentEvent(t, ev))
+          },
+        })
+        // 流正常结束但没收到 done：按完成处理
+        patch((t) => (t.status === "streaming" ? finish(t, "done") : t))
+      } catch (err) {
+        if (isAbortError(err)) patch((t) => finish(closeDanglingSteps(t, "已停止"), "stopped"))
+        else patch((t) => ({ ...finish(closeDanglingSteps(t, "连接中断"), "error"), error: toError(err) }))
+      } finally {
+        if (abortRef.current === ctrl) abortRef.current = null
+        setStreaming(false)
+      }
+    },
+    [patch, onThread],
+  )
+  return { run, abortRef, isStreaming }
+}
+
+/** 把 §8.3 的 SSE 事件流转成消息状态：步骤、正文增量、卡片、确认、完成、错误 */
+export function useAgentStream(): UseAgentStream {
+  const [turns, setTurns] = useState<ChatTurn[]>([])
+  const [threadId, setThreadId] = useState<string | null>(null)
+  const threadRef = useRef<string | null>(null)
+  const lastChat = useRef<{ message: string; model: string } | null>(null)
+
+  const patch = useCallback<Patch>((fn) => setTurns((ts) => updateLastAssistant(ts, fn)), [])
+  const onThread = useCallback((id: string) => {
+    threadRef.current = id
+    setThreadId(id)
+  }, [])
+  const { run, abortRef, isStreaming } = useStreamRunner(patch, onThread)
+
+  const ensureThread = useCallback((): string => {
+    if (!threadRef.current) {
+      threadRef.current = nextId("t")
+      setThreadId(threadRef.current)
+    }
+    return threadRef.current
+  }, [])
+
+  const send = useCallback(
+    (message: string, model: string) => {
+      const text = message.trim()
+      if (!text || abortRef.current) return
+      lastChat.current = { message: text, model }
+      const thread_id = ensureThread()
+      setTurns((ts) => [...ts, { id: nextId("u"), role: "user", text }, createAssistantTurn()])
+      void run(CHAT_PATH, { thread_id, message: text, model })
+    },
+    [abortRef, ensureThread, run],
+  )
+
+  const resume = useCallback(
+    (decision: ResumeDecision) => {
+      const thread_id = threadRef.current
+      if (!thread_id || abortRef.current) return
+      patch((t) => applyDecision(t, decision))
+      void run(RESUME_PATH, { thread_id, decision })
+    },
+    [abortRef, patch, run],
+  )
+
+  const retry = useCallback(() => {
+    const last = lastChat.current
+    if (!last || abortRef.current) return
+    const thread_id = ensureThread()
+    setTurns((ts) => [...ts, createAssistantTurn()])
+    void run(CHAT_PATH, { thread_id, message: last.message, model: last.model })
+  }, [abortRef, ensureThread, run])
+
+  const stop = useCallback(() => abortRef.current?.abort(), [abortRef])
+
+  const reset = useCallback(() => {
+    abortRef.current?.abort()
+    threadRef.current = null
+    lastChat.current = null
+    setThreadId(null)
+    setTurns([])
+  }, [abortRef])
+
+  return { turns, threadId, isStreaming, send, resume, stop, retry, reset }
+}

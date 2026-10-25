@@ -1,0 +1,151 @@
+"""模型注册表：读取 models.yaml，展开 ${ENV}，能力查询，分组解析。
+
+没有配置 Key（或地址）的模型标记为 unavailable：服务照常启动，分组里自动跳过。
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any, Literal
+
+import yaml
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.compat.errors import GatewayError, capability_mismatch, model_not_found
+
+_ENV_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
+
+
+class Capabilities(BaseModel):
+    """模型能力表。未声明的能力按保守值处理，兼容层据此降级。"""
+
+    model_config = ConfigDict(extra="allow")
+
+    stream: bool = True
+    tools: bool = False
+    stream_tools: bool = False
+    tool_choice_required: bool = False
+    parallel_tool_calls: bool = False
+    json_mode: bool = False
+    json_schema: bool = False
+    seed: bool = False
+    stream_usage: bool = True
+    simple_schema: bool = False  # true = 工具参数 schema 需要简化（去掉 anyOf/default 等）
+    content_parts: bool = False  # true = 支持 content 为数组（多模态分段）
+    max_tokens_param: Literal["max_tokens", "max_completion_tokens"] = "max_tokens"
+    temperature_max: float = 2.0
+    max_output_tokens: int | None = None
+    max_context: int | None = None
+    embeddings: bool = False
+    dims: int | None = None
+
+
+class ModelEntry(BaseModel):
+    alias: str
+    link: Literal["openai_compat", "native"] = "openai_compat"
+    model: str
+    api_base: str = ""
+    api_key: str = ""
+    capabilities: Capabilities = Field(default_factory=Capabilities)
+    available: bool = True
+    unavailable_reason: str | None = None
+
+    @property
+    def litellm_model(self) -> str:
+        """openai_compat 走 LiteLLM 的 openai/ 适配；native 直接用 provider/model 写法。"""
+        return f"openai/{self.model}" if self.link == "openai_compat" else self.model
+
+    @property
+    def is_embedding(self) -> bool:
+        return self.capabilities.embeddings
+
+
+class RegistrySettings(BaseModel):
+    timeout_seconds: float = 30
+    retries: int = 1
+
+
+class Registry(BaseModel):
+    models: dict[str, ModelEntry]
+    groups: dict[str, list[str]] = Field(default_factory=dict)
+    settings: RegistrySettings = Field(default_factory=RegistrySettings)
+
+    def is_group(self, name: str) -> bool:
+        return name in self.groups
+
+    def groups_of(self, alias: str) -> list[str]:
+        return [g for g, members in self.groups.items() if alias in members]
+
+    def resolve(self, name: str, *, needs_tools: bool = False, embedding: bool = False) -> list[ModelEntry]:
+        """别名 → [该模型]；分组 → 按顺序的可用成员（跳过不可用、能力不匹配的，差异 #12）。"""
+        if name in self.groups:
+            members = [self.models[a] for a in self.groups[name] if a in self.models]
+            return [m for m in members if m.available and _fits(m, needs_tools, embedding)]
+        entry = self.models.get(name)
+        if entry is None:
+            raise model_not_found(name)
+        if embedding and not entry.is_embedding:
+            raise capability_mismatch(f"Model '{name}' does not support embeddings")
+        if not embedding and entry.is_embedding:
+            raise capability_mismatch(f"Model '{name}' is an embedding model")
+        if needs_tools and not entry.capabilities.tools:
+            raise capability_mismatch(f"Model '{name}' does not support tool calls")
+        if not entry.available:
+            raise GatewayError(
+                502,
+                50201,
+                f"Model '{name}' is unavailable: {entry.unavailable_reason}",
+                "api_error",
+                "model_unavailable",
+            )
+        return [entry]
+
+
+def _fits(entry: ModelEntry, needs_tools: bool, embedding: bool) -> bool:
+    if embedding != entry.is_embedding:
+        return False
+    return entry.capabilities.tools or not needs_tools
+
+
+def expand_env(value: Any, env: Mapping[str, str]) -> Any:
+    """递归展开字符串里的 ${VAR}；未定义的变量展开为空字符串。"""
+    if isinstance(value, str):
+        return _ENV_PATTERN.sub(lambda m: env.get(m.group(1), ""), value)
+    if isinstance(value, list):
+        return [expand_env(v, env) for v in value]
+    if isinstance(value, dict):
+        return {k: expand_env(v, env) for k, v in value.items()}
+    return value
+
+
+def _availability(entry: dict[str, Any]) -> tuple[bool, str | None]:
+    if not str(entry.get("api_key") or "").strip():
+        return False, "api_key not configured"
+    if entry.get("link", "openai_compat") == "openai_compat" and not str(entry.get("api_base") or "").strip():
+        return False, "api_base not configured"
+    return True, None
+
+
+def parse_registry(raw: Mapping[str, Any], env: Mapping[str, str]) -> Registry:
+    """把 YAML 解析结果 + 环境变量转成 Registry（纯函数，便于测试）。"""
+    data = expand_env(dict(raw), env)
+    models: dict[str, ModelEntry] = {}
+    for item in data.get("models") or []:
+        available, reason = _availability(item)
+        entry = ModelEntry(**item, available=available, unavailable_reason=reason)
+        models[entry.alias] = entry
+    groups = {str(k): [str(a) for a in v] for k, v in (data.get("groups") or {}).items()}
+    for group, members in groups.items():
+        unknown = [a for a in members if a not in models]
+        if unknown:
+            raise ValueError(f"group '{group}' references unknown models: {unknown}")
+    settings = RegistrySettings(**(data.get("settings") or {}))
+    return Registry(models=models, groups=groups, settings=settings)
+
+
+def load_registry(path: Path, env: Mapping[str, str]) -> Registry:
+    with path.open(encoding="utf-8") as f:
+        raw = yaml.safe_load(f) or {}
+    return parse_registry(raw, env)

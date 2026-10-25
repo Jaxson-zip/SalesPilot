@@ -1,0 +1,13 @@
+{
+  "_synthetic": true,
+  "_note": "手写模拟样本（非真实录制）：各家 / LiteLLM 异常的类名、状态码和文本，以及期望映射结果。",
+  "cases": [
+    {"exc": "AuthenticationError", "status": 401, "message": "Incorrect API key provided", "expect_status": 401, "expect_code": "upstream_auth"},
+    {"exc": "RateLimitError", "status": 429, "message": "Requests rate limit exceeded", "expect_status": 429, "expect_code": "rate_limit_exceeded"},
+    {"exc": "ContextWindowExceededError", "status": 400, "message": "This model's maximum context length is 32000 tokens", "expect_status": 400, "expect_code": "context_length_exceeded"},
+    {"exc": "BadRequestError", "status": 400, "message": "Input data may contain inappropriate content. data_inspection_failed", "expect_status": 400, "expect_code": "content_filter"},
+    {"exc": "Timeout", "status": 408, "message": "Request timed out", "expect_status": 504, "expect_code": "timeout"},
+    {"exc": "ServiceUnavailableError", "status": 503, "message": "upstream overloaded", "expect_status": 502, "expect_code": "upstream_error"},
+    {"exc": "APIConnectionError", "status": null, "message": "Connection reset by peer", "expect_status": 502, "expect_code": "upstream_error"}
+  ]
+}

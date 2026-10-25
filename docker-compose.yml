@@ -1,0 +1,75 @@
+# SalesPilot 本地 / 云端统一编排：web · core · gateway · db
+# 用法：cp .env.example .env && docker compose up -d --build
+name: salespilot
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-crm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crm}
+      POSTGRES_DB: ${POSTGRES_DB:-crm}
+    ports:
+      - "5432:5432"            # 本地开发方便连接；云端部署时去掉
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-crm} -d ${POSTGRES_DB:-crm}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  gateway:
+    build: ./services/gateway
+    env_file: .env
+    environment:
+      GATEWAY_MODELS_FILE: /app/models.yaml
+    volumes:
+      - ./services/gateway/models.yaml:/app/models.yaml:ro   # 改注册表不用重建镜像
+    ports:
+      - "8100:8100"            # 云端只在内网暴露
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8100/health').status==200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  core:
+    build: ./services/core
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-crm}:${POSTGRES_PASSWORD:-crm}@db:5432/${POSTGRES_DB:-crm}
+      LLM_GATEWAY_BASE: http://gateway:8100/v1
+      UPLOAD_DIR: /data/uploads
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+  web:
+    build:
+      context: ./apps/web
+      args:
+        # Next.js 的 /api 代理地址在构建时确定，改地址需要重新构建
+        CORE_INTERNAL_URL: http://core:8000
+    environment:
+      CORE_INTERNAL_URL: http://core:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      core:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  uploads:

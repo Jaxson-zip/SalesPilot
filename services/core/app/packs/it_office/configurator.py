@@ -1,0 +1,64 @@
+"""企业办公 IT 配置器（最小版本）：按岗位人数配置电脑，生成三档 BOM。"""
+
+import re
+from pathlib import Path
+from typing import Any
+
+from pydantic import BaseModel
+
+from app.packs.base import TIER_NAMES, BomItem, Catalog, SolutionTier, price_tier
+from app.packs.it_office.requirement import ItOfficeRequirement
+from app.rules import RuleSet, load_rules
+from app.rules.loader import read_yaml
+
+PACK_DIR = Path(__file__).parent
+_OFFICE_RE = re.compile(r"(\d+)\s*(?:个|名|位)?\s*(?:行政|办公|普通)")
+_DESIGN_RE = re.compile(r"(\d+)\s*(?:个|名|位)?\s*设计")
+
+
+class ItOfficeConfigurator:
+    requirement_model: type[BaseModel] = ItOfficeRequirement
+
+    def __init__(self) -> None:
+        self.catalog = Catalog.from_file(PACK_DIR / "catalog.json")
+        self.rules: RuleSet = load_rules(PACK_DIR / "rules.yaml")
+        self.params: dict[str, Any] = read_yaml(PACK_DIR / "rules.yaml")["pack"]
+
+    def draft_requirement(self, text: str) -> dict[str, Any]:
+        draft: dict[str, Any] = {}
+        if m := _OFFICE_RE.search(text):
+            draft["office_staff"] = int(m.group(1))
+        if m := _DESIGN_RE.search(text):
+            draft["designers"] = int(m.group(1))
+        return draft
+
+    def configure(self, req: BaseModel, hint: str | None = None) -> list[SolutionTier]:
+        r = ItOfficeRequirement.model_validate(req.model_dump())
+        tiers = [self._build_tier(t, r) for t in ("economy", "standard", "premium")]
+        return [price_tier(t, self.rules) for t in tiers]
+
+    def _build_tier(self, tier_id: str, r: ItOfficeRequirement) -> SolutionTier:
+        cfg = self.params["tiers"][tier_id]
+        items: list[BomItem] = []
+        if r.office_staff:
+            items.append(self.catalog.line(cfg["office"], r.office_staff))
+        if r.designers:
+            items.append(self.catalog.line(cfg["design"], r.designers))
+            if cfg["monitor_for_design"]:
+                items.append(self.catalog.line("MON-27-4K", r.designers))
+        seats = r.office_staff + r.designers
+        items.append(self.catalog.line("SVC-INSTALL", seats))
+        if cfg["warranty"]:
+            items.append(self.catalog.line("SVC-WARRANTY-3Y", seats))
+        return SolutionTier(
+            tier=tier_id,  # type: ignore[arg-type]
+            name=TIER_NAMES[tier_id],
+            summary=f"{r.office_staff} 台办公机 + {r.designers} 台设计工作站",
+            items=items,
+            recommended=tier_id == "standard",
+            specs={"seats": seats},
+        )
+
+
+def create_configurator() -> ItOfficeConfigurator:
+    return ItOfficeConfigurator()

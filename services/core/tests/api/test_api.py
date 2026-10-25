@@ -1,0 +1,127 @@
+"""接口测试（不需要数据库）：health、docs、假登录、/api/me、占位接口、规则接口、Agent SSE。"""
+
+from typing import Any
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.agent import service
+from app.common.auth import Role
+from tests.conftest import auth_header
+
+
+def test_health(client: TestClient) -> None:
+    r = client.get("/health")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["code"] == 0 and body["data"]["status"] in {"ok", "degraded"}
+    assert isinstance(body["data"]["db"], bool)
+
+
+def test_openapi_and_docs(client: TestClient) -> None:
+    assert client.get("/docs").status_code == 200
+    paths = client.get("/openapi.json").json()["paths"]
+    assert {"/api/auth/mock-login", "/api/me", "/api/customers", "/api/agent/chat"} <= set(paths)
+
+
+@pytest.mark.parametrize("role", ["sales", "manager", "admin"])
+def test_mock_login(client: TestClient, role: str) -> None:
+    r = client.post("/api/auth/mock-login", json={"role": role})
+    assert r.status_code == 200
+    data = r.json()["data"]
+    assert data["token"] and data["user"]["role"] == role
+    assert set(data["user"]) == {"id", "name", "role", "team_id"}
+
+
+def test_mock_login_invalid_role(client: TestClient) -> None:
+    r = client.post("/api/auth/mock-login", json={"role": "root"})
+    assert r.status_code == 400 and r.json()["code"] == 40001
+
+
+def test_me(client: TestClient) -> None:
+    token = client.post("/api/auth/mock-login", json={"role": "sales"}).json()["data"]["token"]
+    r = client.get("/api/me", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200 and r.json()["data"]["name"] == "张晨"
+
+
+@pytest.mark.parametrize("header", [{}, {"Authorization": "Bearer bad"}])
+def test_me_unauthorized(client: TestClient, header: dict[str, str]) -> None:
+    r = client.get("/api/me", headers=header)
+    assert r.status_code == 401 and r.json()["code"] == 40101
+
+
+def test_stub_returns_501(client: TestClient) -> None:
+    r = client.get("/api/quotes", headers=auth_header(Role.SALES))
+    assert r.status_code == 501
+    assert r.json()["code"] == 50101 and r.json()["message"] == "未实现"
+
+
+def test_approvals_forbidden_for_sales(client: TestClient) -> None:
+    r = client.get("/api/approvals", headers=auth_header(Role.SALES))
+    assert r.status_code == 403 and r.json()["code"] == 40301
+
+
+def test_packs(client: TestClient) -> None:
+    r = client.get("/api/packs", headers=auth_header(Role.ADMIN))
+    assert {p["id"] for p in r.json()["data"]} >= {"llm_deploy", "it_office"}
+
+
+def test_commission_estimate(client: TestClient) -> None:
+    body = {"lines": [{"category": "hardware", "amount": 10_000_000}], "margin_rate": 0.2}
+    r = client.post("/api/commissions/estimate", json=body, headers=auth_header(Role.SALES))
+    assert r.json()["data"]["estimated"] == 150_000 and r.json()["data"]["halved"]
+
+
+def test_expense_precheck(client: TestClient) -> None:
+    body = {"type": "entertainment", "amount": 86_000, "headcount": 4, "occurred_on": "2026-10-24"}
+    r = client.post("/api/expenses/precheck", json=body, headers=auth_header(Role.SALES))
+    assert r.json()["data"]["need_approval"] and r.json()["data"]["over_amount"] == 26_000
+    bad = client.post(
+        "/api/expenses/precheck", json={**body, "amount": 0}, headers=auth_header(Role.SALES)
+    )
+    assert bad.json()["code"] == 40001
+
+
+@pytest.fixture
+def offline_agent(monkeypatch: pytest.MonkeyPatch, fake_quotes: None) -> None:
+    monkeypatch.setattr(service, "make_pack_resolver", lambda user: lambda _opp: "llm_deploy")
+    monkeypatch.setattr(service, "get_chat_model", lambda *a, **k: None)
+
+
+def test_agent_chat_and_resume_sse(
+    client: TestClient, offline_agent: None, sse_parser: Any
+) -> None:
+    headers = auth_header(Role.SALES)
+    body = {"thread_id": "api-t1", "message": "给明理律所出 Qwen3-32B 方案，50 人并发"}
+    r = client.post("/api/agent/chat", json=body, headers=headers)
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/event-stream")
+    events = sse_parser(r.text)
+    assert [e for e, _ in events][-2:] == ["interrupt", "done"]
+
+    r = client.post(
+        "/api/agent/resume", json={"thread_id": "api-t1", "decision": "approve"}, headers=headers
+    )
+    events = sse_parser(r.text)
+    assert ("artifact", "quote") in [(e, d.get("type")) for e, d in events]
+    assert events[-1] == ("done", {"thread_id": "api-t1"})
+
+
+def test_agent_resume_unknown_thread(client: TestClient, offline_agent: None) -> None:
+    r = client.post(
+        "/api/agent/resume",
+        json={"thread_id": "nope", "decision": "approve"},
+        headers=auth_header(Role.SALES),
+    )
+    assert r.status_code == 404 and r.json()["code"] == 40401
+
+
+def test_agent_chat_requires_login(client: TestClient) -> None:
+    r = client.post("/api/agent/chat", json={"thread_id": "t", "message": "hi"})
+    assert r.json()["code"] == 40101
+
+
+def test_agent_chat_validation(client: TestClient) -> None:
+    r = client.post(
+        "/api/agent/chat", json={"thread_id": "t", "message": ""}, headers=auth_header(Role.SALES)
+    )
+    assert r.json()["code"] == 40001

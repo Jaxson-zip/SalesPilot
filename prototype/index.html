@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SalesPilot 原型</title>
+<!--
+  UI 原型 v3
+  · CRM 页面布局参考 Twenty（左侧灰底导航 + 白色圆角内容面板 + 网格表格 + 记录详情页）
+  · 控件样式参考 shadcn/ui（Select / Combobox / DatePicker / DropdownMenu / Sheet / Command / Toast）
+  · AI 会话页参考 DeepSeek 布局 + Ant Design X 的思维链 / 工具调用卡片，回复为流式输出
+  正式开发：Next.js + Tailwind + shadcn/ui + lucide-react，组件名与原型「开发标注」一致
+-->
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter','"PingFang SC"','"Microsoft YaHei"','system-ui','sans-serif'] } } } }
+</script>
+<style>
+  body { background:#f1f1f1; }
+  svg.lucide { stroke-width: 1.75; }
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .fade-in { animation: fade .25s ease-out; }
+  @keyframes fade { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform:none; } }
+  .caret::after { content:'▍'; margin-left:1px; color:#a1a1aa; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity:0; } }
+  /* shadcn Checkbox */
+  input.cb { appearance:none; width:14px; height:14px; border:1px solid #d4d4d8; border-radius:4px; background:#fff; cursor:pointer; vertical-align:middle; }
+  input.cb:checked { background:#18181b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center/10px no-repeat; border-color:#18181b; }
+  .anno { display:none; }
+  body.show-anno .anno { display:inline-flex; }
+  ::-webkit-scrollbar { width:8px; height:8px; } ::-webkit-scrollbar-thumb { background:#d4d4d8; border-radius:4px; }
+  /* 侧边栏：展开 220 / 图标栏 56 / 抽屉（<1024） */
+  #sidebar { transition: width .2s ease, transform .2s ease; }
+  /* 小屏：标题行里带图标的按钮只显示图标 */
+  @media (max-width: 639px) {
+    .frame-actions .has-icon .btn-label, .vb-label { display:none; }
+    .frame-actions .has-icon { width:32px; padding:0; }
+  }
+</style>
+</head>
+<!-- 响应式：≥1280 完整布局 · 1024–1279 侧栏收成图标栏 · <1024 侧栏改为抽屉 · <640 手机布局 -->
+<body class="font-sans text-zinc-800 text-[13px] antialiased">
+
+<div class="flex h-[100dvh] overflow-hidden">
+  <!-- ========== 导航 Sidebar（Twenty 风格：灰底、紧凑；可折叠） ========== -->
+  <div id="navMask" class="fixed inset-0 bg-black/30 z-40" style="display:none" onclick="setDrawer(false)"></div>
+  <aside id="sidebar" class="shrink-0 flex flex-col py-2.5 bg-[#f1f1f1]">
+    <div id="wsSwitch" class="mb-3"></div>
+    <nav id="nav" class="flex-1 overflow-y-auto overflow-x-hidden"></nav>
+    <div id="userCard"></div>
+  </aside>
+
+  <!-- ========== 主区域：页面 + 可选 AI 侧栏 ========== -->
+  <main id="main" class="flex-1 min-w-0 flex gap-2 py-2 pr-2">
+    <div id="page" class="flex-1 min-w-0"></div>
+    <!-- ≥1280 停靠在右侧；更窄时浮在页面上方 -->
+    <aside id="agent" class="w-[380px] max-w-[calc(100vw-16px)] shrink-0 bg-white border border-zinc-200 rounded-lg flex-col overflow-hidden fixed right-2 top-2 bottom-2 z-30 shadow-xl xl:static xl:shadow-none" style="display:none"></aside>
+  </main>
+</div>
+
+<!-- Sheet 抽屉 -->
+<div id="sheetMask" class="fixed inset-0 bg-black/20 z-40" style="display:none" onclick="closeSheet()"></div>
+<div id="sheet" class="fixed top-2 right-2 bottom-2 left-2 sm:left-auto sm:w-[440px] bg-white border border-zinc-200 rounded-lg shadow-xl z-50 flex-col" style="display:none"></div>
+<!-- Command 命令面板 -->
+<div id="palette" class="fixed inset-0 bg-black/20 z-50 items-start justify-center pt-16 sm:pt-28" style="display:none" onclick="if(event.target===this) closePalette()"></div>
+
+<script>
+/* ======================================================================
+   状态
+   ====================================================================== */
+const state = { role:'sales', pack:'大模型部署', model:'混元', agentOpen:false, path:'/dashboard', aiView:'chat', streaming:false, drawer:false, aiHist:false, stage:2 };
+/* 侧边栏折叠偏好：用户手动切换后记住；没有偏好时 <1280 默认收起 */
+let sidePref = null;
+try { const v = localStorage.getItem('sp.sidebar'); if (v) sidePref = v; } catch (e) {}
+const isDrawerMode = () => innerWidth < 1024;
+const isCollapsed = () => !isDrawerMode() && (sidePref ? sidePref === 'collapsed' : innerWidth < 1280);
+/* 角色与数据范围：销售看本人 · 主管看本团队 · 管理员看全部并负责系统配置（行业包、业务规则） */
+const USERS = { sales:{name:'张晨', role:'销售', scope:'本人'}, manager:{name:'李薇', role:'销售主管', scope:'华南销售组'}, admin:{name:'周敏', role:'系统管理员', scope:'全公司'} };
+const isLead = () => state.role !== 'sales';
+const icons = () => lucide.createIcons();
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let uid = 0; const nid = p => p + (uid++);
+
+/* ======================================================================
+   基础组件（对应 shadcn/ui · components/ui）
+   ====================================================================== */
+const I = (n, c='w-4 h-4') => `<i data-lucide="${n}" class="${c}"></i>`;
+const anno = n => `<span class="anno text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded ml-1.5 font-normal align-middle">${n}</span>`;
+
+/* Button：variant default | outline | secondary | ghost | destructive；size sm | md | icon */
+function Btn(text, o={}) {
+  const v = { default:'bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm', outline:'border border-zinc-200 bg-white hover:bg-zinc-100 shadow-sm', secondary:'bg-zinc-100 hover:bg-zinc-200', ghost:'hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900', destructive:'bg-red-600 text-white hover:bg-red-700', ai:'bg-violet-600 text-white hover:bg-violet-700 shadow-sm' }[o.v||'outline'];
+  const s = { sm:'h-8 px-3 gap-1.5', xs:'h-7 px-2 gap-1 text-[12px]', md:'h-9 px-4 gap-2', icon:'h-8 w-8', iconSm:'h-7 w-7' }[o.size||'sm'];
+  const inner = (o.icon ? I(o.icon, o.size==='xs'||o.size==='iconSm'?'w-3.5 h-3.5':'w-4 h-4') : '') + (text ? `<span class="btn-label">${text}</span>` : '');
+  const cls = `inline-flex items-center justify-center rounded-md font-medium whitespace-nowrap transition-colors ${v} ${s} ${o.icon&&text?'has-icon':''} ${o.cls||''}`;
+  if (o.icon && text && !o.title) o.title = text.replace(/<[^>]+>/g,'');
+  const title = o.title ? ` title="${o.title}"` : '';
+  return o.href ? `<a href="${o.href}" class="${cls}"${title}>${inner}</a>` : `<button onclick="${o.onclick||''}" class="${cls}"${title}>${inner}</button>`;
+}
+
+/* Tag（Twenty 风格浅色标签） */
+const TAG = { gray:'bg-zinc-100 text-zinc-700', blue:'bg-blue-100 text-blue-700', green:'bg-emerald-100 text-emerald-700', orange:'bg-orange-100 text-orange-700', red:'bg-red-100 text-red-700', purple:'bg-violet-100 text-violet-700', yellow:'bg-amber-100 text-amber-800', sky:'bg-sky-100 text-sky-700' };
+const Tag = (t, c='gray') => `<span class="inline-flex items-center h-5 px-1.5 rounded text-[12px] whitespace-nowrap ${TAG[c]}">${t}</span>`;
+/* Chip（关联对象：头像 + 名称） */
+const AV = { 张:'bg-sky-100 text-sky-700', 李:'bg-pink-100 text-pink-700', 王:'bg-amber-100 text-amber-700', 陈:'bg-emerald-100 text-emerald-700', 周:'bg-indigo-100 text-indigo-700', AI:'bg-violet-100 text-violet-700' };
+const Avatar = (n, size='w-4 h-4 text-[9px]', round='rounded-full') => n==='AI' ? `<span class="${size} ${round} ${AV.AI} inline-flex items-center justify-center shrink-0">${I('sparkles','w-2.5 h-2.5')}</span>` : `<span class="${size} ${round} ${AV[n[0]]||'bg-zinc-200 text-zinc-600'} inline-flex items-center justify-center font-medium shrink-0">${n[0]}</span>`;
+const Chip = (n, {icon, logo}={}) => `<span class="inline-flex items-center gap-1 h-5 pl-0.5 pr-1.5 rounded bg-zinc-100 text-zinc-700 whitespace-nowrap">${logo ? `<span class="w-4 h-4 rounded-sm bg-white border border-zinc-200 text-[9px] font-semibold inline-flex items-center justify-center">${logo}</span>` : icon ? `<span class="w-4 h-4 inline-flex items-center justify-center text-zinc-500">${I(icon,'w-3 h-3')}</span>` : Avatar(n)}${n}</span>`;
+const Clip = n => `<span class="inline-flex items-center gap-1 h-5 px-1.5 rounded bg-zinc-100 text-zinc-600">${I('paperclip','w-3 h-3')}${n}</span>`;
+const LinkChip = t => `<span class="inline-flex items-center h-5 px-2 rounded-full border border-zinc-200 text-zinc-600 whitespace-nowrap">${t}</span>`;
+
+const Input = (o={}) => `<div class="relative">${o.prefix?`<span class="absolute left-3 top-0 h-9 flex items-center text-zinc-400">${o.prefix}</span>`:''}<input value="${o.value||''}" placeholder="${o.ph||''}" class="w-full h-9 ${o.prefix?'pl-7':'pl-3'} pr-3 rounded-md border border-zinc-200 bg-white shadow-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400"></div>`;
+const Textarea = (v='', ph='') => `<textarea rows="3" placeholder="${ph}" class="w-full px-3 py-2 rounded-md border border-zinc-200 shadow-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 resize-none">${v}</textarea>`;
+const Field = (label, ctrl, hint='') => `<div class="space-y-1.5"><label class="text-[13px] font-medium">${label}</label>${ctrl}${hint?`<p class="text-[12px] text-zinc-500">${hint}</p>`:''}</div>`;
+const Alert = (tone, title, body='') => {
+  const t = { warn:['border-amber-200 bg-amber-50 text-amber-900','triangle-alert'], info:['border-zinc-200 bg-white text-zinc-800','info'], ai:['border-violet-200 bg-violet-50 text-violet-900','sparkles'], ok:['border-emerald-200 bg-emerald-50 text-emerald-900','circle-check'] }[tone];
+  return `<div class="flex gap-2.5 rounded-lg border px-3.5 py-3 ${t[0]}">${I(t[1],'w-4 h-4 mt-0.5 shrink-0')}<div><div class="font-medium">${title}</div>${body?`<div class="mt-0.5 opacity-80">${body}</div>`:''}</div></div>`;
+};
+let swSeq = 0;
+const Switch = (on=false) => { const id = 'sw'+(swSeq++); return `<button id="${id}" onclick="this.dataset.on = this.dataset.on==='1'?'0':'1'; this.className = switchCls(this.dataset.on==='1'); this.firstChild.className = knobCls(this.dataset.on==='1')" data-on="${on?1:0}" class="${switchCls(on)}"><span class="${knobCls(on)}"></span></button>`; };
+const switchCls = on => `inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${on?'bg-zinc-900':'bg-zinc-200'}`;
+const knobCls = on => `h-4 w-4 rounded-full bg-white shadow transition-transform ${on?'translate-x-4':''}`;
+const Kbd = k => `<kbd class="text-[10px] text-zinc-400 border border-zinc-200 bg-white rounded px-1 font-sans">${k}</kbd>`;
+
+/* ---------- Popover 引擎（Select / Combobox / DatePicker / DropdownMenu 共用） ---------- */
+let popEl = null, popOwner = null;
+function openPop(trigger, html, {align='start', width}={}) {
+  closePop();
+  const r = trigger.getBoundingClientRect();
+  popEl = document.createElement('div');
+  popEl.className = 'fixed z-[60] bg-white border border-zinc-200 rounded-md shadow-lg p-1 fade-in';
+  popEl.style.minWidth = (width || r.width) + 'px';
+  popEl.innerHTML = html;
+  document.body.appendChild(popEl);
+  const pw = popEl.offsetWidth, ph = popEl.offsetHeight;
+  let top = r.bottom + 4; if (top + ph > innerHeight - 8) top = r.top - ph - 4;
+  let left = align==='end' ? r.right - pw : r.left; left = Math.max(8, Math.min(left, innerWidth - pw - 8));
+  popEl.style.top = top + 'px'; popEl.style.left = left + 'px';
+  popOwner = trigger; icons();
+}
+function closePop(){ if (popEl) { popEl.remove(); popEl = null; popOwner = null; } }
+document.addEventListener('mousedown', e => { if (popEl && !popEl.contains(e.target) && !(popOwner && popOwner.contains(e.target))) closePop(); });
+
+const triggerCls = (size, variant) => variant==='pill'
+  ? 'inline-flex items-center gap-1.5 h-8 px-3 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 text-[12px] text-zinc-700'
+  : `w-full inline-flex items-center justify-between gap-2 ${size==='sm'?'h-8':'h-9'} px-3 rounded-md border border-zinc-200 bg-white shadow-sm hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-300 text-left`;
+const optCls = 'w-full flex items-center gap-2 rounded-sm px-2 h-8 hover:bg-zinc-100 text-left';
+
+/* Select */
+const SEL = {};
+function Select(options, value, o={}) {
+  const id = nid('sel'); SEL[id] = { options, value, onchange:o.onchange };
+  const lead = o.icon ? I(o.icon,'w-3.5 h-3.5 text-zinc-500') : '';
+  const label = `<span data-label class="truncate ${value?'':'text-zinc-400'}">${o.prefix||''}${value||o.ph||'请选择'}</span>`;
+  return `<div class="${o.variant==='pill'?'inline-block':'w-full'}"><button id="${id}" onclick="openSelect('${id}')" class="${triggerCls(o.size, o.variant)}" data-prefix="${o.prefix||''}">${o.variant==='pill'?lead+label:`<span class="flex items-center gap-2 min-w-0">${lead}${label}</span>`}${I('chevron-down','w-3.5 h-3.5 opacity-50 shrink-0')}</button></div>`;
+}
+function openSelect(id) {
+  const s = SEL[id];
+  openPop(document.getElementById(id), s.options.map(op => op==='-' ? '<div class="h-px bg-zinc-100 -mx-1 my-1"></div>' :
+    `<button onclick="pickSelect('${id}','${op}')" class="${optCls} justify-between"><span>${op}</span>${op===s.value?I('check','w-4 h-4'):''}</button>`).join(''), { width: 180 });
+}
+function pickSelect(id, v) {
+  const s = SEL[id]; s.value = v; const el = document.getElementById(id);
+  const lb = el.querySelector('[data-label]'); lb.textContent = (el.dataset.prefix||'') + v; lb.classList.remove('text-zinc-400');
+  closePop(); if (s.onchange) s.onchange(v);
+}
+
+/* Combobox（带搜索的选择器） */
+const CMB = {};
+function Combobox(options, value, o={}) {
+  const id = nid('cmb'); CMB[id] = { options, value, ph:o.search||'搜索…' };
+  return `<button id="${id}" onclick="openCombo('${id}')" class="${triggerCls(o.size)}"><span data-label class="truncate ${value?'':'text-zinc-400'}">${value||o.ph||'请选择'}</span>${I('chevrons-up-down','w-3.5 h-3.5 opacity-50 shrink-0')}</button>`;
+}
+function openCombo(id) {
+  const c = CMB[id];
+  openPop(document.getElementById(id), `
+    <div class="flex items-center gap-2 px-2 h-9 -mx-1 -mt-1 mb-1 border-b border-zinc-100">${I('search','w-4 h-4 opacity-50')}<input oninput="filterCombo(this)" class="flex-1 outline-none bg-transparent" placeholder="${c.ph}"></div>
+    <div class="max-h-60 overflow-y-auto">${c.options.map(op => `<button data-opt="${op}" onclick="pickCombo('${id}','${op}')" class="${optCls}">${I('check','w-4 h-4 '+(op===c.value?'':'opacity-0'))}${op}</button>`).join('')}</div>
+    <div data-empty class="hidden py-6 text-center text-zinc-500">没有匹配的结果</div>`);
+  popEl.querySelector('input').focus();
+}
+function filterCombo(inp) {
+  let n = 0; popEl.querySelectorAll('[data-opt]').forEach(b => { const ok = b.dataset.opt.includes(inp.value.trim()); b.style.display = ok ? '' : 'none'; if (ok) n++; });
+  popEl.querySelector('[data-empty]').classList.toggle('hidden', n > 0);
+}
+function pickCombo(id, v) { CMB[id].value = v; const lb = document.getElementById(id).querySelector('[data-label]'); lb.textContent = v; lb.classList.remove('text-zinc-400'); closePop(); }
+
+/* DatePicker */
+const DTP = {};
+function DatePicker(value, o={}) {
+  const [y, m] = (value || '2026-10-24').split('-').map(Number);
+  const id = nid('dtp'); DTP[id] = { value, y, m: m-1 };
+  return `<button id="${id}" onclick="openDate('${id}')" class="${triggerCls(o.size).replace('justify-between','justify-start')}">${I('calendar','w-4 h-4 opacity-50')}<span data-label class="${value?'':'text-zinc-400'}">${value||'选择日期'}</span></button>`;
+}
+function calHtml(id) {
+  const d = DTP[id], first = new Date(d.y, d.m, 1).getDay(), days = new Date(d.y, d.m+1, 0).getDate();
+  let cells = '<span></span>'.repeat(first);
+  for (let i = 1; i <= days; i++) {
+    const ds = `${d.y}-${String(d.m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+    const sel = ds === d.value, today = ds === '2026-10-24';
+    cells += `<button onclick="pickDate('${id}','${ds}')" class="h-8 w-8 rounded-md tabular-nums ${sel?'bg-zinc-900 text-white':today?'bg-zinc-100 font-semibold':'hover:bg-zinc-100'}">${i}</button>`;
+  }
+  return `<div class="p-2 w-[256px]">
+    <div class="flex items-center justify-between mb-2">
+      <button onclick="shiftCal('${id}',-1)" class="h-7 w-7 rounded-md border border-zinc-200 inline-flex items-center justify-center hover:bg-zinc-100">${I('chevron-left','w-4 h-4')}</button>
+      <span class="font-medium">${d.y} 年 ${d.m+1} 月</span>
+      <button onclick="shiftCal('${id}',1)" class="h-7 w-7 rounded-md border border-zinc-200 inline-flex items-center justify-center hover:bg-zinc-100">${I('chevron-right','w-4 h-4')}</button>
+    </div>
+    <div class="grid grid-cols-7 place-items-center text-[11px] text-zinc-400 mb-1">${'日一二三四五六'.split('').map(x=>`<span class="h-6 leading-6">${x}</span>`).join('')}</div>
+    <div class="grid grid-cols-7 place-items-center gap-y-0.5">${cells}</div></div>`;
+}
+function openDate(id) { openPop(document.getElementById(id), calHtml(id)); }
+function shiftCal(id, n) { const d = DTP[id]; d.m += n; if (d.m < 0) { d.m = 11; d.y--; } if (d.m > 11) { d.m = 0; d.y++; } popEl.innerHTML = calHtml(id); icons(); }
+function pickDate(id, v) { DTP[id].value = v; const lb = document.getElementById(id).querySelector('[data-label]'); lb.textContent = v; lb.classList.remove('text-zinc-400'); closePop(); }
+
+/* DropdownMenu：items = [{label, icon, kbd, danger, onclick} | '-' | {title}] */
+const MENU = {};
+function Menu(triggerHtml, items, o={}) {
+  const id = nid('menu'); MENU[id] = { items, align:o.align||'start', width:o.width||200 };
+  return `<button id="${id}" onclick="openMenu('${id}')" class="${o.cls||''}" ${o.title?`title="${o.title}"`:''}>${triggerHtml}</button>`;
+}
+function openMenu(id) {
+  const m = MENU[id];
+  openPop(document.getElementById(id), m.items.map(it => it==='-' ? '<div class="h-px bg-zinc-100 -mx-1 my-1"></div>'
+    : it.title ? `<div class="px-2 py-1.5 text-[12px] text-zinc-500">${it.title}</div>`
+    : `<button onclick="closePop(); ${it.onclick||''}" class="${optCls} ${it.danger?'text-red-600':''}">${it.icon?I(it.icon,'w-4 h-4 '+(it.danger?'':'text-zinc-500')):''}<span class="flex-1">${it.label}</span>${it.check?I('check','w-4 h-4'):''}${it.kbd?`<span class="text-[11px] text-zinc-400">${it.kbd}</span>`:''}</button>`).join(''), { align:m.align, width:m.width });
+}
+
+/* Tabs */
+const Tabs = (items, active=0, o={}) => `<div class="flex items-center gap-0.5 sm:gap-1 shrink-0 ${o.cls||'px-3 h-10 border-b border-zinc-200'}">${items.map((t,i)=>{ const [label, icon] = Array.isArray(t)?t:[t]; return `<button title="${label}" class="relative h-10 px-2 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 ${i===active?'text-zinc-900 font-medium after:absolute after:left-0 after:right-0 after:-bottom-px after:h-0.5 after:bg-zinc-900':'text-zinc-500 hover:text-zinc-800'}">${icon?I(icon,'w-3.5 h-3.5 shrink-0'):''}<span class="${icon&&i!==active?'hidden sm:inline':''}">${label}</span></button>`; }).join('')}</div>`;
+/* Segmented（shadcn Tabs 的 pill 形态） */
+const Segmented = (items, active=0) => `<div class="inline-flex h-8 items-center rounded-lg bg-zinc-100 p-0.5">${items.map((t,i)=>`<button class="h-7 px-3 rounded-md ${i===active?'bg-white shadow-sm font-medium':'text-zinc-500 hover:text-zinc-800'}">${t}</button>`).join('')}</div>`;
+
+/* Toast（sonner 风格） */
+function toast(msg, desc='') {
+  const t = document.createElement('div');
+  t.className = 'fixed bottom-4 right-4 z-[80] w-[340px] bg-white border border-zinc-200 shadow-lg rounded-lg px-4 py-3 flex gap-2.5 fade-in';
+  t.innerHTML = I('circle-check','w-4 h-4 text-emerald-600 mt-0.5') + `<div><div class="font-medium">${msg}</div>${desc?`<div class="text-zinc-500 mt-0.5">${desc}</div>`:''}</div>`;
+  document.body.appendChild(t); icons(); setTimeout(() => t.remove(), 2800);
+}
+
+/* ======================================================================
+   Twenty 风格页面结构（components/biz/layout）
+   ====================================================================== */
+/* 页面：灰底标题行 + 白色圆角面板 */
+const Frame = (title, icon, actions, body, o={}) => `
+  <div class="h-full flex flex-col">
+    <div class="h-10 shrink-0 flex items-center gap-2 px-1 mb-1 min-w-0">
+      <button onclick="setDrawer(true)" class="lg:hidden h-8 w-8 -ml-1 rounded-md hover:bg-black/5 inline-flex items-center justify-center text-zinc-600 shrink-0" title="打开导航">${I('menu','w-4 h-4')}</button>
+      <div class="min-w-0 truncate">${o.crumb || `<span class="inline-flex items-center gap-1.5 font-medium text-zinc-800">${I(icon,'w-4 h-4 text-zinc-500')}${title}</span>`}${anno(o.name||'PageFrame')}</div>
+      <div class="flex-1"></div><div class="frame-actions flex items-center gap-1.5 shrink-0">${actions}</div>
+    </div>
+    <div class="flex-1 min-h-0 bg-white border border-zinc-200 rounded-lg overflow-hidden flex flex-col">${body}</div>
+  </div>`;
+const Crumb = (parentLabel, parentHref, icon, current) => `<span class="inline-flex items-center gap-1.5 text-zinc-500"><a href="${parentHref}" class="inline-flex items-center gap-1.5 hover:text-zinc-800">${I(icon,'w-4 h-4')}${parentLabel}</a>${I('chevron-right','w-3.5 h-3.5 text-zinc-300')}<span class="font-medium text-zinc-800">${current}</span></span>`;
+
+/* ViewBar：视图切换 + 筛选 / 排序 / 选项 */
+const ghostXs = (t, ic) => `<span class="inline-flex items-center gap-1 h-7 px-2 rounded-md text-zinc-600 hover:bg-zinc-100" title="${t}">${I(ic,'w-3.5 h-3.5')}<span class="vb-label">${t}</span></span>`;
+const ViewBar = (view, count, views, fields) => `
+  <div class="h-10 shrink-0 flex items-center justify-between px-2 border-b border-zinc-200">
+    ${Menu(`${I('list','w-3.5 h-3.5 text-zinc-500')}<span class="font-medium">${view}</span><span class="text-zinc-400">· ${count}</span>${I('chevron-down','w-3.5 h-3.5 text-zinc-400')}`,
+      [{title:'视图'}, ...views.map((v,i)=>({label:v, icon:'list', check:i===0})), '-', {label:'新建视图', icon:'plus'}],
+      {cls:'inline-flex items-center gap-1.5 h-7 px-2 rounded-md hover:bg-zinc-100'})}
+    <div class="flex items-center">${anno('ViewBar')}
+      ${Menu(ghostXs('筛选','list-filter'), [{title:'按字段筛选'}, ...fields.map(f=>({label:f[0], icon:f[1]}))], {align:'end'})}
+      ${Menu(ghostXs('排序','arrow-down-up'), [{label:'最近跟进（新→旧）', icon:'arrow-down', check:true},{label:'金额（高→低）', icon:'arrow-down'},{label:'创建时间', icon:'arrow-down'}], {align:'end'})}
+      ${Menu(ghostXs('选项','settings-2'), [{label:'字段显示', icon:'columns-3'},{label:'导入', icon:'upload'},{label:'导出 CSV', icon:'download'}], {align:'end'})}
+    </div>
+  </div>`;
+
+/* Twenty 网格表格：cols = [{label, icon, r(右对齐), w, lg(次要列：<1024 隐藏)}]
+   响应式：≥768 表格（次要列在平板上隐藏，避免横向滚动）；<768 改为卡片列表 */
+const Grid = (cols, rows, name='DataGrid') => {
+  const st = cols.findIndex(c => c.label === '状态');
+  const hide = c => c.lg ? 'hidden lg:table-cell' : '';
+  return `
+  <div class="flex-1 overflow-y-auto hidden md:block">
+  <table class="w-full border-collapse">
+    <thead class="sticky top-0 bg-white z-10"><tr class="h-8 text-zinc-500">
+      <th class="w-9 border-b border-zinc-200"><input type="checkbox" class="cb"></th>
+      ${cols.map(c=>`<th class="font-normal text-left px-2 border-b border-r border-zinc-200 whitespace-nowrap ${c.w||''} ${hide(c)} hover:bg-zinc-50 cursor-pointer"><span class="inline-flex items-center gap-1.5 ${c.r?'justify-end w-full':''}">${I(c.icon,'w-3.5 h-3.5')}${c.label}</span></th>`).join('')}
+      <th class="border-b border-zinc-200 px-2 text-left text-zinc-400 w-8">${I('plus','w-3.5 h-3.5')}</th>
+    </tr></thead>
+    <tbody>
+      ${rows.map(r=>`<tr class="h-[34px] hover:bg-zinc-50">
+        <td class="border-b border-zinc-100 text-center"><input type="checkbox" class="cb"></td>
+        ${r.map((v,i)=>`<td class="px-2 border-b border-r border-zinc-100 whitespace-nowrap ${hide(cols[i])} ${cols[i].r?'text-right tabular-nums':''}">${v}</td>`).join('')}
+        <td class="border-b border-zinc-100"></td></tr>`).join('')}
+      <tr class="h-[34px] text-zinc-400"><td class="border-b border-zinc-100"></td><td colspan="${cols.length+1}" class="px-2 border-b border-zinc-100"><button class="inline-flex items-center gap-1.5 hover:text-zinc-700">${I('plus','w-3.5 h-3.5')}新增一条</button></td></tr>
+    </tbody>
+  </table></div>
+  <!-- 手机：卡片列表（第一列作标题，状态放右上角，其余字段两列排布） -->
+  <div class="flex-1 overflow-y-auto md:hidden divide-y divide-zinc-100">${anno('DataGrid · 手机卡片')}
+    ${rows.map(r=>`<div class="px-3 py-3 active:bg-zinc-50">
+      <div class="flex items-center justify-between gap-2"><div class="min-w-0 truncate font-medium">${r[0]}</div>${st>=0?`<div class="shrink-0">${r[st]}</div>`:''}</div>
+      <div class="grid grid-cols-2 gap-x-3 gap-y-2 mt-2.5">${r.map((v,i)=> i===0||i===st ? '' : `<div class="min-w-0"><div class="text-[11px] text-zinc-400">${cols[i].label}</div><div class="truncate mt-0.5 ${cols[i].r?'tabular-nums':''}">${v}</div></div>`).join('')}</div>
+    </div>`).join('')}
+  </div>
+  <div class="h-8 shrink-0 flex items-center justify-between px-3 border-t border-zinc-200 text-zinc-500 text-[12px]"><span>共 ${rows.length} 条${anno(name)}</span><span class="hidden md:inline">已选 0 条</span></div>`;
+};
+
+/* 记录详情左侧字段行 */
+const FieldRow = (icon, label, value) => `<div class="flex items-center min-h-[32px]"><span class="w-[104px] shrink-0 inline-flex items-center gap-1.5 text-zinc-500">${I(icon,'w-3.5 h-3.5')}${label}</span><div class="flex-1 min-w-0 px-1.5 py-1 rounded hover:bg-zinc-100 cursor-pointer">${value}</div></div>`;
+
+/* ======================================================================
+   AI 对话组件（DeepSeek 布局 + Ant Design X 思维链）· components/biz/agent
+   ====================================================================== */
+const STEP_ICON = {
+  done:   `<span class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 inline-flex items-center justify-center">${I('check','w-3 h-3')}</span>`,
+  running:`<span class="w-5 h-5 inline-flex items-center justify-center"><span class="w-3.5 h-3.5 rounded-full border-2 border-violet-500 border-t-transparent spin"></span></span>`,
+  retry:  `<span class="w-5 h-5 rounded-full bg-amber-50 text-amber-600 inline-flex items-center justify-center">${I('rotate-ccw','w-3 h-3')}</span>`,
+  wait:   `<span class="w-5 h-5 rounded-full bg-violet-50 text-violet-600 inline-flex items-center justify-center">${I('hand','w-3 h-3')}</span>`,
+  error:  `<span class="w-5 h-5 rounded-full bg-red-50 text-red-600 inline-flex items-center justify-center">${I('x','w-3 h-3')}</span>`,
+};
+/* ThoughtChain 单步：可展开查看工具入参 / 出参 */
+const Step = s => { const id = nid('st'); const st = s.status||'done'; return `
+  <div class="relative pl-7 pb-3 last:pb-0 fade-in" data-step>
+    <span class="absolute left-0 top-0">${STEP_ICON[st]}</span>
+    <button onclick="document.getElementById('${id}').classList.toggle('hidden')" class="text-left w-full group">
+      <div class="flex items-center gap-2"><span class="text-zinc-800">${s.title}</span><code class="text-[11px] text-zinc-400 font-mono">${s.tool}</code>${s.detail?`<span class="opacity-0 group-hover:opacity-100 text-zinc-400">${I('chevron-down','w-3 h-3')}</span>`:''}</div>
+      <div class="text-zinc-500 mt-0.5 ${st==='retry'?'text-amber-700':''}">${st==='running'?'执行中…':s.desc}</div>
+    </button>
+    ${s.detail?`<pre id="${id}" class="hidden mt-2 p-2.5 rounded-md bg-zinc-50 border border-zinc-100 text-[11px] text-zinc-600 font-mono whitespace-pre-wrap">${s.detail}</pre>`:''}
+  </div>`; };
+/* 思考 / 执行过程折叠块（DeepSeek「已深度思考」样式） */
+const ThinkBlock = (title, steps, {open=false, live=false}={}) => { const id = nid('tk'); return `
+  <div data-think>
+    <button onclick="document.getElementById('${id}').classList.toggle('hidden'); this.querySelector('.chev').classList.toggle('rotate-180')" class="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-600 text-[12px]">
+      <span data-think-icon>${live?'<span class="w-3 h-3 rounded-full border-2 border-violet-500 border-t-transparent spin inline-block"></span>':I('list-checks','w-3.5 h-3.5')}</span>
+      <span data-think-title>${title}</span><span class="chev transition-transform ${open?'rotate-180':''}">${I('chevron-down','w-3.5 h-3.5')}</span>
+    </button>${anno('ThinkBlock / ThoughtChain')}
+    <div id="${id}" class="${open?'':'hidden'} mt-3 ml-1 pl-4 border-l-2 border-zinc-200" data-steps>${steps}</div>
+  </div>`; };
+const UserMsg = t => `<div class="flex justify-end fade-in"><div class="max-w-[80%] bg-zinc-100 rounded-2xl px-4 py-2.5 text-[14px] leading-6">${t}</div></div>`;
+const AiShell = (inner='', compact=false) => `<div class="flex gap-3 fade-in"><span class="${compact?'w-6 h-6':'w-7 h-7'} rounded-full border border-zinc-200 bg-white inline-flex items-center justify-center shrink-0 text-violet-600">${I('sparkles','w-3.5 h-3.5')}</span><div class="flex-1 min-w-0 space-y-3.5 ${compact?'text-[13px] leading-6':'text-[14px] leading-7'}" data-content>${inner}</div></div>`;
+
+/* 回复里的结构化块 */
+const TierCards = (tiers) => `<div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 fade-in">${tiers.map(([n,spec,price,margin],i)=>`
+  <div class="rounded-xl border ${i===1?'border-zinc-900 ring-1 ring-zinc-900':'border-zinc-200'} p-3.5 bg-white">
+    <div class="flex items-center justify-between text-[13px]"><span class="font-medium">${n}</span>${i===1?Tag('推荐','purple'):''}</div>
+    <div class="text-[18px] font-semibold mt-2 tabular-nums">${price}</div>
+    <div class="text-[12px] text-zinc-500">毛利 ${margin}</div>
+    <div class="text-[12px] text-zinc-500 mt-2.5 pt-2.5 border-t border-zinc-100 leading-5">${spec}</div>
+  </div>`).join('')}</div>${anno('TierCards')}`;
+const BomTable = (title, rows, total) => `<div class="rounded-xl border border-zinc-200 overflow-hidden fade-in">
+  <div class="flex items-center justify-between px-3.5 h-10 bg-zinc-50 border-b border-zinc-200 text-[13px]"><span class="font-medium">${title}</span>${Btn('导出',{size:'xs',v:'ghost',icon:'download'})}</div>
+  <table class="w-full text-[13px] hidden sm:table"><thead><tr class="text-zinc-500 h-8"><th class="text-left font-normal px-3.5">项目</th><th class="text-left font-normal px-2">数量</th><th class="text-right font-normal px-2">成本</th><th class="text-right font-normal px-3.5">售价</th></tr></thead>
+  <tbody>${rows.map(r=>`<tr class="border-t border-zinc-100 h-9"><td class="px-3.5">${r[0]}</td><td class="px-2 text-zinc-500">${r[1]}</td><td class="px-2 text-right text-zinc-500 tabular-nums">${r[2]}</td><td class="px-3.5 text-right tabular-nums">${r[3]}</td></tr>`).join('')}</tbody></table>
+  <div class="sm:hidden divide-y divide-zinc-100 text-[13px]">${rows.map(r=>`<div class="px-3.5 py-2.5 flex items-start justify-between gap-3"><div class="min-w-0"><div>${r[0]}</div><div class="text-[12px] text-zinc-500 mt-0.5">${r[1]} · 成本 ${r[2]}</div></div><div class="tabular-nums font-medium shrink-0">${r[3]}</div></div>`).join('')}</div>
+  <div class="grid grid-cols-2 sm:grid-cols-4 border-t border-zinc-200 text-[13px]">${total.map(([k,v])=>`<div class="px-3.5 py-2.5"><div class="text-[12px] text-zinc-500">${k}</div><div class="font-semibold tabular-nums">${v}</div></div>`).join('')}</div>
+</div>${anno('BomTable')}`;
+const Sources = (list) => `<div class="flex flex-wrap items-center gap-1.5 text-[12px] fade-in"><span class="text-zinc-400">参考来源</span>${list.map((s,i)=>`<span class="inline-flex items-center gap-1 h-6 px-2 rounded-md bg-zinc-100 text-zinc-600 hover:bg-zinc-200 cursor-pointer"><span class="w-4 h-4 rounded bg-white text-[10px] inline-flex items-center justify-center border border-zinc-200">${i+1}</span>${s}</span>`).join('')}</div>`;
+const ConfirmCard = (title, rows, done) => { const id = nid('cf'); return `<div id="${id}" class="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden fade-in">
+  <div class="flex items-center gap-2 px-3.5 h-10 border-b border-zinc-100 text-[13px]">${I('shield-check','w-4 h-4 text-violet-600')}<span class="font-medium">需要你确认：${title}</span>${anno('ConfirmCard')}</div>
+  <dl class="px-3.5 py-2.5 text-[13px] space-y-1.5">${rows.map(([k,v])=>`<div class="flex"><dt class="w-16 text-zinc-500 shrink-0">${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+  <div class="flex justify-end gap-2 px-3.5 pb-3" data-actions>${Btn('修改',{size:'xs',v:'ghost'})}${Btn('取消',{size:'xs'})}${Btn('确认执行',{size:'xs',v:'default',onclick:`confirmDone('${id}','${done}')`})}</div>
+</div>`; };
+function confirmDone(id, msg) {
+  const el = document.getElementById(id).querySelector('[data-actions]');
+  el.innerHTML = `<span class="inline-flex items-center gap-1.5 text-emerald-700 text-[12px]">${I('circle-check','w-4 h-4')}已执行</span>`; icons(); toast(msg);
+}
+const MsgActions = () => `<div class="flex items-center gap-0.5 -ml-1.5 text-zinc-400 fade-in">${['copy','refresh-cw','thumbs-up','thumbs-down'].map(i=>`<button class="h-7 w-7 rounded-md hover:bg-zinc-100 hover:text-zinc-700 inline-flex items-center justify-center">${I(i,'w-3.5 h-3.5')}</button>`).join('')}</div>`;
+
+/* 输入框（DeepSeek 风格大圆角） */
+function Composer(o={}) {
+  return `<div class="rounded-[20px] border border-zinc-200 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.04)] focus-within:border-zinc-300">
+    <textarea id="${o.id||''}" rows="${o.rows||2}" class="w-full resize-none bg-transparent px-4 pt-3.5 outline-none text-[14px] placeholder:text-zinc-400" placeholder="${o.ph||'给 SalesPilot 发消息，例如：给明理律所出一份 Qwen3-32B 私有化方案'}"></textarea>
+    <div class="flex items-center gap-1.5 px-3 pb-3">
+      ${o.compact?'':`<span class="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-zinc-100 text-[12px] text-zinc-600 cursor-help" title="行业包由管理员配置，根据商机的产品线自动匹配，销售无需也不能切换">${I('boxes','w-3.5 h-3.5')}<span class="whitespace-nowrap">${state.pack}<span class="hidden sm:inline"> · 按商机产品线自动匹配</span></span>${I('lock','w-3 h-3 text-zinc-400')}</span>${anno('PackContextChip')}`}
+      ${Select(['混元','DeepSeek','Qwen'], state.model, {variant:'pill', icon:'cpu', onchange:v=>{state.model=v}})}
+      <div class="flex-1"></div>
+      <button class="h-8 w-8 rounded-full hover:bg-zinc-100 inline-flex items-center justify-center text-zinc-500" title="上传附件">${I('paperclip','w-4 h-4')}</button>
+      <button id="${o.sendId||''}" onclick="${o.onsend||''}" class="h-8 w-8 rounded-full bg-zinc-900 text-white inline-flex items-center justify-center hover:bg-zinc-700" title="发送">${I('arrow-up','w-4 h-4')}</button>
+    </div>
+  </div>${anno('Composer')}`;
+}
+
+/* ======================================================================
+   演示数据
+   ====================================================================== */
+const PACKS = {
+  '大模型部署': { tiers:[['经济版','2× L20 48G · INT4 量化 · vLLM','¥268,000','28.4%'],['标准版','4× L20 48G · FP8 · vLLM + 监控','¥372,000','31.2%'],['高配版','8× H20 96G · BF16 · 双机高可用','¥689,000','33.0%']],
+    bom:[['GPU 服务器 4× L20 48G','1 台','¥218,000','¥262,000'],['vLLM 部署实施','1 项','¥20,000','¥45,000'],['监控 Prometheus + Grafana','1 项','¥3,000','¥12,000'],['模型调优与知识库对接','5 人天','¥12,500','¥30,000'],['一年维保','1 年','¥9,000','¥23,000']] },
+};
+const TOTAL = [['成本合计','¥262,500'],['报价合计','¥372,000'],['毛利率','31.2%'],['预估提成','¥14,880']];
+
+/* 对话脚本：流式演示与历史会话共用 */
+const SCRIPTS = {
+  solution: {
+    user: '给深圳明理律所出一份私有化部署方案：Qwen3-32B，50 人并发，做合同审查，预算 40 万以内',
+    time: 8,
+    steps: [
+      { title:'理解需求', tool:'parse_requirement', desc:'客户 深圳明理律所 · 模型 Qwen3-32B · 并发 50 · 预算 ≤ ¥400,000', detail:'{\n  "customer": "深圳明理律师事务所",\n  "model": "Qwen3-32B",\n  "concurrency": 50,\n  "scene": "合同审查",\n  "budget": 400000\n}' },
+      { title:'估算算力', tool:'configure_solution', desc:'权重 34 GB（FP8）+ KV Cache 58 GB，需要 ≥ 96 GB 显存', detail:'weights = 32.8B × 1 byte ≈ 34 GB\nkv_cache = 2 × 64 层 × 8 KV头 × 128 × 32k × 50 并发 × 1 byte ≈ 58 GB\ntotal × 1.2 余量 ≈ 110 GB → 4× L20 48G (192 GB)' },
+      { title:'查询产品目录', tool:'query_catalog', desc:'匹配到 6 个 GPU 服务器配置' },
+      { title:'毛利校验', tool:'check_margin', desc:'经济版毛利 21.6%，低于底线 25%，调整配置后重试', status:'retry' },
+      { title:'毛利校验', tool:'check_margin', desc:'三档方案毛利均 ≥ 25%' },
+      { title:'生成报价单', tool:'generate_quote', desc:'写操作，等待你确认', status:'wait' },
+    ],
+    blocks: [
+      { type:'p', text:'按 50 人并发、合同审查的长文本场景，我准备了三档方案。推荐标准版：4 张 L20 采用 FP8 精度，总显存 192 GB，给长合同上下文留了约 40% 余量，总价在预算以内。' },
+      { type:'tiers' },
+      { type:'bom' },
+      { type:'p', text:'价格、毛利和提成都由报价引擎按产品目录计算，不是模型估出来的数字。如果客户更看重成本，可以选经济版，但 INT4 量化在长合同上的准确率会略有下降。' },
+      { type:'sources', list:['显存估算参考表','vLLM 部署规范','2026 Q4 报价目录'] },
+      { type:'confirm', title:'生成报价单 Q-2026-019', rows:[['客户','深圳明理律师事务所'],['方案','标准版 · ¥372,000'],['毛利','31.2%（无需审批）'],['商机','合同审查私有化']], done:'报价单 Q-2026-019 已创建' },
+    ],
+  },
+  expense: {
+    user: '昨天请明理律所王律师他们 4 个人吃饭，花了 860，帮我报销',
+    time: 3,
+    steps: [
+      { title:'匹配客户', tool:'search_customer', desc:'深圳明理律师事务所 · 商机「合同审查私有化」' },
+      { title:'查询报销制度', tool:'search_policy', desc:'《费用报销管理制度》§4.2：客户招待 ¥150/人' },
+      { title:'创建报销单', tool:'submit_expense', desc:'超标 ¥260，需主管审批，等待你确认', status:'wait' },
+    ],
+    blocks: [
+      { type:'p', text:'这次人均 ¥215，超出客户招待标准 ¥65/人，合计超出 ¥260。可以提交，但会进入主管审批。' },
+      { type:'sources', list:['费用报销管理制度 §4.2'] },
+      { type:'confirm', title:'提交报销单', rows:[['类型','客户招待 · 4 人'],['金额','¥860'],['关联','明理律所 · 合同审查'],['审批人','李薇']], done:'报销单 E-1025 已提交，等待李薇审批' },
+    ],
+  },
+};
+function blockHtml(b, compact) {
+  if (b.type==='p') return `<p>${b.text}</p>`;
+  if (b.type==='tiers') return TierCards(PACKS['大模型部署'].tiers);
+  if (b.type==='bom') return BomTable('标准版 · 物料清单', PACKS['大模型部署'].bom, TOTAL);
+  if (b.type==='sources') return Sources(b.list);
+  if (b.type==='confirm') return ConfirmCard(b.title, b.rows, b.done);
+  if (b.type==='actions') return MsgActions();
+  return '';
+}
+const staticAi = (key, compact=false) => { const s = SCRIPTS[key]; return AiShell(ThinkBlock(`已完成 ${s.steps.length} 步（用时 ${s.time} 秒）`, s.steps.map(Step).join('')) + s.blocks.map(b=>blockHtml(b, compact)).join('') + MsgActions(), compact); };
+
+/* 流式输出演示：逐步追加工具步骤 → 逐字输出文本 → 渐显卡片 */
+async function runStream(key) {
+  if (state.streaming) return;
+  state.streaming = true; state.aiView = 'chat'; state.aiChat = key === 'expense' ? 'expense' : 'live';
+  renderPage();
+  const s = SCRIPTS[key], conv = document.getElementById('conv'), scroller = document.getElementById('convScroll');
+  const down = () => { scroller.scrollTop = scroller.scrollHeight; };
+  conv.insertAdjacentHTML('beforeend', UserMsg(s.user));
+  conv.insertAdjacentHTML('beforeend', AiShell(ThinkBlock('正在调用工具…', '', {open:true, live:true})));
+  icons(); down();
+  const content = conv.lastElementChild.querySelector('[data-content]');
+  const think = content.querySelector('[data-think]'), stepsEl = think.querySelector('[data-steps]');
+  setSendStop(true);
+  await sleep(500);
+  for (const st of s.steps) {
+    stepsEl.insertAdjacentHTML('beforeend', Step({ ...st, status:'running' })); icons(); down();
+    await sleep(650);
+    stepsEl.lastElementChild.outerHTML = Step(st); icons();
+  }
+  think.querySelector('[data-think-title]').textContent = `已完成 ${s.steps.length} 步（用时 ${s.time} 秒）`;
+  think.querySelector('[data-think-icon]').innerHTML = I('list-checks','w-3.5 h-3.5'); icons();
+  for (const b of s.blocks) {
+    if (b.type === 'p') {
+      content.insertAdjacentHTML('beforeend', '<p class="caret"></p>');
+      const p = content.lastElementChild;
+      for (const ch of b.text) { p.textContent += ch; if (Math.random() < .15) down(); await sleep(16); }
+      p.classList.remove('caret');
+    } else { content.insertAdjacentHTML('beforeend', blockHtml(b)); icons(); await sleep(300); }
+    down();
+  }
+  content.insertAdjacentHTML('beforeend', MsgActions()); icons(); down();
+  setSendStop(false); state.streaming = false;
+}
+function setSendStop(on) {
+  const b = document.getElementById('sendBtn'); if (!b) return;
+  b.innerHTML = on ? '<span class="w-2.5 h-2.5 bg-white rounded-[2px]"></span>' : I('arrow-up','w-4 h-4'); b.title = on ? '停止生成' : '发送'; icons();
+}
+
+/* ======================================================================
+   页面
+   ====================================================================== */
+const pages = {};
+
+pages['/dashboard'] = () => Frame('工作台','layout-dashboard', Btn('问 AI',{icon:'sparkles',onclick:'toggleAgent()'}) + Btn('出方案',{v:'default',icon:'plus',href:'#/ai'}), `
+  <div class="flex-1 overflow-y-auto p-4 sm:p-5">
+    <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+      <div><div class="text-[18px] font-semibold">下午好，${USERS[state.role].name}</div><div class="text-zinc-500 mt-0.5">${isLead()?`${USERS[state.role].scope} · 本月销售概况`:'今天有 4 项待办，1 张报价单在审批中'}</div></div>
+      ${Segmented(['本月','本季度','本年'])}
+    </div>
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-3">${(isLead()
+      ? [['团队本月赢单','¥3,862,000','+12% 较上月','trophy'],['团队进行中商机','41','预计 ¥9.8M','target'],['待我审批','3','1 单毛利低于底线','clock'],['团队预估提成','¥96,240','共 6 名销售','wallet']]
+      : [['本月赢单','¥1,284,000','+18% 较上月','trophy'],['进行中商机','23','预计 ¥4.6M','target'],['审批中','1','Q-2026-018 毛利低于底线','clock'],['本月预估提成','¥38,520','已确认 ¥21,300','wallet']]).map(([k,v,s,ic])=>`
+      <div class="rounded-lg border border-zinc-200 p-4"><div class="flex items-center justify-between text-zinc-500">${k}${I(ic,'w-4 h-4 text-zinc-400')}</div><div class="text-[22px] font-semibold mt-1.5 tabular-nums">${v}</div><div class="text-[12px] text-zinc-500">${s}</div></div>`).join('')}</div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3">
+      <div class="lg:col-span-2 rounded-lg border border-zinc-200">
+        <div class="flex items-center justify-between h-10 px-4 border-b border-zinc-100"><span class="font-medium">销售漏斗${anno('FunnelChart')}</span><a href="#/pipeline" class="text-zinc-500 hover:text-zinc-900 inline-flex items-center gap-1">看板${I('arrow-right','w-3.5 h-3.5')}</a></div>
+        <div class="p-4 space-y-3">${[['线索',9,'¥1.2M',100,'bg-zinc-400'],['需求确认',6,'¥0.9M',72,'bg-blue-400'],['方案报价',5,'¥1.3M',58,'bg-violet-400'],['商务谈判',3,'¥0.8M',36,'bg-orange-400'],['赢单',4,'¥1.3M',44,'bg-emerald-500']].map(([n,c,a,w,col])=>`
+          <div class="flex items-center gap-3"><span class="w-16 text-zinc-500">${n}</span><div class="flex-1 h-2 rounded-full bg-zinc-100"><div class="h-2 rounded-full ${col}" style="width:${w}%"></div></div><span class="w-6 text-right tabular-nums">${c}</span><span class="w-14 text-right text-zinc-500 tabular-nums">${a}</span></div>`).join('')}</div>
+      </div>
+      <div class="rounded-lg border border-zinc-200">
+        <div class="flex items-center justify-between h-10 px-4 border-b border-zinc-100"><span class="font-medium">待办${anno('TaskList')}</span>${Btn('',{size:'iconSm',v:'ghost',icon:'plus',title:'新建任务'})}</div>
+        <div class="p-1.5">${[['跟进明理律所 · 王律师','今天 10:00','red'],['Q-2026-018 等待审批','审批中','yellow'],['提交 10.22 招待报销','草稿','gray'],['华南制造 方案演示','今天 15:30','red']].map(([t,s,c])=>`
+          <label class="flex items-center gap-2.5 px-2.5 h-9 rounded-md hover:bg-zinc-50 cursor-pointer"><input type="checkbox" class="cb"><span class="flex-1 truncate">${t}</span>${Tag(s,c)}</label>`).join('')}</div>
+      </div>
+    </div>
+    <div class="rounded-lg border border-zinc-200">
+      <div class="flex items-center gap-2 h-10 px-4 border-b border-zinc-100">
+        <span class="font-medium">${isLead()?'团队动态':'我的动态'}</span>${anno('ActivityFeed')}
+        <span class="inline-flex items-center gap-1 text-[12px] text-zinc-400">${I('eye','w-3.5 h-3.5')}${isLead()?`可见范围：${USERS[state.role].scope}`:'仅你负责的客户和商机'}</span>
+        <div class="flex-1"></div>${isLead()?`<div class="w-32">${Select(['全部成员','张晨','王磊'],'全部成员',{size:'sm'})}</div>`:''}
+      </div>
+      <div class="px-4 py-1">${[
+        ['张晨','记录了电话跟进',Chip('深圳明理律所',{logo:'明'}),'确认 50 人并发，预算 40 万以内','2 小时前'],
+        ...(isLead()?[['王磊','报价折扣超出权限，提交了审批',Chip('鹏城三院',{logo:'鹏'}),'Q-2026-016 · 折扣 12%','3 小时前']]:[]),
+        ['AI','根据会议纪要更新了商机阶段',Chip('华南智能制造',{logo:'华'}),'阶段：需求确认 → 方案报价','昨天'],
+        ...(isLead()?[['王磊','赢单',Chip('粤海物流',{logo:'粤'}),'智能调度项目 · ¥810,000','昨天']]:[]),
+        ['张晨','发送了报价单',Chip('星河设计',{logo:'星'}),'Q-2026-017 · ¥238,000','10-22']].map(([u,a,c,t,time])=>`
+        <div class="flex items-start gap-3 py-2.5 border-b border-zinc-100 last:border-0">${Avatar(u==='AI'?'AI':u,'w-6 h-6 text-[11px] mt-0.5')}<div class="flex-1"><div class="flex items-center gap-1.5 flex-wrap"><span class="font-medium">${u==='AI'?'AI 助手':u}</span><span class="text-zinc-500">${a}</span>${c}</div><div class="text-zinc-600 mt-0.5">${t}</div></div><span class="text-[12px] text-zinc-400">${time}</span></div>`).join('')}</div>
+    </div>
+  </div>`, {name:'DashboardPage'});
+
+pages['/customers'] = () => Frame('客户','building-2', Btn('',{size:'icon',v:'ghost',icon:'ellipsis',title:'更多'}) + Btn('新建客户',{v:'default',icon:'plus'}),
+  ViewBar(isLead()?'团队客户':'我的客户', 5, isLead()?['团队客户','我负责的','A 级客户','公海客户']:['我的客户','A 级客户','公海客户'], [['客户名称','building-2'],['行业','tag'],['等级','star'],['负责人','user']]) +
+  Grid([{label:'客户名称',icon:'building-2',w:'w-[220px]'},{label:'行业',icon:'tag'},{label:'等级',icon:'star'},{label:'负责人',icon:'user'},{label:'网站',icon:'link',lg:1},{label:'商机金额',icon:'coins',r:1},{label:'最近跟进',icon:'clock'}], [
+    [`<a href="#/customer" class="inline-flex items-center gap-1.5 hover:underline">${Chip('深圳明理律师事务所',{logo:'明'})}</a>`, Tag('法律服务','purple'), Tag('A 重点','red'), Chip('张晨'), LinkChip('mingli-law.cn'), '¥372,000', '2 小时前'],
+    [Chip('华南智能制造有限公司',{logo:'华'}), Tag('制造业','orange'), Tag('A 重点','red'), Chip('张晨'), LinkChip('hnzz.com'), '¥460,000', '昨天'],
+    [Chip('星河设计工作室',{logo:'星'}), Tag('设计','sky'), Tag('B 普通','blue'), Chip('张晨'), LinkChip('xinghe.design'), '¥238,000', '10-22'],
+    [Chip('鹏城第三人民医院',{logo:'鹏'}), Tag('医疗','green'), Tag('B 普通','blue'), Chip('王磊'), LinkChip('pc3h.org.cn'), '¥520,000', '10-18'],
+    [Chip('前海云帆科技',{logo:'云'}), Tag('互联网','blue'), Tag('C 潜在','gray'), Chip('张晨'), LinkChip('yunfan.tech'), '¥150,000', '10-09'],
+  ], 'CustomerGrid'), {name:'CustomersPage'});
+
+pages['/customer'] = () => Frame('', '', Btn('',{size:'icon',v:'ghost',icon:'ellipsis'}) + Btn('写跟进',{icon:'pencil-line'}) + Btn('为该客户出方案',{v:'default',icon:'sparkles',href:'#/ai'}), `
+  <div class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto lg:overflow-hidden">
+    <!-- 左：字段面板 -->
+    <div class="lg:w-[340px] shrink-0 border-b lg:border-b-0 lg:border-r border-zinc-200 lg:overflow-y-auto p-4">${anno('RecordFields')}
+      <div class="flex items-center gap-3 mb-4"><span class="w-10 h-10 rounded-lg border border-zinc-200 text-[15px] font-semibold inline-flex items-center justify-center">明</span><div><div class="text-[16px] font-semibold">深圳明理律师事务所</div><div class="text-[12px] text-zinc-400">创建于 2026-10-09</div></div></div>
+      ${FieldRow('tag','行业',Tag('法律服务','purple'))}${FieldRow('star','等级',Tag('A 重点','red'))}${FieldRow('users','规模','120 人')}${FieldRow('map-pin','地址','深圳市福田区')}${FieldRow('link','网站',LinkChip('mingli-law.cn'))}${FieldRow('user','负责人',Chip('张晨'))}${FieldRow('wallet','年度预算','¥400,000')}${FieldRow('hash','标签',`<span class="inline-flex gap-1">${Tag('私有化意向','yellow')}${Tag('数据敏感','gray')}</span>`)}
+      <div class="mt-5 mb-1.5 flex items-center justify-between text-zinc-500"><span>联系人 · 2</span>${Btn('',{size:'iconSm',v:'ghost',icon:'plus'})}</div>
+      ${[['王律师','合伙人 · 决策人'],['陈工','IT 负责人']].map(([n,r])=>`<div class="flex items-center gap-2 h-9 px-1.5 rounded hover:bg-zinc-100">${Avatar(n,'w-6 h-6 text-[11px]')}<span class="font-medium">${n}</span><span class="text-zinc-500">${r}</span></div>`).join('')}
+      <div class="mt-4 mb-1.5 text-zinc-500">商机 · 1</div>
+      <a href="#/pipeline" class="block rounded-lg border border-zinc-200 p-3 hover:bg-zinc-50"><div class="flex justify-between"><span class="font-medium">合同审查私有化</span><span class="tabular-nums">¥372,000</span></div><div class="mt-1.5 flex gap-1.5">${Tag('方案报价','purple')}<span class="text-zinc-500 text-[12px]">预计 11-15 成交</span></div></a>
+    </div>
+    <!-- 右：标签页 -->
+    <div class="flex-1 min-w-0 flex flex-col lg:min-h-0">
+      ${Tabs([['时间线','clock'],['任务 1','square-check'],['备注','notebook-pen'],['报价单 1','file-text'],['文件','paperclip']])}
+      <div class="flex-1 lg:overflow-y-auto p-4 sm:p-5">
+        <div class="rounded-lg border border-zinc-200 mb-5"><textarea rows="2" class="w-full resize-none outline-none px-3 pt-2.5 placeholder:text-zinc-400" placeholder="记录一条跟进…（也可以直接让 AI 帮你记）"></textarea>
+          <div class="flex flex-wrap items-center gap-2 px-2.5 pb-2.5">${'<div class="w-28">'+Select(['电话','拜访','微信','邮件'],'电话',{size:'sm'})+'</div>'}<div class="w-36">${DatePicker('2026-10-24',{size:'sm'})}</div><div class="flex-1"></div>${Btn('保存',{v:'default'})}</div></div>
+        ${anno('Timeline')}
+        <div class="relative">${[['张晨','phone','记录了电话跟进','确认 50 人并发、合同审查场景，预算 40 万以内，下周看方案。','10-24 10:12'],['张晨','handshake','记录了上门拜访','与王律师、IT 负责人陈工见面，客户关注数据不出内网、审计日志。','10-20 15:00'],['AI','sparkles','根据微信聊天摘要自动记录','客户咨询 Qwen 私有化部署的可行性与大致费用。','10-15 09:30'],['张晨','building-2','创建了客户','','10-09 14:20']].map(([u,ic,a,c,t],i,arr)=>`
+          <div class="relative flex gap-3 pb-5">
+            ${i<arr.length-1?'<span class="absolute left-3 top-7 bottom-0 w-px bg-zinc-200"></span>':''}
+            <span class="w-6 h-6 rounded-full border border-zinc-200 bg-white inline-flex items-center justify-center shrink-0 ${u==='AI'?'text-violet-600':'text-zinc-500'}">${I(ic,'w-3.5 h-3.5')}</span>
+            <div class="flex-1 min-w-0"><div class="flex items-center gap-1.5 h-6">${Avatar(u)}<span class="font-medium">${u==='AI'?'AI 助手':u}</span><span class="text-zinc-500">${a}</span><span class="flex-1"></span><span class="text-[12px] text-zinc-400">${t}</span></div>
+            ${c?`<div class="mt-1.5 rounded-lg border border-zinc-200 px-3 py-2.5 text-zinc-700">${c}</div>`:''}</div>
+          </div>`).join('')}</div>
+      </div>
+    </div>
+  </div>`, { crumb: Crumb('客户','#/customers','building-2','深圳明理律师事务所'), name:'CustomerRecordPage' });
+
+pages['/pipeline'] = () => {
+  const cols = [
+    ['线索','gray',[['AI 客服','前海云帆科技','云','¥150,000','11-30','张晨']]],
+    ['需求确认','blue',[['病历质控','鹏城第三人民医院','鹏','¥520,000','12-15','王磊'],['IT 设备换新','星河设计工作室','星','¥238,000','11-20','张晨']]],
+    ['方案报价','purple',[['合同审查私有化','深圳明理律所','明','¥372,000','11-15','张晨'],['质检助手','华南智能制造','华','¥460,000','12-01','张晨']]],
+    ['商务谈判','orange',[['智能调度','粤海物流','粤','¥810,000','11-08','王磊']]],
+    ['赢单','green',[['校本知识库','南山教育','南','¥286,000','10-12','张晨']]],
+  ];
+  return Frame('商机','target', Btn('',{size:'icon',v:'ghost',icon:'ellipsis'}) + Btn('新建商机',{v:'default',icon:'plus'}),
+    ViewBar('按阶段 · 看板', 7, ['按阶段 · 看板','所有商机 · 表格','我负责的'], [['阶段','layers'],['金额','coins'],['负责人','user'],['预计成交','calendar']]) + `
+    <!-- ≥1024：5 列等分铺满，不横向滚动 -->
+    <div class="flex-1 overflow-y-auto p-3 hidden lg:block"><div class="grid grid-cols-5 gap-3">${anno('Kanban / OpportunityCard')}
+    ${cols.map(([n,c,cards])=>`
+      <div class="min-w-0">
+        <div class="flex items-center gap-1.5 h-8 px-1 mb-1">${Tag(n,c)}<span class="text-zinc-400 tabular-nums">${cards.length}</span><span class="flex-1"></span>${Btn('',{size:'iconSm',v:'ghost',icon:'plus'})}</div>
+        <div class="space-y-2">${cards.map(OppCard).join('')}
+          <button class="w-full h-8 rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 inline-flex items-center gap-1.5 px-2">${I('plus','w-3.5 h-3.5')}新建</button>
+        </div>
+      </div>`).join('')}</div></div>
+    <!-- <1024：顶部阶段切换（可换行，不滚动）+ 当前阶段的卡片纵向排列 -->
+    <div class="flex-1 overflow-y-auto lg:hidden">${anno('Kanban · 窄屏单列')}
+      <div class="sticky top-0 z-10 bg-white border-b border-zinc-100 px-3 py-2.5 flex flex-wrap gap-1.5">
+        ${cols.map(([n,c,cards],i)=>`<button onclick="state.stage=${i}; renderPage()" class="h-7 px-2.5 rounded-full text-[12px] inline-flex items-center gap-1 ${i===state.stage?'bg-zinc-900 text-white':'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}">${n}<span class="tabular-nums ${i===state.stage?'text-white/70':'text-zinc-400'}">${cards.length}</span></button>`).join('')}
+      </div>
+      <div class="p-3 space-y-2">
+        <div class="flex items-center justify-between text-zinc-500 px-0.5"><span>${cols[state.stage][0]} · 合计 <span class="tabular-nums text-zinc-800">¥${cols[state.stage][2].reduce((s,x)=>s+parseInt(x[3].replace(/[^0-9]/g,'')),0).toLocaleString()}</span></span></div>
+        ${cols[state.stage][2].map(OppCard).join('')}
+        <button class="w-full h-9 rounded-md border border-dashed border-zinc-300 text-zinc-500 inline-flex items-center justify-center gap-1.5">${I('plus','w-3.5 h-3.5')}在「${cols[state.stage][0]}」新建商机</button>
+      </div>
+    </div>`, {name:'PipelinePage'});
+};
+const OppCard = ([t,co,logo,amt,d,owner]) => `
+  <div onclick="openSheet('opp')" class="rounded-lg border border-zinc-200 bg-white p-2.5 hover:shadow-sm hover:border-zinc-300 cursor-pointer min-w-0">
+    <div class="flex items-center gap-2 mb-2 min-w-0"><input type="checkbox" class="cb shrink-0" onclick="event.stopPropagation()"><span class="font-medium truncate">${t}</span></div>
+    <div class="space-y-1.5 text-zinc-600">
+      <div class="flex items-center gap-2 min-w-0 overflow-hidden">${I('building-2','w-3.5 h-3.5 text-zinc-400 shrink-0')}<span class="min-w-0 truncate">${Chip(co,{logo})}</span></div>
+      <div class="flex items-center gap-2">${I('coins','w-3.5 h-3.5 text-zinc-400 shrink-0')}<span class="tabular-nums">${amt}</span></div>
+      <div class="flex items-center gap-2">${I('calendar','w-3.5 h-3.5 text-zinc-400 shrink-0')}${d}</div>
+      <div class="flex items-center gap-2">${I('user','w-3.5 h-3.5 text-zinc-400 shrink-0')}${Chip(owner)}</div>
+    </div>
+  </div>`;
+
+pages['/quotes'] = () => Frame('报价单','file-text', Btn('手动新建',{icon:'plus'}) + Btn('AI 出方案',{v:'default',icon:'sparkles',href:'#/ai'}),
+  ViewBar('所有报价单', 4, ['所有报价单','草稿','审批中','已成交'], [['状态','circle-dot'],['客户','building-2'],['毛利率','percent'],['行业包','boxes']]) +
+  Grid([{label:'编号',icon:'hash'},{label:'客户',icon:'building-2'},{label:'方案',icon:'boxes',lg:1},{label:'金额',icon:'coins',r:1},{label:'毛利率',icon:'percent',r:1},{label:'状态',icon:'circle-dot'},{label:'创建人',icon:'user',lg:1},{label:'创建时间',icon:'calendar',lg:1}], [
+    ['<a href="#/quote" class="font-medium hover:underline">Q-2026-019</a>', Chip('深圳明理律所',{logo:'明'}), '大模型部署 · 标准版', '¥372,000', '31.2%', Tag('草稿','gray'), Chip('AI',{icon:'sparkles'}), '10-24'],
+    ['Q-2026-018', Chip('华南智能制造',{logo:'华'}), '大模型部署 · 经济版', '¥298,000', '<span class="text-red-600">22.8%</span>', Tag('审批中','yellow'), Chip('张晨'), '10-23'],
+    ['Q-2026-017', Chip('星河设计工作室',{logo:'星'}), '企业办公 IT · 标准版', '¥238,000', '25.6%', Tag('已发送','blue'), Chip('张晨'), '10-22'],
+    ['Q-2026-012', Chip('南山教育',{logo:'南'}), '大模型部署 · 标准版', '¥286,000', '30.1%', Tag('已成交','green'), Chip('张晨'), '10-08'],
+  ], 'QuoteGrid'), {name:'QuotesPage'});
+
+pages['/quote'] = () => Frame('', '', Btn('导出 PDF',{icon:'download'}) + Btn('发送客户',{v:'default',icon:'send'}) + Menu(I('ellipsis','w-4 h-4'), [{label:'复制报价单',icon:'copy'},{label:'提交审批',icon:'stamp'},'-',{label:'作废',icon:'trash-2',danger:true}], {align:'end', cls:'h-8 w-8 rounded-md hover:bg-zinc-100 inline-flex items-center justify-center'}), `
+  <div class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto lg:overflow-hidden">
+    <div class="lg:w-[340px] shrink-0 border-b lg:border-b-0 lg:border-r border-zinc-200 lg:overflow-y-auto p-4">
+      <div class="flex items-center gap-3 mb-4"><span class="w-10 h-10 rounded-lg bg-zinc-100 inline-flex items-center justify-center">${I('file-text','w-5 h-5 text-zinc-600')}</span><div><div class="text-[16px] font-semibold">Q-2026-019</div><div class="text-[12px] text-zinc-400">AI 生成于 10-24 10:30</div></div></div>
+      ${FieldRow('circle-dot','状态',Tag('草稿','gray'))}${FieldRow('building-2','客户',Chip('深圳明理律所',{logo:'明'}))}${FieldRow('target','商机','合同审查私有化')}${FieldRow('boxes','行业包','大模型部署')}${FieldRow('layers','方案档位','标准版')}${FieldRow('coins','报价合计','<b class="tabular-nums">¥372,000</b>')}${FieldRow('percent','毛利率','31.2%')}${FieldRow('wallet','预估提成','¥14,880')}${FieldRow('user','负责人',Chip('张晨'))}
+      <div class="mt-4">${Alert('ok','毛利高于底线 25%','发送前无需主管审批')}</div>
+    </div>
+    <div class="flex-1 min-w-0 flex flex-col lg:min-h-0">
+      ${Tabs([['物料清单','list'],['时间线','clock'],['审批记录','stamp']])}
+      <div class="flex-1 lg:overflow-y-auto p-4 sm:p-5">${BomTable('标准版 · 物料清单', PACKS['大模型部署'].bom, TOTAL)}</div>
+    </div>
+  </div>`, { crumb: Crumb('报价单','#/quotes','file-text','Q-2026-019'), name:'QuoteRecordPage' });
+
+pages['/contracts'] = () => Frame('合同与提成','file-signature', Btn('提成规则',{icon:'info',onclick:"openSheet('rule')"}), `
+  <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-zinc-200 border-b border-zinc-200 shrink-0">${[['本月成交','¥1,284,000','4 份合同'],['本月预估提成','¥38,520','已确认 ¥21,300'],['待回款','¥486,000','2 份合同']].map(([k,v,s],i)=>`<div class="px-5 py-4"><div class="text-zinc-500">${k}</div><div class="text-[20px] font-semibold mt-1 tabular-nums">${v}</div><div class="text-[12px] text-zinc-500">${s}</div></div>`).join('')}</div>` +
+  ViewBar('所有合同', 2, ['所有合同','回款中','已回款'], [['状态','circle-dot'],['客户','building-2']]) +
+  Grid([{label:'合同编号',icon:'hash'},{label:'客户',icon:'building-2'},{label:'合同金额',icon:'coins',r:1},{label:'回款进度',icon:'chart-no-axes-column'},{label:'提成比例',icon:'percent',lg:1},{label:'预估提成',icon:'wallet',r:1},{label:'状态',icon:'circle-dot'}], [
+    ['C-2026-031', Chip('南山教育',{logo:'南'}), '¥286,000', `<span class="inline-flex items-center gap-2"><span class="w-24 h-1.5 rounded-full bg-zinc-100"><span class="block h-1.5 rounded-full bg-emerald-500" style="width:100%"></span></span><span class="text-zinc-500 tabular-nums">100%</span></span>`, '硬件 3% · 服务 8%', '¥11,560', Tag('已回款','green')],
+    ['C-2026-029', Chip('粤海物流',{logo:'粤'}), '¥810,000', `<span class="inline-flex items-center gap-2"><span class="w-24 h-1.5 rounded-full bg-zinc-100"><span class="block h-1.5 rounded-full bg-blue-500" style="width:40%"></span></span><span class="text-zinc-500 tabular-nums">40%</span></span>`, '硬件 3% · 服务 8%', '¥26,960', Tag('回款中','blue')],
+  ], 'ContractGrid'), {name:'ContractsPage'});
+
+pages['/expenses'] = () => Frame('报销','receipt', Btn('新建报销',{v:'default',icon:'plus',onclick:"openSheet('expense')"}),
+  ViewBar('我的报销', 4,['我的报销','审批中','已完成'], [['类型','tag'],['状态','circle-dot'],['金额','coins']]) +
+  Grid([{label:'单号',icon:'hash'},{label:'类型',icon:'tag'},{label:'金额',icon:'coins',r:1},{label:'发生日期',icon:'calendar',lg:1},{label:'关联客户',icon:'building-2'},{label:'事由',icon:'text',lg:1},{label:'票据',icon:'paperclip'},{label:'状态',icon:'circle-dot'}], [
+    ['E-1024', Tag('客户招待','orange'), '¥860', '10-23', Chip('深圳明理律所',{logo:'明'}), '方案沟通晚餐 4 人', Clip(2), Tag('超标 · 审批中','yellow')],
+    ['E-1019', Tag('差旅交通','sky'), '¥326', '10-17', Chip('华南智能制造',{logo:'华'}), '东莞现场调研', Clip(3), Tag('已通过','green')],
+    ['E-1011', Tag('客户招待','orange'), '¥420', '10-11', Chip('星河设计',{logo:'星'}), '需求沟通午餐 3 人', Clip(2), Tag('已打款','blue')],
+    ['E-1026', Tag('差旅住宿','sky'), '¥580', '10-24', Chip('华南智能制造',{logo:'华'}), '东莞驻场 2 晚', `<span class="inline-flex items-center gap-1 text-red-600">${I('circle-alert','w-3.5 h-3.5')}缺发票</span>`, Tag('草稿','gray')],
+  ], 'ExpenseGrid'), {name:'ExpensesPage'});
+
+pages['/approvals'] = () => state.role!=='manager'
+  ? Frame('审批','stamp','', `<div class="flex-1 flex flex-col items-center justify-center text-zinc-500">${I('lock','w-8 h-8 text-zinc-300')}<div class="mt-2">仅销售主管可见，可在左下角切换角色</div></div>`)
+  : Frame('审批','stamp','', Tabs(['待处理 3','已处理']) + `<div class="flex-1 overflow-y-auto">${[
+    ['file-text','报价单','Q-2026-018 · 华南智能制造','¥298,000','毛利 22.8%，低于底线 25%','张晨','10-23','把维保从 3 年改为 1 年，毛利可回到 26.1%，客户感知影响小。'],
+    ['receipt','报销','E-1024 · 客户招待','¥860','人均 ¥215，超出标准 ¥150/人','张晨','10-24','关联商机 ¥372K 处于方案报价阶段，超标幅度可接受。'],
+    ['file-text','报价单','Q-2026-016 · 鹏城三院','¥498,000','折扣 12%，超出销售权限 10%','王磊','10-21',''],
+  ].map(([ic,type,title,amt,reason,who,d,ai])=>`
+    <div class="flex flex-wrap sm:flex-nowrap gap-3 px-4 sm:px-5 py-4 border-b border-zinc-100 hover:bg-zinc-50/60">
+      <span class="w-8 h-8 rounded-lg bg-zinc-100 inline-flex items-center justify-center shrink-0">${I(ic,'w-4 h-4 text-zinc-600')}</span>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">${Tag(type,'gray')}<span class="font-medium">${title}</span><span class="text-zinc-500 tabular-nums">${amt}</span></div>
+        <div class="flex flex-wrap items-center gap-1.5 mt-1.5 text-zinc-500">${Chip(who)}<span>${d} 提交 ·</span>${I('triangle-alert','w-3.5 h-3.5 text-amber-500')}<span class="text-zinc-700">${reason}</span></div>
+        ${type==='报销'?`<div class="flex gap-1.5 mt-2">${[['file-text','电子发票_860.00.pdf','text-red-500'],['image','消费小票_IMG_2041.jpg','text-sky-600']].map(([fi,fn,c])=>`<span class="inline-flex items-center gap-1.5 h-7 px-2 rounded-md border border-zinc-200 hover:bg-zinc-50 cursor-pointer">${I(fi,'w-3.5 h-3.5 '+c)}${fn}</span>`).join('')}</div>`:''}
+        ${ai?`<div class="mt-2 inline-flex items-start gap-1.5 text-violet-700">${I('sparkles','w-3.5 h-3.5 mt-0.5')}<span>AI 建议：${ai}</span></div>`:''}
+      </div>
+      <div class="flex items-start gap-2 shrink-0 w-full sm:w-auto justify-end">${Btn('驳回')}${Btn('通过',{v:'default',onclick:"toast('已通过审批')"})}</div>
+    </div>`).join('')}</div>`, {name:'ApprovalsPage'});
+
+const MAPPING = [['私有化大模型部署','大模型部署','华南 / 华东销售组','18'],['AI 一体机','大模型部署','华南销售组','6'],['企业办公设备','企业办公 IT','渠道销售组','11']];
+/* 行业包配置：仅系统管理员。销售只在商机上选「产品线」，系统按映射自动带出行业包 */
+pages['/packs'] = () => state.role!=='admin'
+  ? Frame('行业包配置','boxes','', `<div class="flex-1 flex flex-col items-center justify-center text-zinc-500">${I('lock','w-8 h-8 text-zinc-300')}<div class="mt-2">行业包由系统管理员统一配置，可在左下角切换为「系统管理员」查看</div></div>`)
+  : Frame('行业包配置','boxes', Btn('新增行业包',{v:'default',icon:'plus'}), `<div class="flex-1 overflow-y-auto p-5 space-y-5">
+  ${Alert('info','行业包由管理员统一配置，销售不能切换','销售创建商机时选择「产品线」，系统按下方映射自动匹配行业包；AI 出方案时直接使用该行业包的产品目录、规则和知识库。')}
+  <div>
+    <div class="font-medium mb-2">已安装的行业包</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">${[['大模型部署','cpu','开源大模型私有化：显存估算、GPU 选型、部署实施报价','v1.2 · 42 个产品 · 12 条规则 · 8 篇文档',true],['企业办公 IT','monitor','按岗位与人数配置电脑、网络与存储设备','v1.0 · 18 个产品 · 6 条规则 · 3 篇文档',true]].map(([n,ic,d,s,on])=>`
+      <div class="rounded-lg border border-zinc-200 p-4">
+        <div class="flex items-center justify-between"><span class="w-9 h-9 rounded-lg bg-zinc-100 inline-flex items-center justify-center">${I(ic,'w-4 h-4')}</span><span class="inline-flex items-center gap-2 text-[12px] text-zinc-500">启用${Switch(on)}</span></div>
+        <div class="font-medium mt-3">${n}</div><p class="text-zinc-500 mt-1 min-h-[38px]">${d}</p><p class="text-[12px] text-zinc-400 mt-2">${s}</p>
+        <div class="flex gap-2 mt-4">${Btn('产品目录',{size:'xs',icon:'package'})}${Btn('业务规则',{size:'xs',icon:'scale'})}${Btn('知识库',{size:'xs',icon:'book-open'})}</div>
+      </div>`).join('')}
+      <div class="rounded-lg border border-dashed border-zinc-300 p-4 flex flex-col items-center justify-center text-zinc-400">${I('plus','w-5 h-5')}<span class="mt-1">新增行业包</span><span class="text-[12px] mt-0.5">按 packs/ 目录规范添加</span></div>
+    </div>
+  </div>
+  <div>
+    <div class="font-medium mb-2">产品线 → 行业包映射${anno('ProductLineMapping')}</div>
+    <div class="rounded-lg border border-zinc-200 overflow-hidden"><table class="w-full hidden md:table">
+      <thead><tr class="h-8 text-zinc-500 bg-zinc-50"><th class="text-left font-normal px-3">产品线</th><th class="text-left font-normal px-3 w-56">行业包</th><th class="text-left font-normal px-3">适用团队</th><th class="text-right font-normal px-3">进行中商机</th></tr></thead>
+      <tbody>${MAPPING.map(([pl,pk,t,n])=>`
+        <tr class="border-t border-zinc-100 h-11"><td class="px-3 font-medium">${pl}</td><td class="px-3">${Select(['大模型部署','企业办公 IT'], pk, {size:'sm'})}</td><td class="px-3 text-zinc-600">${t}</td><td class="px-3 text-right tabular-nums">${n}</td></tr>`).join('')}</tbody>
+    </table>
+    <div class="md:hidden divide-y divide-zinc-100">${MAPPING.map(([pl,pk,t,n])=>`<div class="p-3 space-y-2"><div class="flex items-center justify-between"><span class="font-medium">${pl}</span><span class="text-[12px] text-zinc-500">${n} 个进行中商机</span></div>${Select(['大模型部署','企业办公 IT'], pk, {size:'sm'})}<div class="text-[12px] text-zinc-500">适用团队：${t}</div></div>`).join('')}</div></div>
+  </div></div>`, {name:'PacksPage'});
+
+/* AI 会话页（DeepSeek 布局：左历史 + 中间居中会话 + 底部大输入框） */
+pages['/ai'] = () => {
+  const hist = [['今天',[['live','明理律所 Qwen3-32B 部署方案'],['expense','10-23 客户招待报销']]],['7 天内',[['x1','华南制造质检助手报价'],['x2','10 月提成计算'],['x3','星河设计 IT 采购方案']]]];
+  const active = state.aiView==='welcome' ? '' : (state.aiChat||'live');
+  const history = `<div class="${state.aiHist?'flex absolute inset-y-0 left-0 z-20 bg-white shadow-xl':'hidden'} md:static md:flex md:shadow-none w-[240px] shrink-0 border-r border-zinc-200 flex-col">
+    <div class="p-2.5">${Btn('新对话',{icon:'square-pen',cls:'w-full',onclick:"state.aiView='welcome'; renderPage()"})}</div>
+    <div class="flex-1 overflow-y-auto px-2 pb-2">${hist.map(([g,items])=>`<div class="px-2 pt-3 pb-1 text-[12px] text-zinc-400">${g}</div>${items.map(([k,t])=>`
+      <div onclick="state.aiView='chat'; state.aiChat='${k}'; renderPage()" class="group flex items-center h-8 px-2 rounded-md cursor-pointer ${active===k?'bg-zinc-100 text-zinc-900 font-medium':'text-zinc-600 hover:bg-zinc-50'}"><span class="flex-1 truncate">${t}</span><span class="opacity-0 group-hover:opacity-100 text-zinc-400">${I('ellipsis','w-4 h-4')}</span></div>`).join('')}`).join('')}</div>
+  </div>`;
+
+  let center;
+  if (state.aiView === 'welcome') {
+    const prompts = [['sparkles','出部署方案','给明理律所出 Qwen3-32B 私有化方案',"runStream('solution')"],['receipt','报销','昨天请客户吃饭 860，帮我报销',"runStream('expense')"],['chart-no-axes-column','漏斗分析','本月销售漏斗怎么样？哪些商机有风险',"runStream('solution')"],['wallet','算提成','我这个月的提成大概多少',"runStream('expense')"]];
+    center = `<div class="flex-1 overflow-y-auto flex flex-col items-center justify-center px-4 sm:px-6 py-6">
+      <div class="w-full max-w-[720px]">
+        <div class="flex items-center justify-center gap-3 mb-2 text-center"><span class="w-10 h-10 rounded-full border border-zinc-200 inline-flex items-center justify-center text-violet-600">${I('sparkles','w-5 h-5')}</span><span class="text-[18px] sm:text-[22px] font-semibold">今天要给哪位客户出方案？</span></div>
+        <p class="text-center text-zinc-500 mb-6">我可以帮你出方案报价、记跟进、推进商机、算提成和报销</p>
+        ${Composer({rows:3, id:'aiInput', sendId:'sendBtn', onsend:"runStream('solution')"})}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">${anno('PromptCards')}${prompts.map(([ic,t,d,fn])=>`
+          <button onclick="${fn}" class="text-left rounded-xl border border-zinc-200 p-3.5 hover:bg-zinc-50 hover:border-zinc-300 flex gap-3"><span class="w-8 h-8 rounded-lg bg-zinc-100 inline-flex items-center justify-center shrink-0">${I(ic,'w-4 h-4 text-zinc-600')}</span><div><div class="font-medium">${t}</div><div class="text-zinc-500 mt-0.5">${d}</div></div></button>`).join('')}</div>
+      </div></div>`;
+  } else {
+    const key = state.aiChat === 'expense' ? 'expense' : 'solution';
+    const live = state.streaming;
+    center = `<div class="flex-1 min-w-0 flex flex-col">
+      <div class="h-11 shrink-0 flex items-center gap-2 px-3 sm:px-4 border-b border-zinc-100">
+        <button onclick="state.aiHist=!state.aiHist; renderPage()" class="md:hidden h-7 w-7 rounded-md hover:bg-zinc-100 inline-flex items-center justify-center text-zinc-500" title="会话历史">${I('history','w-4 h-4')}</button>
+        <span class="font-medium truncate">${key==='expense'?'10-23 客户招待报销':'明理律所 Qwen3-32B 部署方案'}</span>
+        <div class="flex-1"></div>
+        ${Btn('演示流式输出',{size:'xs',v:'ghost',icon:'play',onclick:`state.aiChat='${state.aiChat||'live'}'; runStream('${key}')`})}
+        ${Menu(I('ellipsis','w-4 h-4'), [{label:'重命名',icon:'pencil'},{label:'导出对话',icon:'download'},'-',{label:'删除',icon:'trash-2',danger:true}], {align:'end', cls:'h-7 w-7 rounded-md hover:bg-zinc-100 inline-flex items-center justify-center text-zinc-500'})}
+      </div>
+      <div id="convScroll" class="flex-1 overflow-y-auto"><div id="conv" class="max-w-[760px] mx-auto px-4 sm:px-6 py-6 space-y-7">${live?'':UserMsg(SCRIPTS[key].user)+staticAi(key)}</div></div>
+      <div class="shrink-0 px-3 sm:px-6 pb-3 sm:pb-4"><div class="max-w-[760px] mx-auto">${Composer({id:'aiInput', sendId:'sendBtn', ph:'继续追问，例如：换成 DeepSeek-V3 再算一版', onsend:`runStream('${key}')`})}
+        <p class="text-center text-[11px] text-zinc-400 mt-2">内容由 AI 生成，价格与毛利以报价引擎计算为准</p></div></div>
+    </div>`;
+  }
+  return Frame('AI 方案工作台','sparkles', Btn('分享',{icon:'share-2'}), `<div class="relative flex-1 flex min-h-0">${history}${center}</div>`, {name:'AiChatPage'});
+};
+
+/* 组件规范页：展示全部 shadcn 控件 + AI 组件 */
+pages['/components'] = () => {
+  const Sec = (t, body, span='') => `<div class="rounded-lg border border-zinc-200 ${span}"><div class="h-10 flex items-center px-4 border-b border-zinc-100 font-medium">${t}</div><div class="p-4">${body}</div></div>`;
+  return Frame('组件规范','palette','', `<div class="flex-1 overflow-y-auto p-4 sm:p-5"><div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+    ${Sec('Button · 按钮', `<div class="flex flex-wrap items-center gap-2">${Btn('Default',{v:'default'})}${Btn('Outline')}${Btn('Secondary',{v:'secondary'})}${Btn('Ghost',{v:'ghost'})}${Btn('Destructive',{v:'destructive'})}${Btn('带图标',{icon:'plus'})}${Btn('',{size:'icon',icon:'ellipsis'})}</div>
+      <div class="flex flex-wrap items-center gap-2 mt-3">${Btn('md 36px',{v:'default',size:'md'})}${Btn('sm 32px',{v:'default'})}${Btn('xs 28px',{v:'default',size:'xs'})}</div>
+      <ul class="mt-3 text-zinc-500 text-[12px] list-disc pl-4 space-y-0.5"><li>每个视图最多 1 个 Default（黑色）主按钮，放在标题行最右</li><li>页面标题行用 sm；卡片、表格内用 xs；表单底部用 md</li></ul>`)}
+    ${Sec('Input / Textarea · 输入', `<div class="grid grid-cols-2 gap-3">${Field('客户名称', Input({ph:'请输入客户名称'}))}${Field('金额', Input({prefix:'¥', value:'860'}), '单位：元')}</div><div class="mt-3">${Field('备注', Textarea('', '补充说明…'))}</div>`)}
+    ${Sec('Select · 下拉选择', `<div class="grid grid-cols-2 gap-3">${Field('费用类型', Select(['客户招待','差旅交通','差旅住宿','-','其他'], '客户招待'))}${Field('客户等级', Select(['A 重点','B 普通','C 潜在'], '', {ph:'选择等级'}))}</div>
+      <div class="flex gap-2 mt-3">${Select(['混元','DeepSeek','Qwen'], '混元', {variant:'pill', icon:'cpu'})}</div><p class="text-[12px] text-zinc-500 mt-2">pill 变体只用于 AI 输入框底部（模型选择）；行业包是只读标签，不可选</p>`)}
+    ${Sec('Combobox / DatePicker · 搜索选择与日期', `<div class="grid grid-cols-2 gap-3">${Field('关联客户', Combobox(['深圳明理律师事务所','华南智能制造有限公司','星河设计工作室','鹏城第三人民医院','前海云帆科技'], '', {ph:'搜索并选择客户', search:'输入客户名称…'}))}${Field('预计成交日期', DatePicker('2026-11-15'))}</div><p class="text-[12px] text-zinc-500 mt-2">选项超过 7 个时用 Combobox，否则用 Select</p>`)}
+    ${Sec('DropdownMenu · 下拉菜单', `<div class="flex gap-2">${Menu(`${I('ellipsis','w-4 h-4')}`, [{label:'编辑',icon:'pencil',kbd:'E'},{label:'复制',icon:'copy',kbd:'Ctrl C'},{label:'导出',icon:'download'},'-',{label:'删除',icon:'trash-2',danger:true}], {cls:'h-8 w-8 rounded-md border border-zinc-200 inline-flex items-center justify-center hover:bg-zinc-100'})}
+      ${Menu(`${I('list','w-3.5 h-3.5 text-zinc-500')}<span class="font-medium">所有客户</span>${I('chevron-down','w-3.5 h-3.5 text-zinc-400')}`, [{title:'视图'},{label:'所有客户',icon:'list',check:true},{label:'我负责的',icon:'list'},'-',{label:'新建视图',icon:'plus'}], {cls:'inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-zinc-200 hover:bg-zinc-100'})}</div>`)}
+    ${Sec('Checkbox / Switch / Tabs', `<div class="flex items-center gap-6"><label class="flex items-center gap-2"><input type="checkbox" class="cb" checked>已勾选</label><label class="flex items-center gap-2"><input type="checkbox" class="cb">未勾选</label><span class="flex items-center gap-2">${Switch(true)}自动记录跟进</span></div>
+      <div class="mt-3">${Segmented(['看板','表格','日历'])}</div><div class="mt-2 -mx-4">${Tabs([['时间线','clock'],['任务','square-check'],['备注','notebook-pen']],0,{cls:'px-4 h-10 border-y border-zinc-100'})}</div>`)}
+    ${Sec('Tag / Chip · 标签与关联', `<div class="flex flex-wrap gap-1.5">${Object.keys(TAG).map(c=>Tag(c,c)).join('')}</div><div class="flex flex-wrap gap-1.5 mt-3">${Chip('张晨')}${Chip('深圳明理律所',{logo:'明'})}${Chip('AI',{icon:'sparkles'})}${LinkChip('mingli-law.cn')}</div>
+      <p class="text-[12px] text-zinc-500 mt-2">状态、行业、等级用 Tag；客户、人员等关联对象用 Chip</p>`)}
+    ${Sec('Alert / Toast / Sheet / Command', `<div class="space-y-2">${Alert('warn','超出报销标准','人均 ¥215，标准 ¥150/人')}${Alert('ai','AI 建议','把维保改为 1 年，毛利回到 26.1%')}</div>
+      <div class="flex gap-2 mt-3">${Btn('弹出 Toast',{onclick:"toast('报价单已创建','Q-2026-019 · ¥372,000')"})}${Btn('打开 Sheet',{onclick:"openSheet('expense')"})}${Btn('命令面板',{onclick:'openPalette()'})}</div>`)}
+    ${Sec('AI · 思维链 ThinkBlock / Step 五种状态', ThinkBlock('已完成 5 步（用时 6 秒）', Step({title:'成功 done',tool:'tool_name',desc:'显示结果摘要，点击展开入参',detail:'{ "args": "..." }'})+Step({title:'执行中 running',tool:'tool_name',status:'running'})+Step({title:'重试 retry',tool:'tool_name',desc:'LangGraph 条件边回退',status:'retry'})+Step({title:'等待确认 wait',tool:'tool_name',desc:'写操作 interrupt',status:'wait'})+Step({title:'失败 error',tool:'tool_name',desc:'错误码 50201，可重试',status:'error'}), {open:true}))}
+    ${Sec('AI · 确认卡片 / 来源 / 消息操作', ConfirmCard('提交报销单',[['金额','¥860 · 4 人'],['审批人','李薇']],'已提交') + `<div class="mt-3">${Sources(['费用报销管理制度 §4.2','vLLM 部署规范'])}</div><div class="mt-2">${MsgActions()}</div>`)}
+    ${Sec('AI · 输入框 Composer', Composer({rows:2}), 'lg:col-span-2')}
+  </div></div>`, {name:'ComponentsPage'});
+};
+
+/* ======================================================================
+   Sheet / Command / AI 侧栏
+   ====================================================================== */
+const STAGES = ['线索','需求确认','方案报价','商务谈判','赢单'];
+
+/* Uploader：拖拽区 + 已上传文件列表（类型标记、预览、删除） */
+const FILE_ICON = { pdf:['file-text','text-red-500 bg-red-50'], jpg:['image','text-sky-600 bg-sky-50'] };
+const FileItem = (name, size, kind, ext) => `
+  <div class="flex items-center gap-2.5 h-12 px-2.5 rounded-md border border-zinc-200 bg-white fade-in" data-file>
+    <span class="w-8 h-8 rounded-md inline-flex items-center justify-center shrink-0 ${FILE_ICON[ext][1]}">${I(FILE_ICON[ext][0],'w-4 h-4')}</span>
+    <div class="flex-1 min-w-0"><div class="truncate">${name}</div><div class="text-[11px] text-zinc-400">${size}</div></div>
+    ${Tag(kind, kind==='发票'?'blue':'gray')}
+    <button class="h-7 w-7 rounded-md hover:bg-zinc-100 inline-flex items-center justify-center text-zinc-500" title="预览">${I('eye','w-3.5 h-3.5')}</button>
+    <button onclick="this.closest('[data-file]').remove()" class="h-7 w-7 rounded-md hover:bg-zinc-100 inline-flex items-center justify-center text-zinc-500" title="删除">${I('x','w-3.5 h-3.5')}</button>
+  </div>`;
+const Uploader = () => `<div class="space-y-2">
+  <div onclick="this.nextElementSibling.insertAdjacentHTML('beforeend', FileItem('停车费小票_IMG_2045.jpg','860 KB','小票','jpg')); icons()" class="rounded-md border border-dashed border-zinc-300 px-4 py-4 flex items-center gap-3 hover:bg-zinc-50 hover:border-zinc-400 cursor-pointer">
+    <span class="w-9 h-9 rounded-full bg-zinc-100 inline-flex items-center justify-center">${I('upload','w-4 h-4 text-zinc-500')}</span>
+    <div><div class="font-medium">点击或拖拽文件到这里上传</div><div class="text-[12px] text-zinc-500">已上传 2 个文件 · 发票 1 · 小票 1</div></div>
+  </div>
+  <div class="space-y-1.5">${FileItem('电子发票_海底捞福田店_860.00.pdf','128 KB','发票','pdf')}${FileItem('消费小票_IMG_2041.jpg','1.2 MB','小票','jpg')}</div>
+</div>`;
+
+const SHEETS = {
+  expense: () => ['新建报销', `
+    ${Field('费用类型', Select(['客户招待','差旅交通','差旅住宿','-','其他'], '客户招待'))}
+    <div class="grid grid-cols-2 gap-3">${Field('金额', Input({prefix:'¥', value:'860'}))}${Field('人数', Input({value:'4'}))}</div>
+    ${Field('发生日期', DatePicker('2026-10-23'))}
+    ${Field('关联客户', Combobox(['深圳明理律师事务所','华南智能制造有限公司','星河设计工作室','鹏城第三人民医院','前海云帆科技'], '深圳明理律师事务所', {search:'输入客户名称…'}))}
+    ${Field('参与人', Input({value:'客户：王律师、陈工；我方：张晨、技术支持 1 人'}), '客户招待需写明双方参与人')}
+    ${Field('事由', Textarea('方案沟通晚餐'))}
+    ${Field('票据 <span class="text-red-500">*</span>', Uploader(), '客户招待需同时上传发票和消费小票；支持 JPG / PNG / PDF，单个不超过 10 MB')}
+    ${Alert('warn','超出报销标准，需主管审批','客户招待 ¥150/人，本次 ¥215/人，超出 ¥260。依据《费用报销管理制度》§4.2')}
+    ${anno('ExpenseSheet / Uploader / PolicyCheckAlert')}`, Btn('取消',{size:'md',onclick:'closeSheet()'}) + Btn('提交审批',{v:'default',size:'md',onclick:"closeSheet(); toast('报销单已提交','E-1025 · 等待李薇审批')"})],
+  opp: () => ['商机', `
+    <div class="flex items-start gap-3">${anno('OpportunitySheet')}
+      <span class="w-10 h-10 rounded-lg bg-zinc-100 inline-flex items-center justify-center shrink-0">${I('target','w-5 h-5 text-zinc-600')}</span>
+      <div class="min-w-0"><div class="text-[16px] font-semibold">合同审查私有化</div><div class="flex items-center gap-1.5 mt-1 text-zinc-500">${Chip('深圳明理律师事务所',{logo:'明'})}<span>· 创建于 10-15</span></div></div>
+    </div>
+    <div>
+      <div class="flex items-center justify-between mb-1.5"><span class="text-zinc-500">阶段</span><span class="text-[12px] text-zinc-400">点击切换，变更会写入时间线</span></div>
+      <div class="flex gap-1">${STAGES.map((s,i)=>`<button class="flex-1 h-7 rounded-md text-[12px] ${i<2?'bg-zinc-200 text-zinc-700':i===2?'bg-zinc-900 text-white font-medium':'bg-zinc-100 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600'}">${s}</button>`).join('')}</div>
+    </div>
+    <div class="-mx-1.5">
+      ${FieldRow('coins','金额','<span class="tabular-nums">¥372,000</span>')}
+      ${FieldRow('percent','赢率','60%')}
+      ${FieldRow('calendar','预计成交','2026-11-15')}
+      ${FieldRow('package','产品线','私有化大模型部署')}
+      ${FieldRow('boxes','行业包',`<span class="inline-flex items-center gap-1.5 text-zinc-600">大模型部署${I('lock','w-3 h-3 text-zinc-400')}<span class="text-[12px] text-zinc-400">由产品线自动匹配</span></span>`)}
+      ${FieldRow('user','负责人',Chip('张晨'))}
+      ${FieldRow('file-text','关联报价',`<span class="inline-flex items-center gap-1.5">Q-2026-019 ${Tag('草稿','gray')}</span>`)}
+    </div>
+    <div class="rounded-lg border border-violet-200 bg-violet-50/60 px-3 py-2.5 flex gap-2 text-violet-900">${I('sparkles','w-4 h-4 mt-0.5 shrink-0 text-violet-600')}<div><div class="font-medium">下一步建议</div><div class="mt-0.5 text-violet-800/90">客户关注数据不出内网，建议在方案中突出离线部署和审计日志，并在 11-08 前约技术交流。</div></div></div>
+    <div>
+      <div class="text-zinc-500 mb-2">最近动态</div>
+      ${[['张晨','phone','电话沟通：确认 50 人并发，预算 40 万以内','10-24'],['AI','sparkles','生成报价单 Q-2026-019（标准版）','10-24'],['张晨','arrow-right','阶段：需求确认 → 方案报价','10-21']].map(([u,ic,t,d])=>`
+        <div class="flex items-center gap-2.5 h-8"><span class="w-5 h-5 rounded-full border border-zinc-200 inline-flex items-center justify-center ${u==='AI'?'text-violet-600':'text-zinc-500'}">${I(ic,'w-3 h-3')}</span><span class="flex-1 truncate">${t}</span><span class="text-[12px] text-zinc-400">${d}</span></div>`).join('')}
+    </div>`, Btn('打开完整页面',{size:'md',icon:'external-link',href:'#/customer'}) + Btn('出方案',{v:'default',size:'md',icon:'sparkles',href:'#/ai'})],
+  rule: () => ['提成规则', `<div class="space-y-2 leading-6 text-zinc-700"><p>· 硬件按合同金额的 3% 计提，软件与服务按 8% 计提</p><p>· 毛利率低于 25% 的合同，提成减半</p><p>· 按实际回款比例确认提成</p><p class="text-[12px] text-zinc-400 pt-2">配置来源：rules.yaml（通用规则）</p></div>`, Btn('知道了',{size:'md',onclick:'closeSheet()'})],
+};
+function openSheet(key) {
+  const [title, body, foot] = SHEETS[key]();
+  const el = document.getElementById('sheet');
+  el.innerHTML = `<div class="h-12 flex items-center px-5 border-b border-zinc-100"><span class="font-semibold text-[14px] flex-1">${title}</span>${Btn('',{size:'iconSm',v:'ghost',icon:'x',onclick:'closeSheet()'})}</div>
+    <div class="flex-1 overflow-y-auto p-5 space-y-4">${body}</div><div class="flex justify-end gap-2 px-5 py-3 border-t border-zinc-100">${foot}</div>`;
+  el.style.display = 'flex'; document.getElementById('sheetMask').style.display = 'block'; closePop(); icons();
+}
+function closeSheet() { document.getElementById('sheet').style.display = 'none'; document.getElementById('sheetMask').style.display = 'none'; closePop(); }
+
+function openPalette() {
+  const p = document.getElementById('palette');
+  const row = (ic, t, href, hint='') => `<a href="${href}" onclick="closePalette()" class="flex items-center gap-2.5 h-9 px-2 rounded-md hover:bg-zinc-100">${I(ic,'w-4 h-4 text-zinc-500')}<span class="flex-1">${t}</span>${hint?`<span class="text-[12px] text-zinc-400">${hint}</span>`:''}</a>`;
+  p.innerHTML = `<div class="w-[560px] max-w-[calc(100vw-24px)] bg-white rounded-xl border border-zinc-200 shadow-2xl overflow-hidden fade-in">
+    <div class="flex items-center gap-2 px-3.5 h-12 border-b border-zinc-100">${I('search','w-4 h-4 text-zinc-400')}<input class="flex-1 outline-none text-[14px]" placeholder="搜索客户、商机、报价单，或输入命令…">${Kbd('Esc')}</div>
+    <div class="p-1.5"><div class="px-2 py-1.5 text-[12px] text-zinc-400">快捷操作</div>${row('sparkles','AI 出方案报价','#/ai','')}${row('plus','新建客户','#/customers')}${row('receipt','新建报销','#/expenses')}
+    <div class="px-2 py-1.5 text-[12px] text-zinc-400">最近访问</div>${row('building-2','深圳明理律师事务所','#/customer','客户')}${row('file-text','Q-2026-019 · 标准版','#/quote','报价单')}</div></div>`;
+  p.style.display = 'flex'; icons(); p.querySelector('input').focus();
+}
+function closePalette() { document.getElementById('palette').style.display = 'none'; }
+
+const CHIPS = { '/customer':['为该客户出方案','总结跟进记录'], '/pipeline':['本月漏斗情况','哪些商机快到期'], '/quotes':['哪些报价待审批'], '/expenses':['帮我报销','招待标准是多少'], '/contracts':['我的提成是多少'] };
+function renderAgent() {
+  const el = document.getElementById('agent');
+  const show = state.agentOpen && state.path !== '/ai';
+  el.style.display = show ? 'flex' : 'none';
+  if (!show) return;
+  el.innerHTML = `
+    <div class="h-11 shrink-0 flex items-center gap-1 px-3 border-b border-zinc-100">${I('sparkles','w-4 h-4 text-violet-600')}<span class="font-medium flex-1 ml-1">AI 助手${anno('AgentPanel')}</span>
+      ${Btn('',{size:'iconSm',v:'ghost',icon:'square-pen',title:'新对话'})}${Btn('',{size:'iconSm',v:'ghost',icon:'maximize-2',href:'#/ai',title:'全屏'})}${Btn('',{size:'iconSm',v:'ghost',icon:'x',onclick:'toggleAgent()',title:'关闭'})}</div>
+    <div class="flex-1 overflow-y-auto p-4 space-y-5">${UserMsg(SCRIPTS.expense.user)}${staticAi('expense', true)}</div>
+    <div class="p-3 shrink-0">
+      <div class="flex flex-wrap gap-1.5 mb-2">${(CHIPS[state.path]||['出部署方案','记一条跟进','帮我报销']).map(c=>`<button class="h-6 px-2 rounded-full border border-zinc-200 text-[12px] text-zinc-600 hover:bg-zinc-50">${c}</button>`).join('')}</div>
+      ${Composer({compact:true, rows:2, ph:'问点什么…'})}</div>`;
+}
+
+/* ======================================================================
+   导航与渲染
+   ====================================================================== */
+const NAV = [
+  { items:[ {k:'search',label:'搜索',icon:'search',kbd:'Ctrl K',onclick:'openPalette()'}, {path:'/ai',label:'AI 方案工作台',icon:'sparkles'} ] },
+  { group:'工作区', items:[
+    {path:'/dashboard',label:'工作台',icon:'layout-dashboard'},
+    {path:'/customers',label:'客户',icon:'building-2',match:['/customer']},
+    {path:'/pipeline',label:'商机',icon:'target'},
+    {path:'/quotes',label:'报价单',icon:'file-text',match:['/quote']},
+    {path:'/contracts',label:'合同与提成',icon:'file-signature'},
+    {path:'/expenses',label:'报销',icon:'receipt'},
+  ]},
+  { group:'管理', items:[
+    {path:'/approvals',label:'审批',icon:'stamp',role:['manager'],badge:3},
+    {path:'/packs',label:'行业包配置',icon:'boxes',role:['admin']},
+    {path:'/components',label:'组件规范',icon:'palette'},
+  ]},
+];
+/* 侧边栏三种形态：expanded 220px · collapsed 56px 图标栏（悬停显示名称）· drawer 抽屉（<1024，从左侧滑出） */
+function renderNav() {
+  const drawer = isDrawerMode(), col = isCollapsed();
+  const sb = document.getElementById('sidebar');
+  sb.className = drawer
+    ? `fixed inset-y-0 left-0 z-50 w-[260px] flex flex-col py-2.5 px-2 bg-[#f1f1f1] shadow-2xl ${state.drawer?'translate-x-0':'-translate-x-full'}`
+    : `shrink-0 flex flex-col py-2.5 bg-[#f1f1f1] ${col?'w-[56px] px-2':'w-[220px] px-2'}`;
+  document.getElementById('navMask').style.display = drawer && state.drawer ? 'block' : 'none';
+  document.getElementById('main').className = `flex-1 min-w-0 flex gap-2 py-2 pr-2 ${drawer?'pl-2':''}`;
+
+  const toggleBtn = drawer
+    ? `<button onclick="setDrawer(false)" class="h-7 w-7 rounded-md hover:bg-black/5 inline-flex items-center justify-center text-zinc-500 shrink-0" title="关闭导航">${I('x','w-4 h-4')}</button>`
+    : `<button onclick="toggleSidebar()" class="h-7 w-7 rounded-md hover:bg-black/5 inline-flex items-center justify-center text-zinc-500 shrink-0" title="${col?'展开侧边栏':'收起侧边栏'}（Ctrl B）">${I(col?'panel-left-open':'panel-left-close','w-4 h-4')}</button>`;
+  const logo = `<span class="w-6 h-6 rounded-md bg-zinc-900 text-white inline-flex items-center justify-center shrink-0">${I('zap','w-3.5 h-3.5')}</span>`;
+  document.getElementById('wsSwitch').innerHTML = col
+    ? `<div class="flex flex-col items-center gap-2">${Menu(logo, [{title:'工作区'},{label:'SalesPilot 演示',icon:'zap',check:true}], {cls:'h-9 w-9 rounded-md hover:bg-black/5 inline-flex items-center justify-center', title:'SalesPilot'})}${toggleBtn}</div>`
+    : `<div class="flex items-center gap-1">${Menu(`${logo}<span class="font-semibold text-[14px] flex-1 text-left">SalesPilot</span>${I('chevrons-up-down','w-3.5 h-3.5 text-zinc-400')}`,
+        [{title:'工作区'},{label:'SalesPilot 演示',icon:'zap',check:true},'-',{label:'设置',icon:'settings'}], {cls:'flex-1 min-w-0 flex items-center gap-2 h-9 px-2 rounded-md hover:bg-black/5'})}${toggleBtn}</div>`;
+
+  document.getElementById('nav').innerHTML = NAV.map((g, gi) => `<div class="mb-3">${g.group ? (col ? (gi ? '<div class="h-px bg-black/10 mx-2 mb-2"></div>' : '') : `<div class="px-2 h-7 flex items-center text-[12px] text-zinc-400">${g.group}</div>`) : ''}
+    ${g.items.filter(i=>!i.role || i.role.includes(state.role)).map(i => {
+      const active = i.path && (state.path===i.path || (i.match||[]).includes(state.path));
+      const tone = active ? 'bg-black/[0.07] text-zinc-900 font-medium' : 'text-zinc-600 hover:bg-black/[0.04]';
+      const ic = I(i.icon,'w-4 h-4 shrink-0 '+(active?'text-zinc-800':'text-zinc-500'));
+      const cls = col ? `relative flex items-center justify-center h-8 w-10 mx-auto rounded-md mb-0.5 ${tone}` : `flex items-center gap-2 h-7 px-2 rounded-md mb-px ${tone}`;
+      const inner = col
+        ? `${ic}${i.badge?'<span class="absolute top-1 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500"></span>':''}`
+        : `${ic}<span class="flex-1 truncate">${i.label}</span>${i.kbd?Kbd(i.kbd):''}${i.badge?`<span class="text-[11px] tabular-nums text-zinc-500">${i.badge}</span>`:''}`;
+      const tip = col ? ` title="${i.label}${i.kbd?'（'+i.kbd+'）':''}"` : '';
+      return i.path ? `<a href="#${i.path}" class="${cls}"${tip}>${inner}</a>` : `<button onclick="${i.onclick}" class="${col?'':'w-full text-left'} ${cls}"${tip}>${inner}</button>`;
+    }).join('')}</div>`).join('');
+
+  const u = USERS[state.role];
+  const items = [{title:'切换演示角色'},{label:'销售 · 张晨',icon:'user',check:state.role==='sales',onclick:"setRole('sales')"},{label:'销售主管 · 李薇',icon:'user-check',check:state.role==='manager',onclick:"setRole('manager')"},{label:'系统管理员 · 周敏',icon:'shield',check:state.role==='admin',onclick:"setRole('admin')"},'-',{label:'显示 / 隐藏开发标注',icon:'tag',onclick:"document.body.classList.toggle('show-anno')"}];
+  document.getElementById('userCard').innerHTML = col
+    ? Menu(Avatar(u.name,'w-7 h-7 text-[12px]'), items, {cls:'h-9 w-9 mx-auto flex items-center justify-center rounded-md hover:bg-black/5', width:204, title:`${u.name} · ${u.role}`})
+    : Menu(`${Avatar(u.name,'w-7 h-7 text-[12px]')}<span class="flex-1 min-w-0 text-left"><span class="block font-medium truncate">${u.name}</span><span class="block text-[12px] text-zinc-500">${u.role}</span></span>${I('chevrons-up-down','w-3.5 h-3.5 text-zinc-400')}`,
+        items, {cls:'w-full flex items-center gap-2 p-1.5 rounded-md hover:bg-black/5', width:204});
+}
+function toggleSidebar() {
+  if (isDrawerMode()) return setDrawer(!state.drawer);
+  sidePref = isCollapsed() ? 'expanded' : 'collapsed';
+  try { localStorage.setItem('sp.sidebar', sidePref); } catch (e) {}
+  renderNav(); icons();
+}
+function setDrawer(open) { state.drawer = open; renderNav(); icons(); }
+function renderPage() { document.getElementById('page').innerHTML = (pages[state.path] || pages['/dashboard'])(); renderAgent(); icons(); }
+function render() { renderNav(); renderPage(); }
+function setRole(r) { state.role = r; if ((state.path==='/approvals' && r!=='manager') || (state.path==='/packs' && r!=='admin')) state.path = '/dashboard'; render(); }
+function toggleAgent() { state.agentOpen = !state.agentOpen; renderAgent(); icons(); }
+function go(path) { if (state.streaming) return; state.path = path; state.drawer = false; state.aiHist = false; if (path === '/ai' && !state.aiChat) state.aiView = 'chat'; try { history.replaceState(null, '', '#' + path); } catch (e) {} closeSheet(); closePalette(); render(); }
+/* 跨越断点时重新渲染（只在模式变化时重绘，避免拖动窗口时频繁刷新） */
+let lastMode = '';
+const modeKey = () => `${isDrawerMode()}|${isCollapsed()}`;
+addEventListener('resize', () => { closePop(); const k = modeKey(); if (k !== lastMode) { lastMode = k; if (!isDrawerMode()) state.drawer = false; renderNav(); icons(); } });
+
+document.addEventListener('click', e => { const a = e.target.closest('a[href^="#/"]'); if (a) { e.preventDefault(); go(a.getAttribute('href').slice(1)); } });
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); toggleSidebar(); }
+  if (e.key === 'Escape') { closePop(); closePalette(); closeSheet(); if (state.drawer) setDrawer(false); }
+});
+state.path = location.hash.slice(1) || '/dashboard';
+lastMode = modeKey();
+render();
+</script>
+</body>
+</html>

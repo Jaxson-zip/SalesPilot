@@ -1,0 +1,17 @@
+{
+  "_synthetic": true,
+  "_note": "手写模拟样本（非真实录制）：两个并行工具调用，arguments 分多片，id 只在第一片出现，后续分片缺 index；最后一片没有 usage，finish_reason 为 tool_call。",
+  "chunks": [
+    {"id": "synthetic-qwen-stream-1", "object": "chat.completion.chunk", "created": 1761350400, "model": "qwen-plus",
+     "choices": [{"index": 0, "delta": {"role": "assistant", "content": ""}, "finish_reason": null}]},
+    {"id": "synthetic-qwen-stream-1", "choices": [{"index": 0, "delta": {"tool_calls": [
+      {"index": 0, "id": "call_a1", "type": "function", "function": {"name": "search_customers", "arguments": "{\"keyw"}}]}, "finish_reason": null}]},
+    {"id": "synthetic-qwen-stream-1", "choices": [{"index": 0, "delta": {"tool_calls": [
+      {"function": {"arguments": "ord\": \"华东\"}"}}]}, "finish_reason": null}]},
+    {"id": "synthetic-qwen-stream-1", "choices": [{"index": 0, "delta": {"tool_calls": [
+      {"index": 1, "function": {"name": "list_products", "arguments": "{\"category\": "}}]}, "finish_reason": null}]},
+    {"id": "synthetic-qwen-stream-1", "choices": [{"index": 0, "delta": {"tool_calls": [
+      {"index": 1, "function": {"arguments": "\"gpu\""}}]}, "finish_reason": null}]},
+    {"id": "synthetic-qwen-stream-1", "choices": [{"index": 0, "delta": {}, "finish_reason": "tool_call"}]}
+  ]
+}

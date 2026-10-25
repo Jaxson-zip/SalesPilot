@@ -1,0 +1,19 @@
+{
+  "_synthetic": true,
+  "_note": "手写模拟样本（非真实录制）：推理内容以 <think> 标签混在 content 里，旧式 function_call 字段。",
+  "id": "synthetic-qwen-003",
+  "object": "chat.completion",
+  "created": 1761350400,
+  "model": "qwen-plus",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "<think>需要查一下商机</think>",
+        "function_call": {"name": "get_opportunity", "arguments": {"opportunity_id": 42}}
+      },
+      "finish_reason": "function_call"
+    }
+  ]
+}

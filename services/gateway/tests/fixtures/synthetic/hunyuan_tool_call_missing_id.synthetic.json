@@ -1,0 +1,27 @@
+{
+  "_synthetic": true,
+  "_note": "手写模拟样本（非真实录制）：工具调用缺 id/type、参数包在 Markdown 代码块里且用单引号、finish_reason 为 tool_call。拿到真实 Key 后用契约测试录制替换。",
+  "id": "synthetic-hunyuan-001",
+  "object": "chat.completion",
+  "created": 1761350400,
+  "model": "hunyuan-turbo",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "function": {
+              "name": "search_customers",
+              "arguments": "```json\n{'keyword': '华东', 'limit': 5,}\n```"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_call"
+    }
+  ],
+  "usage": {"prompt_tokens": 120, "completion_tokens": 30, "total_tokens": 150}
+}

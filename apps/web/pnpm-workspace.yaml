@@ -1,0 +1,3 @@
+﻿# 使用 hoisted node_modules：Windows 未开启开发者模式时，standalone 构建无法创建 symlink
+# （pnpm 默认的符号链接布局会导致 next build 复制追踪文件时报 EPERM）
+nodeLinker: hoisted

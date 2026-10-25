@@ -1,0 +1,13 @@
+{
+  "_note": "所有价格均为模拟数据，单位：分。",
+  "items": [
+    {"sku": "PC-OFFICE-E", "name": "办公台式机 i5 / 16G / 512G", "category": "hardware", "unit": "台", "cost": 320000, "price": 420000, "specs": {"role": "office", "level": "economy"}},
+    {"sku": "PC-OFFICE-S", "name": "办公笔记本 i7 / 32G / 1T", "category": "hardware", "unit": "台", "cost": 520000, "price": 690000, "specs": {"role": "office", "level": "standard"}},
+    {"sku": "PC-DESIGN-E", "name": "设计工作站 RTX 4060 / 32G", "category": "hardware", "unit": "台", "cost": 780000, "price": 1000000, "specs": {"role": "design", "level": "economy"}},
+    {"sku": "PC-DESIGN-S", "name": "设计工作站 RTX 4080 / 64G", "category": "hardware", "unit": "台", "cost": 1350000, "price": 1750000, "specs": {"role": "design", "level": "standard"}},
+    {"sku": "PC-DESIGN-P", "name": "设计工作站 RTX 4090 / 128G", "category": "hardware", "unit": "台", "cost": 2100000, "price": 2750000, "specs": {"role": "design", "level": "premium"}},
+    {"sku": "MON-27-4K", "name": "27 英寸 4K 显示器", "category": "hardware", "unit": "台", "cost": 180000, "price": 250000, "specs": {}},
+    {"sku": "SVC-INSTALL", "name": "上门安装与系统部署", "category": "service", "unit": "台", "cost": 8000, "price": 20000, "specs": {}},
+    {"sku": "SVC-WARRANTY-3Y", "name": "三年上门保修", "category": "service", "unit": "台", "cost": 30000, "price": 60000, "specs": {}}
+  ]
+}

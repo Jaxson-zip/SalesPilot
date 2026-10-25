@@ -1,0 +1,14 @@
+# 大模型部署行业包规则（覆盖通用规则中的同名项；下面 pack 段是本行业专属参数）
+margin:
+  floor_rate: 0.25
+
+pack:
+  vram_headroom: 1.2              # 显存余量系数
+  default_context_tokens: 8192    # 单请求平均上下文长度（未指定时）
+  tensor_parallel_sizes: [1, 2, 4, 8]
+  tiers:
+    economy:  {gpu: L20, precision: int4, ha: false, tuning_days: 0,  maint_years: 1}
+    standard: {gpu: L20, precision: fp8,  ha: false, tuning_days: 5,  maint_years: 1}
+    premium:  {gpu: H20, precision: bf16, ha: true,  tuning_days: 10, maint_years: 3}
+  # 经济版的竞争性折扣；毛利不达标回退时按尝试次数逐级降低
+  economy_discount_ladder: [0.08, 0.04, 0.0]

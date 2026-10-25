@@ -1,0 +1,4 @@
+id: llm_deploy
+name: 大模型部署
+description: 开源大模型私有化：显存估算、GPU 选型、部署实施报价
+version: 1.2.0

@@ -1,0 +1,20 @@
+{
+  "_synthetic": true,
+  "_note": "手写模拟样本（非真实录制）：推理模型返回 reasoning_content，finish_reason 为 null。",
+  "id": "synthetic-deepseek-002",
+  "object": "chat.completion",
+  "created": 1761350400,
+  "model": "deepseek-reasoner",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "建议先安排一次技术交流。",
+        "reasoning_content": "客户处于需求确认阶段，应该先推进技术交流。"
+      },
+      "finish_reason": null
+    }
+  ],
+  "usage": {"prompt_tokens": 50, "completion_tokens": 40, "total_tokens": 90}
+}

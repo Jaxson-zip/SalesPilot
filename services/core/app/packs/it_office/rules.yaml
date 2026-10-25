@@ -1,0 +1,9 @@
+# 企业办公 IT 行业包规则（最小版本）
+margin:
+  floor_rate: 0.25
+
+pack:
+  tiers:
+    economy:  {office: PC-OFFICE-E, design: PC-DESIGN-E, monitor_for_design: false, warranty: false}
+    standard: {office: PC-OFFICE-S, design: PC-DESIGN-S, monitor_for_design: true,  warranty: false}
+    premium:  {office: PC-OFFICE-S, design: PC-DESIGN-P, monitor_for_design: true,  warranty: true}

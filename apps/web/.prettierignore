@@ -1,0 +1,5 @@
+components/ui
+hooks/use-mobile.ts
+node_modules
+.next
+pnpm-lock.yaml

@@ -1,0 +1,104 @@
+"""唯一的大模型调用入口：所有 chat / embeddings / 模型列表请求都经网关（OpenAI 兼容）。
+
+- 只把 langchain-openai 的 ChatOpenAI 当作 OpenAI 客户端使用，base_url 指向网关；
+- model 填网关的别名或分组名（默认 LLM_DEFAULT_GROUP，例如 chat-agent）；
+- 每次调用透传当前请求的 X-Request-ID；
+- core 其他代码禁止自行创建模型客户端。
+"""
+
+from typing import Any
+
+import httpx
+from langchain_core.language_models import BaseChatModel
+from langchain_openai import ChatOpenAI
+
+from app.common.config import get_settings
+from app.common.errors import BizError, ErrorCode
+from app.common.request_id import REQUEST_ID_HEADER, get_request_id
+
+
+def _headers(request_id: str | None = None) -> dict[str, str]:
+    rid = request_id or get_request_id()
+    return {REQUEST_ID_HEADER: rid} if rid else {}
+
+
+def get_chat_model(
+    model: str | None = None,
+    *,
+    temperature: float = 0.2,
+    streaming: bool = True,
+    request_id: str | None = None,
+) -> BaseChatModel:
+    """返回指向网关的聊天模型。model 为空时用默认分组。"""
+    settings = get_settings()
+    return ChatOpenAI(
+        base_url=settings.llm_gateway_base,
+        api_key=settings.llm_gateway_key,  # type: ignore[arg-type]
+        model=model or settings.llm_default_group,
+        temperature=temperature,
+        timeout=settings.llm_timeout_seconds,
+        max_retries=0,  # 重试和失败切换由网关负责
+        streaming=streaming,
+        default_headers=_headers(request_id),
+    )
+
+
+def _map_http_error(exc: httpx.HTTPError) -> BizError:
+    if isinstance(exc, httpx.TimeoutException):
+        return BizError(ErrorCode.TIMEOUT)
+    if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429:
+        return BizError(ErrorCode.RATE_LIMITED)
+    return BizError(ErrorCode.UPSTREAM, f"模型网关上游错误：{exc}")
+
+
+def map_llm_error(exc: Exception) -> BizError:
+    """把 OpenAI 客户端异常映射为 §8.2 错误码（按类名判断，避免在 core 里依赖厂商 SDK 类型）。"""
+    if isinstance(exc, BizError):
+        return exc
+    if isinstance(exc, httpx.HTTPError):
+        return _map_http_error(exc)
+    name = type(exc).__name__
+    if "Timeout" in name:
+        return BizError(ErrorCode.TIMEOUT)
+    if "RateLimit" in name:
+        return BizError(ErrorCode.RATE_LIMITED)
+    if name in {"APIError", "APIConnectionError", "APIStatusError", "InternalServerError"}:
+        return BizError(ErrorCode.UPSTREAM)
+    return BizError(ErrorCode.INTERNAL)
+
+
+def _client(request_id: str | None = None) -> httpx.Client:
+    settings = get_settings()
+    headers = {"Authorization": f"Bearer {settings.llm_gateway_key}", **_headers(request_id)}
+    return httpx.Client(
+        base_url=settings.llm_gateway_base, headers=headers, timeout=settings.llm_timeout_seconds
+    )
+
+
+def embed_texts(
+    texts: list[str], *, model: str | None = None, request_id: str | None = None
+) -> list[list[float]]:
+    """调用网关 /embeddings，返回与输入等长的向量列表。"""
+    if not texts:
+        return []
+    payload = {"model": model or get_settings().llm_embed_group, "input": texts}
+    try:
+        with _client(request_id) as client:
+            resp = client.post("/embeddings", json=payload)
+            resp.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise _map_http_error(exc) from exc
+    items = sorted(resp.json()["data"], key=lambda d: d["index"])
+    return [item["embedding"] for item in items]
+
+
+def list_models(request_id: str | None = None) -> list[dict[str, Any]]:
+    """读取网关 /models（别名、分组、能力表）。"""
+    try:
+        with _client(request_id) as client:
+            resp = client.get("/models")
+            resp.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise _map_http_error(exc) from exc
+    data = resp.json().get("data", [])
+    return data if isinstance(data, list) else []

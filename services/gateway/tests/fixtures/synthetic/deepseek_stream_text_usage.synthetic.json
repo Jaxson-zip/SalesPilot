@@ -1,0 +1,11 @@
+{
+  "_synthetic": true,
+  "_note": "手写模拟样本（非真实录制）：普通文本流，带 reasoning_content 分片，最后一片 choices 为空、带 usage（include_usage 行为）。",
+  "chunks": [
+    {"id": "synthetic-ds-stream-1", "object": "chat.completion.chunk", "created": 1761350400, "model": "deepseek-chat",
+     "choices": [{"index": 0, "delta": {"role": "assistant", "reasoning_content": "想一下"}, "finish_reason": null}]},
+    {"id": "synthetic-ds-stream-1", "choices": [{"index": 0, "delta": {"content": "你好，"}, "finish_reason": null}]},
+    {"id": "synthetic-ds-stream-1", "choices": [{"index": 0, "delta": {"content": "我是 SalesPilot。"}, "finish_reason": "stop"}]},
+    {"id": "synthetic-ds-stream-1", "choices": [], "usage": {"prompt_tokens": 12, "completion_tokens": 8, "total_tokens": 20}}
+  ]
+}

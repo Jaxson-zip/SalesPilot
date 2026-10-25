@@ -1,0 +1,15 @@
+{
+  "_note": "所有价格均为模拟数据，单位：分。",
+  "items": [
+    {"sku": "SRV-L20-2", "name": "GPU 服务器 2× L20 48G", "category": "hardware", "unit": "台", "cost": 11200000, "price": 12800000, "specs": {"gpu": "L20", "gpu_mem_gb": 48, "gpus": 2}},
+    {"sku": "SRV-L20-4", "name": "GPU 服务器 4× L20 48G", "category": "hardware", "unit": "台", "cost": 21800000, "price": 26200000, "specs": {"gpu": "L20", "gpu_mem_gb": 48, "gpus": 4}},
+    {"sku": "SRV-L20-8", "name": "GPU 服务器 8× L20 48G", "category": "hardware", "unit": "台", "cost": 42000000, "price": 50400000, "specs": {"gpu": "L20", "gpu_mem_gb": 48, "gpus": 8}},
+    {"sku": "SRV-H20-4", "name": "GPU 服务器 4× H20 96G", "category": "hardware", "unit": "台", "cost": 23500000, "price": 28000000, "specs": {"gpu": "H20", "gpu_mem_gb": 96, "gpus": 4}},
+    {"sku": "SRV-H20-8", "name": "GPU 服务器 8× H20 96G", "category": "hardware", "unit": "台", "cost": 45000000, "price": 54000000, "specs": {"gpu": "H20", "gpu_mem_gb": 96, "gpus": 8}},
+    {"sku": "SVC-DEPLOY", "name": "vLLM 部署实施", "category": "service", "unit": "项", "cost": 2000000, "price": 4500000, "specs": {}},
+    {"sku": "SW-MONITOR", "name": "监控 Prometheus + Grafana", "category": "software", "unit": "项", "cost": 300000, "price": 1200000, "specs": {}},
+    {"sku": "SW-HA", "name": "双机高可用与负载均衡", "category": "software", "unit": "项", "cost": 1500000, "price": 3600000, "specs": {}},
+    {"sku": "SVC-TUNING", "name": "模型调优与知识库对接", "category": "service", "unit": "人天", "cost": 250000, "price": 600000, "specs": {}},
+    {"sku": "SVC-MAINT-1Y", "name": "一年维保", "category": "service", "unit": "台·年", "cost": 900000, "price": 2300000, "specs": {}}
+  ]
+}

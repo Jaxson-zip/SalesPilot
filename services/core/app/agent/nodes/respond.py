@@ -103,6 +103,10 @@ def _stream_llm(deps: AgentDeps, state: AgentState, draft: str) -> str | None:
 def make_respond(deps: AgentDeps) -> Node:
     def respond(state: AgentState) -> dict[str, Any]:
         node_start("respond")
+        # function calling 循环里模型已经流式输出过回复，直接保存，不再生成第二遍
+        if reply := state.get("agent_reply"):
+            extra = {"artifacts": turn_artifacts(state), "created_at": now_iso()}
+            return {"messages": [AIMessage(content=reply, additional_kwargs=extra)]}
         draft = template_reply(state)
         text = _stream_llm(deps, state, draft) if not state.get("error") else None
         if text is None:

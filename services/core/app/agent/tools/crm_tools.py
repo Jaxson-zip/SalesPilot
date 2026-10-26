@@ -167,22 +167,45 @@ def decide_approval(ctx: ToolContext, args: DecideApprovalArgs) -> ToolResult:
 
 CRM_TOOLS: list[ToolSpec] = [
     ToolSpec(
-        "search_customer", "模糊匹配客户，匹配到多个时让用户选", SearchCustomerArgs, search_customer
+        "search_customer",
+        "按名称模糊匹配客户（返回 id）。匹配到多个时先让用户选，不要自己猜",
+        SearchCustomerArgs,
+        search_customer,
     ),
-    ToolSpec("add_followup", "记录跟进", AddFollowupArgs, add_followup, write=True),
+    ToolSpec(
+        "add_followup",
+        "给客户记一条跟进记录。content 写清沟通内容、客户反馈和下一步；"
+        "type：phone 电话、visit 拜访、wechat 微信",
+        AddFollowupArgs,
+        add_followup,
+        write=True,
+    ),
     ToolSpec(
         "update_opportunity_stage",
-        "修改商机阶段",
+        "修改商机阶段（lead 线索 / qualified 需求确认 / proposal 方案报价 / negotiation 商务谈判 / "
+        "won 赢单 / lost 输单，输单必须写 lost_reason）。opportunity_id 来自 get_customer_context",
         UpdateStageArgs,
         update_opportunity_stage,
         write=True,
         needs_confirm=True,
     ),
-    ToolSpec("pipeline_summary", "商机漏斗统计", EmptyArgs, pipeline_summary),
-    ToolSpec("calc_commission", "按 rules.yaml 计算提成", CalcCommissionArgs, calc_commission),
+    ToolSpec(
+        "pipeline_summary",
+        "统计当前用户可见的商机漏斗（各阶段数量和金额）",
+        EmptyArgs,
+        pipeline_summary,
+    ),
+    ToolSpec(
+        "calc_commission",
+        "按提成制度（rules.yaml）估算提成；金额单位为分，margin_rate 为 0–1 的小数",
+        CalcCommissionArgs,
+        calc_commission,
+    ),
     ToolSpec(
         "submit_expense",
-        "提交报销（提交前先做制度校验）",
+        "新建并提交报销单（系统自动做制度校验，超标会转主管审批）。"
+        "amount 单位为分（860 元 = 86000）；客户招待要带 customer_id，"
+        "contact_names 写客户方参与人姓名，colleague_names 写我方同事；occurred_on 用 YYYY-MM-DD",
         SubmitExpenseArgs,
         submit_expense,
         write=True,
@@ -190,7 +213,8 @@ CRM_TOOLS: list[ToolSpec] = [
     ),
     ToolSpec(
         "create_task",
-        "给自己负责的客户或商机创建下一步任务（到期时间、类型、备注）",
+        "给自己负责的客户或商机安排下一步任务。subject_type 为 customer 或 opportunity，"
+        "due_at 用北京时间 ISO 格式，type：call / visit / email / meeting / todo",
         TaskCreate,
         create_task,
         write=True,
@@ -198,7 +222,7 @@ CRM_TOOLS: list[ToolSpec] = [
     ),
     ToolSpec(
         "decide_approval",
-        "主管通过或驳回审批（报价 / 报销）",
+        "主管通过或驳回审批（报价 / 报销），驳回时写明原因",
         DecideApprovalArgs,
         decide_approval,
         write=True,

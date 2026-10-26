@@ -169,7 +169,9 @@ def test_other_user_cannot_resume_thread() -> None:
 def test_request_id_reaches_gateway() -> None:
     request_id = f"e2e-{uuid.uuid4().hex}"
     headers = {**login("sales"), "X-Request-ID": request_id}
-    list(sse("/api/agent/chat", {"thread_id": request_id, "message": "你好"}, headers))
+    # /api/agent/models 每次都会读取网关能力表（对话会缓存模型可用性，不一定每轮都调网关）
+    r = httpx.get(f"{WEB}/api/agent/models", headers=headers, timeout=30)
+    assert r.json()["code"] == 0
     logs = subprocess.run(
         ["docker", "compose", "logs", "gateway", "--since", "2m"],
         cwd=ROOT,

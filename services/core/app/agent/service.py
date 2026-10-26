@@ -22,7 +22,7 @@ from app.common.config import get_settings
 from app.common.db import session_scope
 from app.common.errors import BizError, ErrorCode
 from app.crm.services import opportunity_service
-from app.llm.client import get_chat_model
+from app.llm.client import get_chat_model, model_available
 from app.rules import load_rules
 
 logger = logging.getLogger("core.agent")
@@ -67,7 +67,10 @@ def build_deps(user: CurrentUser, thread_id: str, request_id: str, model: str | 
     return AgentDeps(
         ctx=ctx,
         resolve_pack=make_pack_resolver(user),
-        llm=get_chat_model(model, request_id=request_id),
+        # 网关里没有可用模型（未配置 Key）时不创建客户端，各节点走规则 / 模板兜底
+        llm=get_chat_model(model, request_id=request_id)
+        if model_available(model, request_id)
+        else None,
         max_retries=rules.agent.margin_max_retries,
         max_tool_calls=rules.agent.max_tool_calls,
     )

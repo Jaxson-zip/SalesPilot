@@ -6,6 +6,7 @@ POST /v1/chat/completions · POST /v1/embeddings · GET /v1/models · GET /healt
 from __future__ import annotations
 
 import hmac
+import logging
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
@@ -18,7 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.backend import Backend, LiteLLMBackend
 from app.compat.errors import GatewayError, classify_exception, error_body, invalid_param, unauthorized
 from app.config import Settings, get_settings, merged_env
-from app.logging import CallLog, setup_logging
+from app.logging import LOGGER_NAME, CallLog, setup_logging
 from app.registry import Registry, load_registry
 from app.router import GatewayRouter
 
@@ -77,6 +78,14 @@ def _install_handlers(app: FastAPI) -> None:
         request.state.request_id = request_id
         response = await call_next(request)
         response.headers[REQUEST_ID_HEADER] = request_id
+        if request.url.path != "/health":  # 每个请求都带 request_id 记一行，方便跨服务排查（架构 §9）
+            fields = {
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status": response.status_code,
+            }
+            logging.getLogger(LOGGER_NAME).info("request", extra={"fields": fields})
         return response
 
 

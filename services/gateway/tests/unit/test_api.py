@@ -122,3 +122,25 @@ def test_embeddings_endpoint() -> None:
     resp = client.post("/v1/embeddings", json={"model": "embed", "input": ["a"]}, headers=AUTH)
     assert resp.status_code == 200
     assert resp.json()["data"][0]["embedding"] == [0.5]
+
+
+def test_every_request_logs_request_id() -> None:
+    """core 只调 /v1/models（没有可用模型时不会发 chat 请求），也要能在网关日志里按 request_id 查到。"""
+    import logging
+
+    from app.logging import LOGGER_NAME
+
+    records: list[logging.LogRecord] = []
+    handler = logging.Handler()
+    handler.emit = records.append  # type: ignore[method-assign]
+    logger = logging.getLogger(LOGGER_NAME)
+    logger.addHandler(handler)
+    try:
+        client, _ = _client({})
+        client.get("/v1/models", headers={**AUTH, "X-Request-ID": "rid-models"})
+        client.get("/health", headers={"X-Request-ID": "rid-health"})
+    finally:
+        logger.removeHandler(handler)
+    logged = [getattr(r, "fields", {}) for r in records if r.getMessage() == "request"]
+    assert [f["request_id"] for f in logged] == ["rid-models"]
+    assert logged[0]["path"] == "/v1/models" and logged[0]["status"] == 200

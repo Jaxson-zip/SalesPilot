@@ -1,15 +1,29 @@
-"""意图路由节点。
+"""意图路由节点：有模型时用大模型结构化输出分类，失败或没有模型时用关键词规则兜底。"""
 
-现阶段用关键词规则（离线可测、结果稳定）。
-TODO: 网关可用时改为大模型结构化输出分类，规则作为兜底。
-"""
-
+import logging
 from collections.abc import Callable
 from typing import Any
+
+from langchain_core.messages import HumanMessage, SystemMessage
+from pydantic import BaseModel, Field
 
 from app.agent.deps import AgentDeps
 from app.agent.nodes.common import node_start
 from app.agent.state import AgentState, Intent, turn_reset
+
+logger = logging.getLogger("core.agent")
+
+ROUTER_PROMPT = """你是 CRM 助手的意图分类器，只输出分类结果。
+- solution：要出方案、配置、报价、选型、估算算力，或在补充方案需求（模型、并发、预算等）
+- crm_action：查客户 / 商机、记跟进、改商机阶段、安排任务、报销、算提成、审批、问公司制度
+- chitchat：打招呼、闲聊、问你能做什么"""
+
+
+class IntentDecision(BaseModel):
+    """用户这句话的意图。"""
+
+    intent: Intent = Field(description="solution / crm_action / chitchat")
+
 
 SOLUTION_WORDS = ("方案", "部署", "配置", "报价", "采购", "私有化", "选型", "显存")
 CRM_WORDS = ("跟进", "记一下", "记录", "客户", "商机", "阶段", "报销", "提成", "漏斗", "制度")
@@ -25,11 +39,26 @@ def classify_intent(text: str, pending_requirement: bool = False) -> Intent:
     return "chitchat"
 
 
+def llm_intent(deps: AgentDeps, text: str, pending: bool) -> Intent | None:
+    """大模型分类；没有模型或调用失败返回 None（由规则兜底）。"""
+    if deps.llm is None:
+        return None
+    hint = "\n（上一轮正在追问方案需求，这句很可能是在补充需求）" if pending else ""
+    try:
+        classifier = deps.llm.with_structured_output(IntentDecision, method="function_calling")
+        out = classifier.invoke([SystemMessage(ROUTER_PROMPT + hint), HumanMessage(text)])
+    except Exception:
+        logger.warning("router: llm classify failed, fallback to keywords", exc_info=True)
+        return None
+    return out.intent if isinstance(out, IntentDecision) else None
+
+
 def make_router(deps: AgentDeps) -> Callable[[AgentState], dict[str, Any]]:
     def router(state: AgentState) -> dict[str, Any]:
         node_start("router")
         pending = bool(state.get("missing"))
-        intent = classify_intent(state.get("user_message", ""), pending)
+        text = state.get("user_message", "")
+        intent = llm_intent(deps, text, pending) or classify_intent(text, pending)
         return {**turn_reset(), "intent": intent}
 
     return router

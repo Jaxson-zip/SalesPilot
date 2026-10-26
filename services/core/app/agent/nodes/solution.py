@@ -2,7 +2,7 @@
 →（回退 ≤ max_retries 次）→ confirm（interrupt）→ save_quote。
 
 数字（显存、价格、毛利）全部来自工具 / 规则代码，节点只做编排。
-TODO: parse_requirement 接入大模型结构化输出（extracted 参数），规则抽取作为兜底。
+需求抽取：有模型时用结构化输出（requirement_fields.extract_with_llm），规则抽取兜底并合并。
 """
 
 from collections.abc import Callable
@@ -20,6 +20,7 @@ from app.agent.nodes.common import (
     now_iso,
     tool_error,
 )
+from app.agent.nodes.requirement_fields import extract_with_llm
 from app.agent.state import AgentState
 from app.common.errors import BizError
 from app.packs.base import MarginHint
@@ -35,10 +36,13 @@ def make_parse_requirement(deps: AgentDeps) -> Node:
             pack_id = deps.resolve_pack(state.get("opportunity_id"))
         except BizError as exc:
             return {"error": {"code": exc.code, "message": exc.message}}
+        text = state.get("user_message", "")
+        model = get_configurator(pack_id).requirement_model
         args = {
             "pack_id": pack_id,
-            "text": state.get("user_message", ""),
+            "text": text,
             "draft": state.get("requirement", {}),
+            "extracted": extract_with_llm(deps, model, text),
         }
         result = call_tool(deps, "parse_requirement", args)
         if not result.ok:

@@ -23,6 +23,16 @@ const FIELDS: Record<string, { label: string; format?: Formatter }> = {
   stage: { label: "阶段" },
   approver_name: { label: "审批人" },
   reason: { label: "事由" },
+  // function calling 写操作（core app/agent/tools/previews.py）
+  occurred_on: { label: "日期" },
+  contacts: { label: "客户方" },
+  colleagues: { label: "我方" },
+  lost_reason: { label: "输单原因" },
+  task_title: { label: "任务" },
+  due_at: { label: "到期" },
+  task_type: { label: "方式" },
+  decision: { label: "结果" },
+  comment: { label: "意见" },
 }
 
 /** 内部字段不展示：各种 id、行业包 id、档位代号 */

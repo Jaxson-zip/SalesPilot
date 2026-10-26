@@ -12,6 +12,9 @@ export const TOOL_TITLES: Record<string, string> = {
   update_opportunity_stage: "推进商机",
   pipeline_summary: "漏斗统计",
   calc_commission: "计算提成",
+  get_customer_context: "查询客户的商机和联系人",
+  create_task: "安排下一步",
+  decide_approval: "处理审批",
 }
 
 export const ACTION_TITLES: Record<string, string> = {
@@ -19,6 +22,8 @@ export const ACTION_TITLES: Record<string, string> = {
   submit_expense: "提交报销单",
   add_followup: "记录跟进",
   update_opportunity_stage: "更新商机阶段",
+  create_task: "安排下一步",
+  decide_approval: "处理审批",
 }
 
 export function toolTitle(name: string): string {

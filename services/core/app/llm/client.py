@@ -6,6 +6,8 @@
 - core 其他代码禁止自行创建模型客户端。
 """
 
+import logging
+import time
 from typing import Any
 
 import httpx
@@ -15,6 +17,8 @@ from langchain_openai import ChatOpenAI
 from app.common.config import get_settings
 from app.common.errors import BizError, ErrorCode
 from app.common.request_id import REQUEST_ID_HEADER, get_request_id
+
+logger = logging.getLogger("core.llm")
 
 
 def _headers(request_id: str | None = None) -> dict[str, str]:
@@ -102,3 +106,29 @@ def list_models(request_id: str | None = None) -> list[dict[str, Any]]:
         raise _map_http_error(exc) from exc
     data = resp.json().get("data", [])
     return data if isinstance(data, list) else []
+
+
+# 模型可用性缓存：{别名或分组: (是否可用, 查询时间)}
+_AVAILABILITY: dict[str, tuple[bool, float]] = {}
+AVAILABILITY_TTL_SECONDS = 30.0
+
+
+def model_available(name: str | None = None, request_id: str | None = None) -> bool:
+    """网关里这个别名 / 分组是否有可用的模型（配了 Key）。
+
+    没有可用模型时 Agent 直接走规则兜底，不必每个节点都去调一次必然失败的接口。
+    结果缓存 30 秒；网关不可达时视为不可用。
+    """
+    target = name or get_settings().llm_default_group
+    cached = _AVAILABILITY.get(target)
+    now = time.monotonic()
+    if cached and now - cached[1] < AVAILABILITY_TTL_SECONDS:
+        return cached[0]
+    try:
+        cards = list_models(request_id)
+    except BizError:
+        logger.warning("gateway unreachable, agent uses rule fallback")
+        cards = []
+    available = any(c.get("id") == target and c.get("available") for c in cards)
+    _AVAILABILITY[target] = (available, now)
+    return available

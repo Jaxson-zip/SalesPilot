@@ -89,6 +89,20 @@ export interface AgentChatRequest {
 
 export type ResumeDecision = "approve" | "reject"
 
+/** GET /api/agent/models：网关里支持工具调用的模型 / 分组，以及是否已配置 Key */
+export interface ChatModel {
+  id: string
+  type: "model" | "group"
+  available: boolean
+  members: string[]
+}
+export interface ChatModels {
+  items: ChatModel[]
+  default: string
+  any_available: boolean
+  gateway_ok: boolean
+}
+
 export interface AgentResumeRequest {
   thread_id: string
   decision: ResumeDecision

@@ -24,4 +24,23 @@ describe("previewRows", () => {
   it("未登记的字段原样显示；对象字段和空值跳过", () => {
     expect(previewRows({ note: "加急", extra: { a: 1 }, empty: null })).toEqual([["note", "加急"]])
   })
+
+  it("function calling 写操作的预览字段都有中文标签（回归：避免确认卡片出现英文字段名）", () => {
+    const rows = previewRows({
+      expense_type: "客户招待",
+      amount: 86000,
+      occurred_on: "2026-10-25",
+      customer_name: "深圳明理律师事务所",
+      contacts: "王律师",
+      colleagues: "李薇",
+      headcount: 4,
+      task_title: "电话确认预算",
+      due_at: "10-27 10:00",
+      task_type: "电话",
+      decision: "驳回",
+      comment: "超标",
+      lost_reason: "预算取消",
+    })
+    for (const [label] of rows) expect(label).toMatch(/[一-龥]/)
+  })
 })

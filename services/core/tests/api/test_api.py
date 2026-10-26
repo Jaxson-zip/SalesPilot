@@ -80,6 +80,7 @@ def test_expense_precheck(client: TestClient) -> None:
 def offline_agent(monkeypatch: pytest.MonkeyPatch, fake_quotes: None) -> None:
     monkeypatch.setattr(service, "make_pack_resolver", lambda user: lambda _opp: "llm_deploy")
     monkeypatch.setattr(service, "get_chat_model", lambda *a, **k: None)
+    monkeypatch.setattr(service, "model_available", lambda *a, **k: False)
 
 
 def test_agent_chat_and_resume_sse(
@@ -119,3 +120,49 @@ def test_agent_chat_validation(client: TestClient) -> None:
         "/api/agent/chat", json={"thread_id": "t", "message": ""}, headers=auth_header(Role.SALES)
     )
     assert r.json()["code"] == 40001
+
+
+GATEWAY_CARDS = [
+    {"id": "deepseek-chat", "type": "model", "available": True, "capabilities": {"tools": True}},
+    {"id": "hunyuan-turbo", "type": "model", "available": False, "capabilities": {"tools": True}},
+    {"id": "embed", "type": "model", "available": True, "capabilities": {"embeddings": True}},
+    {
+        "id": "chat-agent",
+        "type": "group",
+        "available": True,
+        "members": ["deepseek-chat", "hunyuan-turbo"],
+        "capabilities": {"tools": True},
+    },
+]
+
+
+def test_agent_models_lists_tool_capable_models(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.agent import models
+
+    monkeypatch.setattr(models, "list_models", lambda *_a, **_k: GATEWAY_CARDS)
+    r = client.get("/api/agent/models", headers=auth_header(Role.SALES))
+    data = r.json()["data"]
+    assert [i["id"] for i in data["items"]] == ["deepseek-chat", "hunyuan-turbo", "chat-agent"]
+    assert data["any_available"] and data["gateway_ok"] and data["default"] == "chat-agent"
+    assert data["items"][1]["available"] is False
+
+
+def test_agent_models_when_gateway_down(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.agent import models
+    from app.common.errors import BizError
+
+    def down(*_a: object, **_k: object) -> list:
+        raise BizError(50201, "模型网关不可用")
+
+    monkeypatch.setattr(models, "list_models", down)
+    data = client.get("/api/agent/models", headers=auth_header(Role.SALES)).json()["data"]
+    assert data["items"] == [] and not data["any_available"] and not data["gateway_ok"]
+
+
+def test_agent_models_requires_login(client: TestClient) -> None:
+    r = client.get("/api/agent/models")
+    assert r.status_code == 401 and r.json()["code"] == 40101

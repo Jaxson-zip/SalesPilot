@@ -1,19 +1,14 @@
-"""CRM 动作节点（tool_agent ⇄ tools）。
+"""CRM 动作的规则兜底：没有可用模型时，按关键词选择只读 / 低风险工具。
 
-现阶段为规则占位实现：按关键词选择只读 / 低风险工具（search_customer、add_followup、
-pipeline_summary、search_policy），保证事件流端到端可跑。
-TODO: 改为 llm.bind_tools(TOOLS) + ToolNode 循环（最多 max_tool_calls 次），
-      needs_confirm 的写工具（update_opportunity_stage、submit_expense）拆到独立节点并走 interrupt。
+正常情况下由 nodes/tool_loop.py 的 function calling 循环处理；这里只覆盖查客户、记跟进、
+漏斗统计、查制度，需要确认的写操作不走规则（避免关键词误判后写库）。
 """
 
-from collections.abc import Callable
 from typing import Any
 
 from app.agent.deps import AgentDeps
-from app.agent.nodes.common import call_tool, log_tool, node_start
+from app.agent.nodes.common import call_tool, log_tool
 from app.agent.state import AgentState
-
-Node = Callable[[AgentState], dict[str, Any]]
 
 
 def plan_tools(text: str) -> list[str]:
@@ -40,22 +35,18 @@ def _args_for(name: str, text: str, state: AgentState, found: list[dict[str, Any
     return {}
 
 
-def make_tool_agent(deps: AgentDeps) -> Node:
-    def tool_agent(state: AgentState) -> dict[str, Any]:
-        node_start("tool_agent")
-        text = state.get("user_message", "")
-        log = list(state.get("tool_log", []))
-        found: list[dict[str, Any]] = []
-        for name in plan_tools(text)[: deps.max_tool_calls]:
-            args = _args_for(name, text, state, found)
-            if args is None:
-                continue
-            result = call_tool(deps, name, args)
-            log = log_tool({**state, "tool_log": log}, name, result)
-            if not result.ok:
-                break
-            if name == "search_customer":
-                found = list(result.data or [])
-        return {"tool_log": log}
-
-    return tool_agent
+def run_rule_plan(deps: AgentDeps, state: AgentState) -> dict[str, Any]:
+    text = state.get("user_message", "")
+    log = list(state.get("tool_log", []))
+    found: list[dict[str, Any]] = []
+    for name in plan_tools(text)[: deps.max_tool_calls]:
+        args = _args_for(name, text, state, found)
+        if args is None:
+            continue
+        result = call_tool(deps, name, args)
+        log = log_tool({**state, "tool_log": log}, name, result)
+        if not result.ok:
+            break
+        if name == "search_customer":
+            found = list(result.data or [])
+    return {"tool_log": log}

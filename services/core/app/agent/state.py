@@ -26,6 +26,11 @@ class AgentState(TypedDict):
     quote: NotRequired[dict[str, Any] | None]
     tool_log: NotRequired[list[dict[str, Any]]]  # 本轮工具结果摘要，respond 用
     error: NotRequired[dict[str, Any] | None]
+    # function calling 循环（tool_agent）
+    scratch: NotRequired[list[AnyMessage]]  # 本轮与模型的工作消息（含 tool_calls 和工具结果）
+    pending_call: NotRequired[dict[str, Any] | None]  # 等待确认的写操作 {id, name, args, preview}
+    tool_rounds: NotRequired[int]
+    agent_reply: NotRequired[str | None]  # 模型在循环里已经流式输出的回复，respond 不再重复生成
 
 
 def turn_reset() -> dict[str, Any]:
@@ -42,4 +47,8 @@ def turn_reset() -> dict[str, Any]:
         "quote": None,
         "tool_log": [],
         "error": None,
+        "scratch": [],
+        "pending_call": None,
+        "tool_rounds": 0,
+        "agent_reply": None,
     }

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 from starlette.concurrency import run_in_threadpool
 
-from app.agent import service, threads
+from app.agent import models, service, threads
 from app.agent.checkpoint import get_checkpointer
 from app.agent.history import ThreadMessages, read_thread_messages
 from app.agent.sse import sse_stream
@@ -47,6 +47,11 @@ async def resume(body: ResumeIn, user: CurrentUserDep, request: Request) -> Even
     deps = service.build_deps(user, body.thread_id, _request_id(request), None)
     run = await run_in_threadpool(service.prepare_resume, deps, body.decision)
     return EventSourceResponse(sse_stream(run.graph, run.payload, run.config, run.thread_id))
+
+
+@router.get("/models", response_model=ApiResponse[models.ChatModels])
+def chat_models(user: CurrentUserDep, request: Request) -> ApiResponse[models.ChatModels]:
+    return ok(models.chat_models(_request_id(request)))
 
 
 @router.get("/threads", response_model=ApiResponse[threads.ThreadPage])

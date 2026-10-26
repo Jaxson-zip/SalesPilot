@@ -56,15 +56,31 @@ class ToolSpec:
     needs_confirm: bool = False
 
     def openai_schema(self) -> dict[str, Any]:
-        """给 bind_tools 用的 OpenAI function 定义。"""
+        """给 bind_tools 用的 OpenAI function 定义；系统注入的字段（INJECTED_ARGS）不暴露给模型。"""
+        schema = self.args_model.model_json_schema()
+        props = {k: v for k, v in schema.get("properties", {}).items() if k not in INJECTED_ARGS}
+        required = [k for k in schema.get("required", []) if k not in INJECTED_ARGS]
         return {
             "type": "function",
             "function": {
                 "name": self.name,
                 "description": self.description,
-                "parameters": self.args_model.model_json_schema(),
+                "parameters": {**schema, "properties": props, "required": required},
             },
         }
+
+
+# 由系统填写、不让模型生成的参数：幂等键（模型编的不可靠）、行业包（由商机产品线决定）
+INJECTED_ARGS = frozenset({"idempotency_key", "pack_id"})
+
+
+def inject_system_args(
+    spec: ToolSpec, args: dict[str, Any], system: dict[str, Any]
+) -> dict[str, Any]:
+    """用系统值覆盖注入字段（模型即使传了也不采用）；工具没有该字段时不加。"""
+    fields = spec.args_model.model_fields
+    clean = {k: v for k, v in args.items() if k not in INJECTED_ARGS}
+    return {**clean, **{k: v for k, v in system.items() if k in INJECTED_ARGS and k in fields}}
 
 
 def new_call_id() -> str:

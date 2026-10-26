@@ -5,7 +5,8 @@ import { useRef, type KeyboardEvent } from "react"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { MODEL_OPTIONS } from "@/lib/agent-labels"
+import { useAgentModels } from "@/hooks/useAgentModels"
+import { modelOptions, ruleModeHint } from "@/lib/agent-models"
 import { cn } from "@/lib/utils"
 
 interface ComposerProps {
@@ -42,25 +43,43 @@ function PackChip({ pack }: { pack: string }) {
   )
 }
 
-/** 模型选择：pill 变体 Select（只用于 AI 输入框底部） */
+/**
+ * 模型选择：pill 变体 Select（只用于 AI 输入框底部）。
+ * 选项来自网关能力表；没配 Key 的模型标「未配置」不可选；全部不可用时显示「规则模式」。
+ */
 function ModelSelect({ model, onModelChange }: { model: string; onModelChange: (model: string) => void }) {
+  const { data } = useAgentModels()
+  const hint = ruleModeHint(data)
   return (
-    <Select value={model} onValueChange={onModelChange}>
-      <SelectTrigger
-        size="sm"
-        className="h-8 shrink-0 gap-1.5 rounded-full border-zinc-200 px-3 text-xs text-zinc-700 shadow-none hover:bg-zinc-50"
-      >
-        <Cpu className="size-3.5 text-zinc-500" />
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {MODEL_OPTIONS.map((m) => (
-          <SelectItem key={m.value} value={m.value}>
-            {m.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <>
+      <Select value={model} onValueChange={onModelChange}>
+        <SelectTrigger
+          size="sm"
+          className="h-8 shrink-0 gap-1.5 rounded-full border-zinc-200 px-3 text-xs text-zinc-700 shadow-none hover:bg-zinc-50"
+        >
+          <Cpu className="size-3.5 text-zinc-500" />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {modelOptions(data).map((m) => (
+            <SelectItem key={m.value} value={m.value} disabled={!m.available}>
+              {m.label}
+              {m.available ? null : <span className="text-zinc-400">（未配置）</span>}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {hint ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex h-8 shrink-0 cursor-help items-center rounded-full bg-amber-50 px-3 text-xs text-amber-800">
+              规则模式
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{hint}</TooltipContent>
+        </Tooltip>
+      ) : null}
+    </>
   )
 }
 

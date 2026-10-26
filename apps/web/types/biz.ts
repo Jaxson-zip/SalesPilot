@@ -260,12 +260,27 @@ export interface ExpenseItem {
   created_at: string
 }
 
+/** v4：差旅交通的行程 / 差旅住宿的城市与入住离店日期（后端 ExpenseDetails） */
+export type TransportMode = "train" | "flight" | "taxi" | "bus" | "self_drive" | "other"
+export interface ExpenseDetails {
+  from_city?: string | null
+  to_city?: string | null
+  transport_mode?: TransportMode | null
+  city?: string | null
+  check_in?: string | null
+  check_out?: string | null
+}
+
+/** unit=night（差旅住宿）时 per_person / limit_per_person 表示每晚金额 */
+export type PolicyUnit = "person" | "night"
+
 export interface PolicyCheck {
   passed: boolean
   per_person: number
   limit_per_person: number
   over_amount: number
   rule_ref: string
+  unit?: PolicyUnit
 }
 
 export interface ExpenseDetail extends ExpenseItem {
@@ -277,6 +292,7 @@ export interface ExpenseDetail extends ExpenseItem {
   contacts?: { id: string; name: string; title: string | null }[]
   colleagues?: UserBrief[]
   extra_guests?: number
+  details?: ExpenseDetails | null
 }
 
 export interface ExpenseCreate {
@@ -294,6 +310,7 @@ export interface ExpenseCreate {
   contact_ids?: string[]
   colleague_ids?: string[]
   extra_guests?: number
+  details?: ExpenseDetails
 }
 
 /** POST /api/expenses/precheck（已有接口，app/rules/calculators.py ExpenseCheck） */
@@ -303,6 +320,8 @@ export interface ExpensePrecheck {
   over_amount: number
   need_approval: boolean
   reason: string
+  unit?: PolicyUnit
+  rule_ref?: string
 }
 
 export interface ExpenseListParams {

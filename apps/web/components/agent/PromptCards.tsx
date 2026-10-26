@@ -1,4 +1,20 @@
-import { Building2, ChartNoAxesColumn, FileText, Receipt, Sparkles, Wallet, type LucideIcon } from "lucide-react"
+"use client"
+
+import {
+  Building2,
+  ChartNoAxesColumn,
+  ClipboardCheck,
+  ListTodo,
+  NotebookPen,
+  Receipt,
+  ScrollText,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react"
+
+import { Skeleton } from "@/components/ui/skeleton"
+import { useTemplates } from "@/hooks/useTemplates"
+import type { PromptTemplate } from "@/types/api"
 
 export interface PromptCard {
   icon: LucideIcon
@@ -6,36 +22,36 @@ export interface PromptCard {
   prompt: string
 }
 
-export const DEFAULT_PROMPTS: PromptCard[] = [
-  {
-    icon: Sparkles,
-    title: "出部署方案",
-    prompt: "给深圳明理律所出一份私有化部署方案：Qwen3-32B，50 人并发，做合同审查，预算 40 万以内",
-  },
-  { icon: Receipt, title: "报销", prompt: "昨天请明理律所王律师他们 4 个人吃饭，花了 860，帮我报销" },
-  { icon: ChartNoAxesColumn, title: "漏斗分析", prompt: "本月销售漏斗怎么样？哪些商机有风险" },
-  { icon: Wallet, title: "算提成", prompt: "我这个月的提成大概多少" },
+/** 按标题关键词配图标；没匹配上用通用图标 */
+const ICON_RULES: [RegExp, LucideIcon][] = [
+  [/方案|报价/, Sparkles],
+  [/报销/, Receipt],
+  [/漏斗/, ChartNoAxesColumn],
+  [/审批/, ClipboardCheck],
+  [/下一步|提醒|任务/, ListTodo],
+  [/跟进/, NotebookPen],
+  [/制度|标准/, ScrollText],
+  [/商机|客户/, Building2],
 ]
 
-/** 只读角色（管理员）：只给查询类提示，AI 写操作工具不可用（契约 §0） */
-export const QUERY_PROMPTS: PromptCard[] = [
-  { icon: ChartNoAxesColumn, title: "漏斗分析", prompt: "本月全公司销售漏斗怎么样？哪些商机有风险" },
-  { icon: Wallet, title: "提成汇总", prompt: "本月各销售的预估提成和已确认提成分别是多少" },
-  { icon: FileText, title: "报价概况", prompt: "最近有哪些报价单在等主管审批？毛利率分别多少" },
-  { icon: Building2, title: "客户跟进", prompt: "哪些客户超过两周没有跟进了" },
-]
+export function promptCardsFrom(templates: PromptTemplate[]): PromptCard[] {
+  return templates.map((t) => ({
+    ...t,
+    icon: ICON_RULES.find(([re]) => re.test(t.title))?.[1] ?? Sparkles,
+  }))
+}
 
-/** 欢迎页 4 张快捷提示卡片 */
-export function PromptCards({
-  prompts = DEFAULT_PROMPTS,
-  onPick,
-}: {
-  prompts?: PromptCard[]
-  onPick: (prompt: string) => void
-}) {
+/**
+ * 欢迎页的示例问题：按角色来自 /api/templates（rules/templates.yaml），
+ * 只放 AI 工具真正做得到的事（不放「算我这个月提成」这类没有数据来源的问题）。
+ */
+export function PromptCards({ onPick }: { onPick: (prompt: string) => void }) {
+  const query = useTemplates()
+  if (query.isPending) return <Skeleton className="mt-4 h-24 w-full" />
+  const cards = promptCardsFrom(query.data?.ai_prompts ?? [])
   return (
     <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-      {prompts.map((p) => (
+      {cards.map((p) => (
         <button
           key={p.title}
           type="button"

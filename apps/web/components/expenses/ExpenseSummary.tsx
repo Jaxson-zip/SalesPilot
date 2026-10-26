@@ -1,7 +1,8 @@
-import { Building2, Calendar, CircleDot, Coins, Tag as TagIcon, Target, Text, Users } from "lucide-react"
+import { Building2, Calendar, CircleDot, Coins, MapPin, Tag as TagIcon, Target, Text, Users } from "lucide-react"
 
 import { Chip } from "@/components/biz/Chip"
 import { FieldRow } from "@/components/biz/FieldRow"
+import { tripText } from "@/lib/expense-trip"
 import { Tag } from "@/components/biz/Tag"
 import { formatFen } from "@/lib/format"
 import { EXPENSE_STATUS_META, EXPENSE_TYPE_META, labelOf } from "@/lib/labels"
@@ -21,7 +22,8 @@ export function ExpenseSummary({ e }: { e: ExpenseDetail }) {
       </FieldRow>
       <FieldRow icon={Coins} label="金额">
         <span className="tabular-nums">
-          {formatFen(e.amount)} · {e.headcount} 人
+          {formatFen(e.amount)}
+          {e.type === "entertainment" ? ` · ${e.headcount} 人` : null}
         </span>
       </FieldRow>
       <FieldRow icon={Calendar} label="发生日期">
@@ -33,9 +35,16 @@ export function ExpenseSummary({ e }: { e: ExpenseDetail }) {
       <FieldRow icon={Target} label="关联商机">
         {e.opportunity?.name ?? "—"}
       </FieldRow>
-      <FieldRow icon={Users} label="参与人">
-        <span title={e.participants ?? undefined}>{e.participants || "—"}</span>
-      </FieldRow>
+      {e.type === "entertainment" ? (
+        <FieldRow icon={Users} label="参与人">
+          <span title={e.participants ?? undefined}>{e.participants || "—"}</span>
+        </FieldRow>
+      ) : null}
+      {tripText(e.details) ? (
+        <FieldRow icon={MapPin} label={e.type === "hotel" ? "住宿" : "行程"}>
+          {tripText(e.details)}
+        </FieldRow>
+      ) : null}
       <FieldRow icon={Text} label="事由">
         <span title={e.reason}>{e.reason || "—"}</span>
       </FieldRow>

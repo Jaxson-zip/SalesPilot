@@ -7,7 +7,10 @@ import { useSession } from "@/components/shell/SessionProvider"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useContacts } from "@/hooks/useFollowups"
+import { ExpenseGuidePanel, ExpenseTemplatePicker } from "@/components/expenses/ExpenseGuide"
+import { TripFields } from "@/components/expenses/TripFields"
 import { useOpportunities } from "@/hooks/useOpportunities"
+import { useTemplates } from "@/hooks/useTemplates"
 import { useTeamUsers } from "@/hooks/useUsers"
 import { isNotImplemented } from "@/lib/errors"
 import {
@@ -18,7 +21,7 @@ import {
   type ExpenseFormValues,
 } from "@/lib/expense"
 import { EXPENSE_TYPE_META } from "@/lib/labels"
-import type { CustomerBrief, ExpenseType } from "@/types/api"
+import type { CustomerBrief, ExpenseTemplate, ExpenseType } from "@/types/api"
 
 export type { ExpenseFormErrors }
 
@@ -110,55 +113,22 @@ function ColleaguesField({ values, onChange }: { values: ExpenseFormValues; onCh
   )
 }
 
-/** 新建报销表单（U4）：类型 / 金额 / 日期 / 关联客户 → 关联商机、客户方参与人；我方参与人；其他人数；事由 */
-export function ExpenseForm({
+/** 客户招待专属：客户方参与人、我方参与人、其他人数、人数与人均 */
+function ParticipantFields({
   values,
-  customer,
   errors,
   onChange,
-  onCustomerChange,
 }: {
   values: ExpenseFormValues
-  customer: CustomerBrief | null
   errors: ExpenseFormErrors
   onChange: OnChange
-  onCustomerChange: (c: CustomerBrief | null) => void
 }) {
-  const isEntertainment = values.type === "entertainment"
-  const count = participantCount(values)
   return (
     <>
-      <FormField label="费用类型" required>
-        <SimpleSelect
-          value={values.type}
-          onChange={(t) => onChange("type", t)}
-          options={TYPE_OPTIONS}
-          ariaLabel="费用类型"
-        />
-      </FormField>
-      <div className="grid grid-cols-2 gap-3">
-        <FormField label="金额" required error={errors.amount} htmlFor="exp-amount">
-          <MoneyInput
-            id="exp-amount"
-            value={values.amount}
-            invalid={Boolean(errors.amount)}
-            onChange={(v) => onChange("amount", v)}
-          />
-        </FormField>
-        <FormField label="发生日期" required error={errors.occurred_on}>
-          <DatePicker value={values.occurred_on} onChange={(d) => onChange("occurred_on", d)} ariaLabel="发生日期" />
-        </FormField>
-      </div>
-      <FormField label="关联客户" required={isEntertainment} error={errors.customer_id}>
-        <CustomerCombobox value={customer} onChange={onCustomerChange} invalid={Boolean(errors.customer_id)} />
-      </FormField>
-      {values.customer_id ? (
-        <OpportunityField customerId={values.customer_id} value={values.opportunity_id} onChange={onChange} />
-      ) : null}
       <ContactsField
         customerId={values.customer_id}
         values={values}
-        required={isEntertainment}
+        required
         error={errors.contact_ids}
         onChange={onChange}
       />
@@ -179,15 +149,88 @@ export function ExpenseForm({
         />
       </FormField>
       <div aria-live="polite" data-testid="expense-headcount" className="text-zinc-600 tabular-nums">
-        {headcountSummary(values.amount, count)}
+        {headcountSummary(values.amount, participantCount(values))}
       </div>
+    </>
+  )
+}
+
+/**
+ * 新建报销表单：模板 → 类型（报销须知随类型变化）→ 金额 / 日期 → 按类型的补充信息 → 关联客户 / 商机 → 事由。
+ * 客户招待显示参与人；差旅交通显示行程；差旅住宿显示城市和入住 / 离店日期（v4）。
+ */
+export function ExpenseForm({
+  values,
+  customer,
+  errors,
+  onChange,
+  onCustomerChange,
+  templateId,
+  onTemplate,
+}: {
+  values: ExpenseFormValues
+  customer: CustomerBrief | null
+  errors: ExpenseFormErrors
+  onChange: OnChange
+  onCustomerChange: (c: CustomerBrief | null) => void
+  templateId: string | null
+  onTemplate: (tpl: ExpenseTemplate, all: ExpenseTemplate[]) => void
+}) {
+  const templates = useTemplates().data
+  const all = templates?.expense_templates ?? []
+  const example = all.find((t) => t.id === templateId && t.type === values.type)?.example
+  const isEntertainment = values.type === "entertainment"
+  return (
+    <>
+      <ExpenseTemplatePicker templates={all} active={templateId} onPick={(tpl) => onTemplate(tpl, all)} />
+      <FormField label="费用类型" required>
+        <SimpleSelect
+          value={values.type}
+          onChange={(t) => onChange("type", t)}
+          options={TYPE_OPTIONS}
+          ariaLabel="费用类型"
+        />
+      </FormField>
+      <ExpenseGuidePanel guides={templates?.expense_guides ?? []} type={values.type} example={example} />
+      <div className="grid grid-cols-2 gap-3">
+        <FormField label="金额" required error={errors.amount} htmlFor="exp-amount">
+          <MoneyInput
+            id="exp-amount"
+            value={values.amount}
+            invalid={Boolean(errors.amount)}
+            onChange={(v) => onChange("amount", v)}
+          />
+        </FormField>
+        <FormField label="发生日期" required error={errors.occurred_on}>
+          <DatePicker value={values.occurred_on} onChange={(d) => onChange("occurred_on", d)} ariaLabel="发生日期" />
+        </FormField>
+      </div>
+      <TripFields
+        type={values.type}
+        trip={values.trip}
+        amount={values.amount}
+        errors={errors}
+        onChange={(t) => onChange("trip", t)}
+      />
+      <FormField
+        label="关联客户"
+        required={isEntertainment}
+        error={errors.customer_id}
+        hint={isEntertainment ? undefined : "出差拜访的客户，选填"}
+      >
+        <CustomerCombobox value={customer} onChange={onCustomerChange} invalid={Boolean(errors.customer_id)} />
+      </FormField>
+      {values.customer_id ? (
+        <OpportunityField customerId={values.customer_id} value={values.opportunity_id} onChange={onChange} />
+      ) : null}
+      {isEntertainment ? <ParticipantFields values={values} errors={errors} onChange={onChange} /> : null}
       <FormField label="事由" required error={errors.reason} htmlFor="exp-reason">
         <Textarea
           id="exp-reason"
           rows={3}
           maxLength={500}
           value={values.reason}
-          placeholder="例如：方案沟通晚餐"
+          placeholder={example ? `例如：${example}` : "例如：方案沟通晚餐"}
           aria-invalid={Boolean(errors.reason) || undefined}
           onChange={(e) => onChange("reason", e.target.value)}
         />

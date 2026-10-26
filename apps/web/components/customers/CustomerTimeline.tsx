@@ -14,6 +14,9 @@ import { useCreateFollowup, useFollowups } from "@/hooks/useFollowups"
 import { formatRelative, localDate } from "@/lib/format"
 import { FOLLOWUP_TYPE_LABEL } from "@/lib/labels"
 import { buildTimeline, type TimelineEntry } from "@/lib/timeline"
+import { QuickChips } from "@/components/biz/QuickChips"
+import { useTemplates } from "@/hooks/useTemplates"
+import { insertTemplate, isUnfilledTemplate } from "@/lib/templates"
 import { cn } from "@/lib/utils"
 import { defaultScope } from "@/lib/views"
 import type { FollowupType, Role } from "@/types/api"
@@ -41,6 +44,8 @@ export const FollowupComposer = forwardRef<HTMLTextAreaElement, { customerId: st
   const [type, setType] = useState<FollowupType>("phone")
   const [date, setDate] = useState(() => localDate())
   const create = useCreateFollowup(customerId)
+  const templates = useTemplates().data?.followup ?? []
+  const unfilled = isUnfilledTemplate(content)
   const save = () =>
     create.mutate(
       { type, content: content.trim(), occurred_at: date ? `${date}T00:00:00` : undefined },
@@ -48,9 +53,20 @@ export const FollowupComposer = forwardRef<HTMLTextAreaElement, { customerId: st
     )
   return (
     <div className="mb-5 rounded-lg border border-zinc-200 focus-within:border-zinc-300">
+      <QuickChips
+        label="跟进模板"
+        className="px-3 pt-3"
+        items={templates.map((t) => ({ key: t.id, label: t.label }))}
+        onPick={(key) => {
+          const tpl = templates.find((t) => t.id === key)
+          if (!tpl) return
+          setContent((c) => insertTemplate(c, tpl.content))
+          setType(tpl.type)
+        }}
+      />
       <textarea
         ref={ref}
-        rows={2}
+        rows={content.includes("\n") ? 5 : 2}
         value={content}
         maxLength={2000}
         onChange={(e) => setContent(e.target.value)}
@@ -67,7 +83,8 @@ export const FollowupComposer = forwardRef<HTMLTextAreaElement, { customerId: st
           <DatePicker value={date} onChange={setDate} size="sm" />
         </div>
         {/* ml-auto：窄屏换行后保存按钮仍靠右 */}
-        <Button size="sm" className="ml-auto" disabled={!content.trim() || create.isPending} onClick={save}>
+        {unfilled ? <span className="text-xs text-amber-700">模板还没填写内容</span> : null}
+        <Button size="sm" className="ml-auto" disabled={!content.trim() || unfilled || create.isPending} onClick={save}>
           {create.isPending ? "保存中…" : "保存"}
         </Button>
       </div>

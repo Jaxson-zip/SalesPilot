@@ -22,7 +22,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useApprovals } from "@/hooks/useApprovals"
-import { isActivePath, navGroupsFor, type NavItem } from "@/lib/nav"
+import { HELP, isActivePath, navGroupsFor, type NavItem } from "@/lib/nav"
 
 const itemClass =
   "h-7 gap-2 px-2 text-zinc-600 hover:bg-black/[0.04] data-[active=true]:text-zinc-900 [&>svg]:text-zinc-500 data-[active=true]:[&>svg]:text-zinc-800"
@@ -107,6 +107,9 @@ export function AppSidebar({ onSearch }: { onSearch: () => void }) {
         })}
       </SidebarContent>
       <SidebarFooter className="p-2">
+        <SidebarMenu>
+          <NavLink item={HELP} active={isActivePath(pathname, HELP.href)} />
+        </SidebarMenu>
         <UserMenu />
       </SidebarFooter>
     </Sidebar>

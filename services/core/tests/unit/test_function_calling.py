@@ -22,11 +22,12 @@ def _deps(ctx: ToolContext, llm: Any) -> AgentDeps:
 class TestToolExposure:
     def test_sales_cannot_see_approval_tool(self) -> None:
         names_ = {t.name for t in chat_tools_for(Role.SALES)}
-        assert "decide_approval" not in names_
+        assert "decide_approval" not in names_ and "list_pending_approvals" not in names_
         assert {"submit_expense", "update_opportunity_stage", "get_customer_context"} <= names_
 
-    def test_manager_sees_approval_tool(self) -> None:
-        assert "decide_approval" in {t.name for t in chat_tools_for(Role.MANAGER)}
+    def test_manager_sees_approval_tools(self) -> None:
+        names_ = {t.name for t in chat_tools_for(Role.MANAGER)}
+        assert {"decide_approval", "list_pending_approvals"} <= names_
 
     def test_admin_only_gets_read_only_tools(self) -> None:
         tools = chat_tools_for(Role.ADMIN)

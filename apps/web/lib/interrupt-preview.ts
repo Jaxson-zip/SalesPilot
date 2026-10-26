@@ -28,6 +28,8 @@ const FIELDS: Record<string, { label: string; format?: Formatter }> = {
   contacts: { label: "客户方" },
   colleagues: { label: "我方" },
   lost_reason: { label: "输单原因" },
+  trip: { label: "行程" },
+  target: { label: "单据" },
   task_title: { label: "任务" },
   due_at: { label: "到期" },
   task_type: { label: "方式" },

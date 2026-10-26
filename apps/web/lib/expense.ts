@@ -1,4 +1,5 @@
 /** 报销表单与票据的纯函数：表单转换、票据齐全判断、上传文件校验 */
+import { toDetails, tripErrors, type TripErrors, type TripValues } from "@/lib/expense-trip"
 import { formatFen, localDate } from "@/lib/format"
 import { parsePositiveInt, yuanToFen } from "@/lib/money"
 import type {
@@ -8,6 +9,7 @@ import type {
   ExpensePrecheck,
   ExpenseType,
   PolicyCheck,
+  PolicyUnit,
 } from "@/types/api"
 
 export interface ExpenseFormValues {
@@ -25,9 +27,11 @@ export interface ExpenseFormValues {
   /** 其他人数（字符串，空 = 0） */
   extra_guests: string
   reason: string
+  /** v4：差旅交通的行程 / 差旅住宿的城市和日期 */
+  trip: TripValues
 }
 
-export type ExpenseFormErrors = Partial<Record<keyof ExpenseFormValues, string>>
+export type ExpenseFormErrors = Partial<Record<Exclude<keyof ExpenseFormValues, "trip">, string>> & TripErrors
 
 export type FormResult<T> = { ok: true; value: T } | { ok: false; errors: ExpenseFormErrors }
 
@@ -62,10 +66,11 @@ export function toggleId(ids: string[], id: string): string[] {
   return ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
 }
 
-/** 参与人相关字段（headcount 仍按同一算法传给后端，兼容旧后端） */
+/** 参与人相关字段（headcount 仍按同一算法传给后端，兼容旧后端）；只有客户招待需要参与人 */
 function participantFields(
   v: ExpenseFormValues,
 ): Pick<ExpenseCreate, "headcount" | "contact_ids" | "colleague_ids" | "extra_guests"> {
+  if (v.type !== "entertainment") return { headcount: 1, contact_ids: [], colleague_ids: [], extra_guests: 0 }
   return {
     headcount: participantCount(v),
     contact_ids: v.contact_ids,
@@ -86,6 +91,7 @@ export function toExpenseCreate(v: ExpenseFormValues, idempotencyKey?: string): 
     if (!v.customer_id) errors.customer_id = "客户招待需关联客户"
     else if (v.contact_ids.length === 0) errors.contact_ids = "客户招待至少选择 1 名客户方参与人"
   }
+  Object.assign(errors, tripErrors(v.type, v.trip))
   if (amount === null || amount <= 0 || Object.keys(errors).length > 0) return { ok: false, errors }
   const body: ExpenseCreate = {
     type: v.type,
@@ -94,6 +100,8 @@ export function toExpenseCreate(v: ExpenseFormValues, idempotencyKey?: string): 
     reason: v.reason.trim(),
     ...participantFields(v),
   }
+  const details = toDetails(v.type, v.trip)
+  if (details) body.details = details
   if (v.customer_id) body.customer_id = v.customer_id
   if (v.customer_id && v.opportunity_id) body.opportunity_id = v.opportunity_id
   if (idempotencyKey) body.idempotency_key = idempotencyKey
@@ -112,6 +120,9 @@ export function toPrecheckBody(v: ExpenseFormValues): ExpenseCreate | null {
     ...participantFields(v),
   }
   if (v.customer_id) body.customer_id = v.customer_id
+  // 住宿日期不全时也照样校验：后端会说明「缺少城市或入住 / 离店日期」
+  const details = toDetails(v.type, v.trip)
+  if (details) body.details = details
   return body
 }
 
@@ -172,7 +183,11 @@ export interface PolicyCheckView {
   summary?: string
   /** 补充说明（制度依据） */
   note?: string
+  /** person：人均；night：每晚（差旅住宿） */
+  unit: PolicyUnit
 }
+
+const ruleNote = (ref: string | undefined): string | undefined => (ref ? `依据 ${ref}` : undefined)
 
 export function checkFromPrecheck(p: ExpensePrecheck): PolicyCheckView {
   return {
@@ -181,6 +196,8 @@ export function checkFromPrecheck(p: ExpensePrecheck): PolicyCheckView {
     limit_per_person: p.limit_per_person,
     over_amount: p.over_amount,
     summary: p.reason || undefined,
+    note: ruleNote(p.rule_ref),
+    unit: p.unit ?? "person",
   }
 }
 
@@ -190,6 +207,7 @@ export function checkFromPolicy(p: PolicyCheck): PolicyCheckView {
     per_person: p.per_person,
     limit_per_person: p.limit_per_person,
     over_amount: p.over_amount,
-    note: p.rule_ref ? `依据 ${p.rule_ref}` : undefined,
+    note: ruleNote(p.rule_ref),
+    unit: p.unit ?? "person",
   }
 }

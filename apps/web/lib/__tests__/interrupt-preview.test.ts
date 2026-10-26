@@ -40,6 +40,8 @@ describe("previewRows", () => {
       decision: "驳回",
       comment: "超标",
       lost_reason: "预算取消",
+      trip: "北京 2 晚",
+      target: "E-2026-005 客户招待",
     })
     for (const [label] of rows) expect(label).toMatch(/[一-龥]/)
   })

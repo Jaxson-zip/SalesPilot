@@ -31,6 +31,8 @@ class Expense(OwnedMixin, Base):
     status: Mapped[str] = mapped_column(String(20), default="draft", index=True)
     policy_check: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     idempotency_key: Mapped[str | None] = mapped_column(String(100), unique=True)
+    # v4：差旅交通 {from_city, to_city, transport_mode}；差旅住宿 {city, check_in, check_out}
+    details: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
 
 
 class Attachment(OwnedMixin, Base):

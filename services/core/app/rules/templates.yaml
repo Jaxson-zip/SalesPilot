@@ -1,0 +1,113 @@
+# 业务模板（v4）：报销 / 跟进 / 下一步 / 输单原因 / 报价条款 / AI 示例问题。
+# 只放文案；标准金额、必备票据、报价有效期等数字由 rules.yaml 计算后填进 {占位符}，不要在这里写死。
+# 管理员改这个文件即可调整模板，前端通过 GET /api/templates 读取。
+
+expense:
+  # 新建报销时「从模板开始」：选中后预填类型、交通方式和事由开头
+  templates:
+    - id: client_meal
+      label: 客户餐叙
+      type: entertainment
+      reason: "方案沟通餐叙："
+      example: "方案沟通餐叙：与王律师确认私有化部署范围和预算"
+    - id: client_tea
+      label: 拜访茶歇
+      type: entertainment
+      reason: "客户拜访茶歇："
+      example: "客户拜访茶歇：现场演示后与 IT 负责人交流部署细节"
+    - id: train_trip
+      label: 出差高铁
+      type: transport
+      transport_mode: train
+      reason: "出差拜访客户："
+      example: "出差拜访客户：赴北京参加星河设计方案评审"
+    - id: city_taxi
+      label: 市内打车
+      type: transport
+      transport_mode: taxi
+      reason: "客户拜访往返："
+      example: "客户拜访往返：公司 ↔ 明理律所（南山区）"
+    - id: hotel_stay
+      label: 出差住宿
+      type: hotel
+      reason: "出差住宿："
+      example: "出差住宿：北京 2 晚，参加客户方案评审"
+    - id: other
+      label: 其他费用
+      type: other
+      reason: ""
+      example: "购买演示用 U 盘 2 个"
+  # 「报销须知」：每种类型的标准说明。{per_person} {per_night} {per_night_tier1} {tier1_cities} 由规则填入
+  guides:
+    entertainment:
+      standard: "人均 {per_person} 元（人数含我方陪同人员），超出部分需主管审批"
+      must: "必须关联客户，并选择客户方参与人；事由写清宴请目的"
+    transport:
+      standard: "实报实销；跨城优先选择高铁二等座，乘飞机请在事由中说明原因"
+      must: "建议填写出发地和目的地，便于核对行程"
+    hotel:
+      standard: "一线城市（{tier1_cities}）每晚 {per_night_tier1} 元，其他城市每晚 {per_night} 元"
+      must: "填写住宿城市和入住 / 离店日期，系统按晚数核对标准"
+    other:
+      standard: "实报实销"
+      must: "事由写清用途，必要时关联客户或商机"
+
+followup:
+  - id: phone
+    label: 电话沟通
+    type: phone
+    content: "沟通对象：\n客户需求 / 关注点：\n异议或顾虑：\n下一步："
+  - id: visit
+    label: 上门拜访
+    type: visit
+    content: "拜访对象：\n现场情况：\n客户反馈：\n下一步："
+  - id: demo
+    label: 产品演示
+    type: visit
+    content: "演示内容：\n参与人：\n客户评价：\n待解答的问题：\n下一步："
+  - id: wechat
+    label: 微信沟通
+    type: wechat
+    content: "沟通要点：\n客户反馈：\n下一步："
+
+task:
+  - { type: call, title: 电话确认需求和预算 }
+  - { type: meeting, title: 安排产品演示 }
+  - { type: email, title: 发送方案和报价单 }
+  - { type: call, title: 跟进报价反馈 }
+  - { type: visit, title: 拜访关键决策人 }
+  - { type: todo, title: 准备合同草稿 }
+
+lost_reasons:
+  - 预算不足或被削减
+  - 选择了竞品
+  - 价格没有竞争力
+  - 需求取消或无限期延后
+  - 没有接触到关键决策人
+  - 技术方案不满足要求
+
+# 报价单打印页的「条款与说明」。{valid_days} 由 rules.yaml 的 quote.valid_days 填入
+quote_terms:
+  - "本报价有效期 {valid_days} 天，自报价日期起算；逾期需重新确认价格与货期。"
+  - "付款方式：合同签订后预付 30%，到货验收后支付 60%，质保期满后支付 10%。"
+  - "交付周期：合同签订并收到预付款后 4–6 周到货，具体以合同约定为准。"
+  - "报价含税（增值税专用发票），含运输、基础安装与调试。"
+  - "质保与服务：硬件原厂质保 3 年；软件含 1 年免费升级与远程技术支持。"
+
+# AI 工作台的示例问题（按角色）
+ai_prompts:
+  sales:
+    - { title: 出方案报价, prompt: "给明理律所出一份 Qwen3-32B 私有化方案，50 人并发，做合同审查，预算 40 万以内" }
+    - { title: 对话报销, prompt: "昨晚请明理律所王律师吃饭花了 860 元，一共 4 个人，帮我报销" }
+    - { title: 推进商机, prompt: "把星河设计的商机推进到商务谈判" }
+    - { title: 安排下一步, prompt: "明天上午 10 点提醒我给华南智能制造打电话确认预算" }
+    - { title: 记跟进, prompt: "帮我记一下：今天和明理律所王律师通了电话，对方希望下周看演示" }
+    - { title: 查制度, prompt: "出差住宿的报销标准是多少？" }
+  manager:
+    - { title: 团队漏斗, prompt: "团队现在的商机漏斗是什么情况？" }
+    - { title: 待审批, prompt: "列出现在等我审批的报价和报销" }
+    - { title: 处理审批, prompt: "看一下最新那笔超标报销，合理的话帮我通过" }
+    - { title: 查制度, prompt: "客户招待超标的审批依据是什么？" }
+  admin:
+    - { title: 全公司漏斗, prompt: "统计一下全公司的商机漏斗" }
+    - { title: 查制度, prompt: "提成制度里低毛利的合同怎么算提成？" }

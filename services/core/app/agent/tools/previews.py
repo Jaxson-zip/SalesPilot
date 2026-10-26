@@ -14,8 +14,10 @@ from typing import Any
 from app.agent.tools.base import ToolContext
 from app.crm.schemas.finance import EXPENSE_TYPE_LABELS
 from app.crm.schemas.opportunity import STAGE_LABELS
-from app.crm.services import customer_service
+from app.crm.models import Approval
+from app.crm.services import approval_service, customer_service
 from app.crm.services import opportunity_service as opp_service
+from app.rules.calculators import stay_nights
 
 logger = logging.getLogger("core.agent")
 
@@ -46,11 +48,24 @@ def _names(values: Any) -> str | None:
     return "、".join(str(v) for v in values) if values else None
 
 
+def _trip(details: Any) -> str | None:
+    """差旅行程摘要：住宿「北京 2 晚（10-01 至 10-03）」，交通「深圳 → 北京」。"""
+    if not isinstance(details, dict):
+        return None
+    if details.get("city"):
+        nights = stay_nights(details)
+        span = f"（{details.get('check_in')} 至 {details.get('check_out')}）" if nights else ""
+        return f"{details['city']} {nights} 晚{span}" if nights else str(details["city"])
+    route = [details.get("from_city"), details.get("to_city")]
+    return " → ".join(str(c) for c in route if c) or None
+
+
 def _expense(ctx: ToolContext, a: dict[str, Any]) -> dict[str, Any]:
     return {
         "expense_type": EXPENSE_TYPE_LABELS.get(a.get("type", "entertainment"), a.get("type")),
         "amount": a.get("amount"),
         "occurred_on": a.get("occurred_on"),
+        "trip": _trip(a.get("details")),
         "customer_name": _customer_name(ctx, a.get("customer_id")),
         "contacts": _names(a.get("contact_names")),
         "colleagues": _names(a.get("colleague_names")),
@@ -85,8 +100,21 @@ def _task(ctx: ToolContext, a: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _approval_target(ctx: ToolContext, approval_id: Any) -> dict[str, Any]:
+    """审批对象（单号、标题、金额），只读；只有主管看得到本团队的审批。"""
+    if not approval_id:
+        return {}
+    with ctx.session() as db:
+        approval = db.get(Approval, uuid.UUID(str(approval_id)))
+        if approval is None or approval.team_id != ctx.user.team_id:
+            return {}
+        target = approval_service.to_items(db, [approval])[0].target
+    return {"target": f"{target.code} {target.title}", "amount": target.amount}
+
+
 def _approval(ctx: ToolContext, a: dict[str, Any]) -> dict[str, Any]:
     return {
+        **_approval_target(ctx, a.get("approval_id")),
         "decision": "通过" if a.get("decision") == "approve" else "驳回",
         "comment": a.get("comment"),
     }

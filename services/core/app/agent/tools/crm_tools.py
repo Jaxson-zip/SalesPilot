@@ -11,6 +11,7 @@ from app.crm.schemas.finance import (
     CommissionEstimateIn,
     CommissionLineIn,
     ExpenseCreate,
+    ExpenseDetails,
     ExpenseType,
 )
 from app.crm.schemas.opportunity import STAGE_LABELS, StageChange
@@ -114,6 +115,9 @@ class SubmitExpenseArgs(BaseModel):
     opportunity_id: uuid.UUID | None = None
     reason: str = Field(min_length=1, max_length=500)
     idempotency_key: str = Field(min_length=1, max_length=100)
+    details: ExpenseDetails | None = Field(
+        default=None, description="差旅住宿必填 city / check_in / check_out；差旅交通可填行程"
+    )
 
 
 EXPENSE_SUMMARIES = {
@@ -205,7 +209,8 @@ CRM_TOOLS: list[ToolSpec] = [
         "submit_expense",
         "新建并提交报销单（系统自动做制度校验，超标会转主管审批）。"
         "amount 单位为分（860 元 = 86000）；客户招待要带 customer_id，"
-        "contact_names 写客户方参与人姓名，colleague_names 写我方同事；occurred_on 用 YYYY-MM-DD",
+        "contact_names 写客户方参与人姓名，colleague_names 写我方同事；occurred_on 用 YYYY-MM-DD；"
+        "差旅住宿要在 details 里写城市和入住 / 离店日期（按每晚标准校验）",
         SubmitExpenseArgs,
         submit_expense,
         write=True,

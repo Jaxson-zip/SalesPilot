@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   Boxes,
   Building2,
   FileSignature,
@@ -35,6 +36,8 @@ const CONTRACTS: NavItem = { href: "/contracts", label: "合同与提成", icon:
 const EXPENSES: NavItem = { href: "/expenses", label: "报销", icon: Receipt }
 const APPROVALS: NavItem = { href: "/approvals", label: "审批", icon: Stamp, pendingBadge: true }
 const PACKS: NavItem = { href: "/settings/packs", label: "行业包配置", icon: Boxes }
+/** 使用说明：所有角色可见，放在侧栏底部（不属于任何业务分组） */
+export const HELP: NavItem = { href: "/help", label: "使用说明", icon: BookOpen }
 
 /** 合同页的名称：主管侧重回款登记，其他角色侧重提成 */
 export function contractsLabel(role: Role): string {
@@ -63,9 +66,9 @@ export function navGroupsFor(role: Role): NavGroup[] {
   return [top, { label: "工作区", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES] }]
 }
 
-/** 当前角色可见的全部导航项（命令面板用） */
+/** 当前角色可见的全部导航项（命令面板用，含底部的使用说明） */
 export function navItemsFor(role: Role): NavItem[] {
-  return navGroupsFor(role).flatMap((g) => g.items)
+  return [...navGroupsFor(role).flatMap((g) => g.items), HELP]
 }
 
 const ALL_ITEMS: NavItem[] = [AI, DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, APPROVALS, PACKS]

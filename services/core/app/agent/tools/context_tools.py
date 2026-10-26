@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from app.agent.tools.base import ToolContext, ToolResult, ToolSpec
 from app.crm.schemas.common import PageParams
 from app.crm.schemas.opportunity import STAGE_LABELS
-from app.crm.services import customer_service
+from app.crm.services import approval_service, customer_service
 from app.crm.services import opportunity_service as opp_service
 
 
@@ -53,6 +53,29 @@ def get_customer_context(ctx: ToolContext, args: CustomerContextArgs) -> ToolRes
     return ToolResult(ok=True, summary=summary, data=data)
 
 
+class PendingApprovalsArgs(BaseModel):
+    limit: int = Field(default=10, ge=1, le=50)
+
+
+def list_pending_approvals(ctx: ToolContext, args: PendingApprovalsArgs) -> ToolResult:
+    """主管待处理的审批（本团队）；返回审批 id，decide_approval 需要它。"""
+    with ctx.session() as db:
+        page = approval_service.list_approvals(
+            db, ctx.user, "pending", PageParams(page=1, page_size=args.limit)
+        )
+    data = [
+        {
+            "approval_id": str(a.id),
+            "target_type": a.target_type,
+            "target": a.target.model_dump(mode="json"),
+            "reason": a.reason,
+            "ai_suggestion": a.ai_suggestion,
+        }
+        for a in page.items
+    ]
+    return ToolResult(ok=True, summary=f"待审批 {page.total} 条", data=data)
+
+
 CONTEXT_TOOLS: list[ToolSpec] = [
     ToolSpec(
         "get_customer_context",
@@ -60,5 +83,11 @@ CONTEXT_TOOLS: list[ToolSpec] = [
         "修改商机阶段、报销选参与人、建任务之前先调用它拿到 id",
         CustomerContextArgs,
         get_customer_context,
+    ),
+    ToolSpec(
+        "list_pending_approvals",
+        "列出主管待处理的审批（报价 / 报销），返回 approval_id、单号、金额、超标原因",
+        PendingApprovalsArgs,
+        list_pending_approvals,
     ),
 ]

@@ -22,6 +22,11 @@ expense:
   required_kinds:
     entertainment: [invoice, receipt]
     default: [invoice]
+  hotel:                      # 差旅住宿：按城市分档的每晚标准（分）
+    per_night: 35000          # 其他城市 ¥350/晚
+    per_night_tier1: 50000    # 一线城市 ¥500/晚
+    tier1_cities: [北京, 上海, 广州, 深圳]
+    rule_ref: "《费用报销管理制度》3.2 住宿"
 
 attachment:
   max_bytes: 10485760         # 单个票据 ≤ 10 MB

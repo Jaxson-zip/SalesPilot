@@ -19,4 +19,5 @@ def estimate_commission(data: CommissionEstimateIn) -> CommissionResult:
 
 
 def precheck_expense(data: ExpensePrecheckIn) -> ExpenseCheck:
-    return check_expense_policy(data.amount, data.headcount, data.type)
+    details = data.details.model_dump(mode="json", exclude_none=True) if data.details else None
+    return check_expense_policy(data.amount, data.headcount, data.type, details=details)

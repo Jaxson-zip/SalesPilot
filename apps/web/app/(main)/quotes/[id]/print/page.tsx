@@ -13,11 +13,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { useQuote } from "@/hooks/useQuotes"
 import { formatFen, formatPercent } from "@/lib/format"
+import { useTemplates } from "@/hooks/useTemplates"
 import { PRINT_COMPANY, printDocTitle, printTotals } from "@/lib/quote-print"
 import { fenToRmbUpper } from "@/lib/rmb"
 import type { QuoteDetail } from "@/types/api"
 
-const DEFAULT_NOTE = "1. 以上报价以人民币计价。\n2. 交付周期、付款方式以双方签订的合同为准。"
+const DEFAULT_NOTE = "以上报价以人民币计价。如需调整配置或数量，请联系您的客户经理。"
 
 /** 打印页铺满视口盖住应用外壳（屏幕上是 A4 预览）；打印时 print CSS 只输出 .print-root */
 function PrintPortal({ children }: { children: ReactNode }) {
@@ -36,6 +37,22 @@ function Meta({ label, value }: { label: string; value: ReactNode }) {
       <span className="w-16 shrink-0 text-zinc-500">{label}</span>
       <span className="min-w-0 break-words">{value}</span>
     </div>
+  )
+}
+
+/** 条款与说明：来自 /api/templates（有效期天数由后端按 rules.yaml 填入），管理员改 templates.yaml 即可调整 */
+function QuoteTerms() {
+  const terms = useTemplates().data?.quote_terms ?? []
+  if (terms.length === 0) return null
+  return (
+    <section className="mt-6" aria-label="条款与说明">
+      <div className="font-medium">条款与说明</div>
+      <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-zinc-700">
+        {terms.map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+      </ol>
+    </section>
   )
 }
 
@@ -104,7 +121,8 @@ function QuoteSheet({ q, showUpper }: { q: QuoteDetail; showUpper: boolean }) {
           </div>
         ) : null}
       </div>
-      <div className="mt-6">
+      <QuoteTerms />
+      <div className="mt-4">
         <label htmlFor="print-note" className="font-medium">
           备注
         </label>

@@ -81,7 +81,7 @@ test("确认框点取消：报价单状态不变（防误操作）", async ({ pa
   await page.goto(`/quotes/${quote.id}`)
   await page.getByRole("button", { name: "发送客户", exact: true }).click()
   const dialog = page.getByRole("alertdialog", { name: "发送给客户" })
-  await dialog.getByRole("button", { name: "取消" }).click()
+  await dialog.getByRole("button", { name: "取消", exact: true }).click()
   await expect(dialog).toBeHidden()
   expect((await api.call<QuoteOut>("GET", `/api/quotes/${quote.id}`)).status).toBe("approved")
 })

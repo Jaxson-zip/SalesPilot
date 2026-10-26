@@ -29,6 +29,7 @@ CHAT_TOOL_NAMES: tuple[str, ...] = (
     "pipeline_summary",
     "calc_commission",
     "search_policy",
+    "list_pending_approvals",
     "decide_approval",
 )
 # 按角色收窄可见工具（契约 §0）：管理员对业务数据只读；审批只有主管能做。service 层仍会再校验一次
@@ -43,8 +44,11 @@ READ_ONLY_TOOLS = frozenset(
 )
 
 
+MANAGER_ONLY_TOOLS = frozenset({"list_pending_approvals", "decide_approval"})
+
+
 def chat_tools_for(role: Role) -> list[ToolSpec]:
-    names = [n for n in CHAT_TOOL_NAMES if n != "decide_approval" or role == Role.MANAGER]
+    names = [n for n in CHAT_TOOL_NAMES if n not in MANAGER_ONLY_TOOLS or role == Role.MANAGER]
     if role == Role.ADMIN:
         names = [n for n in names if n in READ_ONLY_TOOLS]
     return [TOOLS[n] for n in names]

@@ -59,6 +59,7 @@ class TestTools:
             "decide_approval",
             "create_task",
             "get_customer_context",
+            "list_pending_approvals",
         }
         assert set(TOOLS) == expected
         confirm = {n for n, t in TOOLS.items() if t.needs_confirm}

@@ -7,6 +7,7 @@
 """
 
 import uuid
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -20,6 +21,7 @@ from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.finance import (
     ExpenseCreate,
     ExpenseDetail,
+    ExpenseDetails,
     ExpenseItem,
     PolicyCheck,
 )
@@ -31,6 +33,7 @@ from app.crm.services import (
     lookup,
 )
 from app.crm.services.codes import next_code
+from app.crm.services.expense_details import clean_details
 from app.crm.services.quote_query import count
 from app.rules import RuleSet, check_expense_policy, load_rules
 
@@ -38,6 +41,7 @@ RULE_MISSING_INVOICE = "expense_missing_invoice"
 KIND_LABELS = {"invoice": "发票", "receipt": "小票", "other": "其他票据"}
 # 由后端计算或单独处理的字段（客户端传入的 headcount / participants 被忽略）
 CREATE_DERIVED = {
+    "details",
     "customer_id",
     "headcount",
     "participants",
@@ -47,14 +51,21 @@ CREATE_DERIVED = {
 }
 
 
-def policy_check(data_type: str, amount: int, headcount: int, rules: RuleSet) -> PolicyCheck:
-    result = check_expense_policy(amount, headcount, data_type, rules)
+def policy_check(
+    data_type: str,
+    amount: int,
+    headcount: int,
+    rules: RuleSet,
+    details: dict[str, Any] | None = None,
+) -> PolicyCheck:
+    result = check_expense_policy(amount, headcount, data_type, rules, details)
     return PolicyCheck(
         passed=not result.need_approval,
         per_person=result.per_person,
         limit_per_person=result.limit_per_person,
         over_amount=result.over_amount,
-        rule_ref=rules.expense.rule_ref if result.limit_per_person else "",
+        rule_ref=result.rule_ref if result.limit_per_person else "",
+        unit=result.unit,
     )
 
 
@@ -83,9 +94,11 @@ def create_expense(
             raise BizError(ErrorCode.DUPLICATE, "重复提交", {"id": str(found.id)})
     customer_id = _check_links(db, user, data)
     parts = expense_participants.resolve(db, user, data, customer_id)
-    check = policy_check(data.type, data.amount, parts.headcount, load_rules())
+    details = clean_details(data.type, data.details)  # 先校验权限和关联，再校验字段
+    check = policy_check(data.type, data.amount, parts.headcount, load_rules(), details)
     expense = Expense(
         **data.model_dump(exclude=CREATE_DERIVED),
+        details=details,
         customer_id=customer_id,
         headcount=parts.headcount,
         participants=parts.text,
@@ -181,6 +194,7 @@ def get_expense(db: Session, user: CurrentUser, expense_id: uuid.UUID) -> Expens
         opportunity=lookup.pick(opps, expense.opportunity_id),
         attachments=attachment_query.list_for(db, "expense", expense.id),
         policy_check=_check_of(expense),
+        details=ExpenseDetails.model_validate(expense.details) if expense.details else None,
     )
 
 
@@ -213,9 +227,11 @@ def submit_expense(
             f"请先上传{names}",
             {"rule": RULE_MISSING_INVOICE, "missing": missing},
         )
-    check = policy_check(expense.type, expense.amount, expense.headcount, rules)
+    check = policy_check(expense.type, expense.amount, expense.headcount, rules, expense.details)
     expense.policy_check = check.model_dump()
-    reason = check_expense_policy(expense.amount, expense.headcount, expense.type, rules).reason
+    reason = check_expense_policy(
+        expense.amount, expense.headcount, expense.type, rules, expense.details
+    ).reason
     if check.passed:
         expense.status = "approved"
         content = f"提交报销单，制度校验通过：{reason}"

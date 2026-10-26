@@ -86,7 +86,7 @@ test.describe("商机看板", () => {
     const lead = page.locator('[data-stage="lead"]')
     await dragTo(page, lead.getByText(opp.name, { exact: true }), page.getByText("拖到这里标记为「输单」"))
     const dialog = page.getByRole("dialog", { name: "标记为输单" })
-    await dialog.getByRole("button", { name: "取消" }).click()
+    await dialog.getByRole("button", { name: "取消", exact: true }).click()
 
     await expect(dialog).toBeHidden()
     await expect(lead.getByText(opp.name, { exact: true })).toBeVisible()
@@ -127,7 +127,7 @@ test.describe("商机看板", () => {
     )
     const dialog = page.getByRole("alertdialog", { name: "标记为赢单" })
     await expect(dialog).toBeVisible()
-    await dialog.getByRole("button", { name: "取消" }).click()
+    await dialog.getByRole("button", { name: "取消", exact: true }).click()
 
     await expect(dialog).toBeHidden()
     await expect(page.locator('[data-stage="lead"]').getByText(opp.name, { exact: true })).toBeVisible()

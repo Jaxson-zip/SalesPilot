@@ -93,8 +93,30 @@ class TestExpense:
     def test_exact_standard(self) -> None:
         assert not check_expense_policy(60_000, 4).need_approval
 
-    def test_other_type_no_limit(self) -> None:
-        assert not check_expense_policy(58_000, 1, "hotel").need_approval
+    def test_transport_no_limit(self) -> None:
+        r = check_expense_policy(258_000, 1, "transport")
+        assert not r.need_approval and r.limit_per_person == 0
+
+    def test_hotel_without_details_cannot_check(self) -> None:
+        r = check_expense_policy(58_000, 1, "hotel")
+        assert not r.need_approval and "无法" in r.reason
+
+    @pytest.mark.parametrize(
+        ("city", "nights", "amount", "limit", "over"),
+        [
+            ("深圳", 2, 100_000, 50_000, 0),  # 一线城市 ¥500/晚，正好用满
+            ("深圳市南山区", 1, 58_000, 50_000, 8_000),  # 城市名包含「深圳」也算一线
+            ("长沙", 3, 120_000, 35_000, 15_000),  # 其他城市 ¥350/晚
+        ],
+    )
+    def test_hotel_per_night(
+        self, city: str, nights: int, amount: int, limit: int, over: int
+    ) -> None:
+        details = {"city": city, "check_in": "2026-10-01", "check_out": f"2026-10-{1 + nights:02d}"}
+        r = check_expense_policy(amount, 1, "hotel", details=details)
+        assert r.unit == "night" and r.limit_per_person == limit
+        assert r.over_amount == over and r.need_approval == (over > 0)
+        assert r.per_person == amount // nights
 
     @pytest.mark.parametrize(("amount", "headcount"), [(-1, 1), (100, 0)])
     def test_invalid(self, amount: int, headcount: int) -> None:

@@ -1,11 +1,11 @@
-"""纯规则接口（不依赖数据库）：行业包列表、提成估算、报销制度预校验。"""
+"""纯规则接口（不依赖数据库）：行业包列表、提成估算、报销制度预校验、业务模板。"""
 
 from fastapi import APIRouter
 
 from app.common.auth import CurrentUserDep
 from app.common.response import ApiResponse, ok
 from app.crm.schemas.finance import CommissionEstimateIn, ExpensePrecheckIn
-from app.crm.services import finance_service, pack_service
+from app.crm.services import finance_service, pack_service, template_service
 from app.crm.services.pack_service import PackDetail, PackOut
 from app.rules import CommissionResult, ExpenseCheck
 
@@ -32,3 +32,8 @@ def estimate_commission(
 @router.post("/expenses/precheck", response_model=ApiResponse[ExpenseCheck])
 def precheck_expense(body: ExpensePrecheckIn, user: CurrentUserDep) -> ApiResponse[ExpenseCheck]:
     return ok(finance_service.precheck_expense(body))
+
+
+@router.get("/templates", response_model=ApiResponse[template_service.Templates])
+def get_templates(user: CurrentUserDep) -> ApiResponse[template_service.Templates]:
+    return ok(template_service.get_templates(user.role.value))

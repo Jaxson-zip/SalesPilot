@@ -1,8 +1,12 @@
 """纯函数计算器：毛利、折扣、提成、报销制度校验。金额单位一律为整数「分」。"""
 
+from collections.abc import Mapping
+from datetime import date
+from typing import Any, Literal
+
 from pydantic import BaseModel
 
-from app.rules.loader import RuleSet, load_rules
+from app.rules.loader import HotelRules, RuleSet, load_rules
 
 
 class MarginCheck(BaseModel):
@@ -27,11 +31,14 @@ class CommissionResult(BaseModel):
 
 
 class ExpenseCheck(BaseModel):
+    # 字段名沿用 v1（人均）；unit=night 时表示「每晚」
     per_person: int
     limit_per_person: int
     over_amount: int
     need_approval: bool
     reason: str
+    unit: Literal["person", "night"] = "person"
+    rule_ref: str = ""
 
 
 def _rules(rules: RuleSet | None) -> RuleSet:
@@ -102,24 +109,75 @@ def calc_commission(
     )
 
 
+def _as_date(value: Any) -> date | None:
+    if isinstance(value, date):
+        return value
+    try:
+        return date.fromisoformat(str(value)) if value else None
+    except ValueError:
+        return None
+
+
+def stay_nights(details: Mapping[str, Any] | None) -> int:
+    """入住到离店的晚数；日期缺失或不合法时为 0。"""
+    d = details or {}
+    check_in, check_out = _as_date(d.get("check_in")), _as_date(d.get("check_out"))
+    if check_in is None or check_out is None:
+        return 0
+    return max((check_out - check_in).days, 0)
+
+
+def _no_limit(amount: int, reason: str) -> ExpenseCheck:
+    return ExpenseCheck(
+        per_person=amount, limit_per_person=0, over_amount=0, need_approval=False, reason=reason
+    )
+
+
+def _check_hotel(amount: int, details: Mapping[str, Any], hotel: HotelRules | None) -> ExpenseCheck:
+    """差旅住宿：每晚标准按城市分档（《费用报销管理制度》3.2），总额超过 标准 × 晚数 需审批。"""
+    city = str(details.get("city") or "").strip()
+    nights = stay_nights(details)
+    if hotel is None or not city or nights < 1:
+        return _no_limit(amount, "缺少城市或入住 / 离店日期，无法按住宿标准校验")
+    limit = hotel.limit_for(city)
+    per_night = amount // nights
+    over = max(0, amount - limit * nights)
+    head = f"{city} {nights} 晚，每晚 ¥{per_night / 100:.0f}"
+    reason = (
+        f"{head}，超出标准 ¥{limit / 100:.0f}/晚，超出 ¥{over / 100:.0f}"
+        if over
+        else f"{head}，在标准 ¥{limit / 100:.0f}/晚以内"
+    )
+    return ExpenseCheck(
+        per_person=per_night,
+        limit_per_person=limit,
+        over_amount=over,
+        need_approval=over > 0,
+        reason=reason,
+        unit="night",
+        rule_ref=hotel.rule_ref,
+    )
+
+
 def check_expense_policy(
-    amount: int, headcount: int, expense_type: str = "entertainment", rules: RuleSet | None = None
+    amount: int,
+    headcount: int,
+    expense_type: str = "entertainment",
+    rules: RuleSet | None = None,
+    details: Mapping[str, Any] | None = None,
 ) -> ExpenseCheck:
-    """客户招待按人均标准校验；其他类型暂不限额（TODO：差旅标准）。"""
+    """客户招待按人均标准、差旅住宿按每晚标准校验；交通和其他类型不限额（实报实销）。"""
     if amount < 0:
         raise ValueError("金额不能为负数")
     if headcount <= 0:
         raise ValueError("人数必须大于 0")
-    per_person = amount // headcount
+    r = _rules(rules)
+    if expense_type == "hotel":
+        return _check_hotel(amount, details or {}, r.expense.hotel)
     if expense_type != "entertainment":
-        return ExpenseCheck(
-            per_person=per_person,
-            limit_per_person=0,
-            over_amount=0,
-            need_approval=False,
-            reason="该类型暂无限额规则",
-        )
-    limit = _rules(rules).expense.entertainment_per_person
+        return _no_limit(amount, "该类型实报实销，不设限额")
+    per_person = amount // headcount
+    limit = r.expense.entertainment_per_person
     over = max(0, amount - limit * headcount)
     need = over > 0
     reason = (
@@ -133,6 +191,7 @@ def check_expense_policy(
         over_amount=over,
         need_approval=need,
         reason=reason,
+        rule_ref=r.expense.rule_ref,
     )
 
 

@@ -16,6 +16,7 @@ import {
   validateAttachmentFile,
   type ExpenseFormValues,
 } from "@/lib/expense"
+import { EMPTY_TRIP } from "@/lib/expense-trip"
 
 const base: ExpenseFormValues = {
   type: "entertainment",
@@ -27,6 +28,7 @@ const base: ExpenseFormValues = {
   colleague_ids: ["u2"],
   extra_guests: "",
   reason: " 方案沟通晚餐 ",
+  trip: EMPTY_TRIP,
 }
 
 describe("participantCount / headcountSummary（v3 §17）", () => {
@@ -77,7 +79,7 @@ describe("toExpenseCreate", () => {
     })
   })
 
-  it("非招待类型可以不关联客户；没有客户时不传商机", () => {
+  it("非招待类型可以不关联客户；没有客户时不传商机；不计参与人（v4：人数固定为 1）", () => {
     const r = toExpenseCreate({
       ...base,
       type: "transport",
@@ -89,12 +91,12 @@ describe("toExpenseCreate", () => {
     expect(r.ok && r.value).toEqual({
       type: "transport",
       amount: 86000,
-      headcount: 2,
+      headcount: 1,
       occurred_on: "2026-10-23",
       reason: "方案沟通晚餐",
       contact_ids: [],
       colleague_ids: [],
-      extra_guests: 1,
+      extra_guests: 0,
     })
   })
 
@@ -166,9 +168,64 @@ describe("制度校验结果转换", () => {
         need_approval: true,
         reason: "超标",
       }),
-    ).toEqual({ over: true, per_person: 21500, limit_per_person: 15000, over_amount: 26000, summary: "超标" })
+    ).toEqual({
+      over: true,
+      per_person: 21500,
+      limit_per_person: 15000,
+      over_amount: 26000,
+      summary: "超标",
+      note: undefined,
+      unit: "person",
+    })
     expect(
       checkFromPolicy({ passed: true, per_person: 100, limit_per_person: 15000, over_amount: 0, rule_ref: "§4.2" }),
-    ).toEqual({ over: false, per_person: 100, limit_per_person: 15000, over_amount: 0, note: "依据 §4.2" })
+    ).toEqual({
+      over: false,
+      per_person: 100,
+      limit_per_person: 15000,
+      over_amount: 0,
+      note: "依据 §4.2",
+      unit: "person",
+    })
+  })
+})
+
+describe("v4：差旅类型", () => {
+  const hotel: ExpenseFormValues = {
+    ...base,
+    type: "hotel",
+    customer_id: null,
+    opportunity_id: null,
+    trip: { ...EMPTY_TRIP, city: "北京", check_in: "2026-10-21", check_out: "2026-10-23" },
+  }
+
+  it("住宿：带上 details，不传参与人（人数固定为 1）", () => {
+    const r = toExpenseCreate(hotel)
+    expect(r.ok && r.value.details).toEqual({ city: "北京", check_in: "2026-10-21", check_out: "2026-10-23" })
+    expect(r.ok && [r.value.headcount, r.value.contact_ids, r.value.colleague_ids]).toEqual([1, [], []])
+  })
+
+  it("住宿缺城市时报到 city 字段上", () => {
+    const r = toExpenseCreate({ ...hotel, trip: { ...hotel.trip, city: "" } })
+    expect(!r.ok && r.errors.city).toBe("请填写住宿城市")
+  })
+
+  it("切到交通类型后，之前勾选的参与人不会提交", () => {
+    const r = toExpenseCreate({ ...base, type: "transport" })
+    expect(r.ok && r.value.contact_ids).toEqual([])
+  })
+
+  it("precheck 带上 details，住宿按每晚校验", () => {
+    expect(toPrecheckBody(hotel)?.details?.city).toBe("北京")
+    expect(
+      checkFromPrecheck({
+        per_person: 60000,
+        limit_per_person: 50000,
+        over_amount: 20000,
+        need_approval: true,
+        reason: "x",
+        unit: "night",
+      }).unit,
+    ).toBe("night")
   })
 })

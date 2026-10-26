@@ -3,6 +3,7 @@
 import { useState } from "react"
 
 import { DatePicker, FormField, SimpleSelect } from "@/components/biz/FormControls"
+import { QuickChips } from "@/components/biz/QuickChips"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useCreateTask } from "@/hooks/useTasks"
+import { useTemplates } from "@/hooks/useTemplates"
 import {
   DEFAULT_DUE_TIME,
   DUE_SHORTCUTS,
@@ -56,6 +58,7 @@ export function AddTaskDialog({
   const [d, setD] = useState<Draft>(emptyDraft)
   const [error, setError] = useState<string | null>(null)
   const create = useCreateTask()
+  const quick = useTemplates().data?.task ?? []
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((p) => ({ ...p, [k]: v }))
 
   const close = () => {
@@ -95,6 +98,14 @@ export function AddTaskDialog({
               onKeyDown={(e) => e.key === "Enter" && save()}
             />
           </FormField>
+          <QuickChips
+            label="常用下一步"
+            items={quick.map((t) => ({ key: t.title, label: t.title }))}
+            onPick={(title) => {
+              const tpl = quick.find((t) => t.title === title)
+              if (tpl) setD((p) => ({ ...p, title: tpl.title, type: tpl.type }))
+            }}
+          />
           <FormField label="类型" htmlFor="task-type">
             <SimpleSelect
               id="task-type"

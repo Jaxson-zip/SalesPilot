@@ -61,6 +61,7 @@ def test_create_stores_policy_check(client: TestClient, tracker: Tracker) -> Non
         "limit_per_person": 15_000,
         "over_amount": 26_000,
         "rule_ref": "《费用报销管理制度》4.2 招待标准",
+        "unit": "person",
     }
     assert e["customer"]["name"] == "深圳明理律师事务所" and e["attachments"] == []
 
@@ -122,7 +123,8 @@ def test_within_limit_auto_approved_and_idempotent(client: TestClient, tracker: 
 
 
 def test_non_entertainment_needs_only_invoice(client: TestClient, tracker: Tracker) -> None:
-    eid = new_expense(client, tracker, type="hotel", amount=58_000, headcount=1)["id"]
+    stay = {"city": "深圳", "check_in": "2026-10-23", "check_out": "2026-10-24"}
+    eid = new_expense(client, tracker, type="hotel", amount=48_000, headcount=1, details=stay)["id"]
     upload(client, eid, "invoice", "住宿发票.pdf", PDF, "application/pdf")
     assert (
         client.post(f"/api/expenses/{eid}/submit", headers=SALES_H).json()["data"]["status"]
@@ -207,3 +209,37 @@ def test_list_and_demo_expense(client: TestClient) -> None:
     assert client.get(f"/api/expenses/{E_MINGLI}", headers=SALES2_H).json()["code"] == 40401
     assert client.get("/api/expenses", headers=SALES2_H).json()["data"]["total"] == 0
     assert client.get("/api/expenses?status=bad", headers=SALES_H).json()["code"] == 40001
+
+
+HOTEL = {"type": "hotel", "headcount": 1, "customer_id": None, "reason": "测试-出差住宿"}
+
+
+def test_hotel_over_standard_needs_approval(client: TestClient, tracker: Tracker) -> None:
+    """一线城市 ¥500/晚：深圳 2 晚 ¥1,200 超出 ¥200，进入主管审批（制度 3.2）。"""
+    stay = {"city": "深圳", "check_in": "2026-10-22", "check_out": "2026-10-24"}
+    e = new_expense(client, tracker, amount=120_000, details=stay, **HOTEL)
+    assert e["policy_check"]["unit"] == "night"
+    assert e["policy_check"]["per_person"] == 60_000 and e["policy_check"]["over_amount"] == 20_000
+    assert e["policy_check"]["rule_ref"] == "《费用报销管理制度》3.2 住宿"
+    assert {k: v for k, v in e["details"].items() if v} == stay
+    upload(client, e["id"], "invoice", "住宿发票.pdf", PDF, "application/pdf")
+    r = client.post(f"/api/expenses/{e['id']}/submit", headers=SALES_H)
+    assert r.json()["data"]["status"] == "pending_approval"
+
+
+def test_hotel_requires_city_and_dates(client: TestClient) -> None:
+    base = {**HOTEL, "amount": 30_000, "occurred_on": "2026-10-24"}
+    r = client.post("/api/expenses", json=base, headers=SALES_H)
+    assert r.status_code == 400 and r.json()["code"] == 40001
+    assert r.json()["data"]["errors"][0]["loc"] == ["body", "details", "city"]
+    bad = {"city": "长沙", "check_in": "2026-10-24", "check_out": "2026-10-24"}
+    r = client.post("/api/expenses", json={**base, "details": bad}, headers=SALES_H)
+    assert r.json()["data"]["errors"][0]["loc"] == ["body", "details", "check_out"]
+
+
+def test_precheck_hotel_other_city(client: TestClient) -> None:
+    stay = {"city": "长沙", "check_in": "2026-10-22", "check_out": "2026-10-24"}
+    body = {"type": "hotel", "amount": 70_000, "details": stay}
+    data = client.post("/api/expenses/precheck", json=body, headers=SALES_H).json()["data"]
+    assert data["unit"] == "night" and data["limit_per_person"] == 35_000
+    assert data["need_approval"] is False

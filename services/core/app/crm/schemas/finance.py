@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.crm.schemas.common import AttachmentOut, CodeRef, CustomerBrief, OppBrief, UserBrief
 
@@ -72,6 +72,30 @@ EXPENSE_TYPE_LABELS: dict[str, str] = {
 }
 
 
+TransportMode = Literal["train", "flight", "taxi", "bus", "self_drive", "other"]
+TRANSPORT_MODE_LABELS: dict[str, str] = {
+    "train": "高铁 / 火车",
+    "flight": "飞机",
+    "taxi": "出租车 / 网约车",
+    "bus": "公交 / 地铁",
+    "self_drive": "自驾",
+    "other": "其他",
+}
+
+
+class ExpenseDetails(BaseModel):
+    """按类型填写的补充信息（v4）：差旅交通填行程，差旅住宿填城市和入住 / 离店日期。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    from_city: str | None = Field(default=None, max_length=50)
+    to_city: str | None = Field(default=None, max_length=50)
+    transport_mode: TransportMode | None = None
+    city: str | None = Field(default=None, max_length=50)
+    check_in: date | None = None
+    check_out: date | None = None
+
+
 class ExpensePrecheckIn(BaseModel):
     """不落库的制度校验（POST /api/expenses/precheck）。"""
 
@@ -79,6 +103,7 @@ class ExpensePrecheckIn(BaseModel):
     amount: int = Field(gt=0)
     headcount: int = Field(default=1, ge=1, le=1000)
     occurred_on: date | None = None
+    details: ExpenseDetails | None = None
 
 
 class ExpenseCreate(BaseModel):
@@ -96,14 +121,16 @@ class ExpenseCreate(BaseModel):
     opportunity_id: uuid.UUID | None = None
     reason: str = Field(min_length=1, max_length=500)
     idempotency_key: str | None = Field(default=None, min_length=1, max_length=100)
+    details: ExpenseDetails | None = None
 
 
 class PolicyCheck(BaseModel):
     passed: bool
-    per_person: int
+    per_person: int  # unit=night 时为每晚金额
     limit_per_person: int
     over_amount: int
     rule_ref: str
+    unit: Literal["person", "night"] = "person"
 
 
 class ExpenseItem(BaseModel):
@@ -136,6 +163,7 @@ class ExpenseDetail(ExpenseItem):
     opportunity: OppBrief | None
     attachments: list[AttachmentOut]
     policy_check: PolicyCheck | None
+    details: ExpenseDetails | None = None
 
 
 # ---------- 审批 ----------

@@ -15,6 +15,7 @@ const PAGES = [
   "/approvals",
   "/settings/packs",
   "/ai",
+  "/help",
 ]
 
 /**

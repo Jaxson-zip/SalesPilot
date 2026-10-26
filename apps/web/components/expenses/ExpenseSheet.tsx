@@ -30,6 +30,7 @@ import {
   type ExpenseFormErrors,
   type ExpenseFormValues,
 } from "@/lib/expense"
+import { applyTemplate, EMPTY_TRIP } from "@/lib/expense-trip"
 import type { CustomerBrief, ExpenseCreate } from "@/types/api"
 
 const today = () => localDate()
@@ -43,6 +44,7 @@ const emptyForm = (): ExpenseFormValues => ({
   colleague_ids: [],
   extra_guests: "",
   reason: "",
+  trip: EMPTY_TRIP,
 })
 
 /** 实时制度校验：表单稳定 400ms 后调用 precheck（用字符串做防抖键，避免对象引用变化导致重复请求） */
@@ -68,6 +70,7 @@ export function ExpenseSheet({
   const [values, setValues] = useState<ExpenseFormValues>(emptyForm)
   const [customer, setCustomer] = useState<CustomerBrief | null>(null)
   const [errors, setErrors] = useState<ExpenseFormErrors>({})
+  const [templateId, setTemplateId] = useState<string | null>(null)
   const [createdId, setCreatedId] = useState<string | null>(null)
   const [idemKey, setIdemKey] = useState(newRequestId)
 
@@ -90,6 +93,7 @@ export function ExpenseSheet({
     setValues(emptyForm())
     setCustomer(null)
     setErrors({})
+    setTemplateId(null)
     setCreatedId(null)
     setIdemKey(newRequestId())
   }
@@ -168,6 +172,11 @@ export function ExpenseSheet({
             setCustomer(c)
             // 换客户后，原来勾选的联系人和商机不再属于新客户
             setValues((prev) => ({ ...prev, customer_id: c?.id ?? null, contact_ids: [], opportunity_id: null }))
+          }}
+          templateId={templateId}
+          onTemplate={(tpl, all) => {
+            setTemplateId(tpl.id)
+            setValues((prev) => applyTemplate(prev, tpl, all))
           }}
         />
       ) : detail.isPending ? (

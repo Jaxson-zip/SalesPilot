@@ -25,10 +25,23 @@ class CommissionRules(BaseModel):
     low_margin_factor: float
 
 
+class HotelRules(BaseModel):
+    per_night: int
+    per_night_tier1: int
+    tier1_cities: list[str] = []
+    rule_ref: str = ""
+
+    def limit_for(self, city: str) -> int:
+        """城市名包含一线城市名（如「深圳市南山区」）即按一线标准。"""
+        tier1 = any(c in city for c in self.tier1_cities)
+        return self.per_night_tier1 if tier1 else self.per_night
+
+
 class ExpenseRules(BaseModel):
     entertainment_per_person: int
     rule_ref: str = ""
     required_kinds: dict[str, list[str]] = {"default": ["invoice"]}
+    hotel: HotelRules | None = None
 
     def kinds_for(self, expense_type: str) -> list[str]:
         return self.required_kinds.get(expense_type, self.required_kinds.get("default", []))

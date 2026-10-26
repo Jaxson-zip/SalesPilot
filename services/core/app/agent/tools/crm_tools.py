@@ -7,8 +7,20 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.agent.tools.base import ToolContext, ToolResult, ToolSpec
-from app.crm.schemas.finance import CommissionEstimateIn, CommissionLineIn, ExpenseCreate
-from app.crm.services import customer_service, finance_service, followup_service
+from app.crm.schemas.finance import (
+    CommissionEstimateIn,
+    CommissionLineIn,
+    ExpenseCreate,
+    ExpenseType,
+)
+from app.crm.schemas.opportunity import STAGE_LABELS, StageChange
+from app.crm.services import (
+    approval_service,
+    customer_service,
+    expense_service,
+    finance_service,
+    followup_service,
+)
 from app.crm.services import opportunity_service as opp_service
 from app.crm.services.followup_service import FollowupCreate
 
@@ -43,16 +55,20 @@ def add_followup(ctx: ToolContext, args: AddFollowupArgs) -> ToolResult:
     return ToolResult(ok=True, summary="已记录跟进", data=out.model_dump(mode="json"))
 
 
-class UpdateStageArgs(BaseModel):
+class UpdateStageArgs(StageChange):
+    """继承 StageChange：输单必须写原因的校验在参数阶段完成（失败返回 40001，而不是 50001）。"""
+
     opportunity_id: uuid.UUID
-    stage: Literal["lead", "qualified", "proposal", "negotiation", "won", "lost"]
     idempotency_key: str = Field(min_length=1, max_length=100)
 
 
 def update_opportunity_stage(ctx: ToolContext, args: UpdateStageArgs) -> ToolResult:
+    """复用接口的阶段校验（终态不能再改、输单必须写原因）。"""
+    change = StageChange(stage=args.stage, lost_reason=args.lost_reason)
     with ctx.session() as db:
-        out = opp_service.update_stage(db, ctx.user, args.opportunity_id, args.stage, "agent")
-    return ToolResult(ok=True, summary=f"阶段已改为 {out.stage}", data=out.model_dump(mode="json"))
+        out = opp_service.change_stage(db, ctx.user, args.opportunity_id, change, "agent")
+    summary = f"阶段已改为「{STAGE_LABELS[out.stage]}」"
+    return ToolResult(ok=True, summary=summary, data=out.model_dump(mode="json"))
 
 
 class EmptyArgs(BaseModel):
@@ -61,9 +77,9 @@ class EmptyArgs(BaseModel):
 
 def pipeline_summary(ctx: ToolContext, args: EmptyArgs) -> ToolResult:
     with ctx.session() as db:
-        stages = opp_service.pipeline_summary(db, ctx.user)
-    total = sum(s.count for s in stages)
-    return ToolResult(ok=True, summary=f"共 {total} 个商机", data=[s.model_dump() for s in stages])
+        out = opp_service.pipeline_summary(db, ctx.user)
+    total = sum(s.count for s in out.stages)
+    return ToolResult(ok=True, summary=f"共 {total} 个商机", data=out.model_dump())
 
 
 class CalcCommissionArgs(BaseModel):
@@ -81,21 +97,48 @@ def calc_commission(ctx: ToolContext, args: CalcCommissionArgs) -> ToolResult:
 
 
 class SubmitExpenseArgs(BaseModel):
-    type: str = "entertainment"
+    type: ExpenseType = "entertainment"
     amount: int = Field(gt=0, description="金额（分）")
     headcount: int = Field(default=1, ge=1)
     occurred_on: date
+    participants: str | None = Field(default=None, max_length=500)
     customer_id: uuid.UUID | None = None
     opportunity_id: uuid.UUID | None = None
-    reason: str | None = None
+    reason: str = Field(min_length=1, max_length=500)
     idempotency_key: str = Field(min_length=1, max_length=100)
 
 
+EXPENSE_SUMMARIES = {
+    "draft": "已创建报销草稿 {code}，请上传发票 / 小票后提交",
+    "approved": "报销单 {code} 已提交，制度校验通过",
+    "pending_approval": "报销单 {code} 已提交，超出标准，等待主管审批",
+}
+
+
 def submit_expense(ctx: ToolContext, args: SubmitExpenseArgs) -> ToolResult:
+    """新建报销单（同时做制度校验）；票据齐全时直接提交。"""
     data = ExpenseCreate(**args.model_dump())
     with ctx.session() as db:
-        out = finance_service.submit_expense(db, ctx.user, data)
-    return ToolResult(ok=True, summary="报销单已提交", data=out)
+        out = expense_service.create_and_submit(db, ctx.user, data, source="agent")
+    summary = EXPENSE_SUMMARIES.get(out.status, "报销单 {code}").format(code=out.code)
+    return ToolResult(ok=True, summary=summary, data=out.model_dump(mode="json"))
+
+
+class DecideApprovalArgs(BaseModel):
+    approval_id: uuid.UUID
+    decision: Literal["approve", "reject"]
+    comment: str | None = Field(default=None, max_length=500)
+
+
+def decide_approval(ctx: ToolContext, args: DecideApprovalArgs) -> ToolResult:
+    """仅主管可用；已处理的审批返回 42201 approval_already_decided。"""
+    with ctx.session() as db:
+        out = approval_service.decide(
+            db, ctx.user, args.approval_id, args.decision, args.comment, source="agent"
+        )
+    verb = "通过" if args.decision == "approve" else "驳回"
+    summary = f"已{verb}审批：{out.target.code}"
+    return ToolResult(ok=True, summary=summary, data=out.model_dump(mode="json"))
 
 
 CRM_TOOLS: list[ToolSpec] = [
@@ -118,6 +161,14 @@ CRM_TOOLS: list[ToolSpec] = [
         "提交报销（提交前先做制度校验）",
         SubmitExpenseArgs,
         submit_expense,
+        write=True,
+        needs_confirm=True,
+    ),
+    ToolSpec(
+        "decide_approval",
+        "主管通过或驳回审批（报价 / 报销）",
+        DecideApprovalArgs,
+        decide_approval,
         write=True,
         needs_confirm=True,
     ),

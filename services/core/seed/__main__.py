@@ -7,6 +7,7 @@ import argparse
 import logging
 from typing import Any
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
@@ -14,8 +15,31 @@ from app.common.db import session_scope
 from app.common.errors import BizError
 from app.crm.models import Customer, Followup, Opportunity, ProductLine, Team, User
 from seed import data
+from seed.business import seed_business
 
 logger = logging.getLogger("seed")
+
+# --reset 清空的业务表（保留组织、产品线、知识库）。录演示视频前用它去掉测试和试用产生的数据。
+RESET_TABLES = (
+    "activities",
+    "approvals",
+    "attachments",
+    "commissions",
+    "contracts",
+    "quote_items",
+    "quotes",
+    "expenses",
+    "followups",
+    "opportunities",
+    "contacts",
+    "customers",
+    "agent_threads",
+)
+
+
+def reset_business_data(db: Session) -> None:
+    db.execute(text(f"TRUNCATE {', '.join(RESET_TABLES)} RESTART IDENTITY CASCADE"))
+    logger.info("reset: truncated %d business tables", len(RESET_TABLES))
 
 
 def _owned(row: dict[str, Any]) -> dict[str, Any]:
@@ -55,13 +79,24 @@ def seed_crm(db: Session) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="导入演示数据")
     parser.add_argument("--with-kb", action="store_true", help="同时入库知识库（需要网关）")
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="先清空客户、商机、报价、报销等业务数据，再导入演示数据",
+    )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
     with session_scope() as db:
+        if args.reset:
+            reset_business_data(db)
         seed_org(db)
         seed_crm(db)
+        db.flush()
+        seed_business(db)
     logger.info(
-        "seed done: %d customers, %d opportunities", len(data.CUSTOMERS), len(data.OPPORTUNITIES)
+        "seed done: %d customers, %d opportunities, quotes / contracts / expenses / approvals",
+        len(data.CUSTOMERS),
+        len(data.OPPORTUNITIES),
     )
     if args.with_kb:
         from app.rag.ingest import ingest

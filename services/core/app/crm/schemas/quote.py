@@ -1,9 +1,12 @@
-"""报价单 schema。"""
+"""报价单 schema（接口契约 §3）。金额单位：分。"""
 
 import uuid
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel
+
+from app.crm.schemas.common import CustomerBrief, OppBrief, UserBrief
 
 QuoteStatus = Literal["draft", "pending_approval", "approved", "sent", "accepted", "rejected"]
 
@@ -28,6 +31,8 @@ class QuoteItemOut(BaseModel):
 
 
 class QuoteOut(BaseModel):
+    """Agent generate_quote 的返回（对话里的报价卡片）。"""
+
     id: uuid.UUID
     code: str
     opportunity_id: uuid.UUID | None
@@ -38,3 +43,41 @@ class QuoteOut(BaseModel):
     total_price: int
     margin_rate: float
     items: list[QuoteItemOut] = []
+
+
+class QuoteLine(QuoteItemOut):
+    subtotal_cost: int
+    subtotal_price: int
+
+
+class ApprovalBrief(BaseModel):
+    id: uuid.UUID
+    status: Literal["pending", "approved", "rejected"]
+    reason: str
+    approver: UserBrief | None
+    comment: str | None
+    decided_at: datetime | None
+
+
+class QuoteListItem(BaseModel):
+    id: uuid.UUID
+    code: str
+    customer: CustomerBrief | None
+    opportunity: OppBrief | None
+    pack: str
+    tier: str
+    tier_name: str
+    total_price: int
+    total_cost: int
+    margin_rate: float
+    status: QuoteStatus
+    source: Literal["agent", "manual"]
+    owner: UserBrief | None
+    created_at: datetime
+
+
+class QuoteDetail(QuoteListItem):
+    items: list[QuoteLine]
+    approvals: list[ApprovalBrief]
+    contract_id: uuid.UUID | None
+    estimated_commission: int

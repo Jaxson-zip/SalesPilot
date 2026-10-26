@@ -1,24 +1,120 @@
 "use client"
 
-import { Download, FileText, Send } from "lucide-react"
+import { Check, Clock, FileText, List, Send, Stamp, X, type LucideIcon } from "lucide-react"
 import { useParams } from "next/navigation"
+import { useState } from "react"
 
-import { ComingSoon } from "@/components/biz/EmptyState"
-import { Crumb, FrameAction, PageFrame } from "@/components/biz/PageFrame"
+import { BomTable } from "@/components/agent/BomTable"
+import { Crumb, PageFrame } from "@/components/biz/PageFrame"
+import { QueryError } from "@/components/biz/QueryStatus"
+import { RecordTabs } from "@/components/biz/RecordTabs"
+import { ApprovalRecords, QuoteFields, QuoteTimeline } from "@/components/quotes/QuotePanels"
+import { useSession } from "@/components/shell/SessionProvider"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useQuote, useQuoteAction } from "@/hooks/useQuotes"
+import { formatRelative } from "@/lib/format"
+import { availableQuoteActions, primaryQuoteAction, QUOTE_ACTIONS, quoteToBom } from "@/lib/quote-actions"
+import type { QuoteAction } from "@/types/api"
 
+const ACTION_ICON: Record<QuoteAction, LucideIcon> = { submit: Stamp, send: Send, accept: Check, reject: X }
+
+/** 报价单记录页：左字段 + 右标签页（物料清单 / 时间线 / 审批记录）；按当前状态只显示可用操作 */
 export default function QuoteDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const quoteId = decodeURIComponent(id)
+  const { role } = useSession()
+  const query = useQuote(quoteId)
+  const action = useQuoteAction(quoteId)
+  const [tab, setTab] = useState("bom")
+  const q = query.data
+
+  const actions = q ? availableQuoteActions(q.status) : []
+  const primary = q ? primaryQuoteAction(q.status) : null
+  const buttons = actions.map((a) => {
+    const Icon = ACTION_ICON[a]
+    return (
+      <Button
+        key={a}
+        size="sm"
+        variant={a === primary ? "default" : "outline"}
+        disabled={action.isPending}
+        onClick={() => action.mutate(a)}
+        title={QUOTE_ACTIONS[a].label}
+        className="max-sm:w-8 max-sm:px-0"
+      >
+        <Icon />
+        <span className="max-sm:hidden">{QUOTE_ACTIONS[a].label}</span>
+      </Button>
+    )
+  })
+
+  let body
+  if (query.isPending) {
+    body = (
+      <div className="space-y-3 p-4">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    )
+  } else if (query.isError) {
+    body = (
+      <QueryError
+        error={query.error}
+        onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
+        feature="报价单详情"
+      />
+    )
+  } else {
+    const quote = query.data
+    body = (
+      <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto lg:flex-row lg:overflow-hidden">
+        <div className="shrink-0 border-b border-zinc-200 p-4 lg:w-[340px] lg:overflow-y-auto lg:border-r lg:border-b-0">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="inline-flex size-10 items-center justify-center rounded-lg bg-zinc-100">
+              <FileText className="size-5 text-zinc-600" />
+            </span>
+            <div className="min-w-0">
+              <div className="truncate text-base font-semibold">{quote.code}</div>
+              <div className="text-xs text-zinc-400">
+                {quote.source === "agent" ? "AI 生成于" : "创建于"} {formatRelative(quote.created_at)}
+              </div>
+            </div>
+          </div>
+          <QuoteFields q={quote} />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col lg:min-h-0">
+          <RecordTabs
+            value={tab}
+            onValueChange={setTab}
+            tabs={[
+              { value: "bom", label: "物料清单", icon: List, content: <BomTable bom={quoteToBom(quote)} /> },
+              {
+                value: "timeline",
+                label: "时间线",
+                icon: Clock,
+                content: <QuoteTimeline quoteId={quote.id} role={role} />,
+              },
+              {
+                value: "approvals",
+                label: `审批记录${quote.approvals.length ? ` ${quote.approvals.length}` : ""}`,
+                icon: Stamp,
+                content: <ApprovalRecords q={quote} />,
+              },
+            ]}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <PageFrame
-      crumb={<Crumb parent="报价单" href="/quotes" icon={FileText} current={decodeURIComponent(id)} />}
-      actions={
-        <>
-          <FrameAction icon={Download} label="导出 PDF" />
-          <FrameAction icon={Send} label="发送客户" primary />
-        </>
-      }
+      crumb={<Crumb parent="报价单" href="/quotes" icon={FileText} current={q?.code ?? "报价单"} />}
+      actions={buttons.length ? <>{buttons}</> : null}
     >
-      <ComingSoon description="RecordFields（左）+ 物料清单 / 时间线 / 审批记录标签页（右）待实现。" />
+      {body}
     </PageFrame>
   )
 }

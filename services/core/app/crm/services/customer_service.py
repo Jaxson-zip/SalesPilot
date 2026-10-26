@@ -9,14 +9,15 @@ from sqlalchemy.orm import Session
 from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.scope import View, apply_scope, ensure_visible
-from app.crm.models import Customer, Followup, Opportunity, User
+from app.crm.models import Contact, Customer, Followup, Opportunity, User
 from app.crm.schemas.common import Page, PageParams, UserBrief
 from app.crm.schemas.customer import (
-    CustomerBrief,
     CustomerCreate,
     CustomerDetail,
     CustomerListItem,
+    CustomerSearchItem,
 )
+from app.crm.schemas.dashboard import ContactItem
 from app.crm.services import activity_service
 
 
@@ -134,14 +135,16 @@ def rank_by_similarity(keyword: str, names: list[str], min_overlap: int = 2) -> 
     return [n for score, n in sorted(scored, key=lambda x: -x[0]) if score >= min_overlap]
 
 
-def _brief(row: Any) -> CustomerBrief:
+def _brief(row: Any) -> CustomerSearchItem:
     c: Customer = row.Customer
-    return CustomerBrief(id=c.id, name=c.name, industry=c.industry, owner=_owner(c, row.owner_name))
+    return CustomerSearchItem(
+        id=c.id, name=c.name, industry=c.industry, owner=_owner(c, row.owner_name)
+    )
 
 
 def search_customers(
     db: Session, user: CurrentUser, keyword: str, limit: int = 5
-) -> list[CustomerBrief]:
+) -> list[CustomerSearchItem]:
     """Agent 用：在当前用户可见范围内模糊匹配客户；子串匹配不到时按字组相似度匹配。"""
     rows = db.execute(build_list_query(user, None, keyword).limit(limit)).all()
     if rows:
@@ -150,3 +153,24 @@ def search_customers(
     by_name = {r.Customer.name: r for r in candidates}
     ranked = rank_by_similarity(keyword, list(by_name))[:limit]
     return [_brief(by_name[name]) for name in ranked]
+
+
+def list_contacts(db: Session, user: CurrentUser, customer_id: uuid.UUID) -> Page[ContactItem]:
+    """客户联系人：先校验客户可见（看不到 → 40401），决策人排在前面。"""
+    ensure_visible(db.get(Customer, customer_id), user)
+    stmt = (
+        select(Contact)
+        .where(Contact.customer_id == customer_id)
+        .order_by(Contact.is_decision_maker.desc(), Contact.created_at, Contact.id)
+    )
+    items = [
+        ContactItem(
+            id=c.id,
+            name=c.name,
+            title=c.title,
+            phone=c.phone,
+            is_decision_maker=c.is_decision_maker,
+        )
+        for c in db.scalars(stmt)
+    ]
+    return Page[ContactItem](items=items, total=len(items))

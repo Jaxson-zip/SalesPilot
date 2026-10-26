@@ -21,6 +21,7 @@ dependencies = [
     "langchain-openai>=0.2",
     "langgraph-checkpoint-postgres>=2.0",
     "langchain-text-splitters>=0.3",
+    "python-multipart>=0.0.9",
 ]
 
 [dependency-groups]

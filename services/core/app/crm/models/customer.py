@@ -1,8 +1,9 @@
 """客户、联系人、跟进、动态。"""
 
 import uuid
+from datetime import datetime
 
-from sqlalchemy import ARRAY, BigInteger, Boolean, ForeignKey, String, Text
+from sqlalchemy import ARRAY, BigInteger, Boolean, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.db import Base
@@ -39,8 +40,9 @@ class Followup(OwnedMixin, Base):
     opportunity_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("opportunities.id"), nullable=True
     )
-    type: Mapped[str] = mapped_column(String(20))  # phone / visit / wechat / ai
+    type: Mapped[str] = mapped_column(String(20))  # phone / visit / wechat / email / ai
     content: Mapped[str] = mapped_column(Text)
+    occurred_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     source: Mapped[str] = mapped_column(String(10), default="manual")  # manual / agent
 
 

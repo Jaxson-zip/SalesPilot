@@ -13,7 +13,18 @@ from app.agent.router import router as agent_router
 from app.common.db import check_db
 from app.common.request_id import RequestIdMiddleware
 from app.common.response import ApiResponse, ok, register_exception_handlers
-from app.crm.routers import auth, customers, rules, stubs
+from app.crm.routers import (
+    approvals,
+    auth,
+    contracts,
+    customers,
+    dashboard,
+    expenses,
+    opportunities,
+    product_lines,
+    quotes,
+    rules,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("core")
@@ -34,7 +45,20 @@ def create_app() -> FastAPI:
     app = FastAPI(title="SalesPilot Core", version="0.1.0", lifespan=lifespan)
     app.add_middleware(RequestIdMiddleware)
     register_exception_handlers(app)
-    for router in (auth.router, customers.router, rules.router, agent_router, *stubs.ROUTERS):
+    routers = (
+        auth.router,
+        customers.router,
+        rules.router,
+        dashboard.router,
+        opportunities.router,
+        quotes.router,
+        contracts.router,
+        expenses.router,
+        approvals.router,
+        product_lines.router,
+        agent_router,
+    )
+    for router in routers:
         app.include_router(router)
     app.add_api_route(
         "/health", health, methods=["GET"], response_model=ApiResponse[Health], tags=["health"]

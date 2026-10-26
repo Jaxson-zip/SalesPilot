@@ -41,7 +41,7 @@ class CustomerCreate(BaseModel):
     tags: list[str] = Field(default_factory=list, max_length=20)
 
 
-class CustomerBrief(BaseModel):
+class CustomerSearchItem(BaseModel):
     """Agent search_customer 的返回项。"""
 
     id: uuid.UUID

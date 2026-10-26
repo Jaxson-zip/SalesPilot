@@ -1,6 +1,8 @@
-"""通用 schema：分页、用户简要信息。"""
+"""通用 schema：分页、用户 / 客户 / 商机简要信息、动态、附件（接口契约 §0）。"""
 
 import uuid
+from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -33,3 +35,47 @@ class PageParams(BaseModel):
 class Page[T](BaseModel):
     items: list[T]
     total: int
+
+
+class CustomerBrief(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
+class OppBrief(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
+class ProductLineBrief(BaseModel):
+    id: uuid.UUID
+    name: str
+    pack: str
+
+
+class CodeRef(BaseModel):
+    id: uuid.UUID
+    code: str
+
+
+class ActivityOut(BaseModel):
+    id: uuid.UUID
+    subject_type: str
+    subject_id: uuid.UUID
+    actor: UserBrief | None
+    source: Literal["manual", "agent"]
+    action: str
+    content: str | None
+    created_at: datetime
+
+
+AttachmentKind = Literal["invoice", "receipt", "other"]
+
+
+class AttachmentOut(BaseModel):
+    id: uuid.UUID
+    kind: AttachmentKind
+    file_name: str
+    mime: str
+    size: int
+    url: str

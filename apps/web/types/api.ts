@@ -23,6 +23,8 @@ export const ErrorCode = {
   BIZ_RULE: 42201,
   RATE_LIMITED: 42901,
   INTERNAL: 50001,
+  /** 接口已占位、尚未实现（HTTP 501） */
+  NOT_IMPLEMENTED: 50101,
   GATEWAY_UPSTREAM: 50201,
   GATEWAY_TIMEOUT: 50401,
   /** 前端自定义：网络不可达（core 未启动等），不会出现在后端响应里 */
@@ -142,3 +144,6 @@ export interface SourceRef {
   title: string
   url?: string
 }
+
+/* ---------- 业务模块（商机 · 报价 · 合同 · 报销 · 审批 · 工作台 · 行业包） ---------- */
+export * from "@/types/biz"

@@ -56,10 +56,16 @@ class TestTools:
             "calc_commission",
             "search_policy",
             "submit_expense",
+            "decide_approval",
         }
         assert set(TOOLS) == expected
         confirm = {n for n, t in TOOLS.items() if t.needs_confirm}
-        assert confirm == {"update_opportunity_stage", "generate_quote", "submit_expense"}
+        assert confirm == {
+            "update_opportunity_stage",
+            "generate_quote",
+            "submit_expense",
+            "decide_approval",
+        }
 
     def test_success_emits_start_end(self, tool_ctx: ToolContext) -> None:
         events: list[tuple[str, dict[str, Any]]] = []

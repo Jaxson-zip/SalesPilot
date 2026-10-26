@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { displayHost, formatFen, formatPercent, formatRelative } from "@/lib/format"
+import { displayHost, formatFen, formatPercent, formatRelative, localDate } from "@/lib/format"
 
 describe("formatFen（后端传分，前端格式化）", () => {
   it("整元不带小数，有分时保留两位", () => {
@@ -41,5 +41,12 @@ describe("displayHost", () => {
   it("去掉协议和末尾斜杠", () => {
     expect(displayHost("https://mingli-law.cn/")).toBe("mingli-law.cn")
     expect(displayHost(null)).toBe("")
+  })
+})
+
+describe("localDate（回归：曾用 toISOString 导致东八区默认日期多一天）", () => {
+  it("按本地时区取日期", () => {
+    expect(localDate(new Date(2026, 9, 26, 0, 30))).toBe("2026-10-26")
+    expect(localDate(new Date(2026, 0, 5, 23, 59))).toBe("2026-01-05")
   })
 })

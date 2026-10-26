@@ -34,3 +34,8 @@ export function displayHost(url: string | null | undefined): string {
   if (!url) return ""
   return url.replace(/^https?:\/\//, "").replace(/\/$/, "")
 }
+
+/** 本地日期 YYYY-MM-DD（不能用 toISOString：那是 UTC，东八区凌晨会差一天） */
+export function localDate(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}

@@ -26,6 +26,16 @@ class CommissionRules(BaseModel):
 
 class ExpenseRules(BaseModel):
     entertainment_per_person: int
+    rule_ref: str = ""
+    required_kinds: dict[str, list[str]] = {"default": ["invoice"]}
+
+    def kinds_for(self, expense_type: str) -> list[str]:
+        return self.required_kinds.get(expense_type, self.required_kinds.get("default", []))
+
+
+class AttachmentRules(BaseModel):
+    max_bytes: int = 10 * 1024 * 1024
+    allowed_types: list[str] = ["image/jpeg", "image/png", "application/pdf"]
 
 
 class AgentRules(BaseModel):
@@ -38,6 +48,7 @@ class RuleSet(BaseModel):
     discount: DiscountRules
     commission: CommissionRules
     expense: ExpenseRules
+    attachment: AttachmentRules = AttachmentRules()
     agent: AgentRules
 
 

@@ -25,6 +25,8 @@ C_HNZZ = demo_id("customer:hnzz")
 C_XINGHE = demo_id("customer:xinghe")
 C_PC3H = demo_id("customer:pc3h")
 C_YUNFAN = demo_id("customer:yunfan")
+C_YUEHAI = demo_id("customer:yuehai")
+C_NANSHAN = demo_id("customer:nanshan")
 
 CUSTOMERS: list[dict[str, Any]] = [
     {
@@ -87,6 +89,30 @@ CUSTOMERS: list[dict[str, Any]] = [
         "tags": [],
         "owner": SALES,
     },
+    {
+        "id": C_YUEHAI,
+        "name": "粤海物流集团",
+        "industry": "物流",
+        "level": "A",
+        "size": "2000 人",
+        "address": "广州市黄埔区",
+        "website": "yuehai-logistics.cn",
+        "annual_budget": 100_000_000,
+        "tags": ["已签约"],
+        "owner": SALES,
+    },
+    {
+        "id": C_NANSHAN,
+        "name": "南山教育集团",
+        "industry": "教育",
+        "level": "B",
+        "size": "600 人",
+        "address": "深圳市南山区",
+        "website": "nanshan-edu.cn",
+        "annual_budget": 35_000_000,
+        "tags": ["已签约"],
+        "owner": SALES,
+    },
 ]
 
 OPPORTUNITIES: list[dict[str, Any]] = [
@@ -142,6 +168,28 @@ OPPORTUNITIES: list[dict[str, Any]] = [
         "amount": 15_000_000,
         "win_rate": 10,
         "expected_close_date": date(2026, 11, 30),
+        "product_line_id": PL_LLM,
+        "owner": SALES,
+    },
+    {
+        "id": demo_id("opp:yuehai"),
+        "customer_id": C_YUEHAI,
+        "name": "智能调度",
+        "stage": "won",
+        "amount": 81_000_000,
+        "win_rate": 100,
+        "expected_close_date": date(2026, 10, 20),
+        "product_line_id": PL_LLM,
+        "owner": SALES,
+    },
+    {
+        "id": demo_id("opp:nanshan"),
+        "customer_id": C_NANSHAN,
+        "name": "校本知识库",
+        "stage": "won",
+        "amount": 28_600_000,
+        "win_rate": 100,
+        "expected_close_date": date(2026, 10, 12),
         "product_line_id": PL_LLM,
         "owner": SALES,
     },

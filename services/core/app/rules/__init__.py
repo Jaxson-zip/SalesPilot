@@ -5,10 +5,14 @@ from app.rules.calculators import (
     CommissionResult,
     ExpenseCheck,
     MarginCheck,
+    allocate_by_category,
     calc_commission,
     check_discount,
     check_expense_policy,
     check_margin,
+    confirm_commission,
+    paid_ratio_of,
+    weighted_amount,
 )
 from app.rules.loader import RuleSet, load_rules
 
@@ -18,9 +22,13 @@ __all__ = [
     "ExpenseCheck",
     "MarginCheck",
     "RuleSet",
+    "allocate_by_category",
     "calc_commission",
     "check_discount",
     "check_expense_policy",
     "check_margin",
+    "confirm_commission",
     "load_rules",
+    "paid_ratio_of",
+    "weighted_amount",
 ]

@@ -1,21 +1,20 @@
-"""客户接口（参考实现）：只做参数和响应，业务逻辑在 customer_service。"""
+"""客户接口（参考实现）：只做参数和响应，业务逻辑在 customer_service / followup_service。"""
 
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Query
 
 from app.common.auth import CurrentUserDep
-from app.common.db import get_db
 from app.common.response import ApiResponse, ok
 from app.common.scope import View
+from app.crm.routers.deps import DbDep
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.customer import CustomerCreate, CustomerDetail, CustomerListItem
-from app.crm.services import customer_service
+from app.crm.schemas.dashboard import ContactItem, FollowupIn, FollowupItem
+from app.crm.services import customer_service, followup_service
 
 router = APIRouter(prefix="/api/customers", tags=["customers"])
-DbDep = Annotated[Session, Depends(get_db)]
 
 
 @router.get("", response_model=ApiResponse[Page[CustomerListItem]])
@@ -43,3 +42,27 @@ def create_customer(
     body: CustomerCreate, user: CurrentUserDep, db: DbDep
 ) -> ApiResponse[CustomerDetail]:
     return ok(customer_service.create_customer(db, user, body))
+
+
+@router.get("/{customer_id}/followups", response_model=ApiResponse[Page[FollowupItem]])
+def list_followups(
+    customer_id: uuid.UUID,
+    user: CurrentUserDep,
+    db: DbDep,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> ApiResponse[Page[FollowupItem]]:
+    return ok(followup_service.list_for_customer(db, user, customer_id, limit))
+
+
+@router.post("/{customer_id}/followups", response_model=ApiResponse[FollowupItem])
+def create_followup(
+    customer_id: uuid.UUID, body: FollowupIn, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[FollowupItem]:
+    return ok(followup_service.create_for_customer(db, user, customer_id, body))
+
+
+@router.get("/{customer_id}/contacts", response_model=ApiResponse[Page[ContactItem]])
+def list_contacts(
+    customer_id: uuid.UUID, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[Page[ContactItem]]:
+    return ok(customer_service.list_contacts(db, user, customer_id))

@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 from app.common.auth import CurrentUserDep
 from app.common.response import ApiResponse, ok
-from app.crm.schemas.finance import CommissionEstimateIn, ExpenseCreate
+from app.crm.schemas.finance import CommissionEstimateIn, ExpensePrecheckIn
 from app.crm.services import finance_service, pack_service
 from app.crm.services.pack_service import PackOut
 from app.rules import CommissionResult, ExpenseCheck
@@ -25,5 +25,5 @@ def estimate_commission(
 
 
 @router.post("/expenses/precheck", response_model=ApiResponse[ExpenseCheck])
-def precheck_expense(body: ExpenseCreate, user: CurrentUserDep) -> ApiResponse[ExpenseCheck]:
+def precheck_expense(body: ExpensePrecheckIn, user: CurrentUserDep) -> ApiResponse[ExpenseCheck]:
     return ok(finance_service.precheck_expense(body))

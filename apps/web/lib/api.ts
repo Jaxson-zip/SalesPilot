@@ -107,13 +107,15 @@ export function setUnauthorizedHandler(fn: (() => Promise<boolean>) | null): voi
 async function send<T>(path: string, opts: RequestOptions): Promise<T> {
   const requestId = newRequestId()
   const headers = buildHeaders(opts.headers, requestId)
-  if (opts.body !== undefined) headers.set("Content-Type", "application/json")
+  // FormData（multipart 上传）由浏览器自动带 boundary，不能手动设置 Content-Type
+  const isForm = typeof FormData !== "undefined" && opts.body instanceof FormData
+  if (opts.body !== undefined && !isForm) headers.set("Content-Type", "application/json")
   let res: Response
   try {
     res = await fetch(withQuery(path, opts.query), {
       method: opts.method ?? "GET",
       headers,
-      body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+      body: opts.body === undefined ? undefined : isForm ? (opts.body as FormData) : JSON.stringify(opts.body),
       signal: opts.signal,
     })
   } catch (err) {
@@ -140,4 +142,21 @@ export const api = {
   get: <T>(path: string, query?: Query, signal?: AbortSignal): Promise<T> => apiFetch<T>(path, { query, signal }),
   post: <T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> =>
     apiFetch<T>(path, { method: "POST", body, signal }),
+  put: <T>(path: string, body?: unknown): Promise<T> => apiFetch<T>(path, { method: "PUT", body }),
+  patch: <T>(path: string, body?: unknown): Promise<T> => apiFetch<T>(path, { method: "PATCH", body }),
+  delete: <T>(path: string): Promise<T> => apiFetch<T>(path, { method: "DELETE" }),
+  /** multipart/form-data 上传（票据等） */
+  upload: <T>(path: string, form: FormData): Promise<T> => apiFetch<T>(path, { method: "POST", body: form }),
+}
+
+/**
+ * 带鉴权地下载文件并返回 object URL（附件预览）。
+ * 附件接口需要 Bearer token，不能直接用 <a href>，也不能把 token 放进 URL。
+ */
+export async function fetchBlobUrl(path: string): Promise<string> {
+  const requestId = newRequestId()
+  const res = await fetch(path, { headers: buildHeaders(undefined, requestId) })
+  const type = res.headers.get("Content-Type") ?? ""
+  if (!res.ok || type.includes("application/json")) return parseEnvelope<never>(res, requestId)
+  return URL.createObjectURL(await res.blob())
 }

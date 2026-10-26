@@ -1,10 +1,10 @@
 """报销、附件、审批。"""
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, Date, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -16,7 +16,7 @@ class Expense(OwnedMixin, Base):
     __tablename__ = "expenses"
 
     code: Mapped[str] = mapped_column(String(30), unique=True)
-    type: Mapped[str] = mapped_column(String(30))  # entertainment / travel / hotel ...
+    type: Mapped[str] = mapped_column(String(30))  # entertainment / transport / hotel / other
     amount: Mapped[int] = mapped_column(BigInteger)
     headcount: Mapped[int] = mapped_column(Integer, default=1)
     participants: Mapped[str | None] = mapped_column(Text)
@@ -50,3 +50,5 @@ class Approval(OwnedMixin, Base):
     ai_suggestion: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
     approver_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    comment: Mapped[str | None] = mapped_column(Text)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

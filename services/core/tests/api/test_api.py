@@ -1,4 +1,4 @@
-"""接口测试（不需要数据库）：health、docs、假登录、/api/me、占位接口、规则接口、Agent SSE。"""
+"""接口测试（不需要数据库）：health、docs、假登录、/api/me、角色限制、规则接口、Agent SSE。"""
 
 from typing import Any
 
@@ -48,12 +48,6 @@ def test_me(client: TestClient) -> None:
 def test_me_unauthorized(client: TestClient, header: dict[str, str]) -> None:
     r = client.get("/api/me", headers=header)
     assert r.status_code == 401 and r.json()["code"] == 40101
-
-
-def test_stub_returns_501(client: TestClient) -> None:
-    r = client.get("/api/quotes", headers=auth_header(Role.SALES))
-    assert r.status_code == 501
-    assert r.json()["code"] == 50101 and r.json()["message"] == "未实现"
 
 
 def test_approvals_forbidden_for_sales(client: TestClient) -> None:

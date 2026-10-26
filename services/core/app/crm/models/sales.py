@@ -1,9 +1,9 @@
 """商机、报价、报价明细、合同、提成。金额单位：分。"""
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import BigInteger, Date, Float, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.db import Base
@@ -22,6 +22,8 @@ class Opportunity(OwnedMixin, Base):
     product_line_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("product_lines.id"), nullable=True
     )
+    lost_reason: Mapped[str | None] = mapped_column(Text)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # 进入终态的时间
 
 
 class Quote(OwnedMixin, Base):
@@ -60,6 +62,9 @@ class Contract(OwnedMixin, Base):
 
     code: Mapped[str] = mapped_column(String(30), unique=True)
     quote_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("quotes.id"), nullable=True)
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("customers.id"), nullable=True, index=True
+    )
     amount: Mapped[int] = mapped_column(BigInteger, default=0)
     paid_amount: Mapped[int] = mapped_column(BigInteger, default=0)
     status: Mapped[str] = mapped_column(String(20), default="active")

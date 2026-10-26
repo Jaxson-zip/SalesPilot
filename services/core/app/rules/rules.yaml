@@ -17,6 +17,15 @@ commission:
 
 expense:
   entertainment_per_person: 15000   # 客户招待标准：¥150/人（分）
+  rule_ref: "《费用报销管理制度》4.2 招待标准"
+  # 提交前必须具备的票据：客户招待要发票 + 小票，其他类型至少一张发票
+  required_kinds:
+    entertainment: [invoice, receipt]
+    default: [invoice]
+
+attachment:
+  max_bytes: 10485760         # 单个票据 ≤ 10 MB
+  allowed_types: [image/jpeg, image/png, application/pdf]
 
 agent:
   margin_max_retries: 2       # 毛利回退最多重新配置次数

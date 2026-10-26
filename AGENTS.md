@@ -39,6 +39,8 @@ cd apps/web && pnpm lint && pnpm typecheck && pnpm test
 
 # 首次启动后导入演示数据（--with-kb 需要配置 Embedding 模型）
 docker compose exec core python -m seed
+# 清掉测试 / 试用产生的数据，恢复干净的演示数据（录演示视频前用）
+docker compose exec core python -m seed --reset
 
 # 端到端测试（需要 docker compose 环境在运行）
 uv run --python 3.12 --with httpx --with pytest pytest tests/e2e -q

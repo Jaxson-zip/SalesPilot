@@ -1,11 +1,57 @@
 "use client"
 
-import { LayoutDashboard, Plus, Sparkles } from "lucide-react"
+import { Clock, LayoutDashboard, Plus, Sparkles, Target, Trophy, Wallet } from "lucide-react"
 
-import { ComingSoon } from "@/components/biz/EmptyState"
+import { QueryError } from "@/components/biz/QueryStatus"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
+import { StatCard } from "@/components/biz/StatCard"
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
+import { FunnelChart } from "@/components/dashboard/FunnelChart"
+import { PipelineOverview } from "@/components/dashboard/PipelineOverview"
+import { useSession } from "@/components/shell/SessionProvider"
+import { useDashboard } from "@/hooks/useDashboard"
+import { formatFen } from "@/lib/format"
+import { defaultScope } from "@/lib/views"
 
+function greeting(now: Date = new Date()): string {
+  const h = now.getHours()
+  if (h < 11) return "上午好"
+  if (h < 13) return "中午好"
+  if (h < 18) return "下午好"
+  return "晚上好"
+}
+
+/** 工作台：StatCard ×4、FunnelChart、PipelineOverview、ActivityFeed */
 export default function DashboardPage() {
+  const { role, user, isLead } = useSession()
+  const view = defaultScope(role)
+  const query = useDashboard(view)
+  const d = query.data
+  const prefix = role === "admin" ? "全公司" : isLead ? "团队" : ""
+  const loading = query.isPending
+
+  const cards = [
+    { label: `${prefix}本月赢单`, value: formatFen(d?.won_amount_month), icon: Trophy },
+    {
+      label: `${prefix}进行中商机`,
+      value: String(d?.open_opportunities ?? "—"),
+      hint: d ? `预计 ${formatFen(d.open_amount)}` : undefined,
+      icon: Target,
+    },
+    {
+      label: isLead ? "待我审批" : "审批中",
+      value: String(d?.pending_approvals ?? "—"),
+      hint: isLead ? "需要你处理的报价与报销" : "你提交、等待主管审批",
+      icon: Clock,
+    },
+    {
+      label: `${prefix}本月预估提成`,
+      value: formatFen(d?.estimated_commission_month),
+      hint: d ? `已确认 ${formatFen(d.confirmed_commission_month)}` : undefined,
+      icon: Wallet,
+    },
+  ]
+
   return (
     <PageFrame
       title="工作台"
@@ -17,7 +63,35 @@ export default function DashboardPage() {
         </>
       }
     >
-      <ComingSoon description="StatCard ×4、FunnelChart、TaskList、ActivityFeed 待接入工作台接口。" />
+      <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-5">
+        <div className="mb-4">
+          <div className="text-lg font-semibold">
+            {greeting()}，{user.name}
+          </div>
+          <div className="mt-0.5 text-zinc-500">{isLead ? `${user.scope} · 本月销售概况` : "本月销售概况"}</div>
+        </div>
+        {query.isError && !d ? (
+          <div className="mb-3 rounded-lg border border-zinc-200">
+            <QueryError
+              error={query.error}
+              onRetry={() => void query.refetch()}
+              retrying={query.isFetching}
+              feature="工作台"
+            />
+          </div>
+        ) : (
+          <div className="mb-3 grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {cards.map((c) => (
+              <StatCard key={c.label} {...c} loading={loading} />
+            ))}
+          </div>
+        )}
+        <div className="mb-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
+          <FunnelChart stages={d?.funnel} loading={loading} />
+          <PipelineOverview view={view} />
+        </div>
+        <ActivityFeed view={view} isLead={isLead} scope={user.scope} />
+      </div>
     </PageFrame>
   )
 }

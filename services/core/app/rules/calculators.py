@@ -134,3 +134,50 @@ def check_expense_policy(
         need_approval=need,
         reason=reason,
     )
+
+
+def allocate_by_category(
+    subtotals: list[tuple[str, int]], total_price: int
+) -> list[CommissionLine]:
+    """把整单成交价按各类别目录价占比分摊（整单折扣后，提成按实际成交金额计算）。
+
+    分摊结果取整到分，尾差记入最后一个类别，保证合计 = total_price。
+    """
+    if total_price < 0:
+        raise ValueError("金额不能为负数")
+    by_cat: dict[str, int] = {}
+    for category, amount in subtotals:
+        if amount < 0:
+            raise ValueError("金额不能为负数")
+        by_cat[category] = by_cat.get(category, 0) + amount
+    list_total = sum(by_cat.values())
+    if list_total == 0:
+        return []
+    cats = list(by_cat)
+    lines: list[CommissionLine] = []
+    for cat in cats[:-1]:
+        lines.append(
+            CommissionLine(category=cat, amount=round(total_price * by_cat[cat] / list_total))
+        )
+    lines.append(
+        CommissionLine(category=cats[-1], amount=total_price - sum(x.amount for x in lines))
+    )
+    return lines
+
+
+def paid_ratio_of(paid_amount: int, amount: int) -> float:
+    if amount <= 0:
+        return 0.0
+    return round(min(paid_amount, amount) / amount, 4)
+
+
+def confirm_commission(estimated: int, paid_amount: int, amount: int) -> int:
+    """已确认提成 = 预估提成 × 回款比例，取整到分。"""
+    if amount <= 0:
+        return 0
+    return round(estimated * min(paid_amount, amount) / amount)
+
+
+def weighted_amount(pairs: list[tuple[int, int]]) -> int:
+    """加权金额 = Σ 金额 × 赢率 / 100（赢率为 0–100 的整数），取整到分。"""
+    return round(sum(amount * win_rate for amount, win_rate in pairs) / 100)

@@ -1,4 +1,5 @@
 import { formatFen, formatPercent } from "@/lib/format"
+import { fenToYuan, toCsv } from "@/lib/list-view"
 import type { BomData, SolutionTier } from "@/types/api"
 
 /**
@@ -89,4 +90,29 @@ export function toBomData(t: CoreSolutionTier): BomData {
       { label: "毛利率", value: formatPercent(t.margin_rate) },
     ],
   }
+}
+
+/** 物料清单 → CSV（金额按元，两位小数）；合计行附在末尾 */
+export function bomToCsv(bom: BomData): string {
+  const rows: { name: string; quantity: string; cost: string; price: string }[] = bom.items.map((r) => ({
+    name: r.name,
+    quantity: r.quantity,
+    cost: fenToYuan(r.cost),
+    price: fenToYuan(r.price),
+  }))
+  for (const t of bom.totals) rows.push({ name: t.label, quantity: "", cost: "", price: t.value })
+  return toCsv(
+    [
+      { label: "项目", value: (r) => r.name },
+      { label: "数量", value: (r) => r.quantity },
+      { label: "成本（元）", value: (r) => r.cost },
+      { label: "售价（元）", value: (r) => r.price },
+    ],
+    rows,
+  )
+}
+
+/** 导出文件名：去掉文件名里不允许的字符 */
+export function safeFileName(title: string): string {
+  return title.replace(/[\/:*?"<>|\s·]+/g, "-").replace(/^-+|-+$/g, "") || "物料清单"
 }

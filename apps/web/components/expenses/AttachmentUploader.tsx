@@ -55,7 +55,8 @@ export function AttachmentUploader({
 
   return (
     <div className="space-y-2">
-      {editable ? (
+      {/* 草稿保存前不能上传，票据类型选择也不显示（避免一个选了也没用的下拉框） */}
+      {editable && expenseId ? (
         <div className="flex items-center gap-2">
           <span className="shrink-0 text-zinc-500">本次上传为</span>
           <div className="w-28">
@@ -77,7 +78,7 @@ export function AttachmentUploader({
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
           className={cn(
-            "flex items-center gap-3 rounded-md border border-dashed px-4 py-4 outline-none",
+            "focus-visible:ring-ring/50 flex items-center gap-3 rounded-md border border-dashed px-4 py-4 outline-none focus-visible:ring-2",
             disabled
               ? "cursor-not-allowed border-zinc-200 opacity-60"
               : "cursor-pointer border-zinc-300 hover:bg-zinc-50",

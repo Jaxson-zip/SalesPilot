@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { paidPercent } from "@/lib/contract"
 import { formatFen } from "@/lib/format"
 import { CONTRACT_STATUS_META, labelOf } from "@/lib/labels"
+import { fenToYuan, optionsFromRows, type CsvColumn, type FilterDef, type SortAccessors } from "@/lib/list-view"
 import type { ContractItem } from "@/types/api"
 
 /** 合同网格列（与原型 ContractGrid 一致）；canPay 时追加「登记回款」操作列 */
@@ -91,3 +92,40 @@ export function contractColumns(onPay?: (c: ContractItem) => void): GridColumn<C
   }
   return cols
 }
+
+/* ---------- ViewBar：筛选 / 排序 / 导出 ---------- */
+export function contractFilters(rows: ContractItem[]): FilterDef<ContractItem>[] {
+  return [
+    {
+      id: "status",
+      label: "状态",
+      options: (Object.keys(CONTRACT_STATUS_META) as ContractItem["status"][]).map((s) => ({
+        value: s,
+        label: CONTRACT_STATUS_META[s].label,
+      })),
+      get: (c) => c.status,
+    },
+    {
+      id: "customer",
+      label: "客户",
+      options: optionsFromRows(rows, (c) => c.customer?.name),
+      get: (c) => c.customer?.name ?? null,
+    },
+    { id: "owner", label: "负责人", options: optionsFromRows(rows, (c) => c.owner.name), get: (c) => c.owner.name },
+  ]
+}
+
+export const contractSort: SortAccessors<ContractItem> = { updated: (c) => c.created_at, amount: (c) => c.amount }
+
+export const contractCsv: CsvColumn<ContractItem>[] = [
+  { label: "合同编号", value: (c) => c.code },
+  { label: "客户", value: (c) => c.customer?.name },
+  { label: "报价单", value: (c) => c.quote?.code },
+  { label: "合同金额（元）", value: (c) => fenToYuan(c.amount) },
+  { label: "已回款（元）", value: (c) => fenToYuan(c.paid_amount) },
+  { label: "回款比例", value: (c) => `${paidPercent(c.paid_ratio)}%` },
+  { label: "预估提成（元）", value: (c) => fenToYuan(c.commission.estimated) },
+  { label: "已确认提成（元）", value: (c) => fenToYuan(c.commission.confirmed) },
+  { label: "状态", value: (c) => labelOf(CONTRACT_STATUS_META, c.status).label },
+  { label: "负责人", value: (c) => c.owner.name },
+]

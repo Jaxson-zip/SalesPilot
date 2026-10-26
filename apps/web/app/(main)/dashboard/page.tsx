@@ -10,6 +10,7 @@ import { FunnelChart } from "@/components/dashboard/FunnelChart"
 import { PipelineOverview } from "@/components/dashboard/PipelineOverview"
 import { useSession } from "@/components/shell/SessionProvider"
 import { useDashboard } from "@/hooks/useDashboard"
+import { usePermissions } from "@/hooks/usePermissions"
 import { formatFen } from "@/lib/format"
 import { defaultScope } from "@/lib/views"
 
@@ -24,6 +25,7 @@ function greeting(now: Date = new Date()): string {
 /** 工作台：StatCard ×4、FunnelChart、PipelineOverview、ActivityFeed */
 export default function DashboardPage() {
   const { role, user, isLead } = useSession()
+  const { canAiWrite } = usePermissions()
   const view = defaultScope(role)
   const query = useDashboard(view)
   const d = query.data
@@ -39,9 +41,14 @@ export default function DashboardPage() {
       icon: Target,
     },
     {
-      label: isLead ? "待我审批" : "审批中",
+      label: role === "manager" ? "待我审批" : role === "admin" ? "待审批" : "审批中",
       value: String(d?.pending_approvals ?? "—"),
-      hint: isLead ? "需要你处理的报价与报销" : "你提交、等待主管审批",
+      hint:
+        role === "manager"
+          ? "需要你处理的报价与报销"
+          : role === "admin"
+            ? "等待各团队主管处理"
+            : "你提交、等待主管审批",
       icon: Clock,
     },
     {
@@ -59,7 +66,7 @@ export default function DashboardPage() {
       actions={
         <>
           <FrameAction icon={Sparkles} label="问 AI" href="/ai" />
-          <FrameAction icon={Plus} label="出方案" href="/ai" primary />
+          {canAiWrite ? <FrameAction icon={Plus} label="出方案" href="/ai" primary /> : null}
         </>
       }
     >

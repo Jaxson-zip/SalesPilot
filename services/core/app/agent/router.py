@@ -1,16 +1,20 @@
-"""Agent 接口：POST /api/agent/chat、POST /api/agent/resume（SSE）。只做参数和响应。"""
+"""Agent 接口：chat / resume（SSE）与会话历史（只读）。只做参数和响应。"""
 
 import uuid
-from typing import Literal
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Path, Query, Request
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 from starlette.concurrency import run_in_threadpool
 
-from app.agent import service
+from app.agent import service, threads
+from app.agent.checkpoint import get_checkpointer
+from app.agent.history import ThreadMessages, read_thread_messages
 from app.agent.sse import sse_stream
 from app.common.auth import CurrentUserDep
+from app.common.response import ApiResponse, ok
+from app.crm.routers.deps import DbDep
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
 
@@ -43,3 +47,17 @@ async def resume(body: ResumeIn, user: CurrentUserDep, request: Request) -> Even
     deps = service.build_deps(user, body.thread_id, _request_id(request), None)
     run = await run_in_threadpool(service.prepare_resume, deps, body.decision)
     return EventSourceResponse(sse_stream(run.graph, run.payload, run.config, run.thread_id))
+
+
+@router.get("/threads", response_model=ApiResponse[threads.ThreadPage])
+def list_threads(
+    user: CurrentUserDep, db: DbDep, limit: Annotated[int, Query(ge=1, le=100)] = 30
+) -> ApiResponse[threads.ThreadPage]:
+    return ok(threads.list_threads(db, user, limit))
+
+
+@router.get("/threads/{thread_id}/messages", response_model=ApiResponse[ThreadMessages])
+def thread_messages(
+    user: CurrentUserDep, db: DbDep, thread_id: Annotated[str, Path(max_length=100)]
+) -> ApiResponse[ThreadMessages]:
+    return ok(read_thread_messages(db, user, thread_id, get_checkpointer()))

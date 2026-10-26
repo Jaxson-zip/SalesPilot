@@ -1,12 +1,31 @@
 "use client"
 
-import { Menu, type LucideIcon } from "lucide-react"
+import { Eye, Menu, type LucideIcon } from "lucide-react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import type { ReactNode } from "react"
 
+import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { useSidebar } from "@/components/ui/sidebar"
+import { isBusinessPath } from "@/lib/nav"
+import { isReadOnlyRole } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
+
+/** 管理员打开业务页面时的「只读」提示（契约 §0） */
+function ReadOnlyBanner() {
+  return (
+    <div
+      role="note"
+      aria-label="只读提示"
+      className="flex h-9 shrink-0 items-center gap-2 border-b border-zinc-200 bg-zinc-50 px-4 text-zinc-600"
+    >
+      <Eye className="size-3.5 shrink-0 text-zinc-500" />
+      <span className="shrink-0 font-medium text-zinc-800">只读</span>
+      <span className="min-w-0 truncate">管理员负责系统配置，业务数据只读</span>
+    </div>
+  )
+}
 
 /**
  * PageFrame：Twenty 风格页面 —— 灰底标题行（40px）+ 白色圆角内容面板。
@@ -29,15 +48,19 @@ export function PageFrame({
   bodyClassName?: string
 }) {
   const { isMobile, setOpenMobile } = useSidebar()
+  const { role } = useSession()
+  const pathname = usePathname()
+  const readOnly = isReadOnlyRole(role) && isBusinessPath(pathname)
   return (
     <div className="flex h-full min-w-0 flex-col">
-      <div className="mb-1 flex h-10 min-w-0 shrink-0 items-center gap-2 px-1">
+      <div className="mb-1.5 flex h-10 min-w-0 shrink-0 items-center gap-2">
         {isMobile ? (
           <Button
             variant="ghost"
             size="icon-sm"
-            className="-ml-1 text-zinc-600 hover:bg-black/5"
+            className="text-zinc-600 hover:bg-black/5"
             title="打开导航"
+            aria-label="打开导航"
             onClick={() => setOpenMobile(true)}
           >
             <Menu />
@@ -60,6 +83,7 @@ export function PageFrame({
           bodyClassName,
         )}
       >
+        {readOnly ? <ReadOnlyBanner /> : null}
         {children}
       </div>
     </div>

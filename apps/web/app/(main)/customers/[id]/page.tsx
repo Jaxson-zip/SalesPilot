@@ -14,6 +14,7 @@ import { CustomerTimeline, FollowupComposer } from "@/components/customers/Custo
 import { useSession } from "@/components/shell/SessionProvider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCustomer } from "@/hooks/useCustomers"
+import { usePermissions } from "@/hooks/usePermissions"
 import { useQuotes } from "@/hooks/useQuotes"
 import { defaultScope } from "@/lib/views"
 import type { Role } from "@/types/api"
@@ -44,6 +45,7 @@ export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const customerId = decodeURIComponent(id)
   const { role } = useSession()
+  const { canFollowup, canAiWrite } = usePermissions()
   const query = useCustomer(customerId)
   const [tab, setTab] = useState("timeline")
   const composerRef = useRef<HTMLTextAreaElement>(null)
@@ -51,7 +53,11 @@ export default function CustomerDetailPage() {
 
   const writeFollowup = () => {
     setTab("timeline")
-    setTimeout(() => composerRef.current?.focus(), 50)
+    // 标题行「写跟进」= 定位到时间线顶部的写跟进框（同一个入口，不另开表单）
+    setTimeout(() => {
+      composerRef.current?.scrollIntoView({ block: "center", behavior: "smooth" })
+      composerRef.current?.focus({ preventScroll: true })
+    }, 50)
   }
 
   let body
@@ -89,8 +95,13 @@ export default function CustomerDetailPage() {
                 icon: Clock,
                 content: (
                   <>
-                    <FollowupComposer ref={composerRef} customerId={cust.id} />
-                    <CustomerTimeline customerId={cust.id} role={role} owner={cust.owner?.name ?? "—"} />
+                    {canFollowup ? <FollowupComposer ref={composerRef} customerId={cust.id} /> : null}
+                    <CustomerTimeline
+                      customerId={cust.id}
+                      role={role}
+                      owner={cust.owner?.name ?? "—"}
+                      canWrite={canFollowup}
+                    />
                   </>
                 ),
               },
@@ -112,8 +123,8 @@ export default function CustomerDetailPage() {
       crumb={<Crumb parent="客户" href="/customers" icon={Building2} current={c?.name ?? "客户详情"} />}
       actions={
         <>
-          <FrameAction icon={PencilLine} label="写跟进" onClick={writeFollowup} />
-          <FrameAction icon={Sparkles} label="为该客户出方案" href="/ai" primary />
+          {canFollowup ? <FrameAction icon={PencilLine} label="写跟进" onClick={writeFollowup} /> : null}
+          {canAiWrite ? <FrameAction icon={Sparkles} label="为该客户出方案" href="/ai" primary /> : null}
         </>
       }
     >

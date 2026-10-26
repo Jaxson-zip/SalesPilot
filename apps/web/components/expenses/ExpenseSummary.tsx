@@ -12,7 +12,7 @@ export function ExpenseSummary({ e }: { e: ExpenseDetail }) {
   const type = labelOf(EXPENSE_TYPE_META, e.type)
   const status = labelOf(EXPENSE_STATUS_META, e.status)
   return (
-    <div className="-mx-1.5">
+    <div>
       <FieldRow icon={CircleDot} label="状态">
         <Tag color={status.color}>{status.label}</Tag>
       </FieldRow>

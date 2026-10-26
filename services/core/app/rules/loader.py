@@ -1,5 +1,6 @@
 """读取 rules.yaml，支持行业包规则覆盖（深度合并）。"""
 
+import copy
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -72,6 +73,14 @@ def read_yaml(path: Path) -> dict[str, Any]:
 @lru_cache
 def _base_rules() -> dict[str, Any]:
     return read_yaml(RULES_FILE)
+
+
+def load_raw_rules(override_file: Path | None = None) -> dict[str, Any]:
+    """合并后的原始规则字典（含行业包专属的 pack 段），只读展示用。"""
+    raw = copy.deepcopy(_base_rules())
+    if override_file is not None:
+        raw = deep_merge(raw, read_yaml(override_file))
+    return raw
 
 
 def load_rules(override_file: Path | None = None) -> RuleSet:

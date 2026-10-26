@@ -21,7 +21,8 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { canSee, isActivePath, NAV_GROUPS, type NavItem } from "@/lib/nav"
+import { useApprovals } from "@/hooks/useApprovals"
+import { isActivePath, navGroupsFor, type NavItem } from "@/lib/nav"
 
 const itemClass =
   "h-7 gap-2 px-2 text-zinc-600 hover:bg-black/[0.04] data-[active=true]:text-zinc-900 [&>svg]:text-zinc-500 data-[active=true]:[&>svg]:text-zinc-800"
@@ -34,8 +35,15 @@ function Kbd({ children }: { children: string }) {
   )
 }
 
+/** 待处理审批数（只有主管的导航里有「审批」，所以只在主管时请求） */
+function usePendingCount(enabled: boolean): number {
+  const q = useApprovals("pending", enabled)
+  return enabled ? (q.data?.total ?? 0) : 0
+}
+
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   const { isMobile, setOpenMobile } = useSidebar()
+  const badge = usePendingCount(Boolean(item.pendingBadge))
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={active} tooltip={item.label} className={itemClass}>
@@ -44,9 +52,9 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
           <span>{item.label}</span>
         </Link>
       </SidebarMenuButton>
-      {item.badge ? (
+      {badge ? (
         <>
-          <SidebarMenuBadge className="top-1 text-[11px] font-normal text-zinc-500">{item.badge}</SidebarMenuBadge>
+          <SidebarMenuBadge className="top-1 text-[11px] font-normal text-zinc-500">{badge}</SidebarMenuBadge>
           {/* 图标栏模式：数字换成红点 */}
           <span className="pointer-events-none absolute top-1 right-1 hidden size-1.5 rounded-full bg-red-500 group-data-[collapsible=icon]:block" />
         </>
@@ -68,9 +76,8 @@ export function AppSidebar({ onSearch }: { onSearch: () => void }) {
         <WorkspaceSwitcher />
       </SidebarHeader>
       <SidebarContent className="gap-0">
-        {NAV_GROUPS.map((group, gi) => {
-          const items = group.items.filter((i) => canSee(i, role))
-          if (items.length === 0) return null
+        {navGroupsFor(role).map((group, gi) => {
+          const items = group.items
           return (
             <SidebarGroup key={group.label ?? gi} className="px-2 py-1.5">
               {group.label ? (

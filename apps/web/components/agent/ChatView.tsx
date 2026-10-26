@@ -1,67 +1,42 @@
 "use client"
 
-import { Download, Ellipsis, History, Pencil, Trash2 } from "lucide-react"
+import { History, SquarePen } from "lucide-react"
 import { useEffect, useRef, type ReactNode } from "react"
 
 import { AiMessage } from "@/components/agent/AiMessage"
 import { UserMsg } from "@/components/agent/UserMsg"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import type { ChatTurn } from "@/lib/agent-reducer"
 import type { ResumeDecision } from "@/types/api"
 
-/** 会话标题栏：历史按钮（<768）+ 标题 + 更多菜单 */
+const ICON_BTN = "inline-flex size-7 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100"
+
+/** 会话标题栏：历史按钮（<768）+ 标题 + 新对话 */
 function ChatHeader({
   title,
   onToggleHistory,
-  onDelete,
+  onNew,
 }: {
   title: string
   onToggleHistory: () => void
-  onDelete: () => void
+  onNew: () => void
 }) {
   return (
     <div className="flex h-11 shrink-0 items-center gap-2 border-b border-zinc-100 px-3 sm:px-4">
       <button
         type="button"
         title="会话历史"
+        aria-label="会话历史"
         onClick={onToggleHistory}
-        className="inline-flex size-7 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100 md:hidden"
+        className={`${ICON_BTN} md:hidden`}
       >
         <History className="size-4" />
       </button>
-      <span className="min-w-0 flex-1 truncate font-medium">{title}</span>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            title="更多"
-            className="inline-flex size-7 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100"
-          >
-            <Ellipsis className="size-4" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[180px]">
-          <DropdownMenuItem disabled>
-            <Pencil />
-            重命名
-          </DropdownMenuItem>
-          <DropdownMenuItem disabled>
-            <Download />
-            导出对话
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-            <Trash2 />
-            删除
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <span className="min-w-0 flex-1 truncate font-medium" title={title}>
+        {title}
+      </span>
+      <button type="button" title="新对话" aria-label="新对话" onClick={onNew} className={ICON_BTN}>
+        <SquarePen className="size-4" />
+      </button>
     </div>
   )
 }
@@ -75,7 +50,7 @@ export function ChatView({
   onToggleHistory,
   onDecide,
   onRetry,
-  onDelete,
+  onNew,
 }: {
   title: string
   turns: ChatTurn[]
@@ -84,7 +59,7 @@ export function ChatView({
   onToggleHistory: () => void
   onDecide: (decision: ResumeDecision) => void
   onRetry: () => void
-  onDelete: () => void
+  onNew: () => void
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -96,7 +71,7 @@ export function ChatView({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <ChatHeader title={title} onToggleHistory={onToggleHistory} onDelete={onDelete} />
+      <ChatHeader title={title} onToggleHistory={onToggleHistory} onNew={onNew} />
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div className="mx-auto max-w-[760px] space-y-7 px-4 py-6 sm:px-6">
           {turns.map((t, i) =>

@@ -37,6 +37,17 @@ const BAR_CLS = {
   todo: "bg-zinc-100 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600",
 }
 
+/** 无权切换阶段时只显示当前阶段 */
+function StageReadOnly({ stage }: { stage: OpportunityStage }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-zinc-500">阶段</span>
+      <Tag color={STAGE_META[stage].color}>{STAGE_META[stage].label}</Tag>
+      <span className="ml-auto text-xs text-zinc-400">仅负责人可切换阶段</span>
+    </div>
+  )
+}
+
 function StageBar({
   stage,
   onChange,
@@ -52,7 +63,7 @@ function StageBar({
       <div className="mb-1.5 flex items-center justify-between">
         <span className="text-zinc-500">阶段</span>
         <span className="text-xs text-zinc-400">
-          {final ? `已${STAGE_META[stage].label}，不能再切换` : "点击切换，变更会写入时间线"}
+          {final ? `已${STAGE_META[stage].label}，不能再切换` : "点击切换（可撤销），赢单需确认"}
         </span>
       </div>
       <div className="flex gap-1">
@@ -88,7 +99,7 @@ function StageBar({
 
 function Fields({ o }: { o: OpportunityItem & Partial<Pick<OpportunityDetail, "quotes">> }) {
   return (
-    <div className="-mx-1.5">
+    <div>
       <FieldRow icon={Coins} label="金额">
         <span className="tabular-nums">{formatFen(o.amount)}</span>
       </FieldRow>
@@ -164,11 +175,14 @@ function RecentActivities({ detail }: { detail: OpportunityDetail | undefined })
 /** OpportunitySheet：阶段条、字段、AI 下一步建议、最近动态 */
 export function OpportunitySheet({
   opp,
+  editable,
   onClose,
   onStageChange,
   changing,
 }: {
   opp: OpportunityItem | null
+  /** 本人负责的商机才能切换阶段、出方案 */
+  editable: boolean
   onClose: () => void
   onStageChange: (opp: OpportunityItem, to: OpportunityStage) => void
   changing?: boolean
@@ -189,12 +203,14 @@ export function OpportunitySheet({
                 打开客户页面
               </Link>
             </Button>
-            <Button asChild>
-              <Link href="/ai">
-                <Sparkles />
-                出方案
-              </Link>
-            </Button>
+            {editable ? (
+              <Button asChild>
+                <Link href="/ai">
+                  <Sparkles />
+                  出方案
+                </Link>
+              </Button>
+            ) : null}
           </>
         ) : null
       }
@@ -213,7 +229,11 @@ export function OpportunitySheet({
               </div>
             </div>
           </div>
-          <StageBar stage={o.stage} disabled={changing} onChange={(s) => onStageChange(o, s)} />
+          {editable ? (
+            <StageBar stage={o.stage} disabled={changing} onChange={(s) => onStageChange(o, s)} />
+          ) : (
+            <StageReadOnly stage={o.stage} />
+          )}
           <Fields o={o} />
           <div className="flex gap-2 rounded-lg border border-violet-200 bg-violet-50/60 px-3 py-2.5 text-violet-900">
             <Sparkles className="text-ai mt-0.5 size-4 shrink-0" />

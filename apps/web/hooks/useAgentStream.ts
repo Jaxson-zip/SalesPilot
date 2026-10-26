@@ -45,6 +45,8 @@ export interface UseAgentStream {
   stop: () => void
   retry: () => void
   reset: () => void
+  /** 加载历史会话：替换当前消息并接上该 thread（之后的追问 / 确认都发到这个 thread） */
+  load: (threadId: string, turns: ChatTurn[], lastMessage: string | null, model: string) => void
 }
 
 type Patch = (fn: (t: AssistantTurn) => AssistantTurn) => void
@@ -144,5 +146,16 @@ export function useAgentStream(): UseAgentStream {
     setTurns([])
   }, [abortRef])
 
-  return { turns, threadId, isStreaming, send, resume, stop, retry, reset }
+  const load = useCallback(
+    (id: string, next: ChatTurn[], lastMessage: string | null, model: string) => {
+      abortRef.current?.abort()
+      threadRef.current = id
+      lastChat.current = lastMessage ? { message: lastMessage, model } : null
+      setThreadId(id)
+      setTurns(next)
+    },
+    [abortRef],
+  )
+
+  return { turns, threadId, isStreaming, send, resume, stop, retry, reset, load }
 }

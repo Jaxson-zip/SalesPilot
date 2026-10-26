@@ -365,6 +365,20 @@ export interface ContactItem {
   is_decision_maker: boolean
 }
 
+/** POST /api/customers（core schemas/customer.py CustomerCreate；annual_budget 单位：分） */
+export type CustomerLevel = "A" | "B" | "C"
+
+export interface CustomerCreate {
+  name: string
+  industry?: string
+  level?: CustomerLevel
+  size?: string
+  address?: string
+  website?: string
+  annual_budget?: number
+  tags?: string[]
+}
+
 /** GET /api/customers/{id}（已有接口，CustomerDetail） */
 export interface CustomerDetail {
   id: string

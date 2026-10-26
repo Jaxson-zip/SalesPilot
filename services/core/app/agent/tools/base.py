@@ -71,8 +71,12 @@ def new_call_id() -> str:
     return f"call_{uuid.uuid4().hex[:12]}"
 
 
-def _fail(code: int, message: str) -> ToolResult:
-    return ToolResult(ok=False, summary=message, error={"code": code, "message": message})
+def _fail(code: int, message: str, data: Any = None) -> ToolResult:
+    """结构化错误：error.data 带上 service 的附加信息（例如 40301 的 rule）。"""
+    error: dict[str, Any] = {"code": code, "message": message}
+    if data is not None:
+        error["data"] = data
+    return ToolResult(ok=False, summary=message, error=error)
 
 
 def _execute(spec: ToolSpec, ctx: ToolContext, raw_args: dict[str, Any]) -> ToolResult:
@@ -83,7 +87,7 @@ def _execute(spec: ToolSpec, ctx: ToolContext, raw_args: dict[str, Any]) -> Tool
     try:
         return spec.func(ctx, args)
     except BizError as exc:
-        return _fail(exc.code, exc.message)
+        return _fail(exc.code, exc.message, exc.data)
     except Exception:
         logger.exception("tool %s failed request_id=%s", spec.name, ctx.request_id)
         return _fail(ErrorCode.INTERNAL, "工具执行失败，请稍后重试或人工处理")

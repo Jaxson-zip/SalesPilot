@@ -18,7 +18,7 @@ from app.common.errors import BizError, ErrorCode
 from app.crm.models import Attachment, Expense
 from app.crm.schemas.common import AttachmentOut
 from app.crm.services import activity_service, attachment_query
-from app.crm.services.expense_service import load_expense
+from app.crm.services.expense_service import load_expense, load_owned
 from app.rules import load_rules
 
 RULE_NOT_EDITABLE = "expense_not_editable"
@@ -60,7 +60,7 @@ def upload(
 ) -> AttachmentOut:
     if kind not in KINDS:
         raise _invalid("kind", "kind 只能是 invoice / receipt / other")
-    expense = load_expense(db, user, expense_id, lock=True)
+    expense = load_owned(db, user, expense_id)
     _ensure_draft(expense)
     rules = load_rules().attachment
     content = stream.read(rules.max_bytes + 1)
@@ -105,6 +105,7 @@ def _load(db: Session, user: CurrentUser, attachment_id: uuid.UUID) -> tuple[Att
 
 def delete(db: Session, user: CurrentUser, attachment_id: uuid.UUID) -> None:
     attachment, expense = _load(db, user, attachment_id)
+    expense = load_owned(db, user, expense.id)
     _ensure_draft(expense)
     key, name = attachment.storage_key, attachment.file_name
     db.delete(attachment)

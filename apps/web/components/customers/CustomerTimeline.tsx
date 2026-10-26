@@ -47,7 +47,7 @@ export const FollowupComposer = forwardRef<HTMLTextAreaElement, { customerId: st
       { onSuccess: () => setContent("") },
     )
   return (
-    <div className="mb-5 rounded-lg border border-zinc-200">
+    <div className="mb-5 rounded-lg border border-zinc-200 focus-within:border-zinc-300">
       <textarea
         ref={ref}
         rows={2}
@@ -55,17 +55,19 @@ export const FollowupComposer = forwardRef<HTMLTextAreaElement, { customerId: st
         maxLength={2000}
         onChange={(e) => setContent(e.target.value)}
         placeholder="记录一条跟进…（也可以直接让 AI 帮你记）"
-        className="w-full resize-none bg-transparent px-3 pt-2.5 outline-none placeholder:text-zinc-400"
+        aria-label="跟进内容"
+        className="block w-full resize-none bg-transparent px-3 pt-3 pb-1 outline-none placeholder:text-zinc-400"
       />
-      <div className="flex flex-wrap items-center gap-2 px-2.5 pb-2.5">
+      {/* 底部工具行：与框边缘保持 12px，和上方输入区左右对齐 */}
+      <div className="flex flex-wrap items-center gap-2 px-3 pt-1.5 pb-3">
         <div className="w-28">
           <SimpleSelect value={type} onChange={setType} options={TYPE_OPTIONS} size="sm" ariaLabel="跟进方式" />
         </div>
         <div className="w-36">
           <DatePicker value={date} onChange={setDate} size="sm" />
         </div>
-        <div className="flex-1" />
-        <Button size="sm" disabled={!content.trim() || create.isPending} onClick={save}>
+        {/* ml-auto：窄屏换行后保存按钮仍靠右 */}
+        <Button size="sm" className="ml-auto" disabled={!content.trim() || create.isPending} onClick={save}>
           {create.isPending ? "保存中…" : "保存"}
         </Button>
       </div>
@@ -105,7 +107,18 @@ function Entry({ e, last }: { e: TimelineEntry; last: boolean }) {
 }
 
 /** Timeline：跟进记录 + 动态合并，按时间倒序 */
-export function CustomerTimeline({ customerId, role, owner }: { customerId: string; role: Role; owner: string }) {
+export function CustomerTimeline({
+  customerId,
+  role,
+  owner,
+  canWrite = true,
+}: {
+  customerId: string
+  role: Role
+  owner: string
+  /** 能否写跟进（决定空状态的引导文字） */
+  canWrite?: boolean
+}) {
   const followups = useFollowups(customerId)
   const activities = useActivities({
     view: defaultScope(role),
@@ -135,7 +148,9 @@ export function CustomerTimeline({ customerId, role, owner }: { customerId: stri
     )
   const entries = buildTimeline(followups.data ?? [], activities.data ?? [], owner)
   if (entries.length === 0)
-    return <EmptyState icon={Clock} title="还没有跟进记录" description="在上方写下第一条跟进。" />
+    return (
+      <EmptyState icon={Clock} title="还没有跟进记录" description={canWrite ? "在上方写下第一条跟进。" : undefined} />
+    )
   return (
     <div className="relative">
       {entries.map((e, i) => (

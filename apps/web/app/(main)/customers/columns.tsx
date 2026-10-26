@@ -5,6 +5,7 @@ import { Chip, LinkChip } from "@/components/biz/Chip"
 import type { GridColumn } from "@/components/biz/DataGrid"
 import { colorFor, Tag, type TagColor } from "@/components/biz/Tag"
 import { displayHost, formatFen, formatRelative } from "@/lib/format"
+import { fenToYuan, optionsFromRows, type CsvColumn, type FilterDef, type SortAccessors } from "@/lib/list-view"
 import type { Customer } from "@/types/api"
 
 function levelColor(level: string): TagColor {
@@ -49,4 +50,43 @@ export const customerColumns: GridColumn<Customer>[] = [
   },
   { id: "amount", label: "商机金额", icon: Coins, align: "right", cell: (c) => formatFen(c.opportunity_amount) },
   { id: "followup", label: "最近跟进", icon: Clock, cell: (c) => formatRelative(c.last_followup_at) },
+]
+
+/* ---------- ViewBar：筛选 / 排序 / 导出（客户列表接口只有 q 参数，均在前端处理） ---------- */
+export function customerFilters(rows: Customer[]): FilterDef<Customer>[] {
+  return [
+    {
+      id: "level",
+      label: "等级",
+      options: ["A", "B", "C"].map((v) => ({ value: v, label: `${v} 级` })),
+      get: (c) => c.level?.trim().charAt(0).toUpperCase() || null,
+    },
+    {
+      id: "industry",
+      label: "行业",
+      options: optionsFromRows(rows, (c) => c.industry),
+      get: (c) => c.industry || null,
+    },
+    {
+      id: "owner",
+      label: "负责人",
+      options: optionsFromRows(rows, (c) => c.owner.name),
+      get: (c) => c.owner.name,
+    },
+  ]
+}
+
+export const customerSort: SortAccessors<Customer> = {
+  updated: (c) => c.last_followup_at,
+  amount: (c) => c.opportunity_amount,
+}
+
+export const customerCsv: CsvColumn<Customer>[] = [
+  { label: "客户名称", value: (c) => c.name },
+  { label: "行业", value: (c) => c.industry },
+  { label: "等级", value: (c) => c.level },
+  { label: "负责人", value: (c) => c.owner.name },
+  { label: "网站", value: (c) => c.website },
+  { label: "商机金额（元）", value: (c) => fenToYuan(c.opportunity_amount) },
+  { label: "最近跟进", value: (c) => c.last_followup_at },
 ]

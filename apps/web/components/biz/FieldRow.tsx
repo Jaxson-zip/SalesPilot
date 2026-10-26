@@ -1,7 +1,9 @@
 import type { LucideIcon } from "lucide-react"
 import type { ReactNode } from "react"
 
-/** 记录详情左侧字段行：图标 + 标签（104px）+ 值（点击原地编辑，hover 灰底） */
+import { cn } from "@/lib/utils"
+
+/** 记录详情左侧字段行：图标 + 标签（104px）+ 值；传 onClick 时才有可点击外观（hover 灰底） */
 export function FieldRow({
   icon: Icon,
   label,
@@ -21,8 +23,9 @@ export function FieldRow({
       </span>
       <div
         role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
         onClick={onClick}
-        className="min-w-0 flex-1 cursor-pointer truncate rounded px-1.5 py-1 hover:bg-zinc-100"
+        className={cn("min-w-0 flex-1 truncate rounded px-1.5 py-1", onClick && "cursor-pointer hover:bg-zinc-100")}
       >
         {children}
       </div>

@@ -5,13 +5,14 @@
 """
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from app.agent.deps import AgentDeps
-from app.agent.nodes.common import emit, node_start
+from app.agent.nodes.common import emit, node_start, now_iso
+from app.agent.nodes.solution import recommended_tier
 from app.agent.prompts import system_prompt
 from app.agent.state import AgentState
 from app.crm.schemas.quote import QUOTE_STATUS_LABELS
@@ -60,6 +61,18 @@ def _solution_text(state: AgentState) -> str:
     return head or "方案已生成。"
 
 
+def turn_artifacts(state: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """本轮推送过的 artifact（与 SSE 的 artifact 事件一致），存进 AIMessage 供会话历史还原。"""
+    arts: list[dict[str, Any]] = []
+    tiers = state.get("tiers") or []
+    if state.get("intent") == "solution" and tiers:
+        arts.append({"type": "solution_tiers", "data": tiers})
+        arts.append({"type": "bom", "data": recommended_tier(tiers)})
+    if quote := state.get("quote"):
+        arts.append({"type": "quote", "data": quote})
+    return arts
+
+
 def _llm_messages(state: AgentState, draft: str) -> list[BaseMessage]:
     context = "\n".join(f"- {e['tool']}：{e['summary']}" for e in state.get("tool_log", []))
     return [
@@ -95,6 +108,7 @@ def make_respond(deps: AgentDeps) -> Node:
         if text is None:
             text = draft
             emit("message.delta", {"text": text})
-        return {"messages": [AIMessage(content=text)]}
+        extra = {"artifacts": turn_artifacts(state), "created_at": now_iso()}
+        return {"messages": [AIMessage(content=text, additional_kwargs=extra)]}
 
     return respond

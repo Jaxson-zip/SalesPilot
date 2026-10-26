@@ -1,0 +1,109 @@
+"""会话历史：从 LangGraph checkpointer 读取状态，还原成前端可直接渲染的消息列表。
+
+- 用户消息 → role=user；AI 最终回复 → role=assistant（工具调用的中间消息不返回）。
+- AI 回复的 artifacts / created_at 由 respond 节点写在 AIMessage.additional_kwargs 里；
+  早期会话没有这些字段时只返回文字。
+- 会话停在 interrupt（等待确认生成报价单）时，追加一条带方案卡片的 assistant 消息，
+  并在 pending 里给出待确认的操作。
+"""
+
+from datetime import datetime
+from typing import Any, Literal
+
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_core.runnables import RunnableConfig
+from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.graph.state import CompiledStateGraph
+from langgraph.types import StateSnapshot
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from app.agent.deps import AgentDeps
+from app.agent.graph import build_graph
+from app.agent.nodes.respond import turn_artifacts
+from app.agent.threads import ensure_owner, find_thread
+from app.agent.tools.base import ToolContext
+from app.common.auth import CurrentUser
+from app.common.db import session_scope
+from app.common.errors import BizError, ErrorCode
+
+PENDING_TEXT = "方案已生成，请确认是否生成报价单。"
+
+
+class Artifact(BaseModel):
+    type: str
+    data: Any
+
+
+class HistoryMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    text: str
+    artifacts: list[Artifact] = Field(default_factory=list)
+    created_at: datetime | None = None
+
+
+class ThreadMessages(BaseModel):
+    thread_id: str
+    messages: list[HistoryMessage]
+    pending: dict[str, Any] | None = None  # 待确认操作（interrupt 的 value），没有为 null
+
+
+def _text(msg: BaseMessage) -> str:
+    content = msg.content
+    if isinstance(content, str):
+        return content
+    parts = [p.get("text", "") if isinstance(p, dict) else str(p) for p in content]
+    return "".join(parts)
+
+
+def to_history(msg: BaseMessage) -> HistoryMessage | None:
+    """用户消息与 AI 最终回复；带 tool_calls 或空内容的 AI 中间消息跳过。"""
+    extra = msg.additional_kwargs or {}
+    created_at = extra.get("created_at")
+    if isinstance(msg, HumanMessage):
+        return HistoryMessage(role="user", text=_text(msg), created_at=created_at)
+    if not isinstance(msg, AIMessage) or msg.tool_calls or not _text(msg):
+        return None
+    arts = [Artifact.model_validate(a) for a in extra.get("artifacts", [])]
+    return HistoryMessage(role="assistant", text=_text(msg), artifacts=arts, created_at=created_at)
+
+
+def _pending(snapshot: StateSnapshot) -> dict[str, Any] | None:
+    for task in snapshot.tasks:
+        for item in task.interrupts:
+            value = getattr(item, "value", None)
+            if isinstance(value, dict):
+                return value
+    return None
+
+
+def build_messages(thread_id: str, snapshot: StateSnapshot) -> ThreadMessages:
+    values: dict[str, Any] = snapshot.values or {}
+    messages = [m for m in (to_history(x) for x in values.get("messages", [])) if m is not None]
+    pending = _pending(snapshot)
+    if pending is not None:
+        arts = [Artifact.model_validate(a) for a in turn_artifacts(values)]
+        messages.append(HistoryMessage(role="assistant", text=PENDING_TEXT, artifacts=arts))
+    return ThreadMessages(thread_id=thread_id, messages=messages, pending=pending)
+
+
+def _read_only_graph(user: CurrentUser, thread_id: str, saver: BaseCheckpointSaver) -> Any:
+    """只用于 get_state：节点不会被执行，不需要模型和数据库。"""
+    ctx = ToolContext(user=user, session=session_scope, thread_id=thread_id)
+    deps = AgentDeps(ctx=ctx, resolve_pack=lambda _opp: "", llm=None)
+    graph: CompiledStateGraph = build_graph(deps, saver)
+    return graph
+
+
+def read_thread_messages(
+    db: Session | None, user: CurrentUser, thread_id: str, saver: BaseCheckpointSaver
+) -> ThreadMessages:
+    """别人的会话 40401（会话表或 checkpoint 任一显示归属他人）；还没有消息的会话返回空列表。"""
+    if db is not None:
+        ensure_owner(find_thread(db, thread_id), user)
+    config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
+    snapshot = _read_only_graph(user, thread_id, saver).get_state(config)
+    owner = (snapshot.values or {}).get("user_id")
+    if owner is not None and owner != str(user.id):
+        raise BizError(ErrorCode.NOT_FOUND, "会话不存在")
+    return build_messages(thread_id, snapshot)

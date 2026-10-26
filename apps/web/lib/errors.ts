@@ -11,6 +11,12 @@ const RULE_MESSAGES: Record<string, string> = {
   approval_already_decided: "该审批已被处理，请刷新列表",
 }
 
+/** 40301 时 data.rule 的中文说明（契约 §0） */
+const FORBIDDEN_MESSAGES: Record<string, string> = {
+  role_forbidden: "当前角色无权执行该操作（管理员负责系统配置，业务数据只读）",
+  not_owner: "只有负责人本人可以修改这条记录",
+}
+
 function ruleOf(data: unknown): string | null {
   if (typeof data === "object" && data !== null && "rule" in data) {
     const rule = (data as { rule: unknown }).rule
@@ -38,8 +44,10 @@ export function errorMessage(err: unknown): string {
       const rule = ruleOf(err.data)
       return (rule && RULE_MESSAGES[rule]) || err.message || "业务规则不满足"
     }
-    case ErrorCode.FORBIDDEN:
-      return "当前角色无权执行该操作"
+    case ErrorCode.FORBIDDEN: {
+      const rule = ruleOf(err.data)
+      return (rule && FORBIDDEN_MESSAGES[rule]) || "当前角色无权执行该操作"
+    }
     case ErrorCode.DUPLICATE:
       return "请勿重复提交，该单据已提交过"
     case ErrorCode.NOT_FOUND:

@@ -156,7 +156,9 @@ def test_payment_confirms_commission(client: TestClient, tracker: Tracker) -> No
     over = client.post(url, json={"amount": 9_000_001}, headers=MANAGER_H).json()
     assert over["code"] == 42201 and over["data"]["rule"] == "payment_exceeds_balance"
     assert client.post(url, json={"amount": 0}, headers=MANAGER_H).json()["code"] == 40001
-    done = client.post(url, json={"amount": 9_000_000}, headers=ADMIN_H).json()["data"]
+    admin = client.post(url, json={"amount": 1}, headers=ADMIN_H).json()
+    assert admin["code"] == 40301 and admin["data"]["rule"] == "role_forbidden"
+    done = client.post(url, json={"amount": 9_000_000}, headers=MANAGER_H).json()["data"]
     assert done["status"] == "paid" and done["commission"]["confirmed"] == 700_000
 
 

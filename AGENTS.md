@@ -31,7 +31,7 @@ cd services/gateway && uv run pytest
 
 # core（本地开发，需要先 docker compose up -d db）
 cd services/core && uv sync && uv run alembic upgrade head && uv run uvicorn app.main:app --reload --port 8000
-cd services/core && uv run pytest
+cd services/core && uv run pytest        # 自动使用独立的测试库 crm_test（每次运行前重建演示数据），不影响开发库
 
 # 前端
 cd apps/web && pnpm install && pnpm dev
@@ -44,6 +44,10 @@ docker compose exec core python -m seed --reset
 
 # 端到端测试（需要 docker compose 环境在运行）
 uv run --python 3.12 --with httpx --with pytest pytest tests/e2e -q
+# 浏览器自动化测试（Playwright；PW_CHANNEL=msedge 直接用 Windows 自带的 Edge，免下载浏览器）
+cd apps/web && PW_CHANNEL=msedge pnpm test:e2e
+# 跑完端到端 / 浏览器测试后恢复干净的演示数据
+docker compose exec core python -m seed --reset
 ```
 
 > Windows 下用 curl 调试时用 `127.0.0.1` 而不是 `localhost`（后者可能解析到 IPv6，请求会卡住）；中文请求体用 UTF-8 文件发送（`--data-binary @body.json`）。
@@ -74,6 +78,8 @@ uv run --python 3.12 --with httpx --with pytest pytest tests/e2e -q
 15. 新增的 service、规则、兼容层函数必须有单元测试；新增接口至少 1 个成功用例 + 1 个错误码用例。
 16. 测试不依赖外网和真实 Key：网关用录制样本（`tests/fixtures/`），core 用 mock 网关；前端纯函数用 Vitest（`lib/__tests__/`）。
 17. 修了 bug 要补一个能复现它的测试（回归测试）。
+18. 界面上不允许出现「看得见却点不了」的按钮：无权操作的按钮隐藏而不是置灰，没实现的功能不放按钮。`apps/web/e2e/ui-audit.spec.ts` 会扫描所有页面。
+19. 不可逆操作（赢单、报价发送 / 接受 / 拒绝、审批通过、提交报销、登记回款）必须先确认；可逆操作（切换普通阶段）立即生效并提供撤销。
 
 ## 5. AI Coding 工作方式（课程评分重点）
 1. 一次只做一个小任务，先在 `docs/ai-log/` 写任务卡（模板见 `docs/开发规范.md` §11.5）。

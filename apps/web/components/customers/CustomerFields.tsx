@@ -1,6 +1,6 @@
 "use client"
 
-import { Hash, Link as LinkIcon, MapPin, Plus, Star, Tag as TagIcon, User, Users, Wallet } from "lucide-react"
+import { Hash, Link as LinkIcon, MapPin, Star, Tag as TagIcon, User, Users, Wallet } from "lucide-react"
 import Link from "next/link"
 
 import { Chip, LetterAvatar, LinkChip } from "@/components/biz/Chip"
@@ -33,7 +33,7 @@ function Contacts({ customerId }: { customerId: string }) {
   return (
     <>
       {q.data.map((c) => (
-        <div key={c.id} className="flex h-9 min-w-0 items-center gap-2 rounded px-1.5 hover:bg-zinc-100">
+        <div key={c.id} className="flex h-9 min-w-0 items-center gap-2">
           <LetterAvatar name={c.name} className="size-6 text-[11px]" />
           <span className="shrink-0 font-medium">{c.name}</span>
           <span className="min-w-0 truncate text-zinc-500">
@@ -119,10 +119,7 @@ export function CustomerFields({ c, role }: { c: CustomerDetail; role: Role }) {
           "—"
         )}
       </FieldRow>
-      <div className="mt-5 mb-1.5 flex items-center justify-between text-zinc-500">
-        <span>联系人</span>
-        <Plus className="size-3.5 text-zinc-300" aria-hidden />
-      </div>
+      <SectionTitle>联系人</SectionTitle>
       <Contacts customerId={c.id} />
       <SectionTitle>商机</SectionTitle>
       <Opportunities customerId={c.id} role={role} />

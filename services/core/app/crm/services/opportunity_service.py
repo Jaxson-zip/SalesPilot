@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
-from app.common.scope import View, apply_scope, can_see, ensure_visible
+from app.common.permissions import ensure_owner
+from app.common.scope import View, apply_scope, ensure_visible
 from app.crm.models import Customer, Opportunity, ProductLine, Team
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.opportunity import (
@@ -34,6 +35,14 @@ def get_opportunity(db: Session, user: CurrentUser, opportunity_id: uuid.UUID) -
     """取单条商机并校验可见性（看不到返回 40401）。"""
     opp = db.get(Opportunity, opportunity_id)
     ensure_visible(opp, user)
+    assert opp is not None
+    return opp
+
+
+def get_owned(db: Session, user: CurrentUser, opportunity_id: uuid.UUID) -> Opportunity:
+    """取单条商机用于修改：只有负责人本人可以（接口契约 §0）。"""
+    opp = db.get(Opportunity, opportunity_id)
+    ensure_owner(opp, user)
     assert opp is not None
     return opp
 
@@ -123,9 +132,7 @@ def _check_product_line(db: Session, product_line_id: uuid.UUID | None) -> None:
 
 
 def create_opportunity(db: Session, user: CurrentUser, data: OpportunityCreate) -> OpportunityItem:
-    customer = db.get(Customer, data.customer_id)
-    if customer is None or not can_see(customer, user):
-        raise BizError(ErrorCode.NOT_FOUND, "客户不存在")
+    ensure_owner(db.get(Customer, data.customer_id), user)  # 只能在自己负责的客户下建商机
     _check_product_line(db, data.product_line_id)
     opp = Opportunity(**data.model_dump(), stage="lead", owner_id=user.id, team_id=user.team_id)
     opp.name = data.name.strip()
@@ -140,7 +147,7 @@ def create_opportunity(db: Session, user: CurrentUser, data: OpportunityCreate) 
 def update_opportunity(
     db: Session, user: CurrentUser, opportunity_id: uuid.UUID, data: OpportunityUpdate
 ) -> OpportunityItem:
-    opp = get_opportunity(db, user, opportunity_id)
+    opp = get_owned(db, user, opportunity_id)
     changes = data.model_dump(exclude_unset=True)
     if "product_line_id" in changes:
         _check_product_line(db, changes["product_line_id"])
@@ -203,7 +210,7 @@ def change_stage(
     change: StageChange,
     source: str = "manual",
 ) -> OpportunityItem:
-    opp = get_opportunity(db, user, opportunity_id)
+    opp = get_owned(db, user, opportunity_id)
     apply_stage(db, user, opp, change, source)
     return get_item(db, user, opp.id)
 

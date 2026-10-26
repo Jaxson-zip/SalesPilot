@@ -14,10 +14,16 @@ export function Sources({ sources }: { sources: SourceRef[] }) {
             <span className="truncate">{s.title}</span>
           </>
         )
-        const cls =
-          "inline-flex h-6 max-w-full items-center gap-1 rounded-md bg-zinc-100 px-2 text-zinc-600 hover:bg-zinc-200"
+        // 没有链接的来源只是标签，不给 hover 效果（避免看起来能点）
+        const cls = "inline-flex h-6 max-w-full items-center gap-1 rounded-md bg-zinc-100 px-2 text-zinc-600"
         return s.url ? (
-          <a key={`${s.title}-${i}`} href={s.url} target="_blank" rel="noreferrer" className={cls}>
+          <a
+            key={`${s.title}-${i}`}
+            href={s.url}
+            target="_blank"
+            rel="noreferrer"
+            className={`${cls} hover:bg-zinc-200`}
+          >
             {inner}
           </a>
         ) : (

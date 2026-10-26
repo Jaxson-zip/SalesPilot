@@ -5,6 +5,14 @@ import type { ReactNode } from "react"
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+/**
+ * 下划线标签栏（记录页 / 审批中心共用）：栏高 40px 与 ViewBar 一致；
+ * 标签 28px 高、底部对齐，上方留白约 7px（与 ViewBar 按钮基本一致），下划线压在栏的底边上。
+ */
+export const LINE_TABS_LIST =
+  "h-10! w-full shrink-0 items-end justify-start gap-0.5 border-b border-zinc-200 px-3 py-0! sm:gap-1"
+export const LINE_TABS_TRIGGER = "group mb-1 h-7! flex-none rounded-md px-2 hover:bg-zinc-100"
+
 export interface RecordTab {
   value: string
   label: string
@@ -27,12 +35,9 @@ export function RecordTabs({
 }) {
   return (
     <Tabs value={value} onValueChange={onValueChange} className="flex min-h-0 flex-1 flex-col gap-0">
-      <TabsList
-        variant="line"
-        className="h-10! w-full shrink-0 justify-start gap-0.5 border-b border-zinc-200 px-3 sm:gap-1"
-      >
+      <TabsList variant="line" className={LINE_TABS_LIST}>
         {tabs.map((t) => (
-          <TabsTrigger key={t.value} value={t.value} title={t.label} className="group flex-none px-2">
+          <TabsTrigger key={t.value} value={t.value} title={t.label} className={LINE_TABS_TRIGGER}>
             <t.icon className="size-3.5" />
             <span className="max-sm:hidden max-sm:group-data-[state=active]:inline">{t.label}</span>
           </TabsTrigger>

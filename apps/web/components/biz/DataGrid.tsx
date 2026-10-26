@@ -99,7 +99,7 @@ function GridHead<T>({ table, columns }: { table: Table<T>; columns: GridColumn<
           <th
             key={c.id}
             className={cn(
-              "cursor-pointer overflow-hidden border-r border-b border-zinc-200 px-2 text-left font-normal whitespace-nowrap hover:bg-zinc-50",
+              "overflow-hidden border-r border-b border-zinc-200 px-2 text-left font-normal whitespace-nowrap",
               c.width,
               hideSecondary(c),
             )}
@@ -112,9 +112,8 @@ function GridHead<T>({ table, columns }: { table: Table<T>; columns: GridColumn<
             </span>
           </th>
         ))}
-        <th className="w-8 border-b border-zinc-200 px-2 text-left text-zinc-400">
-          <Plus className="size-3.5" />
-        </th>
+        {/* 末列留白（原型里的「+ 字段」入口；显示字段在 ViewBar「选项 → 显示字段」里设置） */}
+        <th className="w-8 border-b border-zinc-200" aria-hidden />
       </tr>
     </thead>
   )

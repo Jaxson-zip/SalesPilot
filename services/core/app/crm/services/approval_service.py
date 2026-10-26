@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser, Role
 from app.common.errors import BizError, ErrorCode
-from app.common.scope import View, apply_scope, ensure_visible
+from app.common.permissions import ensure_role, ensure_same_team
+from app.common.scope import View, apply_scope
 from app.crm.models import Approval, Expense, Quote
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.finance import EXPENSE_TYPE_LABELS, ApprovalItem, ApprovalTarget
@@ -53,8 +54,7 @@ def create_approval(
 
 
 def require_manager(user: CurrentUser) -> None:
-    if user.role is not Role.MANAGER:
-        raise BizError(ErrorCode.FORBIDDEN, "仅销售主管可以处理审批")
+    ensure_role(user, Role.MANAGER, "仅销售主管可以处理审批")
 
 
 def _targets(db: Session, approvals: list[Approval]) -> dict[uuid.UUID, Quote | Expense]:
@@ -155,7 +155,7 @@ def decide(
 ) -> ApprovalItem:
     require_manager(user)
     approval = db.get(Approval, approval_id, with_for_update=True)
-    ensure_visible(approval, user)
+    ensure_same_team(approval, user)
     assert approval is not None
     if approval.status != "pending":
         raise BizError(

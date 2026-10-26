@@ -1,18 +1,31 @@
 "use client"
 
-import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import { useEffect, useMemo, useRef, useState } from "react"
 
-import type { HistoryItem } from "@/components/agent/ChatHistory"
+import { notifyError } from "@/hooks/notify"
+import { fetchThreadMessages, threadKeys, useAgentThreads } from "@/hooks/useAgentThreads"
 import { useAgentStream } from "@/hooks/useAgentStream"
 import { DEFAULT_MODEL } from "@/lib/agent-labels"
+import { lastUserText, messagesToTurns, toHistoryItems } from "@/lib/thread-history"
 
-/** AI 工作台页面状态：输入框、模型、本地会话历史（会话列表接口就绪前只保存在内存） */
+/** AI 工作台页面状态：输入框、模型、会话历史（服务端会话列表 + 点击加载消息） */
 export function useAiWorkbench() {
   const stream = useAgentStream()
+  const qc = useQueryClient()
+  const threads = useAgentThreads()
   const [input, setInput] = useState("")
   const [model, setModel] = useState(DEFAULT_MODEL)
   const [histOpen, setHistOpen] = useState(false)
-  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const history = useMemo(() => toHistoryItems(threads.data?.items ?? []), [threads.data])
+
+  // 一轮对话结束（流式 → 空闲）后刷新会话列表：新会话出现在历史里、旧会话排到最前
+  const wasStreaming = useRef(false)
+  useEffect(() => {
+    if (wasStreaming.current && !stream.isStreaming) void qc.invalidateQueries({ queryKey: threadKeys.list })
+    wasStreaming.current = stream.isStreaming
+  }, [stream.isStreaming, qc])
 
   const firstUser = stream.turns.find((t) => t.role === "user")
   const title = firstUser?.role === "user" ? firstUser.text : "新对话"
@@ -22,9 +35,6 @@ export function useAiWorkbench() {
     if (!msg || stream.isStreaming) return
     stream.send(msg, model)
     setInput("")
-    if (stream.turns.length === 0) {
-      setHistory((h) => [{ id: `local_${Date.now()}`, title: msg, updatedAt: Date.now() }, ...h])
-    }
   }
 
   const newChat = () => {
@@ -33,5 +43,40 @@ export function useAiWorkbench() {
     setHistOpen(false)
   }
 
-  return { stream, input, setInput, model, setModel, histOpen, setHistOpen, history, title, send, newChat }
+  const openThread = async (id: string) => {
+    setHistOpen(false)
+    if (id === stream.threadId || loadingId) return
+    setLoadingId(id)
+    try {
+      const data = await qc.fetchQuery({
+        queryKey: threadKeys.messages(id),
+        queryFn: ({ signal }) => fetchThreadMessages(id, signal),
+        staleTime: 0,
+      })
+      const turns = messagesToTurns(data)
+      stream.load(id, turns, lastUserText(turns), model)
+      setInput("")
+    } catch (err) {
+      notifyError(err)
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  return {
+    stream,
+    input,
+    setInput,
+    model,
+    setModel,
+    histOpen,
+    setHistOpen,
+    history,
+    historyState: threads,
+    loadingId,
+    title,
+    send,
+    newChat,
+    openThread,
+  }
 }

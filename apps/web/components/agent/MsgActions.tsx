@@ -13,7 +13,8 @@ export function MsgActions({ text, onRegenerate }: { text: string; onRegenerate?
   }
   const items: { icon: LucideIcon; title: string; onClick: () => void }[] = [
     { icon: Copy, title: "复制", onClick: copy },
-    { icon: RefreshCw, title: "重新生成", onClick: () => onRegenerate?.() },
+    // 没有处理函数（历史消息）时不显示「重新生成」
+    ...(onRegenerate ? [{ icon: RefreshCw, title: "重新生成", onClick: onRegenerate }] : []),
     { icon: ThumbsUp, title: "有帮助", onClick: () => toast("感谢反馈") },
     { icon: ThumbsDown, title: "没帮助", onClick: () => toast("感谢反馈，我们会改进") },
   ]
@@ -24,6 +25,7 @@ export function MsgActions({ text, onRegenerate }: { text: string; onRegenerate?
           key={title}
           type="button"
           title={title}
+          aria-label={title}
           onClick={onClick}
           className="inline-flex size-7 items-center justify-center rounded-md hover:bg-zinc-100 hover:text-zinc-700"
         >

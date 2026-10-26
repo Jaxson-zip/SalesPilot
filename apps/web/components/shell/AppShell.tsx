@@ -22,7 +22,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       className="bg-app h-dvh min-h-0 overflow-hidden"
     >
       <AppSidebar onSearch={() => setSearchOpen(true)} />
-      <SidebarInset className="bg-app h-dvh min-w-0 overflow-hidden p-2 lg:pl-0">{children}</SidebarInset>
+      <SidebarInset className="bg-app h-dvh min-w-0 overflow-hidden p-2 sm:p-3 lg:pl-0">{children}</SidebarInset>
       <CommandMenu open={searchOpen} onOpenChange={setSearchOpen} />
     </SidebarProvider>
   )

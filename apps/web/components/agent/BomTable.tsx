@@ -1,16 +1,33 @@
+"use client"
+
 import { Download } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { bomToCsv, safeFileName } from "@/lib/artifacts"
+import { downloadText } from "@/lib/download"
 import { formatFen } from "@/lib/format"
 import type { BomData } from "@/types/api"
 
-/** 物料清单：≥640 表格；<640 逐行列表（不横向滚动） */
+/** 默认导出：CSV（UTF-8 BOM，金额按元） */
+function exportBom(bom: BomData): void {
+  downloadText(bomToCsv(bom), `${safeFileName(bom.title)}.csv`)
+  toast.success("物料清单已导出")
+}
+
+/** 物料清单：≥640 表格；<640 逐行列表（不横向滚动）；「导出」默认导出 CSV */
 export function BomTable({ bom, onExport }: { bom: BomData; onExport?: () => void }) {
   return (
     <div className="overflow-hidden rounded-xl border border-zinc-200 text-sm">
       <div className="flex h-10 items-center justify-between border-b border-zinc-200 bg-zinc-50 px-3.5">
         <span className="truncate font-medium">{bom.title}</span>
-        <Button variant="ghost" size="xs" className="h-7" onClick={onExport}>
+        <Button
+          variant="ghost"
+          size="xs"
+          className="h-7"
+          aria-label="导出物料清单"
+          onClick={onExport ?? (() => exportBom(bom))}
+        >
           <Download />
           导出
         </Button>

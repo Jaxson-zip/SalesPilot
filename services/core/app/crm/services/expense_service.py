@@ -13,7 +13,8 @@ from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
-from app.common.scope import View, apply_scope, can_see, ensure_visible
+from app.common.permissions import ensure_business_writer, ensure_owner
+from app.common.scope import View, apply_scope, ensure_visible
 from app.crm.models import Customer, Expense, Opportunity
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.finance import (
@@ -43,16 +44,14 @@ def policy_check(data_type: str, amount: int, headcount: int, rules: RuleSet) ->
 
 
 def _check_links(db: Session, user: CurrentUser, data: ExpenseCreate) -> uuid.UUID | None:
-    """校验关联的客户 / 商机可见；只传商机时由商机带出客户。返回最终的 customer_id。"""
+    """关联的客户 / 商机必须是本人负责的；只传商机时由商机带出客户。返回最终的 customer_id。"""
     customer_id = data.customer_id
     if customer_id is not None:
-        customer = db.get(Customer, customer_id)
-        if customer is None or not can_see(customer, user):
-            raise BizError(ErrorCode.NOT_FOUND, "客户不存在")
+        ensure_owner(db.get(Customer, customer_id), user)
     if data.opportunity_id is not None:
         opp = db.get(Opportunity, data.opportunity_id)
-        if opp is None or not can_see(opp, user):
-            raise BizError(ErrorCode.NOT_FOUND, "商机不存在")
+        ensure_owner(opp, user)
+        assert opp is not None
         if customer_id is not None and opp.customer_id != customer_id:
             raise BizError(ErrorCode.VALIDATION, "商机不属于该客户")
         customer_id = opp.customer_id
@@ -62,6 +61,7 @@ def _check_links(db: Session, user: CurrentUser, data: ExpenseCreate) -> uuid.UU
 def create_expense(
     db: Session, user: CurrentUser, data: ExpenseCreate, source: str = "manual"
 ) -> ExpenseDetail:
+    ensure_business_writer(user)
     if data.idempotency_key:
         found = db.scalar(select(Expense).where(Expense.idempotency_key == data.idempotency_key))
         if found is not None:
@@ -137,6 +137,14 @@ def load_expense(
     return expense
 
 
+def load_owned(db: Session, user: CurrentUser, expense_id: uuid.UUID) -> Expense:
+    """取报销单用于修改（上传 / 删除票据、提交）：只有负责人本人可以（接口契约 §0）。"""
+    expense = db.get(Expense, expense_id, with_for_update=True)
+    ensure_owner(expense, user)
+    assert expense is not None
+    return expense
+
+
 def get_expense(db: Session, user: CurrentUser, expense_id: uuid.UUID) -> ExpenseDetail:
     db.flush()
     expense = load_expense(db, user, expense_id)
@@ -166,7 +174,7 @@ def _suggestion(check: PolicyCheck) -> str:
 def submit_expense(
     db: Session, user: CurrentUser, expense_id: uuid.UUID, source: str = "manual"
 ) -> ExpenseDetail:
-    expense = load_expense(db, user, expense_id, lock=True)
+    expense = load_owned(db, user, expense_id)
     if expense.status != "draft":
         raise BizError(
             ErrorCode.DUPLICATE, "报销单已提交，请勿重复提交", {"status": expense.status}

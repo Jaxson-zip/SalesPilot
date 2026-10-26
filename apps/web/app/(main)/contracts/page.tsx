@@ -1,6 +1,6 @@
 "use client"
 
-import { Building2, CircleDot, FileSignature, Info } from "lucide-react"
+import { FileSignature, Info } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { DataGrid } from "@/components/biz/DataGrid"
@@ -14,17 +14,16 @@ import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useContracts } from "@/hooks/useContracts"
+import { useListView } from "@/hooks/useListView"
+import { usePermissions } from "@/hooks/usePermissions"
 import { formatFen } from "@/lib/format"
 import { CONTRACT_STATUS_META } from "@/lib/labels"
+import { contractsLabel } from "@/lib/nav"
 import { defaultScope } from "@/lib/views"
 import type { ContractItem, ContractStatus, ContractSummary } from "@/types/api"
 
-import { contractColumns } from "./columns"
+import { contractColumns, contractCsv, contractFilters, contractSort } from "./columns"
 
-const FILTER_FIELDS = [
-  { label: "状态", icon: CircleDot },
-  { label: "客户", icon: Building2 },
-]
 const VIEWS: ViewOption[] = [
   { value: "all", label: "所有合同" },
   { value: "active", label: CONTRACT_STATUS_META.active.label },
@@ -34,6 +33,10 @@ const VIEWS: ViewOption[] = [
 function toStatus(v: string): ContractStatus | undefined {
   return v === "active" || v === "paid" ? v : undefined
 }
+
+const TOGGLEABLE = contractColumns()
+  .slice(1)
+  .map((c) => ({ id: c.id, label: c.label }))
 
 /** StatStrip：本月成交 / 本月预估提成 / 待回款 */
 function StatStrip({ s, loading }: { s: ContractSummary | undefined; loading: boolean }) {
@@ -83,16 +86,32 @@ function RuleSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: bo
 }
 
 export default function ContractsPage() {
-  const { role, isLead } = useSession()
+  const { role } = useSession()
+  const { canPay } = usePermissions()
+  const payable = canPay()
   const [view, setView] = useState("all")
   const [paying, setPaying] = useState<ContractItem | null>(null)
   const [ruleOpen, setRuleOpen] = useState(false)
-  const query = useContracts({ view: defaultScope(role), status: toStatus(view), page: 1, page_size: 50 })
-  const columns = useMemo(() => contractColumns(isLead ? setPaying : undefined), [isLead])
+  const query = useContracts({ view: defaultScope(role), status: toStatus(view), page: 1, page_size: 100 })
+  // 登记回款只给主管（契约 §0）；列内再按合同状态判断
+  const allColumns = useMemo(() => contractColumns(payable ? setPaying : undefined), [payable])
+  const all = useMemo(() => query.data?.items ?? [], [query.data])
+  const filters = useMemo(() => contractFilters(all), [all])
+  const lv = useListView({
+    page: "contracts",
+    rows: all,
+    filters,
+    sort: contractSort,
+    csv: contractCsv,
+    columns: TOGGLEABLE,
+    exportName: "合同",
+  })
+  const columns = useMemo(() => allColumns.filter((c) => !lv.hidden.includes(c.id)), [allColumns, lv.hidden])
+  const filtered = Object.keys(lv.bar.activeFilters).length > 0
 
   return (
     <PageFrame
-      title="合同与提成"
+      title={contractsLabel(role)}
       icon={FileSignature}
       actions={<FrameAction icon={Info} label="提成规则" onClick={() => setRuleOpen(true)} />}
     >
@@ -110,20 +129,20 @@ export default function ContractsPage() {
             views={VIEWS}
             value={view}
             onValueChange={setView}
-            count={query.data?.total}
-            fields={FILTER_FIELDS}
+            count={filtered ? lv.rows.length : query.data?.total}
+            list={lv.bar}
           />
           <DataGrid
             columns={columns}
-            data={query.data?.items ?? []}
+            data={lv.rows}
             getRowId={(c) => c.id}
             loading={query.isPending}
-            total={query.data?.total}
+            total={filtered ? lv.rows.length : query.data?.total}
             empty={
               <EmptyState
                 icon={FileSignature}
-                title="还没有合同"
-                description="报价单被客户接受后会自动生成合同和预估提成。"
+                title={filtered ? "没有符合筛选条件的合同" : "还没有合同"}
+                description={filtered ? "可以在上方清除筛选。" : "报价单被客户接受后会自动生成合同和预估提成。"}
               />
             }
           />

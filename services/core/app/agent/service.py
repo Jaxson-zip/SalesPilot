@@ -14,6 +14,8 @@ from langgraph.types import Command
 from app.agent.checkpoint import get_checkpointer
 from app.agent.deps import AgentDeps
 from app.agent.graph import build_graph
+from app.agent.nodes.common import now_iso
+from app.agent.threads import touch_thread
 from app.agent.tools.base import ToolContext
 from app.common.auth import CurrentUser
 from app.common.config import get_settings
@@ -94,12 +96,12 @@ def prepare_chat(
     config = _config(thread_id)
     _check_owner(graph, config, deps.ctx.user)
     payload = {
-        "messages": [HumanMessage(content=message)],
+        "messages": [HumanMessage(content=message, additional_kwargs={"created_at": now_iso()})],
         "user_id": str(deps.ctx.user.id),
         "user_message": message,
         "opportunity_id": str(opportunity_id) if opportunity_id else None,
     }
-    # TODO: 写入 / 更新 agent_threads（会话列表）
+    touch_thread(deps.ctx.session, deps.ctx.user, thread_id, message, opportunity_id)
     return PreparedRun(graph, payload, config, thread_id)
 
 

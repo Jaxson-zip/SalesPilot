@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser, Role
 from app.common.errors import BizError, ErrorCode
+from app.common.permissions import ensure_role, ensure_same_team
 from app.common.scope import View, apply_scope, ensure_visible
 from app.crm.models import Commission, Contract, Quote
 from app.crm.schemas.common import CodeRef, PageParams
@@ -22,7 +23,6 @@ from app.crm.services.codes import month_start
 from app.rules import confirm_commission, paid_ratio_of
 
 RULE_EXCEEDS_BALANCE = "payment_exceeds_balance"
-PAYMENT_ROLES = (Role.MANAGER, Role.ADMIN)
 
 
 def _commissions(db: Session, ids: list[uuid.UUID]) -> dict[uuid.UUID, CommissionBrief]:
@@ -116,11 +116,10 @@ def get_contract(db: Session, user: CurrentUser, contract_id: uuid.UUID) -> Cont
 def add_payment(
     db: Session, user: CurrentUser, contract_id: uuid.UUID, amount: int
 ) -> ContractItem:
-    """登记回款（仅 manager / admin）：已确认提成 = 预估 × 回款比例；全部回款后状态改为 paid。"""
-    if user.role not in PAYMENT_ROLES:
-        raise BizError(ErrorCode.FORBIDDEN, "仅主管或管理员可以登记回款")
+    """登记回款（仅 manager 且合同属于本团队）：已确认提成 = 预估 × 回款比例；全部回款后为 paid。"""
+    ensure_role(user, Role.MANAGER, "仅销售主管可以登记回款")
     contract = db.get(Contract, contract_id, with_for_update=True)
-    ensure_visible(contract, user)
+    ensure_same_team(contract, user)
     assert contract is not None
     if amount <= 0:
         raise BizError(ErrorCode.VALIDATION, "回款金额必须大于 0")

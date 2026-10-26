@@ -108,7 +108,10 @@ def test_stage_flow_and_final_state(client: TestClient, tracker: Tracker) -> Non
         client.patch(url, json={"stage": "qualified"}, headers=SALES_H).json()["data"]["stage"]
         == "qualified"
     )
-    assert client.patch(url, json={"stage": "proposal"}, headers=MANAGER_H).json()["code"] == 0
+    # 主管看得到但不是负责人：40301 not_owner（接口契约 §0）
+    by_manager = client.patch(url, json={"stage": "proposal"}, headers=MANAGER_H).json()
+    assert by_manager["code"] == 40301 and by_manager["data"]["rule"] == "not_owner"
+    assert client.patch(url, json={"stage": "proposal"}, headers=SALES_H).json()["code"] == 0
     detail = client.get(f"/api/opportunities/{opp['id']}", headers=SALES_H).json()["data"]
     contents = [a["content"] for a in detail["activities"] if a["action"] == "stage_changed"]
     assert "线索 → 需求确认" in contents and "需求确认 → 方案报价" in contents
@@ -158,12 +161,14 @@ def test_dashboard(client: TestClient) -> None:
 def test_activities_scope(client: TestClient, tracker: Tracker) -> None:
     opp = new_opp(client, tracker)
     client.patch(
-        f"/api/opportunities/{opp['id']}/stage", json={"stage": "qualified"}, headers=MANAGER_H
+        f"/api/opportunities/{opp['id']}/stage", json={"stage": "qualified"}, headers=SALES_H
     )
     url = f"/api/activities?subject_type=opportunity&subject_id={opp['id']}"
     mine = client.get(url, headers=SALES_H).json()["data"]["items"]
-    # 主管改了销售的商机，销售自己也能看到这条动态（可见范围跟随商机负责人）
-    assert any(a["action"] == "stage_changed" and a["actor"]["name"] == "李薇" for a in mine)
+    assert any(a["action"] == "stage_changed" and a["actor"]["name"] == "张晨" for a in mine)
+    # 可见范围跟随商机负责人：主管能看到本团队销售的动态，同组其他销售看不到
+    team = client.get(url, headers=MANAGER_H).json()["data"]["items"]
+    assert any(a["action"] == "stage_changed" for a in team)
     assert client.get(url, headers=SALES2_H).json()["data"]["items"] == []
     assert len(client.get("/api/activities?limit=3", headers=ADMIN_H).json()["data"]["items"]) <= 3
     assert client.get("/api/activities?limit=0", headers=SALES_H).json()["code"] == 40001

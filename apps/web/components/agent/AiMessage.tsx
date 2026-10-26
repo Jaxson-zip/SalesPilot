@@ -99,7 +99,9 @@ export function AiMessage({
           <ErrorBanner error={turn.error} onRetry={onRetry} disabled={busy || readonly} />
         ) : null}
         {turn.status === "stopped" ? <div className="text-xs text-zinc-400">已停止生成</div> : null}
-        {turn.status === "done" ? <MsgActions text={turn.text} onRegenerate={onRetry} /> : null}
+        {turn.status === "done" ? (
+          <MsgActions text={turn.text} onRegenerate={readonly || busy ? undefined : onRetry} />
+        ) : null}
       </div>
     </div>
   )

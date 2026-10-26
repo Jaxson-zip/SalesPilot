@@ -91,7 +91,7 @@ export function useCreateOpportunity() {
 type StageVars = StageChange & { id: string }
 type Snapshot = [readonly unknown[], unknown][]
 
-/** PATCH /api/opportunities/{id}/stage —— 乐观更新所有商机列表缓存，失败回滚并提示 */
+/** PATCH /api/opportunities/{id}/stage —— 乐观更新所有商机列表缓存，失败回滚并提示；成功提示（含撤销）由 useStageMove 负责 */
 export function useChangeStage() {
   const qc = useQueryClient()
   return useMutation<OpportunityItem, unknown, StageVars, { snapshot: Snapshot }>({
@@ -113,7 +113,6 @@ export function useChangeStage() {
       ctx?.snapshot.forEach(([key, data]) => qc.setQueryData(key, data))
       notifyError(err)
     },
-    onSuccess: (_opp, { stage }) => toast.success(`阶段已更新为「${STAGE_META[stage].label}」`),
     onSettled: () => invalidatePipeline(qc),
   })
 }

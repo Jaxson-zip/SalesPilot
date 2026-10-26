@@ -5,6 +5,7 @@ import { useParams } from "next/navigation"
 import { useState } from "react"
 
 import { BomTable } from "@/components/agent/BomTable"
+import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { Crumb, PageFrame } from "@/components/biz/PageFrame"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { RecordTabs } from "@/components/biz/RecordTabs"
@@ -12,7 +13,9 @@ import { ApprovalRecords, QuoteFields, QuoteTimeline } from "@/components/quotes
 import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { usePermissions } from "@/hooks/usePermissions"
 import { useQuote, useQuoteAction } from "@/hooks/useQuotes"
+import { quoteActionConfirm } from "@/lib/confirm-texts"
 import { formatRelative } from "@/lib/format"
 import { availableQuoteActions, primaryQuoteAction, QUOTE_ACTIONS, quoteToBom } from "@/lib/quote-actions"
 import type { QuoteAction } from "@/types/api"
@@ -24,12 +27,22 @@ export default function QuoteDetailPage() {
   const { id } = useParams<{ id: string }>()
   const quoteId = decodeURIComponent(id)
   const { role } = useSession()
+  const { canEdit } = usePermissions()
   const query = useQuote(quoteId)
   const action = useQuoteAction(quoteId)
   const [tab, setTab] = useState("bom")
+  const { ask, dialog } = useConfirmAction()
   const q = query.data
 
-  const actions = q ? availableQuoteActions(q.status) : []
+  // 发送客户 / 客户接受 / 客户拒绝不可撤回：先确认；提交可被主管驳回，直接执行
+  const run = (a: QuoteAction) => {
+    const copy = quoteActionConfirm(a)
+    if (!copy) return action.mutate(a)
+    ask({ ...copy, onConfirm: () => action.mutate(a) })
+  }
+
+  // 报价状态按钮只给负责人本人（契约 §0）
+  const actions = q && canEdit(q.owner.id) ? availableQuoteActions(q.status) : []
   const primary = q ? primaryQuoteAction(q.status) : null
   const buttons = actions.map((a) => {
     const Icon = ACTION_ICON[a]
@@ -39,7 +52,7 @@ export default function QuoteDetailPage() {
         size="sm"
         variant={a === primary ? "default" : "outline"}
         disabled={action.isPending}
-        onClick={() => action.mutate(a)}
+        onClick={() => run(a)}
         title={QUOTE_ACTIONS[a].label}
         className="max-sm:w-8 max-sm:px-0"
       >
@@ -115,6 +128,7 @@ export default function QuoteDetailPage() {
       actions={buttons.length ? <>{buttons}</> : null}
     >
       {body}
+      {dialog}
     </PageFrame>
   )
 }

@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils"
 export function ProgressBar({ percent, className }: { percent: number; className?: string }) {
   const p = Math.min(100, Math.max(0, Math.round(percent)))
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
+    <span className={cn("inline-flex max-w-full min-w-0 items-center gap-2", className)}>
       <span
-        className="h-1.5 w-24 shrink rounded-full bg-zinc-100"
+        className="h-1.5 w-24 min-w-6 shrink rounded-full bg-zinc-100"
         role="progressbar"
         aria-valuenow={p}
         aria-valuemin={0}
@@ -17,7 +17,7 @@ export function ProgressBar({ percent, className }: { percent: number; className
           style={{ width: `${p}%` }}
         />
       </span>
-      <span className="text-zinc-500 tabular-nums">{p}%</span>
+      <span className="shrink-0 text-zinc-500 tabular-nums">{p}%</span>
     </span>
   )
 }

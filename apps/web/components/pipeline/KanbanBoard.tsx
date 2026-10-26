@@ -27,7 +27,10 @@ interface BoardProps {
   groups: StageGroups
   loading?: boolean
   onOpen: (opp: OpportunityItem) => void
-  onCreate: () => void
+  /** 不传表示无权新建（不显示「新建」） */
+  onCreate?: () => void
+  /** 能否拖动这张卡片（只有负责人本人能切换阶段） */
+  canDrag: (opp: OpportunityItem) => boolean
   /** 拖拽到某阶段（含 lost） */
   onMove: (opp: OpportunityItem, to: OpportunityStage) => void
 }
@@ -41,6 +44,15 @@ function Column({ stage, children }: { stage: OpportunityStage; children: ReactN
       data-stage={stage}
     >
       {children}
+    </div>
+  )
+}
+
+/** 空列占位：可拖拽时提示「拖到这里」，否则只说明暂无商机 */
+function EmptyColumn({ droppable }: { droppable: boolean }) {
+  return (
+    <div className="flex h-20 items-center justify-center rounded-lg border border-dashed border-zinc-200 text-xs text-zinc-400">
+      {droppable ? "拖到这里" : "暂无商机"}
     </div>
   )
 }
@@ -63,13 +75,15 @@ function LostZone({ visible }: { visible: boolean }) {
 }
 
 /** ≥1024：五列等分看板（dnd-kit 拖拽切换阶段，不横向滚动） */
-export function KanbanBoard({ groups, loading, onOpen, onCreate, onMove }: BoardProps) {
+export function KanbanBoard({ groups, loading, onOpen, onCreate, canDrag, onMove }: BoardProps) {
   const [active, setActive] = useState<OpportunityItem | null>(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor),
+    // 空格开始 / 结束键盘拖拽；Enter 留给「打开详情」
+    useSensor(KeyboardSensor, { keyboardCodes: { start: ["Space"], cancel: ["Escape"], end: ["Space"] } }),
   )
   const all = KANBAN_STAGES.flatMap((s) => groups[s])
+  const anyDraggable = all.some(canDrag)
 
   const onDragStart = (e: DragStartEvent) => setActive(all.find((o) => o.id === e.active.id) ?? null)
   const onDragEnd = (e: DragEndEvent) => {
@@ -95,8 +109,11 @@ export function KanbanBoard({ groups, loading, onOpen, onCreate, onMove }: Board
               <div className="space-y-2">
                 {loading
                   ? [0, 1].map((i) => <Skeleton key={i} className="h-[118px] w-full rounded-lg" />)
-                  : groups[stage].map((o) => <DraggableOpportunityCard key={o.id} opp={o} onOpen={() => onOpen(o)} />)}
-                {stage === "lead" ? (
+                  : groups[stage].map((o) => (
+                      <DraggableOpportunityCard key={o.id} opp={o} draggable={canDrag(o)} onOpen={() => onOpen(o)} />
+                    ))}
+                {!loading && groups[stage].length === 0 ? <EmptyColumn droppable={anyDraggable} /> : null}
+                {stage === "lead" && onCreate ? (
                   <button
                     type="button"
                     onClick={onCreate}

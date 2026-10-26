@@ -1,5 +1,6 @@
 /** 商机看板的纯函数：分组、阶段切换的乐观更新、拖拽目标校验、漏斗宽度 */
-import { STAGE_ORDER } from "@/lib/labels"
+import { STAGE_META, STAGE_ORDER } from "@/lib/labels"
+import { fenToYuan, optionsFromRows, type CsvColumn, type FilterDef, type SortAccessors } from "@/lib/list-view"
 import type { FunnelStage, OpportunityItem, OpportunityStage, Paged } from "@/types/api"
 
 /** 看板五列（输单不占列，拖到底部「输单」区域） */
@@ -71,3 +72,40 @@ export function stageBarState(current: OpportunityStage, stage: OpportunityStage
   if (current === "lost") return "todo"
   return STAGE_ORDER.indexOf(stage) < STAGE_ORDER.indexOf(current) ? "done" : "todo"
 }
+
+/* ---------- ViewBar：筛选 / 排序 / 导出（看板在前端对已加载的 100 条处理） ---------- */
+
+export function opportunityFilters(rows: OpportunityItem[]): FilterDef<OpportunityItem>[] {
+  return [
+    {
+      id: "stage",
+      label: "阶段",
+      options: [...STAGE_ORDER, "lost" as const].map((s) => ({ value: s, label: STAGE_META[s].label })),
+      get: (o) => o.stage,
+    },
+    {
+      id: "product_line",
+      label: "产品线",
+      options: optionsFromRows(rows, (o) => o.product_line?.name),
+      get: (o) => o.product_line?.name ?? null,
+    },
+    { id: "owner", label: "负责人", options: optionsFromRows(rows, (o) => o.owner.name), get: (o) => o.owner.name },
+  ]
+}
+
+export const opportunitySort: SortAccessors<OpportunityItem> = {
+  updated: (o) => o.updated_at,
+  amount: (o) => o.amount,
+}
+
+export const opportunityCsv: CsvColumn<OpportunityItem>[] = [
+  { label: "商机", value: (o) => o.name },
+  { label: "客户", value: (o) => o.customer.name },
+  { label: "阶段", value: (o) => STAGE_META[o.stage].label },
+  { label: "金额（元）", value: (o) => fenToYuan(o.amount) },
+  { label: "赢率（%）", value: (o) => o.win_rate },
+  { label: "预计成交", value: (o) => o.expected_close_date },
+  { label: "产品线", value: (o) => o.product_line?.name },
+  { label: "负责人", value: (o) => o.owner.name },
+  { label: "更新时间", value: (o) => o.updated_at },
+]

@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, ChevronsUpDown } from "lucide-react"
+import { ChevronsUpDown } from "lucide-react"
 import { useState } from "react"
 
 import { useSession } from "@/components/shell/SessionProvider"
@@ -40,10 +40,10 @@ export function CustomerCombobox({
           aria-expanded={open}
           aria-invalid={invalid || undefined}
           disabled={disabled}
-          className={cn("w-full justify-between font-normal", !value && "text-zinc-400")}
+          className={cn("w-full justify-between font-normal", !value && "text-muted-foreground")}
         >
           <span className="truncate">{value?.name ?? placeholder}</span>
-          <ChevronsUpDown className="text-zinc-400" />
+          <ChevronsUpDown className="text-muted-foreground" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
@@ -58,13 +58,13 @@ export function CustomerCombobox({
                 <CommandItem
                   key={c.id}
                   value={`${c.name} ${c.id}`}
+                  data-checked={value?.id === c.id}
                   onSelect={() => {
                     onChange(value?.id === c.id ? null : { id: c.id, name: c.name })
                     setOpen(false)
                   }}
                 >
                   <span className="truncate">{c.name}</span>
-                  <Check className={cn("ml-auto", value?.id === c.id ? "opacity-100" : "opacity-0")} />
                 </CommandItem>
               ))}
             </CommandGroup>

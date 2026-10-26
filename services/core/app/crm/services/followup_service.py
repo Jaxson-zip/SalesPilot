@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
+from app.common.permissions import ensure_owner
 from app.common.scope import can_see, ensure_visible
 from app.crm.models import Customer, Followup, Opportunity
 from app.crm.schemas.common import Page
@@ -55,7 +56,10 @@ def _check_opportunity(
 
 
 def _create(db: Session, user: CurrentUser, data: FollowupCreate, source: str) -> Followup:
-    customer = _load_customer(db, user, data.customer_id)
+    """写跟进：只有客户负责人本人可以（管理员 role_forbidden，主管写销售的客户 not_owner）。"""
+    customer = db.get(Customer, data.customer_id)
+    ensure_owner(customer, user)
+    assert customer is not None
     _check_opportunity(db, user, customer, data.opportunity_id)
     followup = Followup(
         **data.model_dump(), source=source, owner_id=customer.owner_id, team_id=customer.team_id

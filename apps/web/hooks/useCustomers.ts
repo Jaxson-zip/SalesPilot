@@ -1,9 +1,12 @@
 "use client"
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
+import { notifyError } from "@/hooks/notify"
+import { activityKeys } from "@/hooks/useDashboard"
 import { api } from "@/lib/api"
-import type { Customer, CustomerDetail, CustomerListParams, Paged } from "@/types/api"
+import type { Customer, CustomerCreate, CustomerDetail, CustomerListParams, Paged } from "@/types/api"
 
 export const customerKeys = {
   all: ["customers"] as const,
@@ -32,5 +35,20 @@ export function useCustomer(id: string) {
     queryKey: customerKeys.detail(id),
     queryFn: ({ signal }) => api.get<CustomerDetail>(`/api/customers/${id}`, undefined, signal),
     enabled: Boolean(id),
+  })
+}
+
+/** POST /api/customers：成功后刷新客户列表并写入详情缓存 */
+export function useCreateCustomer() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CustomerCreate) => api.post<CustomerDetail>("/api/customers", body),
+    onSuccess: (c) => {
+      qc.setQueryData(customerKeys.detail(c.id), c)
+      toast.success("客户已创建", { description: c.name })
+      void qc.invalidateQueries({ queryKey: customerKeys.all })
+      void qc.invalidateQueries({ queryKey: activityKeys.all })
+    },
+    onError: notifyError,
   })
 }

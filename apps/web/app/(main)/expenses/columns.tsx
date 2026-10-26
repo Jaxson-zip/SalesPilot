@@ -5,6 +5,7 @@ import type { GridColumn } from "@/components/biz/DataGrid"
 import { Tag } from "@/components/biz/Tag"
 import { formatFen } from "@/lib/format"
 import { EXPENSE_STATUS_META, EXPENSE_TYPE_META, labelOf } from "@/lib/labels"
+import { fenToYuan, type CsvColumn, type FilterDef, type SortAccessors } from "@/lib/list-view"
 import type { ExpenseItem } from "@/types/api"
 
 /** 报销网格列（与原型 ExpenseGrid 一致；发生日期、事由是次要列） */
@@ -71,3 +72,49 @@ export function expenseColumns(onOpen: (e: ExpenseItem) => void): GridColumn<Exp
     },
   ]
 }
+
+/* ---------- ViewBar：筛选 / 排序 / 导出 ---------- */
+export const expenseFilters: FilterDef<ExpenseItem>[] = [
+  {
+    id: "type",
+    label: "类型",
+    options: (Object.keys(EXPENSE_TYPE_META) as ExpenseItem["type"][]).map((t) => ({
+      value: t,
+      label: EXPENSE_TYPE_META[t].label,
+    })),
+    get: (e) => e.type,
+  },
+  {
+    id: "status",
+    label: "状态",
+    options: (Object.keys(EXPENSE_STATUS_META) as ExpenseItem["status"][]).map((s) => ({
+      value: s,
+      label: EXPENSE_STATUS_META[s].label,
+    })),
+    get: (e) => e.status,
+  },
+  {
+    id: "over",
+    label: "是否超标",
+    options: [
+      { value: "yes", label: "超标" },
+      { value: "no", label: "未超标" },
+    ],
+    get: (e) => (e.over_limit ? "yes" : "no"),
+  },
+]
+
+export const expenseSort: SortAccessors<ExpenseItem> = { updated: (e) => e.created_at, amount: (e) => e.amount }
+
+export const expenseCsv: CsvColumn<ExpenseItem>[] = [
+  { label: "单号", value: (e) => e.code },
+  { label: "类型", value: (e) => labelOf(EXPENSE_TYPE_META, e.type).label },
+  { label: "金额（元）", value: (e) => fenToYuan(e.amount) },
+  { label: "人数", value: (e) => e.headcount },
+  { label: "发生日期", value: (e) => e.occurred_on },
+  { label: "关联客户", value: (e) => e.customer?.name },
+  { label: "事由", value: (e) => e.reason },
+  { label: "票据数", value: (e) => e.attachment_count },
+  { label: "是否超标", value: (e) => (e.over_limit ? "是" : "否") },
+  { label: "状态", value: (e) => labelOf(EXPENSE_STATUS_META, e.status).label },
+]

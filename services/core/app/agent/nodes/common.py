@@ -1,5 +1,6 @@
 """节点公共工具：事件推送（LangGraph custom stream）与工具调用。"""
 
+from datetime import UTC, datetime
 from typing import Any
 
 from langgraph.config import get_stream_writer
@@ -16,6 +17,11 @@ def emit(event: str, data: dict[str, Any]) -> None:
     except RuntimeError:
         return
     writer({"event": event, "data": data})
+
+
+def now_iso() -> str:
+    """消息时间戳（存进 message.additional_kwargs，会话历史用）。"""
+    return datetime.now(UTC).isoformat()
 
 
 def node_start(name: str) -> None:

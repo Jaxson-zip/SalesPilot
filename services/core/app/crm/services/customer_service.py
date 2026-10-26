@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
+from app.common.permissions import ensure_business_writer
 from app.common.scope import View, apply_scope, ensure_visible
 from app.crm.models import Contact, Customer, Followup, Opportunity, User
 from app.crm.schemas.common import Page, PageParams, UserBrief
@@ -111,6 +112,7 @@ def get_customer(db: Session, user: CurrentUser, customer_id: uuid.UUID) -> Cust
 
 
 def create_customer(db: Session, user: CurrentUser, data: CustomerCreate) -> CustomerDetail:
+    ensure_business_writer(user)
     exists = db.scalar(select(func.count()).where(Customer.name == data.name.strip()))
     if exists:
         raise BizError(ErrorCode.DUPLICATE, "客户名称已存在")

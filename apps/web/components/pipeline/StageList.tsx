@@ -24,7 +24,8 @@ export function StageList({
   stage: OpportunityStage
   onStageChange: (s: OpportunityStage) => void
   onOpen: (opp: OpportunityItem) => void
-  onCreate: () => void
+  /** 不传表示无权新建 */
+  onCreate?: () => void
 }) {
   const list = groups[stage]
   return (
@@ -56,14 +57,16 @@ export function StageList({
           ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-[118px] w-full rounded-lg" />)
           : list.map((o) => <OpportunityCardBody key={o.id} opp={o} onOpen={() => onOpen(o)} />)}
         {!loading && list.length === 0 ? <div className="py-6 text-center text-zinc-400">该阶段暂无商机</div> : null}
-        <button
-          type="button"
-          onClick={onCreate}
-          className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-zinc-300 text-zinc-500"
-        >
-          <Plus className="size-3.5" />
-          新建商机
-        </button>
+        {onCreate ? (
+          <button
+            type="button"
+            onClick={onCreate}
+            className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-zinc-300 text-zinc-500 hover:bg-zinc-50"
+          >
+            <Plus className="size-3.5" />
+            新建商机
+          </button>
+        ) : null}
       </div>
     </>
   )

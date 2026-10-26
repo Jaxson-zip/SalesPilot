@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
+from app.common.permissions import ensure_business_writer, ensure_owner
 from app.common.scope import View, ensure_visible
 from app.crm.models import Commission, Contract, Opportunity, Quote, QuoteItem
 from app.crm.schemas.common import Page, PageParams
@@ -24,7 +25,7 @@ from app.crm.schemas.quote import (
 )
 from app.crm.services import activity_service, approval_service, quote_query
 from app.crm.services.codes import next_code
-from app.crm.services.opportunity_service import apply_stage, get_opportunity
+from app.crm.services.opportunity_service import apply_stage, get_owned
 from app.packs.base import SolutionTier
 from app.packs.registry import get_pack
 from app.rules import (
@@ -87,9 +88,10 @@ def create_from_tier(
 
     是否需要审批在 submit 时按规则判定（接口契约 §3），这里一律是 draft。
     """
+    ensure_business_writer(user)
     if found := _existing(db, idempotency_key):
         return found
-    opp = get_opportunity(db, user, opportunity_id) if opportunity_id else None
+    opp = get_owned(db, user, opportunity_id) if opportunity_id else None
     total_cost = sum(i.unit_cost * i.qty for i in tier.items)
     margin = check_margin(total_cost, tier.total_price, load_rules(get_pack(pack).rules_file))
     quote = Quote(
@@ -255,7 +257,9 @@ def transition(
     """报价单状态流转：非法流转一律 42201 rule=quote_status_transition。"""
     if action not in TRANSITIONS:
         raise BizError(ErrorCode.VALIDATION, f"未知动作：{action}")
-    quote = _load(db, user, quote_id, lock=True)
+    quote = db.get(Quote, quote_id, with_for_update=True)
+    ensure_owner(quote, user)  # 提交 / 发送 / 接受 / 拒绝：只有负责人本人
+    assert quote is not None
     _check_transition(quote, action)
     if action == "submit":
         content = _submit(db, user, quote)

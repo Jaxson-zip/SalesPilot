@@ -5,7 +5,7 @@ import { CircleCheck, CircleX, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { ResumeDecision } from "@/types/api"
 
-/** 写操作确认卡片（interrupt）：修改 / 取消 / 确认执行 */
+/** 写操作确认卡片（interrupt）：修改（传了 onModify 才显示）/ 取消 / 确认执行 */
 export function ConfirmCard({
   title,
   rows,
@@ -50,9 +50,11 @@ export function ConfirmCard({
           </span>
         ) : (
           <>
-            <Button variant="ghost" size="xs" className="h-7" onClick={onModify} disabled={busy}>
-              修改
-            </Button>
+            {onModify ? (
+              <Button variant="ghost" size="xs" className="h-7" onClick={onModify} disabled={busy}>
+                修改
+              </Button>
+            ) : null}
             <Button variant="outline" size="xs" className="h-7" onClick={() => onDecide("reject")} disabled={busy}>
               取消
             </Button>

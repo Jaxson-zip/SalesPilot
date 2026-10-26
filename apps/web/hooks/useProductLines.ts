@@ -5,6 +5,7 @@ import { toast } from "sonner"
 
 import { notifyError } from "@/hooks/notify"
 import { api } from "@/lib/api"
+import type { PackDetail } from "@/lib/pack-rules"
 import type { PackOut, Paged, ProductLineItem, ProductLineUpdate } from "@/types/api"
 
 export const productLineKeys = {
@@ -65,5 +66,15 @@ export function useUpdateProductLine() {
     },
     onSuccess: () => toast.success("产品线映射已保存"),
     onSettled: () => qc.invalidateQueries({ queryKey: productLineKeys.all }),
+  })
+}
+
+/** GET /api/packs/{pack_id}：产品目录、业务规则、知识库文档（只读） */
+export function usePackDetail(id: string | null) {
+  return useQuery({
+    queryKey: [...productLineKeys.packs, id ?? ""],
+    queryFn: ({ signal }) => api.get<PackDetail>(`/api/packs/${encodeURIComponent(id ?? "")}`, undefined, signal),
+    enabled: Boolean(id),
+    staleTime: 5 * 60_000,
   })
 }

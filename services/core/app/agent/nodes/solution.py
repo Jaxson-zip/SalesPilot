@@ -12,7 +12,14 @@ from langchain_core.messages import AIMessage
 from langgraph.types import interrupt
 
 from app.agent.deps import AgentDeps
-from app.agent.nodes.common import call_tool, emit, log_tool, node_start, tool_error
+from app.agent.nodes.common import (
+    call_tool,
+    emit,
+    log_tool,
+    node_start,
+    now_iso,
+    tool_error,
+)
 from app.agent.state import AgentState
 from app.common.errors import BizError
 from app.packs.base import MarginHint
@@ -65,7 +72,7 @@ def make_ask_user(deps: AgentDeps) -> Node:
         ]
         text = f"为了给出准确的配置和报价，还需要确认：{'；'.join(labels)}。"
         emit("message.delta", {"text": text})
-        return {"messages": [AIMessage(content=text)]}
+        return {"messages": [AIMessage(content=text, additional_kwargs={"created_at": now_iso()})]}
 
     return ask_user
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, ChevronsUpDown, PanelLeftClose, PanelLeftOpen, Settings, X, Zap } from "lucide-react"
+import { Check, ChevronsUpDown, PanelLeftClose, PanelLeftOpen, X, Zap } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -8,7 +8,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useSidebar } from "@/components/ui/sidebar"
@@ -51,11 +50,6 @@ export function WorkspaceSwitcher() {
         <Zap className="text-zinc-500" />
         <span className="flex-1">SalesPilot 演示</span>
         <Check />
-      </DropdownMenuItem>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem>
-        <Settings className="text-zinc-500" />
-        设置
       </DropdownMenuItem>
     </DropdownMenuContent>
   )

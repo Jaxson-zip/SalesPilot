@@ -1,6 +1,8 @@
 """行业包配置 service（接口契约 §7）：已安装行业包、产品线 → 行业包映射（仅 admin 可维护）。"""
 
 import uuid
+from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy import func, select
@@ -12,7 +14,9 @@ from app.crm.models import Opportunity, ProductLine
 from app.crm.schemas.common import Page
 from app.crm.schemas.dashboard import ProductLineItem, ProductLineUpdate
 from app.crm.schemas.opportunity import FINAL_STAGES
-from app.packs.registry import list_packs
+from app.packs.base import Catalog, CatalogItem
+from app.packs.registry import PackInfo, get_pack, list_packs
+from app.rules.loader import load_raw_rules
 
 
 class PackOut(BaseModel):
@@ -27,6 +31,52 @@ def list_installed_packs() -> list[PackOut]:
         PackOut(id=p.id, name=p.name, description=p.description, version=p.version)
         for p in list_packs().values()
     ]
+
+
+class KnowledgeDoc(BaseModel):
+    doc_name: str
+    title: str
+    size: int  # 字节
+
+
+class PackDetail(PackOut):
+    catalog: list[CatalogItem]
+    rules: dict[str, Any]
+    knowledge: list[KnowledgeDoc]
+
+
+def _doc_title(path: Path) -> str:
+    """Markdown 取第一个一级 / 二级标题，其他文件用文件名（不含扩展名）。"""
+    if path.suffix.lower() == ".md":
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("#"):
+                return line.lstrip("#").strip() or path.stem
+    return path.stem
+
+
+def _knowledge(pack: PackInfo) -> list[KnowledgeDoc]:
+    if not pack.knowledge_dir.is_dir():
+        return []
+    files = sorted(p for p in pack.knowledge_dir.iterdir() if p.is_file())
+    return [
+        KnowledgeDoc(doc_name=p.name, title=_doc_title(p), size=p.stat().st_size) for p in files
+    ]
+
+
+def get_pack_detail(pack_id: str) -> PackDetail:
+    """行业包只读详情：产品目录（分）、合并后的规则、知识库文档。所有角色可读；未安装 40401。"""
+    pack = get_pack(pack_id)
+    catalog_file = pack.path / "catalog.json"
+    catalog = Catalog.from_file(catalog_file).all() if catalog_file.exists() else []
+    return PackDetail(
+        id=pack.id,
+        name=pack.name,
+        description=pack.description,
+        version=pack.version,
+        catalog=catalog,
+        rules=load_raw_rules(pack.rules_file),
+        knowledge=_knowledge(pack),
+    )
 
 
 def _require_admin(user: CurrentUser) -> None:

@@ -47,9 +47,20 @@ def my_customer(role: str = "sales") -> dict:
 
 def test_dashboard_has_kpis_and_funnel() -> None:
     data = ok(call("GET", "/api/dashboard", "sales"))
-    for key in ("won_amount_month", "open_opportunities", "pending_approvals", "estimated_commission_month"):
+    for key in (
+        "won_amount_month",
+        "open_opportunities",
+        "pending_approvals",
+        "estimated_commission_month",
+    ):
         assert isinstance(data[key], int), key
-    assert {s["stage"] for s in data["funnel"]} >= {"lead", "qualified", "proposal", "negotiation", "won"}
+    assert {s["stage"] for s in data["funnel"]} >= {
+        "lead",
+        "qualified",
+        "proposal",
+        "negotiation",
+        "won",
+    }
 
 
 # ---------- 商机 ----------
@@ -62,26 +73,56 @@ def test_opportunity_create_and_stage_flow() -> None:
             "POST",
             "/api/opportunities",
             "sales",
-            json={"customer_id": customer["id"], "name": f"e2e 商机 {uuid.uuid4().hex[:6]}", "amount": 1_000_000},
+            json={
+                "customer_id": customer["id"],
+                "name": f"e2e 商机 {uuid.uuid4().hex[:6]}",
+                "amount": 1_000_000,
+            },
         )
     )
     assert opp["stage"] == "lead"
 
-    moved = ok(call("PATCH", f"/api/opportunities/{opp['id']}/stage", "sales", json={"stage": "qualified"}))
+    moved = ok(
+        call(
+            "PATCH",
+            f"/api/opportunities/{opp['id']}/stage",
+            "sales",
+            json={"stage": "qualified"},
+        )
+    )
     assert moved["stage"] == "qualified"
 
     detail = ok(call("GET", f"/api/opportunities/{opp['id']}", "sales"))
     assert any(a["action"] == "stage_changed" for a in detail["activities"])
 
-    ok(call("PATCH", f"/api/opportunities/{opp['id']}/stage", "sales", json={"stage": "lost", "lost_reason": "预算取消"}))
-    final = call("PATCH", f"/api/opportunities/{opp['id']}/stage", "sales", json={"stage": "proposal"})
+    ok(
+        call(
+            "PATCH",
+            f"/api/opportunities/{opp['id']}/stage",
+            "sales",
+            json={"stage": "lost", "lost_reason": "预算取消"},
+        )
+    )
+    final = call(
+        "PATCH",
+        f"/api/opportunities/{opp['id']}/stage",
+        "sales",
+        json={"stage": "proposal"},
+    )
     assert final["code"] == 42201 and final["data"]["rule"] == "opportunity_stage_final"
 
 
 def test_sales_cannot_create_opportunity_for_other_sales_customer() -> None:
-    team = ok(call("GET", "/api/customers", "manager", params={"view": "team"}))["items"]
+    team = ok(call("GET", "/api/customers", "manager", params={"view": "team"}))[
+        "items"
+    ]
     other = next(c for c in team if c["name"] == "鹏城第三人民医院")
-    body = call("POST", "/api/opportunities", "sales", json={"customer_id": other["id"], "name": "越权", "amount": 1})
+    body = call(
+        "POST",
+        "/api/opportunities",
+        "sales",
+        json={"customer_id": other["id"], "name": "越权", "amount": 1},
+    )
     assert body["code"] == 40401
 
 
@@ -98,16 +139,26 @@ def _agent_quote() -> dict:
     thread = f"e2e-{uuid.uuid4().hex[:8]}"
     message = "给明理律所出一份 Qwen3-32B 私有化方案，50 人并发，预算 40 万以内"
     list(sse("/api/agent/chat", {"thread_id": thread, "message": message}, headers))
-    events = list(sse("/api/agent/resume", {"thread_id": thread, "decision": "approve"}, headers))
-    return next(d["data"] for e, d in events if e == "artifact" and d["type"] == "quote")
+    events = list(
+        sse("/api/agent/resume", {"thread_id": thread, "decision": "approve"}, headers)
+    )
+    return next(
+        d["data"] for e, d in events if e == "artifact" and d["type"] == "quote"
+    )
 
 
 def test_quote_lifecycle_creates_contract_and_commission() -> None:
     quote = _agent_quote()
-    assert ok(call("POST", f"/api/quotes/{quote['id']}/submit", "sales"))["status"] == "approved"  # 毛利 29.4% ≥ 25%
+    assert (
+        ok(call("POST", f"/api/quotes/{quote['id']}/submit", "sales"))["status"]
+        == "approved"
+    )  # 毛利 29.4% ≥ 25%
 
     illegal = call("POST", f"/api/quotes/{quote['id']}/accept", "sales")
-    assert illegal["code"] == 42201 and illegal["data"]["rule"] == "quote_status_transition"
+    assert (
+        illegal["code"] == 42201
+        and illegal["data"]["rule"] == "quote_status_transition"
+    )
 
     ok(call("POST", f"/api/quotes/{quote['id']}/send", "sales"))
     accepted = ok(call("POST", f"/api/quotes/{quote['id']}/accept", "sales"))
@@ -115,14 +166,39 @@ def test_quote_lifecycle_creates_contract_and_commission() -> None:
 
     contract = ok(call("GET", f"/api/contracts/{accepted['contract_id']}", "sales"))
     assert contract["amount"] == quote["total_price"]
-    assert contract["commission"]["estimated"] > 0 and contract["commission"]["confirmed"] == 0
+    assert (
+        contract["commission"]["estimated"] > 0
+        and contract["commission"]["confirmed"] == 0
+    )
 
     # 销售不能登记回款；主管登记一半后，已确认提成 = 预估 × 50%
-    assert call("POST", f"/api/contracts/{contract['id']}/payments", "sales", json={"amount": 1})["code"] == 40301
+    assert (
+        call(
+            "POST",
+            f"/api/contracts/{contract['id']}/payments",
+            "sales",
+            json={"amount": 1},
+        )["code"]
+        == 40301
+    )
     half = contract["amount"] // 2
-    paid = ok(call("POST", f"/api/contracts/{contract['id']}/payments", "manager", json={"amount": half}))
-    assert paid["commission"]["confirmed"] == round(contract["commission"]["estimated"] * half / contract["amount"])
-    over = call("POST", f"/api/contracts/{contract['id']}/payments", "manager", json={"amount": contract["amount"]})
+    paid = ok(
+        call(
+            "POST",
+            f"/api/contracts/{contract['id']}/payments",
+            "manager",
+            json={"amount": half},
+        )
+    )
+    assert paid["commission"]["confirmed"] == round(
+        contract["commission"]["estimated"] * half / contract["amount"]
+    )
+    over = call(
+        "POST",
+        f"/api/contracts/{contract['id']}/payments",
+        "manager",
+        json={"amount": contract["amount"]},
+    )
     assert over["code"] == 42201 and over["data"]["rule"] == "payment_exceeds_balance"
 
 
@@ -152,15 +228,26 @@ def _new_expense(amount: int, headcount: int) -> dict:
 
 def _upload(expense_id: str, kind: str, name: str, content: bytes, mime: str) -> dict:
     files = {"file": (name, content, mime)}
-    return call("POST", f"/api/expenses/{expense_id}/attachments", "sales", files=files, data={"kind": kind})
+    return call(
+        "POST",
+        f"/api/expenses/{expense_id}/attachments",
+        "sales",
+        files=files,
+        data={"kind": kind},
+    )
 
 
 def test_expense_requires_invoice_and_receipt() -> None:
     expense = _new_expense(40_000, 4)
     missing = call("POST", f"/api/expenses/{expense['id']}/submit", "sales")
-    assert missing["code"] == 42201 and missing["data"]["rule"] == "expense_missing_invoice"
+    assert (
+        missing["code"] == 42201
+        and missing["data"]["rule"] == "expense_missing_invoice"
+    )
 
-    bad_type = _upload(expense["id"], "invoice", "a.exe", b"MZ", "application/octet-stream")
+    bad_type = _upload(
+        expense["id"], "invoice", "a.exe", b"MZ", "application/octet-stream"
+    )
     assert bad_type["code"] == 40001
 
 
@@ -173,14 +260,33 @@ def test_over_limit_expense_goes_to_manager_approval() -> None:
 
     assert call("GET", "/api/approvals", "sales")["code"] == 40301
 
-    pending = ok(call("GET", "/api/approvals", "manager", params={"status": "pending"}))["items"]
+    pending = ok(
+        call("GET", "/api/approvals", "manager", params={"status": "pending"})
+    )["items"]
     approval = next(a for a in pending if a["target"]["id"] == expense["id"])
     assert len(approval["attachments"]) == 2
 
-    ok(call("POST", f"/api/approvals/{approval['id']}/decide", "manager", json={"decision": "approve"}))
-    again = call("POST", f"/api/approvals/{approval['id']}/decide", "manager", json={"decision": "reject"})
-    assert again["code"] == 42201 and again["data"]["rule"] == "approval_already_decided"
-    assert ok(call("GET", f"/api/expenses/{expense['id']}", "sales"))["status"] == "approved"
+    ok(
+        call(
+            "POST",
+            f"/api/approvals/{approval['id']}/decide",
+            "manager",
+            json={"decision": "approve"},
+        )
+    )
+    again = call(
+        "POST",
+        f"/api/approvals/{approval['id']}/decide",
+        "manager",
+        json={"decision": "reject"},
+    )
+    assert (
+        again["code"] == 42201 and again["data"]["rule"] == "approval_already_decided"
+    )
+    assert (
+        ok(call("GET", f"/api/expenses/{expense['id']}", "sales"))["status"]
+        == "approved"
+    )
 
 
 def test_attachment_download_respects_data_scope() -> None:
@@ -194,9 +300,75 @@ def test_attachment_download_respects_data_scope() -> None:
 
 
 def test_product_lines_read_all_write_admin() -> None:
-    assert ok(call("GET", "/api/product-lines", "sales"))["items"], "销售建商机要能选产品线"
+    assert ok(call("GET", "/api/product-lines", "sales"))["items"], (
+        "销售建商机要能选产品线"
+    )
     lines = ok(call("GET", "/api/product-lines", "admin"))["items"]
-    assert call("PUT", f"/api/product-lines/{lines[0]['id']}", "sales", json={"enabled": True})["code"] == 40301
+    assert (
+        call(
+            "PUT",
+            f"/api/product-lines/{lines[0]['id']}",
+            "sales",
+            json={"enabled": True},
+        )["code"]
+        == 40301
+    )
     assert {"pack", "enabled", "open_opportunities"} <= set(lines[0])
-    bad = call("PUT", f"/api/product-lines/{lines[0]['id']}", "admin", json={"pack": "not_installed"})
+    bad = call(
+        "PUT",
+        f"/api/product-lines/{lines[0]['id']}",
+        "admin",
+        json={"pack": "not_installed"},
+    )
     assert bad["code"] == 40001
+
+
+# ---------- 角色与操作权限（契约 §0） ----------
+
+
+def test_admin_is_read_only_for_business_data() -> None:
+    customer = my_customer()
+    assert ok(call("GET", "/api/customers", "admin", params={"view": "all"}))[
+        "items"
+    ], "管理员能看全公司"
+    for method, path, body in [
+        ("POST", "/api/customers", {"name": f"e2e 管理员客户 {uuid.uuid4().hex[:6]}"}),
+        (
+            "POST",
+            "/api/opportunities",
+            {"customer_id": customer["id"], "name": "越权", "amount": 1},
+        ),
+        (
+            "POST",
+            f"/api/customers/{customer['id']}/followups",
+            {"type": "phone", "content": "越权"},
+        ),
+    ]:
+        res = call(method, path, "admin", json=body)
+        assert res["code"] == 40301 and res["data"]["rule"] == "role_forbidden", (
+            path,
+            res,
+        )
+
+
+def test_manager_cannot_change_sales_records() -> None:
+    customer = my_customer()
+    opp = ok(
+        call(
+            "POST",
+            "/api/opportunities",
+            "sales",
+            json={"customer_id": customer["id"], "name": "e2e 主管越权", "amount": 1},
+        )
+    )
+    res = call(
+        "PATCH",
+        f"/api/opportunities/{opp['id']}/stage",
+        "manager",
+        json={"stage": "qualified"},
+    )
+    assert res["code"] == 40301 and res["data"]["rule"] == "not_owner"
+    # 主管看得到这条商机（本团队），但阶段没被改动
+    assert (
+        ok(call("GET", f"/api/opportunities/{opp['id']}", "manager"))["stage"] == "lead"
+    )

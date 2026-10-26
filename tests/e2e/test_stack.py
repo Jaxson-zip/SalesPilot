@@ -42,9 +42,13 @@ def login(role: str, base: str = WEB) -> dict[str, str]:
     return {"Authorization": f"Bearer {body['data']['token']}"}
 
 
-def sse(path: str, payload: dict[str, object], headers: dict[str, str]) -> Iterator[tuple[str, dict]]:
+def sse(
+    path: str, payload: dict[str, object], headers: dict[str, str]
+) -> Iterator[tuple[str, dict]]:
     """POST 一个 SSE 接口，逐个产出 (event, data)。"""
-    with httpx.stream("POST", f"{WEB}{path}", json=payload, headers=headers, timeout=120) as r:
+    with httpx.stream(
+        "POST", f"{WEB}{path}", json=payload, headers=headers, timeout=120
+    ) as r:
         assert r.status_code == 200, r.read()
         event = ""
         for line in r.iter_lines():
@@ -97,8 +101,12 @@ def test_manager_sees_whole_team() -> None:
 
 
 def test_sales_cannot_open_other_sales_customer() -> None:
-    other = next(c for c in _customers("manager", "team") if c["name"] == "鹏城第三人民医院")
-    body = httpx.get(f"{WEB}/api/customers/{other['id']}", headers=login("sales")).json()
+    other = next(
+        c for c in _customers("manager", "team") if c["name"] == "鹏城第三人民医院"
+    )
+    body = httpx.get(
+        f"{WEB}/api/customers/{other['id']}", headers=login("sales")
+    ).json()
     assert body["code"] == 40401  # 不返回 40301，避免泄露记录是否存在
 
 
@@ -114,17 +122,25 @@ def test_agent_solution_flow_with_confirmation() -> None:
     headers = login("sales")
     thread = f"e2e-{uuid.uuid4().hex[:8]}"
     message = "给明理律所出一份 Qwen3-32B 私有化方案，50 人并发，预算 40 万以内"
-    events = list(sse("/api/agent/chat", {"thread_id": thread, "message": message}, headers))
+    events = list(
+        sse("/api/agent/chat", {"thread_id": thread, "message": message}, headers)
+    )
     names = [e for e, _ in events]
 
     assert "node.retry" in names, "经济版毛利不达标时应回退重配"
-    tiers = [d for e, d in events if e == "artifact" and d["type"] == "solution_tiers"][-1]["data"]
+    tiers = [d for e, d in events if e == "artifact" and d["type"] == "solution_tiers"][
+        -1
+    ]["data"]
     assert all(t["margin_ok"] for t in tiers), "回退后三档毛利都应达标"
     interrupt = next(d for e, d in events if e == "interrupt")
     assert interrupt["action"] == "generate_quote"
-    assert interrupt["preview"]["total_price"] == 37_200_000  # 标准版 ¥372,000，与原型一致
+    assert (
+        interrupt["preview"]["total_price"] == 37_200_000
+    )  # 标准版 ¥372,000，与原型一致
 
-    resumed = list(sse("/api/agent/resume", {"thread_id": thread, "decision": "approve"}, headers))
+    resumed = list(
+        sse("/api/agent/resume", {"thread_id": thread, "decision": "approve"}, headers)
+    )
     assert "tool.error" not in [e for e, _ in resumed], resumed
     assert any(e == "artifact" and d["type"] == "quote" for e, d in resumed)
     assert resumed[-1][0] == "done"
@@ -133,7 +149,11 @@ def test_agent_solution_flow_with_confirmation() -> None:
 def test_other_user_cannot_resume_thread() -> None:
     thread = f"e2e-{uuid.uuid4().hex[:8]}"
     message = "给明理律所出一份 Qwen3-32B 私有化方案，50 人并发"
-    list(sse("/api/agent/chat", {"thread_id": thread, "message": message}, login("sales")))
+    list(
+        sse(
+            "/api/agent/chat", {"thread_id": thread, "message": message}, login("sales")
+        )
+    )
     r = httpx.post(
         f"{WEB}/api/agent/resume",
         json={"thread_id": thread, "decision": "approve"},

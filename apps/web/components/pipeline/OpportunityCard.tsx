@@ -1,7 +1,8 @@
 "use client"
 
-import { useDraggable } from "@dnd-kit/core"
+import { useDraggable, type DraggableAttributes, type DraggableSyntheticListeners } from "@dnd-kit/core"
 import { Building2, Calendar, Coins, User } from "lucide-react"
+import type { KeyboardEvent } from "react"
 
 import { Chip } from "@/components/biz/Chip"
 import { formatFen } from "@/lib/format"
@@ -16,26 +17,49 @@ function shortDate(d: string | null): string {
   return d.startsWith(year) ? d.slice(5, 10) : d.slice(0, 10)
 }
 
-/** OpportunityCard：标题 + 客户 / 金额 / 预计成交 / 负责人 */
+interface DragBinding {
+  setNodeRef: (el: HTMLElement | null) => void
+  attributes: DraggableAttributes
+  listeners: DraggableSyntheticListeners
+  isDragging: boolean
+}
+
+/**
+ * OpportunityCard：标题 + 客户 / 金额 / 预计成交 / 负责人。
+ * 整张卡片只有一层可点击元素（role=button）：Enter / 点击打开详情；可拖拽时同一元素上挂拖拽监听，空格开始键盘拖拽。
+ */
 export function OpportunityCardBody({
   opp,
   onOpen,
   className,
+  drag,
 }: {
   opp: OpportunityItem
   onOpen?: () => void
   className?: string
+  drag?: DragBinding
 }) {
+  const dndKeyDown = drag?.listeners?.onKeyDown as ((e: KeyboardEvent<HTMLDivElement>) => void) | undefined
   return (
     <div
+      ref={drag?.setNodeRef}
+      {...drag?.attributes}
+      {...drag?.listeners}
       role="button"
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => {
-        if (e.key === "Enter") onOpen?.()
+        if (drag?.isDragging) return dndKeyDown?.(e)
+        if (e.key === "Enter" || (!drag && e.key === " ")) {
+          e.preventDefault()
+          return onOpen?.()
+        }
+        dndKeyDown?.(e)
       }}
       className={cn(
-        "min-w-0 cursor-pointer rounded-lg border border-zinc-200 bg-white p-2.5 outline-none hover:border-zinc-300 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-zinc-300",
+        "min-w-0 cursor-pointer rounded-lg border border-zinc-200 bg-white p-2.5 outline-none select-none hover:border-zinc-300 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-zinc-300",
+        drag && "touch-none",
+        drag?.isDragging && "opacity-40",
         className,
       )}
     >
@@ -67,16 +91,21 @@ export function OpportunityCardBody({
   )
 }
 
-/** 可拖拽卡片（终态商机不能拖） */
-export function DraggableOpportunityCard({ opp, onOpen }: { opp: OpportunityItem; onOpen: () => void }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: opp.id,
-    data: { stage: opp.stage },
-    disabled: isFinalStage(opp.stage),
-  })
-  return (
-    <div ref={setNodeRef} {...attributes} {...listeners} className={cn("touch-none", isDragging && "opacity-40")}>
-      <OpportunityCardBody opp={opp} onOpen={onOpen} />
-    </div>
-  )
+function DraggableCard({ opp, onOpen }: { opp: OpportunityItem; onOpen: () => void }) {
+  const drag = useDraggable({ id: opp.id, data: { stage: opp.stage } })
+  return <OpportunityCardBody opp={opp} onOpen={onOpen} drag={drag} />
+}
+
+/** 看板卡片：终态商机、非本人负责的商机不能拖，直接渲染卡片本体（不包拖拽层） */
+export function DraggableOpportunityCard({
+  opp,
+  draggable,
+  onOpen,
+}: {
+  opp: OpportunityItem
+  draggable: boolean
+  onOpen: () => void
+}) {
+  if (!draggable || isFinalStage(opp.stage)) return <OpportunityCardBody opp={opp} onOpen={onOpen} />
+  return <DraggableCard opp={opp} onOpen={onOpen} />
 }

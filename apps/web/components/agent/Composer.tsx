@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowUp, Boxes, Cpu, Lock, Paperclip } from "lucide-react"
+import { ArrowUp, Boxes, Cpu, Lock } from "lucide-react"
 import { useRef, type KeyboardEvent } from "react"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -78,6 +78,7 @@ function SendButton({
     <button
       type="button"
       title={streaming ? "停止生成" : "发送"}
+      aria-label={streaming ? "停止生成" : "发送"}
       disabled={disabled}
       onClick={onClick}
       className={cn(
@@ -131,13 +132,6 @@ export function Composer(props: ComposerProps) {
         {!compact && pack ? <PackChip pack={pack} /> : null}
         <ModelSelect model={model} onModelChange={onModelChange} />
         <div className="flex-1" />
-        <button
-          type="button"
-          title="上传附件"
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100"
-        >
-          <Paperclip className="size-4" />
-        </button>
         <SendButton streaming={streaming} disabled={!streaming && !canSend} onClick={streaming ? onStop : onSubmit} />
       </div>
     </div>

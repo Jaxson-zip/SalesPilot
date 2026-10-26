@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { Alert } from "@/components/biz/Alert"
+import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { FormField } from "@/components/biz/FormControls"
 import { FormSheet } from "@/components/biz/FormSheet"
 import { QueryError } from "@/components/biz/QueryStatus"
@@ -16,7 +17,9 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useDebounced } from "@/hooks/useDebounced"
 import { useCreateExpense, useExpense, useExpensePrecheck, useSubmitExpense } from "@/hooks/useExpenses"
+import { usePermissions } from "@/hooks/usePermissions"
 import { newRequestId } from "@/lib/api"
+import { EXPENSE_SUBMIT_CONFIRM } from "@/lib/confirm-texts"
 import { localDate } from "@/lib/format"
 import {
   checkFromPolicy,
@@ -69,10 +72,13 @@ export function ExpenseSheet({
   const detail = useExpense(open ? draftId : null)
   const create = useCreateExpense()
   const submit = useSubmitExpense()
+  const { ask, dialog } = useConfirmAction()
   const precheck = useLivePrecheck(values, open && !draftId)
 
+  const { canCreate, canEdit } = usePermissions()
   const exp = detail.data
-  const editable = !draftId || exp?.status === "draft"
+  // 新建：有新建权限；已有报销单：本人的草稿才能上传票据和提交（契约 §0）
+  const editable = !draftId ? canCreate : exp?.status === "draft" && canEdit(exp.owner.id)
   const attachments = exp?.attachments ?? []
   const missing = exp ? missingAttachmentReason(exp.type, attachments) : "保存草稿后上传票据"
 
@@ -100,7 +106,10 @@ export function ExpenseSheet({
   }
   const doSubmit = () => {
     if (!draftId) return
-    submit.mutate(draftId, {
+    ask({ ...EXPENSE_SUBMIT_CONFIRM, onConfirm: () => submitNow(draftId) })
+  }
+  const submitNow = (id: string) => {
+    submit.mutate(id, {
       onSuccess: (e) => {
         toast.success(e?.status === "pending_approval" ? "超出报销标准，已提交主管审批" : "制度校验通过，报销已提交", {
           description: e?.code,
@@ -177,6 +186,7 @@ export function ExpenseSheet({
           <span>无法提交：{missing}</span>
         </div>
       ) : null}
+      {dialog}
     </FormSheet>
   )
 }

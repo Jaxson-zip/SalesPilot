@@ -30,6 +30,11 @@ describe("errorMessage", () => {
     expect(errorMessage(err(40901, 409))).toContain("重复提交")
     expect(errorMessage(err(50101, 501))).toContain("开发中")
   })
+  it("40301 按 data.rule 区分角色不允许 / 不是负责人", () => {
+    expect(errorMessage(err(40301, 403, { rule: "role_forbidden" }))).toContain("管理员负责系统配置")
+    expect(errorMessage(err(40301, 403, { rule: "not_owner" }))).toBe("只有负责人本人可以修改这条记录")
+    expect(errorMessage(err(40301, 403, { rule: "other" }))).toBe("当前角色无权执行该操作")
+  })
   it("普通 Error 与 meta", () => {
     expect(errorMessage(new Error("断网"))).toBe("断网")
     expect(errorMeta(err(40301, 403))).toBe("错误码 40301 · req_1")

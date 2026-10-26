@@ -5,20 +5,29 @@ import { useState } from "react"
 
 import { ApprovalRow } from "@/components/approvals/ApprovalRow"
 import { RejectDialog } from "@/components/approvals/RejectDialog"
+import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { EmptyState } from "@/components/biz/EmptyState"
 import { PageFrame } from "@/components/biz/PageFrame"
 import { QueryError } from "@/components/biz/QueryStatus"
+import { LINE_TABS_LIST, LINE_TABS_TRIGGER } from "@/components/biz/RecordTabs"
 import { RoleGate } from "@/components/shell/RoleGate"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useApprovals, useDecideApproval } from "@/hooks/useApprovals"
+import { approveConfirm } from "@/lib/confirm-texts"
 import type { ApprovalItem, ApprovalTab } from "@/types/api"
 
 function ApprovalList({ tab }: { tab: ApprovalTab }) {
   const query = useApprovals(tab)
   const decide = useDecideApproval()
   const [rejecting, setRejecting] = useState<ApprovalItem | null>(null)
+  const { ask, dialog } = useConfirmAction()
+  const approve = (a: ApprovalItem) =>
+    ask({
+      ...approveConfirm(a.target.code, a.target_type),
+      onConfirm: () => decide.mutate({ id: a.id, decision: "approve" }),
+    })
 
   if (query.isPending)
     return (
@@ -46,10 +55,11 @@ function ApprovalList({ tab }: { tab: ApprovalTab }) {
           key={a.id}
           a={a}
           busy={decide.isPending && decide.variables?.id === a.id}
-          onApprove={() => decide.mutate({ id: a.id, decision: "approve" })}
+          onApprove={() => approve(a)}
           onReject={() => setRejecting(a)}
         />
       ))}
+      {dialog}
       <RejectDialog
         approval={rejecting}
         pending={decide.isPending}
@@ -76,11 +86,11 @@ function ApprovalCenter() {
       onValueChange={(v) => setTab(v === "done" ? "done" : "pending")}
       className="flex min-h-0 flex-1 flex-col gap-0"
     >
-      <TabsList variant="line" className="h-10! w-full shrink-0 justify-start gap-1 border-b border-zinc-200 px-3">
-        <TabsTrigger value="pending" className="flex-none px-2">
+      <TabsList variant="line" className={LINE_TABS_LIST}>
+        <TabsTrigger value="pending" className={LINE_TABS_TRIGGER}>
           待处理{count ? ` ${count}` : ""}
         </TabsTrigger>
-        <TabsTrigger value="done" className="flex-none px-2">
+        <TabsTrigger value="done" className={LINE_TABS_TRIGGER}>
           已处理
         </TabsTrigger>
       </TabsList>

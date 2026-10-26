@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 
+import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { FormField, MoneyInput } from "@/components/biz/FormControls"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useRegisterPayment } from "@/hooks/useContracts"
+import { paymentConfirm } from "@/lib/confirm-texts"
 import { checkPayment, unpaidOf } from "@/lib/contract"
 import { formatFen } from "@/lib/format"
 import type { ContractItem } from "@/types/api"
@@ -22,6 +24,7 @@ export function PaymentDialog({ contract, onClose }: { contract: ContractItem | 
   const [amount, setAmount] = useState("")
   const [error, setError] = useState<string>()
   const pay = useRegisterPayment()
+  const { ask, dialog } = useConfirmAction()
   const close = () => {
     setAmount("")
     setError(undefined)
@@ -31,7 +34,12 @@ export function PaymentDialog({ contract, onClose }: { contract: ContractItem | 
     if (!contract) return
     const r = checkPayment(amount, contract)
     if (!r.ok) return setError(r.error)
-    pay.mutate({ id: contract.id, amount: r.amount }, { onSuccess: close })
+    const { id, code } = contract
+    // 回款登记后会确认提成、不能撤回：先二次确认
+    ask({
+      ...paymentConfirm(formatFen(r.amount), code),
+      onConfirm: () => pay.mutate({ id, amount: r.amount }, { onSuccess: close }),
+    })
   }
   return (
     <Dialog open={contract !== null} onOpenChange={(o) => !o && close()}>
@@ -60,10 +68,11 @@ export function PaymentDialog({ contract, onClose }: { contract: ContractItem | 
             取消
           </Button>
           <Button onClick={submit} disabled={pay.isPending || !amount}>
-            {pay.isPending ? "提交中…" : "确认登记"}
+            {pay.isPending ? "提交中…" : "下一步"}
           </Button>
         </DialogFooter>
       </DialogContent>
+      {dialog}
     </Dialog>
   )
 }

@@ -86,7 +86,9 @@ export function DatePicker({
   disabled,
   placeholder = "选择日期",
   size = "default",
+  ariaLabel,
 }: {
+  ariaLabel?: string
   value: string
   onChange: (v: string) => void
   disabled?: boolean
@@ -102,7 +104,8 @@ export function DatePicker({
           variant="outline"
           size={size}
           disabled={disabled}
-          className={cn("w-full justify-start font-normal", !value && "text-zinc-400")}
+          aria-label={ariaLabel}
+          className={cn("w-full justify-start font-normal", !value && "text-muted-foreground")}
         >
           <CalendarDays className="text-zinc-500" />
           {date ? format(date, "yyyy-MM-dd") : placeholder}
@@ -139,7 +142,9 @@ export function SimpleSelect<V extends string>({
   size = "default",
   className,
   ariaLabel,
+  id,
 }: {
+  id?: string
   value: V | ""
   onChange: (v: V) => void
   options: Option<V>[]
@@ -158,7 +163,7 @@ export function SimpleSelect<V extends string>({
       }}
       disabled={disabled}
     >
-      <SelectTrigger size={size} className={cn("w-full", className)} aria-label={ariaLabel}>
+      <SelectTrigger id={id} size={size} className={cn("w-full", className)} aria-label={ariaLabel}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

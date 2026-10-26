@@ -1,6 +1,6 @@
 "use client"
 
-import { CircleDot, Coins, Plus, Receipt, Tag as TagIcon } from "lucide-react"
+import { Plus, Receipt } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { DataGrid } from "@/components/biz/DataGrid"
@@ -9,43 +9,69 @@ import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { ViewBar, type ViewOption } from "@/components/biz/ViewBar"
 import { ExpenseSheet } from "@/components/expenses/ExpenseSheet"
+import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { useExpenses } from "@/hooks/useExpenses"
+import { useListView } from "@/hooks/useListView"
+import { usePermissions } from "@/hooks/usePermissions"
 import { EXPENSE_STATUS_META } from "@/lib/labels"
 import type { ExpenseStatus } from "@/types/api"
 
-import { expenseColumns } from "./columns"
+import { expenseColumns, expenseCsv, expenseFilters, expenseSort } from "./columns"
 
-const FILTER_FIELDS = [
-  { label: "类型", icon: TagIcon },
-  { label: "状态", icon: CircleDot },
-  { label: "金额", icon: Coins },
-]
 const STATUS_VIEWS: ExpenseStatus[] = ["draft", "pending_approval", "approved", "rejected", "paid"]
-const VIEWS: ViewOption[] = [
-  { value: "all", label: "我的报销" },
-  ...STATUS_VIEWS.map((s) => ({ value: s, label: EXPENSE_STATUS_META[s].label })),
-]
+/** 第一个视图：销售 / 主管看自己的报销（团队报销在审批中心处理），管理员只读查看全部 */
+function viewsFor(admin: boolean): ViewOption[] {
+  return [
+    { value: "all", label: admin ? "全部报销" : "我的报销" },
+    ...STATUS_VIEWS.map((s) => ({ value: s, label: EXPENSE_STATUS_META[s].label })),
+  ]
+}
 
 function toStatus(v: string): ExpenseStatus | undefined {
   return STATUS_VIEWS.find((s) => s === v)
 }
 
+const TOGGLEABLE = expenseColumns(() => undefined)
+  .slice(1)
+  .map((c) => ({ id: c.id, label: c.label }))
+
 /** 报销：表格 + 新建报销 Sheet（报销始终是「我的」，团队报销在审批中心处理） */
 export default function ExpensesPage() {
+  const { role } = useSession()
+  const { canCreate } = usePermissions()
+  const admin = role === "admin"
   const [view, setView] = useState("all")
   const [sheet, setSheet] = useState<{ open: boolean; id: string | null }>({ open: false, id: null })
-  const query = useExpenses({ view: "mine", status: toStatus(view), page: 1, page_size: 50 })
-  const columns = useMemo(() => expenseColumns((e) => setSheet({ open: true, id: e.id })), [])
+  const query = useExpenses({ view: admin ? "all" : "mine", status: toStatus(view), page: 1, page_size: 100 })
+  const allColumns = useMemo(() => expenseColumns((e) => setSheet({ open: true, id: e.id })), [])
+  const all = useMemo(() => query.data?.items ?? [], [query.data])
+  const lv = useListView({
+    page: "expenses",
+    rows: all,
+    filters: expenseFilters,
+    sort: expenseSort,
+    csv: expenseCsv,
+    columns: TOGGLEABLE,
+    exportName: "报销",
+  })
+  const columns = useMemo(() => allColumns.filter((c) => !lv.hidden.includes(c.id)), [allColumns, lv.hidden])
+  const filtered = Object.keys(lv.bar.activeFilters).length > 0
   const openNew = () => setSheet({ open: true, id: null })
 
   return (
     <PageFrame
       title="报销"
       icon={Receipt}
-      actions={<FrameAction icon={Plus} label="新建报销" primary onClick={openNew} />}
+      actions={canCreate ? <FrameAction icon={Plus} label="新建报销" primary onClick={openNew} /> : null}
     >
-      <ViewBar views={VIEWS} value={view} onValueChange={setView} count={query.data?.total} fields={FILTER_FIELDS} />
+      <ViewBar
+        views={viewsFor(admin)}
+        value={view}
+        onValueChange={setView}
+        count={filtered ? lv.rows.length : query.data?.total}
+        list={lv.bar}
+      />
       {query.isError && !query.data ? (
         <QueryError
           error={query.error}
@@ -56,23 +82,29 @@ export default function ExpensesPage() {
       ) : (
         <DataGrid
           columns={columns}
-          data={query.data?.items ?? []}
+          data={lv.rows}
           getRowId={(e) => e.id}
           loading={query.isPending}
-          total={query.data?.total}
-          onAddRow={openNew}
+          total={filtered ? lv.rows.length : query.data?.total}
+          onAddRow={canCreate ? openNew : undefined}
           empty={
-            <EmptyState
-              icon={Receipt}
-              title="还没有报销单"
-              description="新建报销时会实时校验报销制度，超标的自动进入主管审批。"
-              action={
-                <Button size="sm" onClick={openNew}>
-                  <Plus />
-                  新建报销
-                </Button>
-              }
-            />
+            filtered ? (
+              <EmptyState icon={Receipt} title="没有符合筛选条件的报销单" description="可以在上方清除筛选。" />
+            ) : (
+              <EmptyState
+                icon={Receipt}
+                title="还没有报销单"
+                description={canCreate ? "新建报销时会实时校验报销制度，超标的自动进入主管审批。" : undefined}
+                action={
+                  canCreate ? (
+                    <Button size="sm" onClick={openNew}>
+                      <Plus />
+                      新建报销
+                    </Button>
+                  ) : undefined
+                }
+              />
+            )
           }
         />
       )}

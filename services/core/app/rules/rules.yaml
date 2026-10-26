@@ -30,3 +30,17 @@ attachment:
 agent:
   margin_max_retries: 2       # 毛利回退最多重新配置次数
   max_tool_calls: 8
+
+pipeline:
+  # 商机阶段默认赢率（0–100）：切换阶段时自动带出，之后仍可手动修改
+  stage_win_rate:
+    lead: 10
+    qualified: 25
+    proposal: 50
+    negotiation: 75
+    won: 100
+    lost: 0
+  stale_days: 14              # 未终态商机超过 N 天没有动态 / 跟进 → 停滞提醒
+
+quote:
+  valid_days: 30              # 报价有效期：创建日 + N 天

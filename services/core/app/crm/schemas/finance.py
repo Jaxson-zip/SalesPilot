@@ -82,11 +82,16 @@ class ExpensePrecheckIn(BaseModel):
 
 
 class ExpenseCreate(BaseModel):
+    """v3 §17：headcount / participants 由后端按参与人计算（客户端传入的被忽略，仅为兼容保留）。"""
+
     type: ExpenseType
     amount: int = Field(gt=0)
-    headcount: int = Field(default=1, ge=1, le=1000)
+    headcount: int | None = Field(default=None, ge=1, le=1000)
     occurred_on: date
     participants: str | None = Field(default=None, max_length=500)
+    contact_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
+    colleague_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
+    extra_guests: int = Field(default=0, ge=0, le=500)
     customer_id: uuid.UUID | None = None
     opportunity_id: uuid.UUID | None = None
     reason: str = Field(min_length=1, max_length=500)
@@ -117,8 +122,17 @@ class ExpenseItem(BaseModel):
     created_at: datetime
 
 
+class ContactBrief(BaseModel):
+    id: uuid.UUID
+    name: str
+    title: str | None
+
+
 class ExpenseDetail(ExpenseItem):
     participants: str | None
+    contacts: list[ContactBrief]
+    colleagues: list[UserBrief]
+    extra_guests: int
     opportunity: OppBrief | None
     attachments: list[AttachmentOut]
     policy_check: PolicyCheck | None

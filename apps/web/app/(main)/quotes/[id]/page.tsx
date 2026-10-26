@@ -1,14 +1,15 @@
 "use client"
 
-import { Check, Clock, FileText, List, Send, Stamp, X, type LucideIcon } from "lucide-react"
+import { Check, Clock, FileText, List, Printer, Send, Stamp, X, type LucideIcon } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useState } from "react"
 
 import { BomTable } from "@/components/agent/BomTable"
 import { useConfirmAction } from "@/components/biz/ConfirmAction"
-import { Crumb, PageFrame } from "@/components/biz/PageFrame"
+import { Crumb, FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { RecordTabs } from "@/components/biz/RecordTabs"
+import { QuoteAdjust } from "@/components/quotes/QuoteAdjust"
 import { ApprovalRecords, QuoteFields, QuoteTimeline } from "@/components/quotes/QuotePanels"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
@@ -18,7 +19,12 @@ import { useQuote, useQuoteAction } from "@/hooks/useQuotes"
 import { quoteActionConfirm } from "@/lib/confirm-texts"
 import { formatRelative } from "@/lib/format"
 import { availableQuoteActions, primaryQuoteAction, QUOTE_ACTIONS, quoteToBom } from "@/lib/quote-actions"
-import type { QuoteAction } from "@/types/api"
+import type { QuoteAction, QuoteDetail } from "@/types/api"
+
+/** 报价内容变化（保存调整后后端重新计算）时重新挂载调价面板 */
+function adjustKey(q: QuoteDetail): string {
+  return [q.total_price, q.discount_rate ?? 0, ...q.items.map((it) => `${it.sku}:${it.qty}`)].join("|")
+}
 
 const ACTION_ICON: Record<QuoteAction, LucideIcon> = { submit: Stamp, send: Send, accept: Check, reject: X }
 
@@ -102,7 +108,18 @@ export default function QuoteDetailPage() {
             value={tab}
             onValueChange={setTab}
             tabs={[
-              { value: "bom", label: "物料清单", icon: List, content: <BomTable bom={quoteToBom(quote)} /> },
+              {
+                value: "bom",
+                label: "物料清单",
+                icon: List,
+                // 草稿 + 负责人：可调数量和折扣（v3 §14）；其余只读
+                content:
+                  quote.status === "draft" && canEdit(quote.owner.id) ? (
+                    <QuoteAdjust key={adjustKey(quote)} q={quote} />
+                  ) : (
+                    <BomTable bom={quoteToBom(quote)} />
+                  ),
+              },
               {
                 value: "timeline",
                 label: "时间线",
@@ -125,7 +142,14 @@ export default function QuoteDetailPage() {
   return (
     <PageFrame
       crumb={<Crumb parent="报价单" href="/quotes" icon={FileText} current={q?.code ?? "报价单"} />}
-      actions={buttons.length ? <>{buttons}</> : null}
+      actions={
+        q ? (
+          <>
+            <FrameAction icon={Printer} label="打印报价单" href={`/quotes/${encodeURIComponent(q.id)}/print`} />
+            {buttons}
+          </>
+        ) : null
+      }
     >
       {body}
       {dialog}

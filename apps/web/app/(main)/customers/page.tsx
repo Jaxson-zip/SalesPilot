@@ -1,19 +1,22 @@
 "use client"
 
-import { Building2, Plus } from "lucide-react"
+import { ArrowRightLeft, Building2, Plus } from "lucide-react"
 import { useMemo, useState } from "react"
 
+import { BulkBar } from "@/components/biz/BulkBar"
 import { DataGrid } from "@/components/biz/DataGrid"
 import { EmptyState, ErrorState } from "@/components/biz/EmptyState"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { ViewBar, type ViewOption } from "@/components/biz/ViewBar"
 import { NewCustomerSheet } from "@/components/customers/NewCustomerSheet"
+import { TransferDialog } from "@/components/customers/TransferDialog"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { useCustomers } from "@/hooks/useCustomers"
 import { useListView } from "@/hooks/useListView"
 import { usePermissions } from "@/hooks/usePermissions"
-import type { CustomerView } from "@/types/api"
+import { useRowSelection } from "@/hooks/useRowSelection"
+import type { Customer, CustomerView } from "@/types/api"
 
 import { customerColumns, customerCsv, customerFilters, customerSort } from "./columns"
 
@@ -21,26 +24,31 @@ function isView(v: string): v is CustomerView {
   return v === "mine" || v === "team" || v === "all"
 }
 
+const customerId = (c: Customer) => c.id
+
 const TOGGLEABLE = customerColumns.slice(1).map((c) => ({ id: c.id, label: c.label }))
 
 /** 客户列表：ViewBar（视图 / 筛选 / 排序 / 选项）+ DataGrid + 新建客户 Sheet */
 export default function CustomersPage() {
   const { role } = useSession()
   const { canCreate } = usePermissions()
-  const [selected, setView] = useState<CustomerView>("mine")
+  const [selected, setView] = useState<CustomerView | null>(null)
   const [creating, setCreating] = useState(false)
+  const [transferring, setTransferring] = useState(false)
   const views: ViewOption[] =
     role === "admin"
       ? [{ value: "all", label: "全部客户" }]
       : role === "manager"
         ? [
-            { value: "mine", label: "我负责的" },
+            // 主管一般不直接负责客户，默认看团队
             { value: "team", label: "团队客户" },
+            { value: "mine", label: "我负责的" },
           ]
         : [{ value: "mine", label: "我的客户" }]
   // 切换角色后原视图可能不可用（例如主管 → 销售），回落到第一个视图
   const first = views[0].value
-  const view: CustomerView = views.some((v) => v.value === selected) ? selected : isView(first) ? first : "mine"
+  const view: CustomerView =
+    selected && views.some((v) => v.value === selected) ? selected : isView(first) ? first : "mine"
 
   // 筛选 / 排序在前端处理，一次取满一页（接口上限 100）
   const query = useCustomers({ view, page: 1, page_size: 100 })
@@ -58,6 +66,7 @@ export default function CustomersPage() {
   const columns = useMemo(() => customerColumns.filter((c) => !lv.hidden.includes(c.id)), [lv.hidden])
   const filtered = Object.keys(lv.bar.activeFilters).length > 0
   const openNew = canCreate ? () => setCreating(true) : undefined
+  const sel = useRowSelection(lv.rows, customerId)
 
   return (
     <PageFrame
@@ -67,20 +76,39 @@ export default function CustomersPage() {
         canCreate ? <FrameAction icon={Plus} label="新建客户" primary onClick={() => setCreating(true)} /> : null
       }
     >
-      <ViewBar
-        views={views}
-        value={view}
-        onValueChange={(v) => isView(v) && setView(v)}
-        count={filtered ? lv.rows.length : query.data?.total}
-        list={lv.bar}
-      />
+      {sel.count ? (
+        <BulkBar
+          count={sel.count}
+          onExport={() => lv.exportRows(sel.selected)}
+          onClear={sel.clear}
+          extra={
+            // 转移负责人只给主管（契约 v3 §16）
+            role === "manager" ? (
+              <Button variant="outline" size="xs" className="h-7" onClick={() => setTransferring(true)}>
+                <ArrowRightLeft />
+                转移负责人
+              </Button>
+            ) : null
+          }
+        />
+      ) : (
+        <ViewBar
+          views={views}
+          value={view}
+          onValueChange={(v) => isView(v) && setView(v)}
+          count={filtered ? lv.rows.length : query.data?.total}
+          list={lv.bar}
+        />
+      )}
       {query.isError && !query.data ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />
       ) : (
         <DataGrid
           columns={columns}
           data={lv.rows}
-          getRowId={(c) => c.id}
+          getRowId={customerId}
+          selection={sel.selection}
+          onSelectionChange={sel.setSelection}
           loading={query.isPending}
           total={filtered ? lv.rows.length : query.data?.total}
           onAddRow={openNew}
@@ -106,6 +134,14 @@ export default function CustomersPage() {
         />
       )}
       <NewCustomerSheet open={creating} onOpenChange={setCreating} />
+      {role === "manager" ? (
+        <TransferDialog
+          customers={sel.selected}
+          open={transferring}
+          onOpenChange={setTransferring}
+          onDone={sel.clear}
+        />
+      ) : null}
     </PageFrame>
   )
 }

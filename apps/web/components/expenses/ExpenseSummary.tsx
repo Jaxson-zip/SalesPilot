@@ -1,4 +1,4 @@
-import { Building2, Calendar, CircleDot, Coins, Tag as TagIcon, Text, Users } from "lucide-react"
+import { Building2, Calendar, CircleDot, Coins, Tag as TagIcon, Target, Text, Users } from "lucide-react"
 
 import { Chip } from "@/components/biz/Chip"
 import { FieldRow } from "@/components/biz/FieldRow"
@@ -29,6 +29,9 @@ export function ExpenseSummary({ e }: { e: ExpenseDetail }) {
       </FieldRow>
       <FieldRow icon={Building2} label="关联客户">
         {e.customer ? <Chip name={e.customer.name} logo={e.customer.name.slice(0, 1)} /> : "—"}
+      </FieldRow>
+      <FieldRow icon={Target} label="关联商机">
+        {e.opportunity?.name ?? "—"}
       </FieldRow>
       <FieldRow icon={Users} label="参与人">
         <span title={e.participants ?? undefined}>{e.participants || "—"}</span>

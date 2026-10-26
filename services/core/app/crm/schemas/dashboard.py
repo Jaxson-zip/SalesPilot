@@ -16,6 +16,8 @@ class Dashboard(BaseModel):
     pending_approvals: int
     estimated_commission_month: int
     confirmed_commission_month: int
+    tasks_today: int = 0  # v3 §12：今天到期的未完成任务
+    tasks_overdue: int = 0  # v3 §12：已逾期的任务
     funnel: list[PipelineStage]
 
 

@@ -45,7 +45,7 @@ export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const customerId = decodeURIComponent(id)
   const { role } = useSession()
-  const { canFollowup, canAiWrite } = usePermissions()
+  const { canFollowup, canAiWrite, canEdit } = usePermissions()
   const query = useCustomer(customerId)
   const [tab, setTab] = useState("timeline")
   const composerRef = useRef<HTMLTextAreaElement>(null)
@@ -82,7 +82,7 @@ export default function CustomerDetailPage() {
     body = (
       <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto lg:flex-row lg:overflow-hidden">
         <div className="shrink-0 border-b border-zinc-200 p-4 lg:w-[340px] lg:overflow-y-auto lg:border-r lg:border-b-0">
-          <CustomerFields c={cust} role={role} />
+          <CustomerFields c={cust} role={role} editable={canEdit(cust.owner?.id)} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col lg:min-h-0">
           <RecordTabs

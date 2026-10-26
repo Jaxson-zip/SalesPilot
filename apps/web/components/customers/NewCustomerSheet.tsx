@@ -8,7 +8,14 @@ import { FormSheet } from "@/components/biz/FormSheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useCreateCustomer } from "@/hooks/useCustomers"
-import { EMPTY_CUSTOMER_FORM, toCustomerCreate, type CustomerFormErrors, type CustomerFormValues } from "@/lib/customer"
+import {
+  EMPTY_CUSTOMER_FORM,
+  INDUSTRY_OPTIONS,
+  SIZE_OPTIONS,
+  toCustomerCreate,
+  type CustomerFormErrors,
+  type CustomerFormValues,
+} from "@/lib/customer"
 import type { CustomerLevel } from "@/types/api"
 
 const LEVEL_OPTIONS: { value: CustomerLevel; label: string }[] = [
@@ -17,7 +24,10 @@ const LEVEL_OPTIONS: { value: CustomerLevel; label: string }[] = [
   { value: "C", label: "C 级" },
 ]
 
-type TextKey = "name" | "industry" | "size" | "address" | "website"
+const INDUSTRY_SELECT = INDUSTRY_OPTIONS.map((x) => ({ value: x, label: x }))
+const SIZE_SELECT = SIZE_OPTIONS.map((x) => ({ value: x, label: x }))
+
+type TextKey = "name" | "address" | "website"
 
 /** 新建客户 Sheet：名称、行业、等级、规模、地址、网站、年度预算；成功后刷新列表并打开客户详情 */
 export function NewCustomerSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
@@ -75,7 +85,16 @@ export function NewCustomerSheet({ open, onOpenChange }: { open: boolean; onOpen
     >
       {text("name", "客户名称", "例如：深圳明理律师事务所", true)}
       <div className="grid grid-cols-2 gap-3">
-        {text("industry", "行业", "例如：法律")}
+        <FormField label="行业" error={errors.industry} htmlFor="cust-industry">
+          <SimpleSelect
+            id="cust-industry"
+            value={v.industry}
+            onChange={(x) => set("industry", x)}
+            options={INDUSTRY_SELECT}
+            placeholder="选择行业"
+            ariaLabel="行业"
+          />
+        </FormField>
         <FormField label="等级" htmlFor="cust-level">
           <SimpleSelect
             value={v.level}
@@ -86,7 +105,16 @@ export function NewCustomerSheet({ open, onOpenChange }: { open: boolean; onOpen
           />
         </FormField>
       </div>
-      {text("size", "规模", "例如：200–500 人")}
+      <FormField label="规模" error={errors.size} htmlFor="cust-size">
+        <SimpleSelect
+          id="cust-size"
+          value={v.size}
+          onChange={(x) => set("size", x)}
+          options={SIZE_SELECT}
+          placeholder="选择人数规模"
+          ariaLabel="规模"
+        />
+      </FormField>
       {text("address", "地址", "例如：深圳市南山区科技园")}
       {text("website", "网站", "例如：https://example.com")}
       <FormField label="年度预算" error={errors.annual_budget} hint="单位：元" htmlFor="cust-budget">

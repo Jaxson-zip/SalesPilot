@@ -37,6 +37,7 @@ from app.rules import (
     check_margin,
     load_rules,
 )
+from app.rules.crm_calc import discount_rate_of, quote_valid_until
 
 RULE_TRANSITION = "quote_status_transition"
 # 动作 → (允许的当前状态, 结果状态)；submit 的结果由规则决定
@@ -104,6 +105,7 @@ def create_from_tier(
         total_cost=total_cost,
         total_price=tier.total_price,
         margin_rate=margin.margin_rate,
+        discount_rate=discount_rate_of(sum(i.total_price for i in tier.items), tier.total_price),
         idempotency_key=idempotency_key,
         source="agent",
         owner_id=user.id,
@@ -165,12 +167,16 @@ def get_quote(db: Session, user: CurrentUser, quote_id: uuid.UUID) -> QuoteDetai
     quote = _load(db, user, quote_id)
     db.refresh(quote)
     contract = _contract_of(db, quote.id)
+    lines = quote_query.to_lines(quote_query.items_of(db, quote.id))
     return QuoteDetail(
         **quote_query.to_items(db, [quote])[0].model_dump(),
-        items=quote_query.to_lines(quote_query.items_of(db, quote.id)),
+        items=lines,
         approvals=quote_query.approvals_of(db, "quote", quote.id),
         contract_id=contract.id if contract else None,
         estimated_commission=_estimated_commission(db, quote, contract),
+        list_price=sum(i.subtotal_price for i in lines),
+        discount_rate=quote.discount_rate,
+        valid_until=quote_valid_until(quote.created_at, rules_for(quote)),
     )
 
 

@@ -114,12 +114,16 @@ def test_tool_update_stage_reuses_rules(client: TestClient, tracker: Tracker) ->
 
 def test_tool_submit_expense_and_decide(tracker: Tracker) -> None:
     args = {"type": "entertainment", "amount": 86_000, "headcount": 4,
+            "participants": "客户：王律师、陈工；我方：张晨、李薇",
             "occurred_on": date(2026, 10, 24).isoformat(), "customer_id": str(C_MINGLI),
             "reason": "测试-Agent 报销", "idempotency_key": uuid.uuid4().hex}  # fmt: skip
     res = _call(Role.SALES, "submit_expense", args)
     assert res.ok and res.data["status"] == "draft"  # type: ignore[attr-defined]
     tracker.expenses.append(uuid.UUID(res.data["id"]))  # type: ignore[attr-defined]
     assert "上传发票" in res.summary  # type: ignore[attr-defined]
+    # 人名匹配到 2 名联系人 + 1 名同事，加本人共 4 人（契约 v3 §17）
+    assert res.data["headcount"] == 4 and len(res.data["contacts"]) == 2  # type: ignore[attr-defined]
+    assert [u["name"] for u in res.data["colleagues"]] == ["李薇"]  # type: ignore[attr-defined]
     dup = _call(Role.SALES, "submit_expense", args)
     assert dup.error["code"] == 40901  # type: ignore[attr-defined]
     approval = {"approval_id": str(uuid.uuid4()), "decision": "approve"}
@@ -130,3 +134,28 @@ def test_tool_submit_expense_and_decide(tracker: Tracker) -> None:
 def test_tool_pipeline_summary() -> None:
     res = _call(Role.SALES, "pipeline_summary", {})
     assert res.ok and "weighted_amount" in res.data  # type: ignore[attr-defined]
+
+
+def test_tool_create_task(client: TestClient, tracker: Tracker) -> None:
+    opp = new_opp(client, tracker)
+    args = {"title": "约客户做演示", "due_at": "2026-12-01T10:00:00", "type": "meeting",
+            "subject_type": "opportunity", "subject_id": opp["id"]}  # fmt: skip
+    res = _call(Role.SALES, "create_task", args)
+    assert res.ok and "12-01 10:00" in res.summary  # type: ignore[attr-defined]
+    tracker.tasks.append(uuid.UUID(res.data["id"]))  # type: ignore[attr-defined]
+    denied = _call(Role.ADMIN, "create_task", args)
+    assert denied.error["data"]["rule"] == "role_forbidden"  # type: ignore[attr-defined]
+
+
+def test_tool_submit_expense_unmatched_names_become_extra_guests(tracker: Tracker) -> None:
+    args = {"type": "transport", "amount": 30_000, "headcount": 3, "participants": "张晨和两位朋友",
+            "occurred_on": date(2026, 10, 24).isoformat(), "reason": "测试-打车",
+            "idempotency_key": uuid.uuid4().hex}  # fmt: skip
+    res = _call(Role.SALES, "submit_expense", args)
+    assert res.ok, res  # type: ignore[attr-defined]
+    tracker.expenses.append(uuid.UUID(res.data["id"]))  # type: ignore[attr-defined]
+    assert res.data["headcount"] == 3 and res.data["extra_guests"] == 2  # type: ignore[attr-defined]
+    no_contact = {**args, "type": "entertainment", "customer_id": str(C_MINGLI),
+                  "idempotency_key": uuid.uuid4().hex}  # fmt: skip
+    failed = _call(Role.SALES, "submit_expense", no_contact)  # 招待必须至少 1 名客户联系人
+    assert failed.error["code"] == 40001  # type: ignore[attr-defined]

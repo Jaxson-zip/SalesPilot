@@ -4,6 +4,7 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from app.crm.services.demo import demo_id
 from seed.business_data import E_MINGLI
 from seed.data import C_MINGLI, C_PC3H
 from seed.files import invoice_pdf, receipt_png
@@ -11,15 +12,20 @@ from tests.api.conftest import ADMIN_H, MANAGER_H, SALES2_H, SALES_H, Tracker
 
 PDF = invoice_pdf("Invoice T", "1.00")
 PNG = receipt_png(8, 8)
+CONTACT_WANG = demo_id("contact:mingli:wang")
 
 
 def new_expense(
     client: TestClient, tracker: Tracker, amount: int = 40_000, headcount: int = 4, **extra: object
 ) -> dict:
+    """headcount 由后端计算（契约 v3 §17）：招待 = 王律师 + 本人 + 其他人数。"""
+    entertainment = extra.get("type", "entertainment") == "entertainment"
+    known = 2 if entertainment else 1
     body = {
         "type": "entertainment",
         "amount": amount,
-        "headcount": headcount,
+        "contact_ids": [str(CONTACT_WANG)] if entertainment else [],
+        "extra_guests": headcount - known,
         "occurred_on": "2026-10-24",
         "customer_id": str(C_MINGLI),
         "reason": "测试-方案沟通晚餐",

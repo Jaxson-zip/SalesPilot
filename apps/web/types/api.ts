@@ -147,3 +147,5 @@ export interface SourceRef {
 
 /* ---------- 业务模块（商机 · 报价 · 合同 · 报销 · 审批 · 工作台 · 行业包） ---------- */
 export * from "@/types/biz"
+export * from "@/types/biz-customer"
+export * from "@/types/biz-v3"

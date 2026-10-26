@@ -3,6 +3,7 @@
  * 金额一律为整数「分」；比例 0–1（win_rate 例外，0–100 整数）；时间 ISO 8601。
  */
 import type { UserBrief } from "@/types/api"
+import type { NextTask } from "@/types/biz-v3"
 
 /* ---------- 公共对象（契约 §0） ---------- */
 export type DataView = "mine" | "team" | "all"
@@ -62,6 +63,9 @@ export interface DashboardData {
   estimated_commission_month: number
   confirmed_commission_month: number
   funnel: FunnelStage[]
+  /** v3 §12：今天到期 / 已逾期的未完成任务数（后端未就绪时缺省） */
+  tasks_today?: number
+  tasks_overdue?: number
 }
 
 export interface ActivityListParams {
@@ -86,6 +90,12 @@ export interface OpportunityItem {
   product_line: ProductLineBrief | null
   owner: UserBrief
   updated_at: string
+  /** v3 §12：最早的未完成任务；undefined = 后端还没返回该字段 */
+  next_task?: NextTask | null
+  /** v3 §13：停滞提醒 */
+  last_activity_at?: string | null
+  idle_days?: number
+  stale?: boolean
 }
 
 export interface OpportunityDetail extends OpportunityItem {
@@ -172,6 +182,9 @@ export interface QuoteDetail extends QuoteItem {
   approvals: ApprovalBrief[]
   contract_id: string | null
   estimated_commission: number
+  /** v3 §14：整单折扣 0–1；有效期 YYYY-MM-DD（后端未就绪时缺省） */
+  discount_rate?: number
+  valid_until?: string | null
 }
 
 export interface QuoteListParams {
@@ -260,11 +273,16 @@ export interface ExpenseDetail extends ExpenseItem {
   opportunity: OppBrief | null
   attachments: AttachmentOut[]
   policy_check: PolicyCheck
+  /** v3 §17 */
+  contacts?: { id: string; name: string; title: string | null }[]
+  colleagues?: UserBrief[]
+  extra_guests?: number
 }
 
 export interface ExpenseCreate {
   type: ExpenseType
   amount: number
+  /** v3 §17 起由后端按参与人计算；前端仍传同样算法的结果，兼容旧后端 */
   headcount: number
   occurred_on: string
   participants?: string
@@ -272,6 +290,10 @@ export interface ExpenseCreate {
   opportunity_id?: string
   reason: string
   idempotency_key?: string
+  /** v3 §17：客户方联系人 / 我方同事（不含申请人本人）/ 其他人数 */
+  contact_ids?: string[]
+  colleague_ids?: string[]
+  extra_guests?: number
 }
 
 /** POST /api/expenses/precheck（已有接口，app/rules/calculators.py ExpenseCheck） */
@@ -331,67 +353,4 @@ export interface PackOut {
   name: string
   description: string
   version: string
-}
-
-/* ---------- 客户详情补充（§8） ---------- */
-export type FollowupType = "phone" | "visit" | "wechat" | "email"
-
-/** 契约未给出返回结构，与 core schemas/dashboard.py FollowupItem 对齐（owner 为前端期望的可选字段） */
-export interface FollowupItem {
-  id: string
-  customer_id?: string
-  opportunity_id?: string | null
-  type: FollowupType | "ai"
-  content: string
-  source: ActivitySource
-  occurred_at: string | null
-  created_at: string
-  owner?: UserBrief | null
-}
-
-export interface FollowupCreate {
-  type: FollowupType
-  content: string
-  occurred_at?: string
-  opportunity_id?: string
-}
-
-/** 契约未给出返回结构，按 contacts 表字段约定（见汇报） */
-export interface ContactItem {
-  id: string
-  name: string
-  title: string | null
-  phone: string | null
-  is_decision_maker: boolean
-}
-
-/** POST /api/customers（core schemas/customer.py CustomerCreate；annual_budget 单位：分） */
-export type CustomerLevel = "A" | "B" | "C"
-
-export interface CustomerCreate {
-  name: string
-  industry?: string
-  level?: CustomerLevel
-  size?: string
-  address?: string
-  website?: string
-  annual_budget?: number
-  tags?: string[]
-}
-
-/** GET /api/customers/{id}（已有接口，CustomerDetail） */
-export interface CustomerDetail {
-  id: string
-  name: string
-  industry: string | null
-  level: string
-  owner: UserBrief | null
-  website: string | null
-  opportunity_amount: number
-  last_followup_at: string | null
-  size: string | null
-  address: string | null
-  annual_budget: number | null
-  tags: string[]
-  created_at: string
 }

@@ -20,16 +20,18 @@ import { Chip } from "@/components/biz/Chip"
 import { FieldRow } from "@/components/biz/FieldRow"
 import { FormSheet } from "@/components/biz/FormSheet"
 import { QueryError } from "@/components/biz/QueryStatus"
+import { PackName } from "@/components/biz/PackName"
 import { Tag } from "@/components/biz/Tag"
+import { SubjectTasks } from "@/components/tasks/TaskList"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOpportunity } from "@/hooks/useOpportunities"
 import { formatFen, formatRelative } from "@/lib/format"
 import { activityActionLabel, labelOf, QUOTE_STATUS_META, STAGE_META, STAGE_ORDER } from "@/lib/labels"
 import { isFinalStage, stageBarState } from "@/lib/pipeline"
+import { staleText } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 import type { OpportunityDetail, OpportunityItem, OpportunityStage } from "@/types/api"
-import { PackName } from "@/components/biz/PackName"
 
 const BAR_CLS = {
   done: "bg-zinc-200 text-zinc-700",
@@ -172,7 +174,7 @@ function RecentActivities({ detail }: { detail: OpportunityDetail | undefined })
   )
 }
 
-/** OpportunitySheet：阶段条、字段、AI 下一步建议、最近动态 */
+/** OpportunitySheet：阶段条、字段（含停滞提醒）、下一步任务、最近动态 */
 export function OpportunitySheet({
   opp,
   editable,
@@ -227,6 +229,11 @@ export function OpportunitySheet({
                 <Chip name={o.customer.name} logo={o.customer.name.slice(0, 1)} />
                 <span className="shrink-0">· 更新于 {formatRelative(o.updated_at)}</span>
               </div>
+              {staleText(o) ? (
+                <div className="mt-1.5">
+                  <Tag color="orange">{staleText(o)}</Tag>
+                </div>
+              ) : null}
             </div>
           </div>
           {editable ? (
@@ -235,15 +242,8 @@ export function OpportunitySheet({
             <StageReadOnly stage={o.stage} />
           )}
           <Fields o={o} />
-          <div className="flex gap-2 rounded-lg border border-violet-200 bg-violet-50/60 px-3 py-2.5 text-violet-900">
-            <Sparkles className="text-ai mt-0.5 size-4 shrink-0" />
-            <div className="min-w-0">
-              <div className="font-medium">下一步建议</div>
-              <div className="mt-0.5 text-violet-800/90">
-                在 AI 方案工作台询问「{o.name} 下一步怎么推进」，AI 会结合跟进记录和行业包给出建议。
-              </div>
-            </div>
-          </div>
+          {/* U9：去掉固定文字的「下一步建议」，换成真实的下一步任务（v3 §12） */}
+          <SubjectTasks subjectType="opportunity" subjectId={o.id} subjectName={o.name} editable={editable} />
           {detail.isPending ? (
             <Skeleton className="h-24 w-full" />
           ) : detail.isError ? (

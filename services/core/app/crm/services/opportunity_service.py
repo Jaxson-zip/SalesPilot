@@ -25,8 +25,9 @@ from app.crm.schemas.opportunity import (
     PipelineSummary,
     StageChange,
 )
-from app.crm.services import activity_service, lookup, quote_query
-from app.rules import weighted_amount
+from app.crm.services import activity_service, lookup, opportunity_insights, quote_query
+from app.rules import load_rules, weighted_amount
+from app.rules.crm_calc import default_win_rate
 
 RULE_STAGE_FINAL = "opportunity_stage_final"
 
@@ -51,6 +52,7 @@ def to_items(db: Session, opps: list[Opportunity]) -> list[OpportunityItem]:
     customers = lookup.customers(db, (o.customer_id for o in opps))
     owners = lookup.users(db, (o.owner_id for o in opps))
     lines = lookup.product_lines(db, (o.product_line_id for o in opps))
+    extra = opportunity_insights.insights(db, opps)
     return [
         OpportunityItem(
             id=o.id,
@@ -64,6 +66,7 @@ def to_items(db: Session, opps: list[Opportunity]) -> list[OpportunityItem]:
             owner=lookup.pick(owners, o.owner_id),
             lost_reason=o.lost_reason,
             updated_at=o.updated_at,
+            **extra[o.id],
         )
         for o in opps
     ]
@@ -191,6 +194,7 @@ def apply_stage(
         return
     old = opp.stage
     opp.stage = change.stage
+    opp.win_rate = default_win_rate(change.stage, load_rules())  # 阶段默认赢率（rules.yaml）
     if change.stage in FINAL_STAGES:
         opp.closed_at = datetime.now(UTC)
     content = f"{STAGE_LABELS[old]} → {STAGE_LABELS[change.stage]}"

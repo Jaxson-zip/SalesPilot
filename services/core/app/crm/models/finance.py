@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import ARRAY, BigInteger, Date, DateTime, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -20,6 +20,10 @@ class Expense(OwnedMixin, Base):
     amount: Mapped[int] = mapped_column(BigInteger)
     headcount: Mapped[int] = mapped_column(Integer, default=1)
     participants: Mapped[str | None] = mapped_column(Text)
+    # v3 参与人结构化；旧数据为 NULL（详情返回空数组）
+    contact_ids: Mapped[list[uuid.UUID] | None] = mapped_column(ARRAY(Uuid))
+    colleague_ids: Mapped[list[uuid.UUID] | None] = mapped_column(ARRAY(Uuid))
+    extra_guests: Mapped[int | None] = mapped_column(Integer)
     occurred_on: Mapped[date] = mapped_column(Date)
     customer_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("customers.id"))
     opportunity_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("opportunities.id"))

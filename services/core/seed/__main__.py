@@ -21,6 +21,8 @@ logger = logging.getLogger("seed")
 
 # --reset 清空的业务表（保留组织、产品线、知识库）。录演示视频前用它去掉测试和试用产生的数据。
 RESET_TABLES = (
+    "notifications",
+    "tasks",
     "activities",
     "approvals",
     "attachments",

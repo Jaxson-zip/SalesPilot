@@ -57,6 +57,7 @@ class TestTools:
             "search_policy",
             "submit_expense",
             "decide_approval",
+            "create_task",
         }
         assert set(TOOLS) == expected
         confirm = {n for n, t in TOOLS.items() if t.needs_confirm}
@@ -65,6 +66,7 @@ class TestTools:
             "generate_quote",
             "submit_expense",
             "decide_approval",
+            "create_task",
         }
 
     def test_success_emits_start_end(self, tool_ctx: ToolContext) -> None:

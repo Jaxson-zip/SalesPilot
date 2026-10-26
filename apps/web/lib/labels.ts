@@ -97,7 +97,9 @@ const ACTIVITY_LABEL_BY_SUBJECT: Record<string, string> = {
   "opportunity.create": "创建了商机",
   "opportunity.update": "修改了商机",
   "opportunity.stage_changed": "更新了商机阶段",
+  "opportunity.task_done": "完成了任务",
   "quote.create": "生成了报价单",
+  "quote.update": "调整了报价",
   "quote.submit": "提交了报价单",
   "quote.send": "发送了报价单",
   "quote.accept": "客户接受了报价",
@@ -113,6 +115,8 @@ const ACTIVITY_LABEL_BY_SUBJECT: Record<string, string> = {
   "expense.approval_approve": "主管通过了报销",
   "expense.approval_reject": "主管驳回了报销",
   "customer.create": "创建了客户",
+  "customer.task_done": "完成了任务",
+  "customer.transfer": "转移了负责人",
 }
 
 const ACTIVITY_LABEL_BY_ACTION: Record<string, string> = {
@@ -123,6 +127,8 @@ const ACTIVITY_LABEL_BY_ACTION: Record<string, string> = {
   approval_approve: "通过了审批",
   approval_reject: "驳回了审批",
   payment: "登记了回款",
+  task_done: "完成了任务",
+  transfer: "转移了负责人",
   "followup.phone": "记录了电话跟进",
   "followup.visit": "记录了上门拜访",
   "followup.wechat": "记录了微信沟通",

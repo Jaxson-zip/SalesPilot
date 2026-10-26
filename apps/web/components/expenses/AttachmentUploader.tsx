@@ -17,46 +17,61 @@ const KIND_OPTIONS: { value: AttachmentKind; label: string }[] = (["invoice", "r
 )
 
 /**
- * Uploader：票据类型 + 拖拽 / 点击上传区 + 已上传文件列表。
- * 必须先保存草稿拿到报销单 id 才能上传（multipart：file + kind）。
+ * Uploader：票据类型 + 拖拽 / 点击上传区 + 已上传文件列表（multipart：file + kind）。
+ * 还没有草稿时（U5）：选择文件后先调用 ensureDraft 自动保存草稿，拿到 id 再上传；表单不完整时 ensureDraft 返回 null。
  */
 export function AttachmentUploader({
   expenseId,
   attachments,
   editable,
+  ensureDraft,
 }: {
   expenseId: string | null
   attachments: AttachmentOut[]
   editable: boolean
+  /** 没有草稿时自动保存草稿，返回报销单 id；表单校验不通过返回 null */
+  ensureDraft?: () => Promise<string | null>
 }) {
   const [kind, setKind] = useState<AttachmentKind>("invoice")
   const [dragging, setDragging] = useState(false)
+  const [saving, setSaving] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const upload = useUploadAttachment(expenseId)
+  const upload = useUploadAttachment()
   const remove = useDeleteAttachment()
-  const disabled = !expenseId || !editable || upload.isPending
+  const busy = upload.isPending || saving
+  const disabled = !editable || busy || (!expenseId && !ensureDraft)
 
-  const handleFiles = (files: FileList | null) => {
+  const handleFiles = async (files: FileList | null) => {
     if (!files || disabled) return
-    for (const file of Array.from(files)) {
+    const list = Array.from(files).filter((file) => {
       const err = validateAttachmentFile(file)
-      if (err) {
-        toast.error(err)
-        continue
+      if (err) toast.error(err)
+      return !err
+    })
+    if (list.length === 0) return
+    let id = expenseId
+    if (!id && ensureDraft) {
+      setSaving(true)
+      try {
+        id = await ensureDraft()
+      } finally {
+        setSaving(false)
       }
-      upload.mutate({ file, kind }, { onSuccess: () => toast.success(`已上传 ${file.name}`) })
+    }
+    if (!id) return
+    for (const file of list) {
+      upload.mutate({ expenseId: id, file, kind }, { onSuccess: () => toast.success(`已上传 ${file.name}`) })
     }
   }
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     setDragging(false)
-    handleFiles(e.dataTransfer.files)
+    void handleFiles(e.dataTransfer.files)
   }
 
   return (
     <div className="space-y-2">
-      {/* 草稿保存前不能上传，票据类型选择也不显示（避免一个选了也没用的下拉框） */}
-      {editable && expenseId ? (
+      {editable ? (
         <div className="flex items-center gap-2">
           <span className="shrink-0 text-zinc-500">本次上传为</span>
           <div className="w-28">
@@ -90,9 +105,11 @@ export function AttachmentUploader({
           </span>
           <div className="min-w-0">
             <div className="font-medium">
-              {!expenseId ? "保存草稿后即可上传票据" : upload.isPending ? "上传中…" : "点击或拖拽文件到这里上传"}
+              {saving ? "正在保存草稿…" : upload.isPending ? "上传中…" : "点击或拖拽文件到这里上传"}
             </div>
-            <div className="text-xs text-zinc-500">{attachmentSummary(attachments)}</div>
+            <div className="text-xs text-zinc-500">
+              {expenseId ? attachmentSummary(attachments) : "选择文件后会自动保存草稿再上传"}
+            </div>
           </div>
           <input
             ref={inputRef}
@@ -101,7 +118,8 @@ export function AttachmentUploader({
             accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
             className="hidden"
             onChange={(e) => {
-              handleFiles(e.target.files)
+              // handleFiles 在第一个 await 之前已同步复制了文件列表，可以立即清空
+              void handleFiles(e.target.files)
               e.target.value = ""
             }}
           />

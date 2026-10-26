@@ -23,13 +23,28 @@ from app.crm.schemas.finance import (
     ExpenseItem,
     PolicyCheck,
 )
-from app.crm.services import activity_service, approval_service, attachment_query, lookup
+from app.crm.services import (
+    activity_service,
+    approval_service,
+    attachment_query,
+    expense_participants,
+    lookup,
+)
 from app.crm.services.codes import next_code
 from app.crm.services.quote_query import count
 from app.rules import RuleSet, check_expense_policy, load_rules
 
 RULE_MISSING_INVOICE = "expense_missing_invoice"
 KIND_LABELS = {"invoice": "发票", "receipt": "小票", "other": "其他票据"}
+# 由后端计算或单独处理的字段（客户端传入的 headcount / participants 被忽略）
+CREATE_DERIVED = {
+    "customer_id",
+    "headcount",
+    "participants",
+    "contact_ids",
+    "colleague_ids",
+    "extra_guests",
+}
 
 
 def policy_check(data_type: str, amount: int, headcount: int, rules: RuleSet) -> PolicyCheck:
@@ -67,10 +82,16 @@ def create_expense(
         if found is not None:
             raise BizError(ErrorCode.DUPLICATE, "重复提交", {"id": str(found.id)})
     customer_id = _check_links(db, user, data)
-    check = policy_check(data.type, data.amount, data.headcount, load_rules())
+    parts = expense_participants.resolve(db, user, data, customer_id)
+    check = policy_check(data.type, data.amount, parts.headcount, load_rules())
     expense = Expense(
-        **data.model_dump(exclude={"customer_id"}),
+        **data.model_dump(exclude=CREATE_DERIVED),
         customer_id=customer_id,
+        headcount=parts.headcount,
+        participants=parts.text,
+        contact_ids=[c.id for c in parts.contacts],
+        colleague_ids=[u.id for u in parts.colleagues],
+        extra_guests=parts.extra_guests,
         code=next_code(db, Expense.code, "E"),
         status="draft",
         policy_check=check.model_dump(),
@@ -150,9 +171,13 @@ def get_expense(db: Session, user: CurrentUser, expense_id: uuid.UUID) -> Expens
     expense = load_expense(db, user, expense_id)
     db.refresh(expense)
     opps = lookup.opportunities(db, [expense.opportunity_id])
+    contacts, colleagues = expense_participants.briefs_of(db, expense)
     return ExpenseDetail(
         **to_items(db, [expense])[0].model_dump(),
         participants=expense.participants,
+        contacts=contacts,
+        colleagues=colleagues,
+        extra_guests=expense.extra_guests or 0,
         opportunity=lookup.pick(opps, expense.opportunity_id),
         attachments=attachment_query.list_for(db, "expense", expense.id),
         policy_check=_check_of(expense),

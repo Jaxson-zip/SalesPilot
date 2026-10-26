@@ -1,5 +1,5 @@
 /** 报销表单与票据的纯函数：表单转换、票据齐全判断、上传文件校验 */
-import { localDate } from "@/lib/format"
+import { formatFen, localDate } from "@/lib/format"
 import { parsePositiveInt, yuanToFen } from "@/lib/money"
 import type {
   AttachmentKind,
@@ -14,55 +14,105 @@ export interface ExpenseFormValues {
   type: ExpenseType
   /** 元，字符串 */
   amount: string
-  headcount: string
   /** YYYY-MM-DD */
   occurred_on: string
   customer_id: string | null
-  participants: string
+  opportunity_id: string | null
+  /** 客户方参与人（所关联客户的联系人） */
+  contact_ids: string[]
+  /** 我方参与人（本团队同事，不含申请人本人——本人始终算在内） */
+  colleague_ids: string[]
+  /** 其他人数（字符串，空 = 0） */
+  extra_guests: string
   reason: string
 }
 
-export type FormResult<T> =
-  { ok: true; value: T } | { ok: false; errors: Partial<Record<keyof ExpenseFormValues, string>> }
+export type ExpenseFormErrors = Partial<Record<keyof ExpenseFormValues, string>>
 
-/** 表单 → ExpenseCreate（金额转分；可选字段空串不传） */
+export type FormResult<T> = { ok: true; value: T } | { ok: false; errors: ExpenseFormErrors }
+
+/** 其他人数：空串 = 0；非法 → null */
+export function parseExtraGuests(input: string): number | null {
+  if (!input.trim()) return 0
+  return parsePositiveInt(input, { min: 0, max: 999 })
+}
+
+/**
+ * 总人数（契约 v3 §17，与后端同一算法）= 客户方联系人 + 我方同事 + 申请人本人 + 其他人数。
+ * 其他人数非法时按 0 计。
+ */
+export function participantCount(v: Pick<ExpenseFormValues, "contact_ids" | "colleague_ids" | "extra_guests">): number {
+  return v.contact_ids.length + v.colleague_ids.length + 1 + (parseExtraGuests(v.extra_guests) ?? 0)
+}
+
+/** 人均（分，四舍五入）；只用于表单上的展示，是否超标以后端 precheck 为准 */
+export function perPersonFen(amountFen: number, headcount: number): number {
+  return headcount > 0 ? Math.round(amountFen / headcount) : 0
+}
+
+/** 表单上的「共 N 人，人均 ¥xx」；金额还没填时只显示人数 */
+export function headcountSummary(amountYuan: string, headcount: number): string {
+  const fen = yuanToFen(amountYuan)
+  if (fen === null || fen <= 0) return `共 ${headcount} 人`
+  return `共 ${headcount} 人，人均 ${formatFen(perPersonFen(fen, headcount))}`
+}
+
+/** 勾选 / 取消一个参与人（chip 多选） */
+export function toggleId(ids: string[], id: string): string[] {
+  return ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+}
+
+/** 参与人相关字段（headcount 仍按同一算法传给后端，兼容旧后端） */
+function participantFields(
+  v: ExpenseFormValues,
+): Pick<ExpenseCreate, "headcount" | "contact_ids" | "colleague_ids" | "extra_guests"> {
+  return {
+    headcount: participantCount(v),
+    contact_ids: v.contact_ids,
+    colleague_ids: v.colleague_ids,
+    extra_guests: parseExtraGuests(v.extra_guests) ?? 0,
+  }
+}
+
+/** 表单 → ExpenseCreate（金额转分；可选字段空不传）。客户招待：必须关联客户，且至少 1 名客户方参与人 */
 export function toExpenseCreate(v: ExpenseFormValues, idempotencyKey?: string): FormResult<ExpenseCreate> {
-  const errors: Partial<Record<keyof ExpenseFormValues, string>> = {}
+  const errors: ExpenseFormErrors = {}
   const amount = yuanToFen(v.amount)
   if (amount === null || amount <= 0) errors.amount = "请输入大于 0 的金额，最多两位小数"
-  const headcount = parsePositiveInt(v.headcount, { min: 1, max: 1000 })
-  if (headcount === null) errors.headcount = "人数至少为 1"
+  if (parseExtraGuests(v.extra_guests) === null) errors.extra_guests = "其他人数为 0–999 的整数"
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v.occurred_on)) errors.occurred_on = "请选择发生日期"
   if (!v.reason.trim()) errors.reason = "请填写事由"
-  if (v.type === "entertainment" && !v.participants.trim()) errors.participants = "客户招待需写明双方参与人"
-  if (amount === null || amount <= 0 || headcount === null || Object.keys(errors).length > 0) {
-    return { ok: false, errors }
+  if (v.type === "entertainment") {
+    if (!v.customer_id) errors.customer_id = "客户招待需关联客户"
+    else if (v.contact_ids.length === 0) errors.contact_ids = "客户招待至少选择 1 名客户方参与人"
   }
+  if (amount === null || amount <= 0 || Object.keys(errors).length > 0) return { ok: false, errors }
   const body: ExpenseCreate = {
     type: v.type,
     amount,
-    headcount,
     occurred_on: v.occurred_on,
     reason: v.reason.trim(),
+    ...participantFields(v),
   }
-  if (v.participants.trim()) body.participants = v.participants.trim()
   if (v.customer_id) body.customer_id = v.customer_id
+  if (v.customer_id && v.opportunity_id) body.opportunity_id = v.opportunity_id
   if (idempotencyKey) body.idempotency_key = idempotencyKey
   return { ok: true, value: body }
 }
 
-/** 实时制度校验的请求体：只要金额、人数、日期、类型合法就可以校验（事由等可以还没填） */
+/** 实时制度校验的请求体：只要金额合法就可以校验（事由等可以还没填）；人数随参与人实时变化 */
 export function toPrecheckBody(v: ExpenseFormValues): ExpenseCreate | null {
   const amount = yuanToFen(v.amount)
-  const headcount = parsePositiveInt(v.headcount, { min: 1, max: 1000 })
-  if (amount === null || amount <= 0 || headcount === null) return null
-  return {
+  if (amount === null || amount <= 0 || parseExtraGuests(v.extra_guests) === null) return null
+  const body: ExpenseCreate = {
     type: v.type,
     amount,
-    headcount,
     occurred_on: v.occurred_on || localDate(),
     reason: v.reason.trim() || "precheck",
+    ...participantFields(v),
   }
+  if (v.customer_id) body.customer_id = v.customer_id
+  return body
 }
 
 /** 提交前需要的票据种类（契约 §5：招待需发票 + 小票，其他类型至少一张发票） */

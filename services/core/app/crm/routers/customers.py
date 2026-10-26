@@ -12,7 +12,8 @@ from app.crm.routers.deps import DbDep
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.customer import CustomerCreate, CustomerDetail, CustomerListItem
 from app.crm.schemas.dashboard import ContactItem, FollowupIn, FollowupItem
-from app.crm.services import customer_service, followup_service
+from app.crm.schemas.task import CustomerTransfer, TransferResult
+from app.crm.services import customer_service, followup_service, transfer_service
 
 router = APIRouter(prefix="/api/customers", tags=["customers"])
 
@@ -28,6 +29,13 @@ def list_customers(
 ) -> ApiResponse[Page[CustomerListItem]]:
     params = PageParams(page=page, page_size=page_size)
     return ok(customer_service.list_customers(db, user, view, q, params))
+
+
+@router.post("/transfer", response_model=ApiResponse[TransferResult])
+def transfer_customers(
+    body: CustomerTransfer, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[TransferResult]:
+    return ok(transfer_service.transfer_customers(db, user, body))
 
 
 @router.get("/{customer_id}", response_model=ApiResponse[CustomerDetail])

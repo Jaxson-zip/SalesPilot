@@ -14,15 +14,19 @@ from app.crm.schemas.finance import (
     ExpenseType,
 )
 from app.crm.schemas.opportunity import STAGE_LABELS, StageChange
+from app.crm.schemas.task import TaskCreate
 from app.crm.services import (
     approval_service,
     customer_service,
+    expense_participants,
     expense_service,
     finance_service,
     followup_service,
+    task_service,
 )
 from app.crm.services import opportunity_service as opp_service
 from app.crm.services.followup_service import FollowupCreate
+from app.rules.crm_calc import LOCAL_TZ
 
 
 class SearchCustomerArgs(BaseModel):
@@ -99,9 +103,13 @@ def calc_commission(ctx: ToolContext, args: CalcCommissionArgs) -> ToolResult:
 class SubmitExpenseArgs(BaseModel):
     type: ExpenseType = "entertainment"
     amount: int = Field(gt=0, description="金额（分）")
-    headcount: int = Field(default=1, ge=1)
+    headcount: int | None = Field(default=None, ge=1, description="总人数（含本人），可不填")
     occurred_on: date
-    participants: str | None = Field(default=None, max_length=500)
+    participants: str | None = Field(
+        default=None, max_length=500, description="对话里提到的参与人原文，用于匹配联系人和同事"
+    )
+    contact_names: list[str] = Field(default_factory=list, max_length=50)
+    colleague_names: list[str] = Field(default_factory=list, max_length=50)
     customer_id: uuid.UUID | None = None
     opportunity_id: uuid.UUID | None = None
     reason: str = Field(min_length=1, max_length=500)
@@ -116,11 +124,27 @@ EXPENSE_SUMMARIES = {
 
 
 def submit_expense(ctx: ToolContext, args: SubmitExpenseArgs) -> ToolResult:
-    """新建报销单（同时做制度校验）；票据齐全时直接提交。"""
-    data = ExpenseCreate(**args.model_dump())
+    """新建报销单（同时做制度校验）；票据齐全时直接提交。
+
+    参与人：按人名匹配客户联系人和本团队同事，匹配不到的人数计入 extra_guests（契约 v3 §17）。
+    """
+    names = " ".join([args.participants or "", *args.contact_names, *args.colleague_names])
+    data = ExpenseCreate(
+        **args.model_dump(exclude={"headcount", "participants", "contact_names", "colleague_names"})
+    )
     with ctx.session() as db:
+        data = expense_participants.from_conversation(db, ctx.user, data, names, args.headcount)
         out = expense_service.create_and_submit(db, ctx.user, data, source="agent")
     summary = EXPENSE_SUMMARIES.get(out.status, "报销单 {code}").format(code=out.code)
+    return ToolResult(ok=True, summary=summary, data=out.model_dump(mode="json"))
+
+
+def create_task(ctx: ToolContext, args: TaskCreate) -> ToolResult:
+    """给自己负责的客户 / 商机建下一步任务（契约 v3 §12）。"""
+    with ctx.session() as db:
+        out = task_service.create_task(db, ctx.user, args)
+    due = out.due_at.astimezone(LOCAL_TZ).strftime("%m-%d %H:%M")
+    summary = f"已创建任务「{out.title}」，{due} 到期"
     return ToolResult(ok=True, summary=summary, data=out.model_dump(mode="json"))
 
 
@@ -161,6 +185,14 @@ CRM_TOOLS: list[ToolSpec] = [
         "提交报销（提交前先做制度校验）",
         SubmitExpenseArgs,
         submit_expense,
+        write=True,
+        needs_confirm=True,
+    ),
+    ToolSpec(
+        "create_task",
+        "给自己负责的客户或商机创建下一步任务（到期时间、类型、备注）",
+        TaskCreate,
+        create_task,
         write=True,
         needs_confirm=True,
     ),

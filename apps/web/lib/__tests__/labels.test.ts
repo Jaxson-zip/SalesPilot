@@ -42,4 +42,18 @@ describe("状态标签（照抄契约 §0）", () => {
     expect(activityActionLabel("payment", "contract")).toBe("登记了回款")
     expect(activityActionLabel("create", "unknown_subject")).toBe("创建了记录")
   })
+
+  it("契约 §0 动作代码表里的每个代码都有中文（回归：v3 曾直接显示 task_done）", () => {
+    const codes: Record<string, string[]> = {
+      opportunity: ["create", "update", "stage_changed", "task_done"],
+      quote: ["create", "update", "submit", "send", "accept", "reject", "approval_approve", "approval_reject"],
+      contract: ["create", "payment"],
+      expense: ["create", "submit", "attachment_added", "attachment_removed", "approval_approve", "approval_reject"],
+      customer: ["create", "task_done", "transfer"],
+    }
+    for (const [subject, actions] of Object.entries(codes)) {
+      for (const action of actions)
+        expect(activityActionLabel(action, subject), `${subject}.${action}`).not.toBe(action)
+    }
+  })
 })

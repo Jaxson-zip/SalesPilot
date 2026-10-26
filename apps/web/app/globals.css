@@ -187,3 +187,42 @@
     text-decoration: underline;
   }
 }
+
+/* 报价单打印页（/quotes/[id]/print）：打印时只输出 .print-root（A4），隐藏应用外壳、工具栏和 toast */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 16mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  body:has(.print-root) > *:not(.print-root) {
+    display: none !important;
+  }
+  .print-root {
+    position: static !important;
+    overflow: visible !important;
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  .print-sheet {
+    box-shadow: none !important;
+    border: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    min-height: 0 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* 侧栏 / 弹窗打开时 Radix 给 body 加 pointer-events:none，toast 会继承，里面的「撤销」就点不了 */
+[data-sonner-toaster] [data-sonner-toast] {
+  pointer-events: auto;
+}

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 
-import { Api, loginAs, PDF, PNG, uniq } from "./helpers"
+import { Api, entertainmentDraft, loginAs, PDF, PNG, uniq } from "./helpers"
 
 interface Expense {
   id: string
@@ -10,13 +10,7 @@ interface Expense {
 
 /** 销售通过接口提交一张超标报销（人均 ¥215），返回报销单 */
 async function overLimitExpense(api: Api): Promise<Expense> {
-  const draft = await api.call<Expense>("POST", "/api/expenses", {
-    type: "entertainment",
-    amount: 86_000,
-    headcount: 4,
-    occurred_on: new Date().toISOString().slice(0, 10),
-    reason: uniq("审批测试 方案沟通晚餐"),
-  })
+  const draft = await entertainmentDraft(api, 86_000, 4, uniq("审批测试 方案沟通晚餐"))
   await api.upload(draft.id, "invoice", "invoice.pdf", "application/pdf", PDF)
   await api.upload(draft.id, "receipt", "receipt.png", "image/png", PNG)
   const submitted = await api.call<Expense>("POST", `/api/expenses/${draft.id}/submit`)

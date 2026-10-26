@@ -29,9 +29,11 @@ from app.crm.services.expense_service import policy_check
 from app.crm.services.quote_service import approval_reasons, commission_lines
 from app.packs.registry import get_pack
 from app.rules import calc_commission, check_expense_policy, check_margin, load_rules
+from app.rules.crm_calc import headcount_of
 from seed import business_data as bd
 from seed.data import SALES
 from seed.files import invoice_pdf, receipt_png
+from seed.workflow import seed_workflow
 
 OWNER = {"owner_id": SALES.id, "team_id": SALES.team_id}
 
@@ -204,6 +206,10 @@ def seed_expenses(db: Session) -> None:
     rules = load_rules()
     skip = {"suggestion", "attachments"}
     for row in bd.EXPENSES:
+        # 人数由结构化参与人计算（契约 v3 §17），不使用种子里写的数字
+        row = {**row, "headcount": headcount_of(
+            len(row["contact_ids"]), len(row["colleague_ids"]), row["extra_guests"]
+        )}  # fmt: skip
         check = policy_check(row["type"], row["amount"], row["headcount"], rules)
         expense = db.merge(
             Expense(
@@ -250,3 +256,5 @@ def seed_business(db: Session) -> None:
     db.flush()
     seed_expenses(db)
     seed_activities(db)
+    db.flush()
+    seed_workflow(db)

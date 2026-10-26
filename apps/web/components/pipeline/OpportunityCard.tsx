@@ -1,20 +1,31 @@
 "use client"
 
 import { useDraggable, type DraggableAttributes, type DraggableSyntheticListeners } from "@dnd-kit/core"
-import { Building2, Calendar, Coins, User } from "lucide-react"
+import { Building2, Calendar, CalendarClock, Coins, User } from "lucide-react"
 import type { KeyboardEvent } from "react"
 
 import { Chip } from "@/components/biz/Chip"
+import { Tag } from "@/components/biz/Tag"
 import { formatFen } from "@/lib/format"
-import { isFinalStage } from "@/lib/pipeline"
+import { expectedCloseText, isFinalStage } from "@/lib/pipeline"
+import { nextStepView, staleText } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 import type { OpportunityItem } from "@/types/api"
 
-/** 预计成交日：YYYY-MM-DD → MM-DD（同年）/ 原样 */
-function shortDate(d: string | null): string {
-  if (!d) return "未设置"
-  const year = String(new Date().getFullYear())
-  return d.startsWith(year) ? d.slice(5, 10) : d.slice(0, 10)
+/** 下一步（v3 §12）：有任务显示「下一步：xxx · 明天」，逾期红色；未终态且没有任务显示淡黄色提示 */
+function NextStepLine({ opp }: { opp: OpportunityItem }) {
+  const v = nextStepView(opp)
+  if (v.kind === "hidden") return null
+  if (v.kind === "missing")
+    return <div className="mt-2 rounded bg-amber-50 px-1.5 py-1 text-xs text-amber-800">未安排下一步</div>
+  return (
+    <div className={cn("mt-2 flex min-w-0 items-center gap-1.5 text-xs", v.overdue ? "text-red-600" : "text-zinc-600")}>
+      <CalendarClock className="size-3.5 shrink-0" />
+      <span className="truncate" title={v.text}>
+        {v.text}
+      </span>
+    </div>
+  )
 }
 
 interface DragBinding {
@@ -25,7 +36,7 @@ interface DragBinding {
 }
 
 /**
- * OpportunityCard：标题 + 客户 / 金额 / 预计成交 / 负责人。
+ * OpportunityCard：标题 + 客户 / 金额 · 赢率 / 预计成交 / 负责人（「我的」视图隐藏）/ 下一步 / 停滞提醒。
  * 整张卡片只有一层可点击元素（role=button）：Enter / 点击打开详情；可拖拽时同一元素上挂拖拽监听，空格开始键盘拖拽。
  */
 export function OpportunityCardBody({
@@ -33,12 +44,16 @@ export function OpportunityCardBody({
   onOpen,
   className,
   drag,
+  showOwner = true,
 }: {
   opp: OpportunityItem
   onOpen?: () => void
   className?: string
   drag?: DragBinding
+  /** 「我的商机」视图里负责人都是自己，不显示（U8） */
+  showOwner?: boolean
 }) {
+  const stale = staleText(opp)
   const dndKeyDown = drag?.listeners?.onKeyDown as ((e: KeyboardEvent<HTMLDivElement>) => void) | undefined
   return (
     <div
@@ -78,22 +93,30 @@ export function OpportunityCardBody({
           <span className="tabular-nums">{formatFen(opp.amount)}</span>
           <span className="text-xs text-zinc-400 tabular-nums">· {opp.win_rate}%</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" title="预计成交日期">
           <Calendar className="size-3.5 shrink-0 text-zinc-400" />
-          {shortDate(opp.expected_close_date)}
+          {expectedCloseText(opp.expected_close_date)}
         </div>
-        <div className="flex min-w-0 items-center gap-2">
-          <User className="size-3.5 shrink-0 text-zinc-400" />
-          <Chip name={opp.owner.name} />
-        </div>
+        {showOwner ? (
+          <div className="flex min-w-0 items-center gap-2">
+            <User className="size-3.5 shrink-0 text-zinc-400" />
+            <Chip name={opp.owner.name} />
+          </div>
+        ) : null}
       </div>
+      <NextStepLine opp={opp} />
+      {stale ? (
+        <div className="mt-2">
+          <Tag color="orange">{stale}</Tag>
+        </div>
+      ) : null}
     </div>
   )
 }
 
-function DraggableCard({ opp, onOpen }: { opp: OpportunityItem; onOpen: () => void }) {
+function DraggableCard({ opp, onOpen, showOwner }: { opp: OpportunityItem; onOpen: () => void; showOwner: boolean }) {
   const drag = useDraggable({ id: opp.id, data: { stage: opp.stage } })
-  return <OpportunityCardBody opp={opp} onOpen={onOpen} drag={drag} />
+  return <OpportunityCardBody opp={opp} onOpen={onOpen} drag={drag} showOwner={showOwner} />
 }
 
 /** 看板卡片：终态商机、非本人负责的商机不能拖，直接渲染卡片本体（不包拖拽层） */
@@ -101,11 +124,14 @@ export function DraggableOpportunityCard({
   opp,
   draggable,
   onOpen,
+  showOwner = true,
 }: {
   opp: OpportunityItem
   draggable: boolean
   onOpen: () => void
+  showOwner?: boolean
 }) {
-  if (!draggable || isFinalStage(opp.stage)) return <OpportunityCardBody opp={opp} onOpen={onOpen} />
-  return <DraggableCard opp={opp} onOpen={onOpen} />
+  if (!draggable || isFinalStage(opp.stage))
+    return <OpportunityCardBody opp={opp} onOpen={onOpen} showOwner={showOwner} />
+  return <DraggableCard opp={opp} onOpen={onOpen} showOwner={showOwner} />
 }

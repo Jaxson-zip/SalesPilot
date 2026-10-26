@@ -3,6 +3,7 @@
 import { FileSignature, Info } from "lucide-react"
 import { useMemo, useState } from "react"
 
+import { BulkBar } from "@/components/biz/BulkBar"
 import { DataGrid } from "@/components/biz/DataGrid"
 import { EmptyState } from "@/components/biz/EmptyState"
 import { FormSheet } from "@/components/biz/FormSheet"
@@ -16,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useContracts } from "@/hooks/useContracts"
 import { useListView } from "@/hooks/useListView"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useRowSelection } from "@/hooks/useRowSelection"
 import { formatFen } from "@/lib/format"
 import { CONTRACT_STATUS_META } from "@/lib/labels"
 import { contractsLabel } from "@/lib/nav"
@@ -85,6 +87,8 @@ function RuleSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: bo
   )
 }
 
+const contractId = (r: ContractItem) => r.id
+
 export default function ContractsPage() {
   const { role } = useSession()
   const { canPay } = usePermissions()
@@ -108,6 +112,7 @@ export default function ContractsPage() {
   })
   const columns = useMemo(() => allColumns.filter((c) => !lv.hidden.includes(c.id)), [allColumns, lv.hidden])
   const filtered = Object.keys(lv.bar.activeFilters).length > 0
+  const sel = useRowSelection(lv.rows, contractId)
 
   return (
     <PageFrame
@@ -125,17 +130,23 @@ export default function ContractsPage() {
       ) : (
         <>
           <StatStrip s={query.data?.summary} loading={query.isPending} />
-          <ViewBar
-            views={VIEWS}
-            value={view}
-            onValueChange={setView}
-            count={filtered ? lv.rows.length : query.data?.total}
-            list={lv.bar}
-          />
+          {sel.count ? (
+            <BulkBar count={sel.count} onExport={() => lv.exportRows(sel.selected)} onClear={sel.clear} />
+          ) : (
+            <ViewBar
+              views={VIEWS}
+              value={view}
+              onValueChange={setView}
+              count={filtered ? lv.rows.length : query.data?.total}
+              list={lv.bar}
+            />
+          )}
           <DataGrid
             columns={columns}
             data={lv.rows}
-            getRowId={(c) => c.id}
+            getRowId={contractId}
+            selection={sel.selection}
+            onSelectionChange={sel.setSelection}
             loading={query.isPending}
             total={filtered ? lv.rows.length : query.data?.total}
             empty={

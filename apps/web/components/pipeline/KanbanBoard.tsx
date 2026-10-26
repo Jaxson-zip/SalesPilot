@@ -33,6 +33,8 @@ interface BoardProps {
   canDrag: (opp: OpportunityItem) => boolean
   /** 拖拽到某阶段（含 lost） */
   onMove: (opp: OpportunityItem, to: OpportunityStage) => void
+  /** 卡片上是否显示负责人（「我的商机」视图不显示） */
+  showOwner?: boolean
 }
 
 function Column({ stage, children }: { stage: OpportunityStage; children: ReactNode }) {
@@ -75,7 +77,7 @@ function LostZone({ visible }: { visible: boolean }) {
 }
 
 /** ≥1024：五列等分看板（dnd-kit 拖拽切换阶段，不横向滚动） */
-export function KanbanBoard({ groups, loading, onOpen, onCreate, canDrag, onMove }: BoardProps) {
+export function KanbanBoard({ groups, loading, onOpen, onCreate, canDrag, onMove, showOwner = true }: BoardProps) {
   const [active, setActive] = useState<OpportunityItem | null>(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -110,7 +112,13 @@ export function KanbanBoard({ groups, loading, onOpen, onCreate, canDrag, onMove
                 {loading
                   ? [0, 1].map((i) => <Skeleton key={i} className="h-[118px] w-full rounded-lg" />)
                   : groups[stage].map((o) => (
-                      <DraggableOpportunityCard key={o.id} opp={o} draggable={canDrag(o)} onOpen={() => onOpen(o)} />
+                      <DraggableOpportunityCard
+                        key={o.id}
+                        opp={o}
+                        draggable={canDrag(o)}
+                        onOpen={() => onOpen(o)}
+                        showOwner={showOwner}
+                      />
                     ))}
                 {!loading && groups[stage].length === 0 ? <EmptyColumn droppable={anyDraggable} /> : null}
                 {stage === "lead" && onCreate ? (
@@ -129,7 +137,9 @@ export function KanbanBoard({ groups, loading, onOpen, onCreate, canDrag, onMove
         ))}
       </div>
       <LostZone visible={active !== null} />
-      <DragOverlay>{active ? <OpportunityCardBody opp={active} className="shadow-lg" /> : null}</DragOverlay>
+      <DragOverlay>
+        {active ? <OpportunityCardBody opp={active} className="shadow-lg" showOwner={showOwner} /> : null}
+      </DragOverlay>
     </DndContext>
   )
 }

@@ -5,6 +5,7 @@ from app.crm.models.finance import Approval, Attachment, Expense
 from app.crm.models.knowledge import AgentThread, KbChunk
 from app.crm.models.org import ProductLine, Team, User
 from app.crm.models.sales import Commission, Contract, Opportunity, Quote, QuoteItem
+from app.crm.models.workflow import Notification, Task
 
 __all__ = [
     "Activity",
@@ -18,10 +19,12 @@ __all__ = [
     "Expense",
     "Followup",
     "KbChunk",
+    "Notification",
     "Opportunity",
     "ProductLine",
     "Quote",
     "QuoteItem",
+    "Task",
     "Team",
     "User",
 ]

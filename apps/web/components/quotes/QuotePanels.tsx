@@ -1,6 +1,19 @@
 "use client"
 
-import { Boxes, Building2, CircleDot, Coins, Layers, Percent, Stamp, Target, User, Wallet } from "lucide-react"
+import {
+  BadgePercent,
+  Boxes,
+  Building2,
+  CalendarClock,
+  CircleDot,
+  Coins,
+  Layers,
+  Percent,
+  Stamp,
+  Target,
+  User,
+  Wallet,
+} from "lucide-react"
 import Link from "next/link"
 
 import { Alert } from "@/components/biz/Alert"
@@ -81,6 +94,16 @@ export function QuoteFields({ q }: { q: QuoteDetail }) {
       <FieldRow icon={Coins} label="报价合计">
         <b className="tabular-nums">{formatFen(q.total_price)}</b>
       </FieldRow>
+      {q.discount_rate !== undefined ? (
+        <FieldRow icon={BadgePercent} label="整单折扣">
+          <span className="tabular-nums">{q.discount_rate ? formatPercent(q.discount_rate) : "无"}</span>
+        </FieldRow>
+      ) : null}
+      {q.valid_until ? (
+        <FieldRow icon={CalendarClock} label="有效期至">
+          {q.valid_until.slice(0, 10)}
+        </FieldRow>
+      ) : null}
       <FieldRow icon={Percent} label="毛利率">
         <span className="tabular-nums">{formatPercent(q.margin_rate)}</span>
       </FieldRow>

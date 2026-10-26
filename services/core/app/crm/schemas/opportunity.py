@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from app.crm.schemas.common import ActivityOut, CustomerBrief, ProductLineBrief, UserBrief
 from app.crm.schemas.quote import QuoteListItem
+from app.crm.schemas.task import NextTask
 
 Stage = Literal["lead", "qualified", "proposal", "negotiation", "won", "lost"]
 STAGES: tuple[str, ...] = ("lead", "qualified", "proposal", "negotiation", "won", "lost")
@@ -34,6 +35,11 @@ class OpportunityItem(BaseModel):
     owner: UserBrief | None
     lost_reason: str | None = None
     updated_at: datetime
+    # v3 §12 / §13：下一步行动与停滞提醒
+    next_task: NextTask | None = None
+    last_activity_at: datetime | None = None
+    idle_days: int = 0
+    stale: bool = False
 
 
 class OpportunityDetail(OpportunityItem):

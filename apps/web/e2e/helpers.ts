@@ -52,6 +52,31 @@ export class Api {
   }
 }
 
+/**
+ * 通过接口建一张客户招待报销草稿（v3 参与人结构化）：客户方选明理律所的第一位联系人，
+ * 加上申请人本人，其余计入「其他人数」，总人数 = headcount。
+ */
+export async function entertainmentDraft(
+  api: Api,
+  amount: number,
+  headcount: number,
+  reason: string,
+): Promise<{ id: string; code: string; status: string }> {
+  const customers = await api.call<{ items: { id: string; name: string }[] }>("GET", "/api/customers?view=mine")
+  const mingli = customers.items.find((c) => c.name === "深圳明理律师事务所")
+  if (!mingli) throw new Error("演示数据缺少深圳明理律师事务所，请先运行 seed")
+  const contacts = await api.call<{ items: { id: string }[] }>("GET", `/api/customers/${mingli.id}/contacts`)
+  return api.call("POST", "/api/expenses", {
+    type: "entertainment",
+    amount,
+    occurred_on: new Date().toISOString().slice(0, 10),
+    customer_id: mingli.id,
+    contact_ids: [contacts.items[0].id],
+    extra_guests: Math.max(headcount - 2, 0),
+    reason,
+  })
+}
+
 /** 解析 SSE 文本里某类 artifact 的 data */
 export function artifactOf<T>(stream: string, type: string): T {
   const blocks = stream.split(/\r?\n\r?\n/)

@@ -20,10 +20,12 @@ from app.crm.routers import (
     customers,
     dashboard,
     expenses,
+    notifications,
     opportunities,
     product_lines,
     quotes,
     rules,
+    tasks,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -56,6 +58,8 @@ def create_app() -> FastAPI:
         expenses.router,
         approvals.router,
         product_lines.router,
+        tasks.router,
+        notifications.router,
         agent_router,
     )
     for router in routers:

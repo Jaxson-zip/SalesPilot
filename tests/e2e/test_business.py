@@ -206,7 +206,11 @@ def test_quote_lifecycle_creates_contract_and_commission() -> None:
 
 
 def _new_expense(amount: int, headcount: int) -> dict:
+    """招待类报销：客户方选 1 名联系人，加上申请人本人，其余计入「其他人数」，总人数 = headcount。"""
     customer = my_customer()
+    contacts = ok(call("GET", f"/api/customers/{customer['id']}/contacts", "sales"))[
+        "items"
+    ]
     return ok(
         call(
             "POST",
@@ -215,9 +219,9 @@ def _new_expense(amount: int, headcount: int) -> dict:
             json={
                 "type": "entertainment",
                 "amount": amount,
-                "headcount": headcount,
                 "occurred_on": date.today().isoformat(),
-                "participants": "客户：王律师；我方：张晨",
+                "contact_ids": [contacts[0]["id"]],
+                "extra_guests": headcount - 2,
                 "customer_id": customer["id"],
                 "reason": "e2e 方案沟通晚餐",
                 "idempotency_key": uuid.uuid4().hex,
@@ -372,3 +376,26 @@ def test_manager_cannot_change_sales_records() -> None:
     assert (
         ok(call("GET", f"/api/opportunities/{opp['id']}", "manager"))["stage"] == "lead"
     )
+
+
+def test_expense_headcount_is_computed_from_participants() -> None:
+    """参与人结构化（v3 §17）：人数由后端按联系人 + 同事 + 本人 + 其他人数计算，不再手填。"""
+    expense = _new_expense(60_000, 4)
+    detail = ok(call("GET", f"/api/expenses/{expense['id']}", "sales"))
+    assert detail["headcount"] == 4
+    assert detail["contacts"] and "客户：" in detail["participants"]
+
+
+def test_entertainment_requires_customer_contact() -> None:
+    res = call(
+        "POST",
+        "/api/expenses",
+        "sales",
+        json={
+            "type": "entertainment",
+            "amount": 10_000,
+            "occurred_on": date.today().isoformat(),
+            "reason": "缺联系人",
+        },
+    )
+    assert res["code"] == 40001

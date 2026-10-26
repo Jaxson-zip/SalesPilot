@@ -17,7 +17,13 @@ from app.common.scope import View, apply_scope
 from app.crm.models import Approval, Expense, Quote
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.finance import EXPENSE_TYPE_LABELS, ApprovalItem, ApprovalTarget
-from app.crm.services import activity_service, attachment_query, lookup, quote_query
+from app.crm.services import (
+    activity_service,
+    attachment_query,
+    lookup,
+    notification_service,
+    quote_query,
+)
 from app.packs.base import TIER_NAMES
 
 RULE_ALREADY_DECIDED = "approval_already_decided"
@@ -50,6 +56,15 @@ def create_approval(
     )
     db.add(approval)
     db.flush()
+    kind = "报价单" if target_type == "quote" else "报销单"
+    notification_service.notify(
+        db,
+        notification_service.team_managers(db, target.team_id),
+        "approval_pending",
+        f"待审批：{kind} {target.code}",
+        reason,
+        "/approvals",
+    )
     return approval
 
 
@@ -142,6 +157,15 @@ def _apply_to_target(
     db.flush()
     activity_service.record(
         db, user, approval.target_type, target.id, f"approval_{decision}", content, source, target
+    )
+    kind = "报价单" if approval.target_type == "quote" else "报销单"
+    notification_service.notify(
+        db,
+        [target.owner_id],
+        "approval_decided",
+        f"{kind} {target.code} 审批已{verb}",
+        approval.comment,
+        notification_service.subject_link(approval.target_type, target.id),
     )
 
 

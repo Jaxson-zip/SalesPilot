@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Chip, LetterAvatar, LinkChip } from "@/components/biz/Chip"
 import { FieldRow } from "@/components/biz/FieldRow"
 import { colorFor, Tag } from "@/components/biz/Tag"
+import { SubjectTasks } from "@/components/tasks/TaskList"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useContacts } from "@/hooks/useFollowups"
 import { useOpportunities } from "@/hooks/useOpportunities"
@@ -55,7 +56,11 @@ function Opportunities({ customerId, role }: { customerId: string; role: Role })
   return (
     <div className="space-y-2">
       {items.map((o) => (
-        <Link key={o.id} href="/pipeline" className="block rounded-lg border border-zinc-200 p-3 hover:bg-zinc-50">
+        <Link
+          key={o.id}
+          href={`/pipeline?opp=${encodeURIComponent(o.id)}`}
+          className="block rounded-lg border border-zinc-200 p-3 hover:bg-zinc-50"
+        >
           <div className="flex justify-between gap-2">
             <span className="truncate font-medium">{o.name}</span>
             <span className="shrink-0 tabular-nums">{formatFen(o.amount)}</span>
@@ -72,8 +77,8 @@ function Opportunities({ customerId, role }: { customerId: string; role: Role })
   )
 }
 
-/** RecordFields：客户字段 + 联系人 + 关联商机 */
-export function CustomerFields({ c, role }: { c: CustomerDetail; role: Role }) {
+/** RecordFields：客户字段 + 下一步 + 联系人 + 关联商机 */
+export function CustomerFields({ c, role, editable }: { c: CustomerDetail; role: Role; editable: boolean }) {
   return (
     <>
       <div className="mb-4 flex items-center gap-3">
@@ -119,6 +124,9 @@ export function CustomerFields({ c, role }: { c: CustomerDetail; role: Role }) {
           "—"
         )}
       </FieldRow>
+      <div className="mt-5">
+        <SubjectTasks subjectType="customer" subjectId={c.id} subjectName={c.name} editable={editable} />
+      </div>
       <SectionTitle>联系人</SectionTitle>
       <Contacts customerId={c.id} />
       <SectionTitle>商机</SectionTitle>

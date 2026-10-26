@@ -70,3 +70,15 @@ export function paymentConfirm(amountText: string, code: string): ConfirmCopy {
     confirmLabel: "确认登记",
   }
 }
+
+/** 主管批量转移客户负责人（v3 §16）：未选目标时只说明范围 */
+export function transferConfirm(count: number, toName: string | null): ConfirmCopy {
+  const scope = "客户及其未结束的商机、未完成的任务、未成交的报价"
+  return {
+    title: "转移负责人",
+    description: toName
+      ? `将选中的 ${count} 个${scope}一起转移给「${toName}」，并通知新负责人。`
+      : `请选择本团队的新负责人。选中的 ${count} 个${scope}会一起转移。`,
+    confirmLabel: "确认转移",
+  }
+}

@@ -70,11 +70,11 @@ export function useCreateExpense() {
   })
 }
 
-/** POST /api/expenses/{id}/attachments（multipart：file + kind） */
-export function useUploadAttachment(expenseId: string | null) {
+/** POST /api/expenses/{id}/attachments（multipart：file + kind）；报销单 id 随每次上传传入（可能是刚自动保存的草稿） */
+export function useUploadAttachment() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ file, kind }: { file: File; kind: AttachmentKind }) => {
+    mutationFn: ({ expenseId, file, kind }: { expenseId: string; file: File; kind: AttachmentKind }) => {
       const form = new FormData()
       form.append("file", file)
       form.append("kind", kind)

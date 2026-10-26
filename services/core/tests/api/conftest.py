@@ -20,6 +20,7 @@ from app.crm.models import (
     Approval,
     Attachment,
     Commission,
+    Contact,
     Contract,
     Customer,
     Expense,
@@ -27,6 +28,7 @@ from app.crm.models import (
     Opportunity,
     Quote,
     QuoteItem,
+    Task,
 )
 from app.crm.services.demo import DEMO_USERS, EXTRA_SALES
 from app.packs.base import BomItem, SolutionTier
@@ -61,9 +63,24 @@ class Tracker:
     quotes: list[uuid.UUID] = field(default_factory=list)
     expenses: list[uuid.UUID] = field(default_factory=list)
     followups: list[uuid.UUID] = field(default_factory=list)
+    tasks: list[uuid.UUID] = field(default_factory=list)
+    customers: list[uuid.UUID] = field(default_factory=list)
 
     def purge(self) -> None:
         with session_scope() as db:
+            if self.customers:
+                self.opportunities += list(
+                    db.scalars(
+                        select(Opportunity.id).where(Opportunity.customer_id.in_(self.customers))
+                    )
+                )
+            db.execute(
+                delete(Task).where(
+                    Task.id.in_(self.tasks)
+                    | Task.subject_id.in_(self.opportunities)
+                    | Task.customer_id.in_(self.customers)
+                )
+            )
             _purge_expenses(db, self.expenses)
             _purge_quotes(db, self.quotes)
             _purge_quotes(
@@ -75,6 +92,16 @@ class Tracker:
             _purge_followups(db, self.followups)
             db.execute(delete(Activity).where(Activity.subject_id.in_(self.opportunities)))
             db.execute(delete(Opportunity).where(Opportunity.id.in_(self.opportunities)))
+            _purge_customers(db, self.customers)
+
+
+def _purge_customers(db: Session, ids: list[uuid.UUID]) -> None:
+    if not ids:
+        return
+    db.execute(delete(Activity).where(Activity.subject_id.in_(ids)))
+    db.execute(delete(Followup).where(Followup.customer_id.in_(ids)))
+    db.execute(delete(Contact).where(Contact.customer_id.in_(ids)))
+    db.execute(delete(Customer).where(Customer.id.in_(ids)))
 
 
 def _purge_followups(db: Session, ids: list[uuid.UUID]) -> None:

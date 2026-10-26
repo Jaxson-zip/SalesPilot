@@ -1,7 +1,7 @@
 "use client"
 
 import { Plus, Target } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { EmptyState } from "@/components/biz/EmptyState"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
@@ -49,6 +49,11 @@ export default function PipelinePage() {
   const [mobileStage, setMobileStage] = useState<OpportunityStage>("lead")
   const [openId, setOpenId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+  // 从工作台待办 / 通知跳转过来：/pipeline?opp=<id> 直接打开商机侧栏（不用 useSearchParams，避免整页需要 Suspense）
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("opp")
+    if (id) setOpenId(id)
+  }, [])
   const openCreate = canCreate ? () => setCreating(true) : undefined
   // Sheet 里显示最新缓存（乐观更新后阶段立即变化）
   const opened = query.data?.items.find((o) => o.id === openId) ?? null
@@ -76,7 +81,12 @@ export default function PipelinePage() {
       />
     )
   } else {
-    const shared = { groups, loading: query.isPending, onOpen: (o: OpportunityItem) => setOpenId(o.id) }
+    const shared = {
+      groups,
+      loading: query.isPending,
+      onOpen: (o: OpportunityItem) => setOpenId(o.id),
+      showOwner: view !== "mine",
+    }
     body = (
       <>
         <div className="hidden flex-1 overflow-x-hidden overflow-y-auto p-3 lg:block">

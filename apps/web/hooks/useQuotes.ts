@@ -8,7 +8,7 @@ import { activityKeys, dashboardKeys } from "@/hooks/useDashboard"
 import { opportunityKeys } from "@/hooks/useOpportunities"
 import { api } from "@/lib/api"
 import { QUOTE_ACTIONS, submitResultText } from "@/lib/quote-actions"
-import type { Paged, QuoteAction, QuoteDetail, QuoteItem, QuoteListParams } from "@/types/api"
+import type { Paged, QuoteAction, QuoteDetail, QuoteItem, QuoteItemsPatch, QuoteListParams } from "@/types/api"
 
 export const quoteKeys = {
   all: ["quotes"] as const,
@@ -65,6 +65,23 @@ export function useQuoteAction(id: string) {
         qc.invalidateQueries({ queryKey: ["contracts"] }),
         qc.invalidateQueries({ queryKey: opportunityKeys.all }),
         qc.invalidateQueries({ queryKey: ["approvals"] }),
+      ])
+    },
+    onError: notifyError,
+  })
+}
+
+/** PATCH /api/quotes/{id}/items（v3 §14，仅草稿、仅负责人）：后端重新计算总价和毛利，返回 QuoteDetail */
+export function useAdjustQuote(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: QuoteItemsPatch) => api.patch<QuoteDetail>(`/api/quotes/${id}/items`, body),
+    onSuccess: (quote) => {
+      if (quote?.id) qc.setQueryData(quoteKeys.detail(id), quote)
+      toast.success("报价已调整", { description: "总价和毛利已按规则重新计算" })
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: quoteKeys.all }),
+        qc.invalidateQueries({ queryKey: activityKeys.all }),
       ])
     },
     onError: notifyError,

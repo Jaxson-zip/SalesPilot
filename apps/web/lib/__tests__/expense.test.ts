@@ -5,8 +5,13 @@ import {
   checkFromPolicy,
   checkFromPrecheck,
   formatBytes,
+  headcountSummary,
   missingAttachmentReason,
+  parseExtraGuests,
+  participantCount,
+  perPersonFen,
   toExpenseCreate,
+  toggleId,
   toPrecheckBody,
   validateAttachmentFile,
   type ExpenseFormValues,
@@ -15,15 +20,45 @@ import {
 const base: ExpenseFormValues = {
   type: "entertainment",
   amount: "860",
-  headcount: "4",
   occurred_on: "2026-10-23",
   customer_id: "c1",
-  participants: "客户：王律师；我方：张晨",
+  opportunity_id: "o1",
+  contact_ids: ["ct1", "ct2"],
+  colleague_ids: ["u2"],
+  extra_guests: "",
   reason: " 方案沟通晚餐 ",
 }
 
+describe("participantCount / headcountSummary（v3 §17）", () => {
+  it("人数 = 客户联系人 + 同事 + 本人 + 其他人数", () => {
+    expect(participantCount(base)).toBe(4)
+    expect(participantCount({ ...base, extra_guests: "2" })).toBe(6)
+    expect(participantCount({ contact_ids: [], colleague_ids: [], extra_guests: "" })).toBe(1)
+    // 其他人数非法时按 0 计，不让人数跳动
+    expect(participantCount({ ...base, extra_guests: "abc" })).toBe(4)
+  })
+  it("人均四舍五入到分", () => {
+    expect(perPersonFen(100000, 3)).toBe(33333)
+    expect(perPersonFen(100000, 0)).toBe(0)
+  })
+  it("共 N 人，人均 ¥xx；金额未填只显示人数", () => {
+    expect(headcountSummary("860", 4)).toBe("共 4 人，人均 ¥215")
+    expect(headcountSummary("", 4)).toBe("共 4 人")
+  })
+  it("parseExtraGuests：空 = 0，负数 / 小数非法", () => {
+    expect(parseExtraGuests("")).toBe(0)
+    expect(parseExtraGuests("3")).toBe(3)
+    expect(parseExtraGuests("-1")).toBeNull()
+    expect(parseExtraGuests("1.5")).toBeNull()
+  })
+  it("toggleId 勾选 / 取消", () => {
+    expect(toggleId(["a"], "b")).toEqual(["a", "b"])
+    expect(toggleId(["a", "b"], "a")).toEqual(["b"])
+  })
+})
+
 describe("toExpenseCreate", () => {
-  it("金额转分、去空格、带幂等键", () => {
+  it("金额转分、去空格、参与人结构化、带幂等键", () => {
     expect(toExpenseCreate(base, "key-1")).toEqual({
       ok: true,
       value: {
@@ -32,35 +67,60 @@ describe("toExpenseCreate", () => {
         headcount: 4,
         occurred_on: "2026-10-23",
         reason: "方案沟通晚餐",
-        participants: "客户：王律师；我方：张晨",
+        contact_ids: ["ct1", "ct2"],
+        colleague_ids: ["u2"],
+        extra_guests: 0,
         customer_id: "c1",
+        opportunity_id: "o1",
         idempotency_key: "key-1",
       },
     })
   })
 
-  it("可选字段为空时不传", () => {
-    const r = toExpenseCreate({ ...base, type: "transport", participants: "", customer_id: null })
+  it("非招待类型可以不关联客户；没有客户时不传商机", () => {
+    const r = toExpenseCreate({
+      ...base,
+      type: "transport",
+      customer_id: null,
+      contact_ids: [],
+      colleague_ids: [],
+      extra_guests: "1",
+    })
     expect(r.ok && r.value).toEqual({
       type: "transport",
       amount: 86000,
-      headcount: 4,
+      headcount: 2,
       occurred_on: "2026-10-23",
       reason: "方案沟通晚餐",
+      contact_ids: [],
+      colleague_ids: [],
+      extra_guests: 1,
     })
   })
 
-  it("逐项给出错误", () => {
-    const r = toExpenseCreate({ ...base, amount: "0", headcount: "0", occurred_on: "", reason: "", participants: "" })
+  it("客户招待：必须关联客户", () => {
+    const r = toExpenseCreate({ ...base, customer_id: null, contact_ids: [] })
     expect(r.ok).toBe(false)
-    if (!r.ok)
-      expect(Object.keys(r.errors).sort()).toEqual(["amount", "headcount", "occurred_on", "participants", "reason"])
+    if (!r.ok) expect(r.errors.customer_id).toBe("客户招待需关联客户")
+  })
+
+  it("客户招待：至少 1 名客户方参与人", () => {
+    const r = toExpenseCreate({ ...base, contact_ids: [] })
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errors.contact_ids).toContain("至少选择 1 名")
+  })
+
+  it("逐项给出错误", () => {
+    const r = toExpenseCreate({ ...base, amount: "0", extra_guests: "-1", occurred_on: "", reason: "" })
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(Object.keys(r.errors).sort()).toEqual(["amount", "extra_guests", "occurred_on", "reason"])
   })
 })
 
 describe("toPrecheckBody", () => {
-  it("金额和人数合法即可预校验", () => {
+  it("金额合法即可预校验，人数随参与人实时变化", () => {
     expect(toPrecheckBody({ ...base, reason: "" })).toMatchObject({ amount: 86000, headcount: 4, reason: "precheck" })
+    expect(toPrecheckBody({ ...base, extra_guests: "3" })).toMatchObject({ headcount: 7, extra_guests: 3 })
     expect(toPrecheckBody({ ...base, amount: "" })).toBeNull()
   })
 })

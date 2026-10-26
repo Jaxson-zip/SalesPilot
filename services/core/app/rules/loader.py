@@ -44,6 +44,22 @@ class AgentRules(BaseModel):
     max_tool_calls: int
 
 
+class PipelineRules(BaseModel):
+    stage_win_rate: dict[str, int] = {
+        "lead": 10,
+        "qualified": 25,
+        "proposal": 50,
+        "negotiation": 75,
+        "won": 100,
+        "lost": 0,
+    }
+    stale_days: int = 14
+
+
+class QuoteRules(BaseModel):
+    valid_days: int = 30
+
+
 class RuleSet(BaseModel):
     margin: MarginRules
     discount: DiscountRules
@@ -51,6 +67,8 @@ class RuleSet(BaseModel):
     expense: ExpenseRules
     attachment: AttachmentRules = AttachmentRules()
     agent: AgentRules
+    pipeline: PipelineRules = PipelineRules()
+    quote: QuoteRules = QuoteRules()
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

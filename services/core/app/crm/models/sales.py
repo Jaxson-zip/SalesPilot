@@ -40,6 +40,7 @@ class Quote(OwnedMixin, Base):
     total_cost: Mapped[int] = mapped_column(BigInteger, default=0)
     total_price: Mapped[int] = mapped_column(BigInteger, default=0)
     margin_rate: Mapped[float] = mapped_column(Float, default=0)
+    discount_rate: Mapped[float] = mapped_column(Float, default=0, server_default="0")
     idempotency_key: Mapped[str | None] = mapped_column(String(100), unique=True)
     source: Mapped[str] = mapped_column(String(10), default="manual")  # manual / agent
 

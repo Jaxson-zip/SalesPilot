@@ -90,6 +90,7 @@ export function opportunityFilters(rows: OpportunityItem[]): FilterDef<Opportuni
       get: (o) => o.product_line?.name ?? null,
     },
     { id: "owner", label: "负责人", options: optionsFromRows(rows, (o) => o.owner.name), get: (o) => o.owner.name },
+    STALE_FILTER,
   ]
 }
 
@@ -109,3 +110,18 @@ export const opportunityCsv: CsvColumn<OpportunityItem>[] = [
   { label: "负责人", value: (o) => o.owner.name },
   { label: "更新时间", value: (o) => o.updated_at },
 ]
+
+/** 看板卡片上的预计成交日（U8）：YYYY-MM-DD →「预计 MM-DD」（同年）/「预计 YYYY-MM-DD」 */
+export function expectedCloseText(d: string | null, now: Date = new Date()): string {
+  if (!d) return "预计成交日未设置"
+  const year = String(now.getFullYear())
+  return `预计 ${d.startsWith(year) ? d.slice(5, 10) : d.slice(0, 10)}`
+}
+
+/** 看板筛选「只看停滞」（v3 §13，stale 由后端计算） */
+export const STALE_FILTER: FilterDef<OpportunityItem> = {
+  id: "stale",
+  label: "跟进",
+  options: [{ value: "stale", label: "只看停滞" }],
+  get: (o) => (o.stale ? "stale" : null),
+}

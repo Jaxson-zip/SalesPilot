@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { ReactNode } from "react"
 
+import { NotificationBell } from "@/components/shell/NotificationBell"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { useSidebar } from "@/components/ui/sidebar"
@@ -75,7 +76,10 @@ export function PageFrame({
           )}
         </div>
         <div className="flex-1" />
-        <div className="flex shrink-0 items-center gap-1.5">{actions}</div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <NotificationBell />
+          {actions}
+        </div>
       </div>
       <div
         className={cn(

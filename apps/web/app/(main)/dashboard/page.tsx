@@ -8,10 +8,12 @@ import { StatCard } from "@/components/biz/StatCard"
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
 import { FunnelChart } from "@/components/dashboard/FunnelChart"
 import { PipelineOverview } from "@/components/dashboard/PipelineOverview"
+import { TodoCard } from "@/components/dashboard/TodoCard"
 import { useSession } from "@/components/shell/SessionProvider"
 import { useDashboard } from "@/hooks/useDashboard"
 import { usePermissions } from "@/hooks/usePermissions"
 import { formatFen } from "@/lib/format"
+import { todoSummary } from "@/lib/tasks"
 import { defaultScope } from "@/lib/views"
 
 function greeting(now: Date = new Date()): string {
@@ -22,7 +24,7 @@ function greeting(now: Date = new Date()): string {
   return "晚上好"
 }
 
-/** 工作台：StatCard ×4、FunnelChart、PipelineOverview、ActivityFeed */
+/** 工作台：StatCard ×4、FunnelChart、待办（TodoCard）、ActivityFeed、PipelineOverview */
 export default function DashboardPage() {
   const { role, user, isLead } = useSession()
   const { canAiWrite } = usePermissions()
@@ -31,6 +33,7 @@ export default function DashboardPage() {
   const d = query.data
   const prefix = role === "admin" ? "全公司" : isLead ? "团队" : ""
   const loading = query.isPending
+  const todo = todoSummary(d?.tasks_today, d?.tasks_overdue)
 
   const cards = [
     { label: `${prefix}本月赢单`, value: formatFen(d?.won_amount_month), icon: Trophy },
@@ -75,7 +78,10 @@ export default function DashboardPage() {
           <div className="text-lg font-semibold">
             {greeting()}，{user.name}
           </div>
-          <div className="mt-0.5 text-zinc-500">{isLead ? `${user.scope} · 本月销售概况` : "本月销售概况"}</div>
+          <div className="mt-0.5 text-zinc-500">
+            {isLead ? `${user.scope} · 本月销售概况` : "本月销售概况"}
+            {todo ? ` · ${todo}` : ""}
+          </div>
         </div>
         {query.isError && !d ? (
           <div className="mb-3 rounded-lg border border-zinc-200">
@@ -95,9 +101,16 @@ export default function DashboardPage() {
         )}
         <div className="mb-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
           <FunnelChart stages={d?.funnel} loading={loading} />
-          <PipelineOverview view={view} />
+          <TodoCard view={view} />
         </div>
-        <ActivityFeed view={view} isLead={isLead} scope={user.scope} />
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+          <div className="min-w-0 lg:col-span-2">
+            <ActivityFeed view={view} isLead={isLead} scope={user.scope} />
+          </div>
+          <div className="min-w-0">
+            <PipelineOverview view={view} />
+          </div>
+        </div>
       </div>
     </PageFrame>
   )

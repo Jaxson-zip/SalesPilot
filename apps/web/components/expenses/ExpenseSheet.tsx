@@ -10,7 +10,7 @@ import { FormField } from "@/components/biz/FormControls"
 import { FormSheet } from "@/components/biz/FormSheet"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { AttachmentUploader } from "@/components/expenses/AttachmentUploader"
-import { ExpenseForm, type ExpenseFormErrors } from "@/components/expenses/ExpenseForm"
+import { ExpenseForm } from "@/components/expenses/ExpenseForm"
 import { ExpenseSummary } from "@/components/expenses/ExpenseSummary"
 import { PolicyCheckAlert } from "@/components/expenses/PolicyCheckAlert"
 import { Button } from "@/components/ui/button"
@@ -27,6 +27,7 @@ import {
   missingAttachmentReason,
   toExpenseCreate,
   toPrecheckBody,
+  type ExpenseFormErrors,
   type ExpenseFormValues,
 } from "@/lib/expense"
 import type { CustomerBrief, ExpenseCreate } from "@/types/api"
@@ -35,10 +36,12 @@ const today = () => localDate()
 const emptyForm = (): ExpenseFormValues => ({
   type: "entertainment",
   amount: "",
-  headcount: "1",
   occurred_on: today(),
   customer_id: null,
-  participants: "",
+  opportunity_id: null,
+  contact_ids: [],
+  colleague_ids: [],
+  extra_guests: "",
   reason: "",
 })
 
@@ -50,7 +53,7 @@ function useLivePrecheck(values: ExpenseFormValues, enabled: boolean) {
 }
 
 /**
- * ExpenseSheet：创建草稿 → 上传票据 → 实时制度校验 → 提交。
+ * ExpenseSheet：填写 → 选择票据时自动保存草稿并上传（U5）→ 实时制度校验 → 提交。
  * expenseId 为空时是新建；传入时查看 / 继续编辑已有报销单（非草稿只读）。
  */
 export function ExpenseSheet({
@@ -93,16 +96,25 @@ export function ExpenseSheet({
   const set = <K extends keyof ExpenseFormValues>(k: K, v: ExpenseFormValues[K]) =>
     setValues((prev) => ({ ...prev, [k]: v }))
 
-  const saveDraft = () => {
+  /** 保存草稿，返回报销单 id；表单校验不通过或保存失败返回 null */
+  const saveDraft = async (fromUpload = false): Promise<string | null> => {
     const r = toExpenseCreate(values, idemKey)
-    if (!r.ok) return setErrors(r.errors)
+    if (!r.ok) {
+      setErrors(r.errors)
+      if (fromUpload) toast.error("请先补全必填项，再上传票据")
+      return null
+    }
     setErrors({})
-    create.mutate(r.value, {
-      onSuccess: (e) => {
-        setCreatedId(e.id)
-        toast.success("草稿已保存", { description: `${e.code} · 请上传票据后提交` })
-      },
-    })
+    try {
+      const e = await create.mutateAsync(r.value)
+      setCreatedId(e.id)
+      toast.success("草稿已保存", {
+        description: fromUpload ? `${e.code} · 正在上传票据` : `${e.code} · 请上传票据后提交`,
+      })
+      return e.id
+    } catch {
+      return null // 错误提示由 useCreateExpense 的 onError 负责
+    }
   }
   const doSubmit = () => {
     if (!draftId) return
@@ -125,8 +137,8 @@ export function ExpenseSheet({
       <Button variant="outline" onClick={close}>
         取消
       </Button>
-      <Button onClick={saveDraft} disabled={create.isPending}>
-        {create.isPending ? "保存中…" : "保存草稿，下一步上传票据"}
+      <Button onClick={() => void saveDraft()} disabled={create.isPending}>
+        {create.isPending ? "保存中…" : "保存草稿"}
       </Button>
     </>
   ) : editable ? (
@@ -154,7 +166,8 @@ export function ExpenseSheet({
           onChange={set}
           onCustomerChange={(c) => {
             setCustomer(c)
-            set("customer_id", c?.id ?? null)
+            // 换客户后，原来勾选的联系人和商机不再属于新客户
+            setValues((prev) => ({ ...prev, customer_id: c?.id ?? null, contact_ids: [], opportunity_id: null }))
           }}
         />
       ) : detail.isPending ? (
@@ -165,7 +178,12 @@ export function ExpenseSheet({
         <ExpenseSummary e={detail.data} />
       )}
       <FormField label="票据" required hint="客户招待需同时上传发票和消费小票；支持 JPG / PNG / PDF，单个不超过 10 MB">
-        <AttachmentUploader expenseId={draftId} attachments={attachments} editable={editable} />
+        <AttachmentUploader
+          expenseId={draftId}
+          attachments={attachments}
+          editable={editable}
+          ensureDraft={draftId ? undefined : () => saveDraft(true)}
+        />
       </FormField>
       {!draftId ? (
         <PolicyCheckAlert

@@ -3,6 +3,7 @@
 import { Plus, Receipt } from "lucide-react"
 import { useMemo, useState } from "react"
 
+import { BulkBar } from "@/components/biz/BulkBar"
 import { DataGrid } from "@/components/biz/DataGrid"
 import { EmptyState } from "@/components/biz/EmptyState"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
@@ -14,8 +15,9 @@ import { Button } from "@/components/ui/button"
 import { useExpenses } from "@/hooks/useExpenses"
 import { useListView } from "@/hooks/useListView"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useRowSelection } from "@/hooks/useRowSelection"
 import { EXPENSE_STATUS_META } from "@/lib/labels"
-import type { ExpenseStatus } from "@/types/api"
+import type { ExpenseItem, ExpenseStatus } from "@/types/api"
 
 import { expenseColumns, expenseCsv, expenseFilters, expenseSort } from "./columns"
 
@@ -37,6 +39,8 @@ const TOGGLEABLE = expenseColumns(() => undefined)
   .map((c) => ({ id: c.id, label: c.label }))
 
 /** 报销：表格 + 新建报销 Sheet（报销始终是「我的」，团队报销在审批中心处理） */
+const expenseId = (r: ExpenseItem) => r.id
+
 export default function ExpensesPage() {
   const { role } = useSession()
   const { canCreate } = usePermissions()
@@ -57,6 +61,7 @@ export default function ExpensesPage() {
   })
   const columns = useMemo(() => allColumns.filter((c) => !lv.hidden.includes(c.id)), [allColumns, lv.hidden])
   const filtered = Object.keys(lv.bar.activeFilters).length > 0
+  const sel = useRowSelection(lv.rows, expenseId)
   const openNew = () => setSheet({ open: true, id: null })
 
   return (
@@ -65,13 +70,17 @@ export default function ExpensesPage() {
       icon={Receipt}
       actions={canCreate ? <FrameAction icon={Plus} label="新建报销" primary onClick={openNew} /> : null}
     >
-      <ViewBar
-        views={viewsFor(admin)}
-        value={view}
-        onValueChange={setView}
-        count={filtered ? lv.rows.length : query.data?.total}
-        list={lv.bar}
-      />
+      {sel.count ? (
+        <BulkBar count={sel.count} onExport={() => lv.exportRows(sel.selected)} onClear={sel.clear} />
+      ) : (
+        <ViewBar
+          views={viewsFor(admin)}
+          value={view}
+          onValueChange={setView}
+          count={filtered ? lv.rows.length : query.data?.total}
+          list={lv.bar}
+        />
+      )}
       {query.isError && !query.data ? (
         <QueryError
           error={query.error}
@@ -83,7 +92,9 @@ export default function ExpensesPage() {
         <DataGrid
           columns={columns}
           data={lv.rows}
-          getRowId={(e) => e.id}
+          getRowId={expenseId}
+          selection={sel.selection}
+          onSelectionChange={sel.setSelection}
           loading={query.isPending}
           total={filtered ? lv.rows.length : query.data?.total}
           onAddRow={canCreate ? openNew : undefined}

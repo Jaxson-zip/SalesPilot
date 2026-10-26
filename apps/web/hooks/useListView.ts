@@ -34,7 +34,7 @@ export function useListView<T>(opts: {
   /** 可在「显示字段」里隐藏的列 */
   columns?: { id: string; label: string }[]
   exportName: string
-}): { rows: T[]; hidden: string[]; bar: ViewBarListProps } {
+}): { rows: T[]; hidden: string[]; bar: ViewBarListProps; exportRows: (rows: T[]) => void } {
   const { page, rows, filters, sort, csv, columns, exportName } = opts
   const [active, setActive] = useState<ActiveFilters>({})
   const [sortKey, setSortKey] = useState<SortKey>("default")
@@ -49,17 +49,20 @@ export function useListView<T>(opts: {
     [rows, filters, active, sortKey, sort],
   )
 
+  /** 导出 CSV（ViewBar「导出 CSV」导出当前列表；批量栏「导出所选」导出勾选的行） */
+  const exportRows = (list: T[]) => {
+    if (list.length === 0) return void toast("当前列表没有数据可导出")
+    downloadText(toCsv(csv, list), `${exportName}-${today()}.csv`)
+    toast.success(`已导出 ${list.length} 条`)
+  }
+
   const bar: ViewBarListProps = {
     filters,
     activeFilters: active,
     onFiltersChange: setActive,
     sort: sortKey,
     onSortChange: setSortKey,
-    onExport: () => {
-      if (out.length === 0) return void toast("当前列表没有数据可导出")
-      downloadText(toCsv(csv, out), `${exportName}-${today()}.csv`)
-      toast.success(`已导出 ${out.length} 条`)
-    },
+    onExport: () => exportRows(out),
     columns,
     hiddenColumns: hidden,
     onHiddenColumnsChange: (next) => {
@@ -67,5 +70,5 @@ export function useListView<T>(opts: {
       writeStorage(storageKey, next.length ? JSON.stringify(next) : null)
     },
   }
-  return { rows: out, hidden, bar }
+  return { rows: out, hidden, bar, exportRows }
 }

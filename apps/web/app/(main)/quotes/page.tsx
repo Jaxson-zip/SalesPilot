@@ -4,6 +4,7 @@ import { FileText, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { useMemo, useState } from "react"
 
+import { BulkBar } from "@/components/biz/BulkBar"
 import { DataGrid } from "@/components/biz/DataGrid"
 import { EmptyState } from "@/components/biz/EmptyState"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
@@ -13,11 +14,12 @@ import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { useListView } from "@/hooks/useListView"
 import { usePermissions } from "@/hooks/usePermissions"
+import { useRowSelection } from "@/hooks/useRowSelection"
 import { usePacks } from "@/hooks/useProductLines"
 import { useQuotes } from "@/hooks/useQuotes"
 import { QUOTE_STATUS_META } from "@/lib/labels"
 import { defaultScope } from "@/lib/views"
-import type { QuoteStatus } from "@/types/api"
+import type { QuoteItem, QuoteStatus } from "@/types/api"
 
 import { quoteColumns, quoteCsv, quoteFilters, quoteSort } from "./columns"
 
@@ -34,6 +36,8 @@ function toStatus(v: string): QuoteStatus | undefined {
 const TOGGLEABLE = quoteColumns.slice(1).map((c) => ({ id: c.id, label: c.label }))
 
 /** 报价单列表：按状态切换视图；数据范围跟随角色（销售本人 / 主管团队 / 管理员全部） */
+const quoteId = (r: QuoteItem) => r.id
+
 export default function QuotesPage() {
   const { role } = useSession()
   const { canAiWrite } = usePermissions()
@@ -57,6 +61,7 @@ export default function QuotesPage() {
   })
   const columns = useMemo(() => quoteColumns.filter((c) => !lv.hidden.includes(c.id)), [lv.hidden])
   const filtered = Object.keys(lv.bar.activeFilters).length > 0
+  const sel = useRowSelection(lv.rows, quoteId)
 
   return (
     <PageFrame
@@ -64,13 +69,17 @@ export default function QuotesPage() {
       icon={FileText}
       actions={canAiWrite ? <FrameAction icon={Sparkles} label="AI 出方案" href="/ai" primary /> : null}
     >
-      <ViewBar
-        views={VIEWS}
-        value={view}
-        onValueChange={setView}
-        count={filtered ? lv.rows.length : query.data?.total}
-        list={lv.bar}
-      />
+      {sel.count ? (
+        <BulkBar count={sel.count} onExport={() => lv.exportRows(sel.selected)} onClear={sel.clear} />
+      ) : (
+        <ViewBar
+          views={VIEWS}
+          value={view}
+          onValueChange={setView}
+          count={filtered ? lv.rows.length : query.data?.total}
+          list={lv.bar}
+        />
+      )}
       {query.isError && !query.data ? (
         <QueryError
           error={query.error}
@@ -82,7 +91,9 @@ export default function QuotesPage() {
         <DataGrid
           columns={columns}
           data={lv.rows}
-          getRowId={(q) => q.id}
+          getRowId={quoteId}
+          selection={sel.selection}
+          onSelectionChange={sel.setSelection}
           loading={query.isPending}
           total={filtered ? lv.rows.length : query.data?.total}
           empty={

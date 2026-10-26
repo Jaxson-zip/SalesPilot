@@ -1,10 +1,10 @@
 """报价单 schema（接口契约 §3）。金额单位：分。"""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.crm.schemas.common import CustomerBrief, OppBrief, UserBrief
 
@@ -81,3 +81,19 @@ class QuoteDetail(QuoteListItem):
     approvals: list[ApprovalBrief]
     contract_id: uuid.UUID | None
     estimated_commission: int
+    # v3 §14
+    list_price: int  # 折前合计 = Σ 单价 × 数量
+    discount_rate: float
+    valid_until: date
+
+
+class QuoteLineIn(BaseModel):
+    sku: str = Field(min_length=1, max_length=50)
+    qty: int = Field(ge=1, le=100_000)
+
+
+class QuoteItemsUpdate(BaseModel):
+    """调整后的完整明细（未列出的物料行会被移除）+ 整单折扣率。"""
+
+    items: list[QuoteLineIn] = Field(min_length=1, max_length=100)
+    discount_rate: float = Field(default=0, ge=0, lt=1)

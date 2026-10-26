@@ -2,6 +2,23 @@
 import { yuanToFen } from "@/lib/money"
 import type { CustomerCreate, CustomerLevel } from "@/types/api"
 
+/** 行业字典（U7：统一写法，筛选和统计才不会乱） */
+export const INDUSTRY_OPTIONS = [
+  "法律服务",
+  "制造业",
+  "医疗",
+  "教育",
+  "物流",
+  "设计",
+  "互联网",
+  "金融",
+  "政府",
+  "其他",
+] as const
+
+/** 规模区间（人） */
+export const SIZE_OPTIONS = ["1–49 人", "50–199 人", "200–499 人", "500–999 人", "1000 人以上"] as const
+
 export interface CustomerFormValues {
   name: string
   industry: string

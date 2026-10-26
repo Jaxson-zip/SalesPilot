@@ -18,6 +18,7 @@ export function StageList({
   onStageChange,
   onOpen,
   onCreate,
+  showOwner = true,
 }: {
   groups: StageGroups
   loading?: boolean
@@ -26,6 +27,7 @@ export function StageList({
   onOpen: (opp: OpportunityItem) => void
   /** 不传表示无权新建 */
   onCreate?: () => void
+  showOwner?: boolean
 }) {
   const list = groups[stage]
   return (
@@ -55,7 +57,7 @@ export function StageList({
         </div>
         {loading
           ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-[118px] w-full rounded-lg" />)
-          : list.map((o) => <OpportunityCardBody key={o.id} opp={o} onOpen={() => onOpen(o)} />)}
+          : list.map((o) => <OpportunityCardBody key={o.id} opp={o} onOpen={() => onOpen(o)} showOwner={showOwner} />)}
         {!loading && list.length === 0 ? <div className="py-6 text-center text-zinc-400">该阶段暂无商机</div> : null}
         {onCreate ? (
           <button

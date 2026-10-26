@@ -10,8 +10,8 @@ from app.common.response import ApiResponse, ok
 from app.common.scope import View
 from app.crm.routers.deps import DbDep, PageDep
 from app.crm.schemas.common import Page
-from app.crm.schemas.quote import QuoteDetail, QuoteListItem, QuoteStatus
-from app.crm.services import quote_service
+from app.crm.schemas.quote import QuoteDetail, QuoteItemsUpdate, QuoteListItem, QuoteStatus
+from app.crm.services import quote_edit, quote_service
 
 router = APIRouter(prefix="/api/quotes", tags=["quotes"])
 Detail = ApiResponse[QuoteDetail]
@@ -36,6 +36,13 @@ def list_quotes(
 @router.get("/{quote_id}", response_model=Detail)
 def get_quote(quote_id: uuid.UUID, user: CurrentUserDep, db: DbDep) -> Detail:
     return ok(quote_service.get_quote(db, user, quote_id))
+
+
+@router.patch("/{quote_id}/items", response_model=Detail)
+def update_items(
+    quote_id: uuid.UUID, body: QuoteItemsUpdate, user: CurrentUserDep, db: DbDep
+) -> Detail:
+    return ok(quote_edit.update_items(db, user, quote_id, body))
 
 
 @router.post("/{quote_id}/submit", response_model=Detail)

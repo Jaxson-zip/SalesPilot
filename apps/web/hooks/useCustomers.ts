@@ -6,7 +6,14 @@ import { toast } from "sonner"
 import { notifyError } from "@/hooks/notify"
 import { activityKeys } from "@/hooks/useDashboard"
 import { api } from "@/lib/api"
-import type { Customer, CustomerCreate, CustomerDetail, CustomerListParams, Paged } from "@/types/api"
+import type {
+  Customer,
+  CustomerCreate,
+  CustomerDetail,
+  CustomerListParams,
+  CustomerTransferIn,
+  Paged,
+} from "@/types/api"
 
 export const customerKeys = {
   all: ["customers"] as const,
@@ -49,6 +56,23 @@ export function useCreateCustomer() {
       void qc.invalidateQueries({ queryKey: customerKeys.all })
       void qc.invalidateQueries({ queryKey: activityKeys.all })
     },
+    onError: notifyError,
+  })
+}
+
+/** POST /api/customers/transfer（v3 §16，仅主管）：客户及其未结束的商机、未完成的任务、未成交的报价一起转移 */
+export function useTransferCustomers() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CustomerTransferIn) => api.post<{ transferred: number }>("/api/customers/transfer", body),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: customerKeys.all }),
+        qc.invalidateQueries({ queryKey: ["opportunities"] }),
+        qc.invalidateQueries({ queryKey: ["quotes"] }),
+        qc.invalidateQueries({ queryKey: ["tasks"] }),
+        qc.invalidateQueries({ queryKey: activityKeys.all }),
+      ]),
     onError: notifyError,
   })
 }

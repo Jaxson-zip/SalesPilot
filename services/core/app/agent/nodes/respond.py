@@ -14,6 +14,7 @@ from app.agent.deps import AgentDeps
 from app.agent.nodes.common import emit, node_start
 from app.agent.prompts import system_prompt
 from app.agent.state import AgentState
+from app.crm.schemas.quote import QUOTE_STATUS_LABELS
 
 logger = logging.getLogger("core.agent")
 Node = Callable[[AgentState], dict[str, Any]]
@@ -31,7 +32,8 @@ def template_reply(state: AgentState) -> str:
         )
     if quote := state.get("quote"):
         price = _yuan(quote["total_price"])
-        return f"报价单 {quote['code']} 已创建，总价 {price}，状态：{quote['status']}。"
+        status = QUOTE_STATUS_LABELS.get(quote["status"], quote["status"])
+        return f"报价单 {quote['code']} 已创建，总价 {price}，状态：{status}。"
     if state.get("intent") == "solution":
         return _solution_text(state)
     log = state.get("tool_log", [])

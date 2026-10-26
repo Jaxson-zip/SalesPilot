@@ -2,7 +2,8 @@ import { BomTable } from "@/components/agent/BomTable"
 import { Sources } from "@/components/agent/Sources"
 import { TierCards } from "@/components/agent/TierCards"
 import type { AgentArtifact } from "@/lib/agent-reducer"
-import { isCoreTier, isCoreTiers, toBomData, toTierCards } from "@/lib/artifacts"
+import { QuoteCard } from "@/components/agent/QuoteCard"
+import { isCoreQuote, isCoreTier, isCoreTiers, toBomData, toTierCards } from "@/lib/artifacts"
 import type { BomData, SolutionTier, SourceRef } from "@/types/api"
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
@@ -27,6 +28,7 @@ export function ArtifactView({ artifact }: { artifact: AgentArtifact }) {
   if (type === "solution_tiers" && isTiers(data)) return <TierCards tiers={data} />
   if (type === "bom" && isCoreTier(data)) return <BomTable bom={toBomData(data)} />
   if (type === "bom" && isBom(data)) return <BomTable bom={data} />
+  if (type === "quote" && isCoreQuote(data)) return <QuoteCard quote={data} />
   if (type === "sources" && isSources(data)) return <Sources sources={data} />
   return (
     <pre className="overflow-x-hidden rounded-lg border border-zinc-200 bg-zinc-50 p-3 font-mono text-[11px] break-all whitespace-pre-wrap text-zinc-600">

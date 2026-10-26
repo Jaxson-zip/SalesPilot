@@ -121,6 +121,16 @@ function applyInterrupt(turn: AssistantTurn, action: string, preview: Record<str
   return { ...waiting, interrupt: { action, title, preview } }
 }
 
+/**
+ * 同一条回复里同类型的卡片只保留最新一份，并留在原来的位置。
+ * 例如毛利回退后 core 会重新推送方案卡片，新结果应替换旧结果而不是重复显示。
+ */
+export function upsertArtifact(list: AgentArtifact[], type: string, data: unknown): AgentArtifact[] {
+  const i = list.findIndex((a) => a.type === type)
+  if (i === -1) return [...list, { id: nextId("art"), type, data }]
+  return list.map((a, j) => (j === i ? { ...a, data } : a))
+}
+
 /** 纯函数：把一个 SSE 事件应用到当前 AI 回复上 */
 export function applyAgentEvent(turn: AssistantTurn, ev: AgentEvent): AssistantTurn {
   switch (ev.event) {
@@ -129,7 +139,7 @@ export function applyAgentEvent(turn: AssistantTurn, ev: AgentEvent): AssistantT
     case "interrupt":
       return applyInterrupt(turn, ev.data.action, ev.data.preview)
     case "artifact":
-      return { ...turn, artifacts: [...turn.artifacts, { id: nextId("art"), type: ev.data.type, data: ev.data.data }] }
+      return { ...turn, artifacts: upsertArtifact(turn.artifacts, ev.data.type, ev.data.data) }
     case "message.delta":
       return { ...turn, text: turn.text + ev.data.text }
     case "done":

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
 from app.common.db import session_scope
+from app.common.errors import BizError
 from app.crm.models import Customer, Followup, Opportunity, ProductLine, Team, User
 from seed import data
 
@@ -67,8 +68,15 @@ def main() -> None:
 
         try:
             logger.info("knowledge base: %s", ingest("all"))
+        except BizError as exc:
+            # 没配 Embedding Key 或网关没启动时属于预期情况：业务数据已导入，知识库稍后再补
+            logger.warning(
+                "knowledge base skipped: %s (configure an embedding model, then run "
+                "`python -m app.rag.ingest --scope all`)",
+                exc.message,
+            )
         except Exception:
-            logger.exception("knowledge base ingest failed (gateway unavailable?)")
+            logger.exception("knowledge base ingest failed")
 
 
 if __name__ == "__main__":

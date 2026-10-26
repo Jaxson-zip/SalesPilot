@@ -26,7 +26,29 @@ export interface CoreSolutionTier {
   recommended?: boolean
 }
 
+/** generate_quote 写入成功后推送的报价单（core QuoteOut 的子集） */
+export interface CoreQuote {
+  id: string
+  code: string
+  status: string
+  total_price: number
+  margin_rate: number
+}
+
+export const QUOTE_STATUS: Record<string, { label: string; color: "gray" | "yellow" | "blue" | "green" | "red" }> = {
+  draft: { label: "草稿", color: "gray" },
+  pending_approval: { label: "待主管审批", color: "yellow" },
+  approved: { label: "已审批", color: "blue" },
+  sent: { label: "已发送客户", color: "blue" },
+  accepted: { label: "已成交", color: "green" },
+  rejected: { label: "已驳回", color: "red" },
+}
+
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
+
+export function isCoreQuote(v: unknown): v is CoreQuote {
+  return isObj(v) && typeof v.id === "string" && typeof v.code === "string" && typeof v.total_price === "number"
+}
 
 export function isCoreTier(v: unknown): v is CoreSolutionTier {
   return (

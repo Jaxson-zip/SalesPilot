@@ -35,8 +35,16 @@ cd services/core && uv run pytest
 
 # 前端
 cd apps/web && pnpm install && pnpm dev
-cd apps/web && pnpm lint && pnpm typecheck
+cd apps/web && pnpm lint && pnpm typecheck && pnpm test
+
+# 首次启动后导入演示数据（--with-kb 需要配置 Embedding 模型）
+docker compose exec core python -m seed
+
+# 端到端测试（需要 docker compose 环境在运行）
+uv run --python 3.12 --with httpx --with pytest pytest tests/e2e -q
 ```
+
+> Windows 下用 curl 调试时用 `127.0.0.1` 而不是 `localhost`（后者可能解析到 IPv6，请求会卡住）；中文请求体用 UTF-8 文件发送（`--data-binary @body.json`）。
 
 ## 4. 硬性规则（违反就不能合并）
 
@@ -62,7 +70,8 @@ cd apps/web && pnpm lint && pnpm typecheck
 
 **测试**
 15. 新增的 service、规则、兼容层函数必须有单元测试；新增接口至少 1 个成功用例 + 1 个错误码用例。
-16. 测试不依赖外网和真实 Key：网关用录制样本（`tests/fixtures/`），core 用 mock 网关。
+16. 测试不依赖外网和真实 Key：网关用录制样本（`tests/fixtures/`），core 用 mock 网关；前端纯函数用 Vitest（`lib/__tests__/`）。
+17. 修了 bug 要补一个能复现它的测试（回归测试）。
 
 ## 5. AI Coding 工作方式（课程评分重点）
 1. 一次只做一个小任务，先在 `docs/ai-log/` 写任务卡（模板见 `docs/开发规范.md` §11.5）。

@@ -15,7 +15,9 @@ ENV_FILES: tuple[Path, ...] = (SERVICE_DIR.parent.parent / ".env", SERVICE_DIR /
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=ENV_FILES, env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILES, env_file_encoding="utf-8", extra="ignore", env_ignore_empty=True
+    )
 
     gateway_internal_key: str = "change-me"
     gateway_models_file: str = "models.yaml"

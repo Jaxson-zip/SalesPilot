@@ -8,15 +8,10 @@ import { ConfirmCard } from "@/components/agent/ConfirmCard"
 import { MsgActions } from "@/components/agent/MsgActions"
 import { ThinkBlock } from "@/components/agent/ThinkBlock"
 import { Button } from "@/components/ui/button"
-import type { AgentInterrupt, AssistantTurn } from "@/lib/agent-reducer"
+import type { AssistantTurn } from "@/lib/agent-reducer"
+import { previewRows } from "@/lib/interrupt-preview"
 import { cn } from "@/lib/utils"
 import type { ResumeDecision } from "@/types/api"
-
-function previewRows(it: AgentInterrupt): [string, string][] {
-  return Object.entries(it.preview)
-    .filter(([, v]) => v !== null && typeof v !== "object")
-    .map(([k, v]) => [k, String(v)])
-}
 
 /** 流式出错：错误信息 + 重试（SSE 断开后可恢复） */
 function ErrorBanner({
@@ -94,7 +89,7 @@ export function AiMessage({
         {turn.interrupt ? (
           <ConfirmCard
             title={turn.interrupt.title}
-            rows={previewRows(turn.interrupt)}
+            rows={previewRows(turn.interrupt.preview)}
             decision={turn.interrupt.decision}
             busy={busy || readonly}
             onDecide={onDecide}

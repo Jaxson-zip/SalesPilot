@@ -7,7 +7,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # 本地开发时在 services/core 下运行：依次读取仓库根目录和当前目录的 .env（环境变量优先）
-    model_config = SettingsConfigDict(env_file=("../../.env", ".env"), extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=("../../.env", ".env"), extra="ignore", env_ignore_empty=True
+    )
 
     database_url: str = "postgresql+psycopg://crm:crm@localhost:5432/crm"
     jwt_secret: str = "change-me"

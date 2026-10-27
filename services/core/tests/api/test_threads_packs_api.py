@@ -95,3 +95,16 @@ def test_pack_detail_all_roles(client: TestClient, pack_id: str) -> None:
 
 def test_pack_detail_not_installed(client: TestClient) -> None:
     assert client.get("/api/packs/no_such_pack", headers=SALES_H).json()["code"] == 40401
+
+
+def test_pack_knowledge_marks_indexed_formats(client: TestClient) -> None:
+    """知识库列表标出哪些文件会入库：md / pdf / xlsx 入库，models.json 是配置数据不入库。"""
+    docs = client.get("/api/packs/llm_deploy", headers=ADMIN_H).json()["data"]["knowledge"]
+    by_name = {d["doc_name"]: d for d in docs}
+    assert by_name["GPU与整机参数表.xlsx"] == {
+        **by_name["GPU与整机参数表.xlsx"],
+        "format": "xlsx",
+        "indexed": True,
+    }
+    assert by_name["显存估算参考表.md"]["indexed"] is True
+    assert by_name["models.json"]["indexed"] is False

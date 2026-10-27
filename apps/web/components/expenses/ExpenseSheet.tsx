@@ -186,9 +186,10 @@ export function ExpenseSheet({
       ) : (
         <ExpenseSummary e={detail.data} />
       )}
-      <FormField label="票据" required hint="客户招待需同时上传发票和消费小票；支持 JPG / PNG / PDF，单个不超过 10 MB">
+      <FormField label="票据" required>
         <AttachmentUploader
           expenseId={draftId}
+          type={exp?.type ?? values.type}
           attachments={attachments}
           editable={editable}
           ensureDraft={draftId ? undefined : () => saveDraft(true)}

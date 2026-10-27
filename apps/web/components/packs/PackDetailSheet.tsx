@@ -4,6 +4,7 @@ import { BookOpen, FileText } from "lucide-react"
 
 import { EmptyState } from "@/components/biz/EmptyState"
 import { FormSheet } from "@/components/biz/FormSheet"
+import { KnowledgeGuide } from "@/components/packs/KnowledgeGuide"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -86,22 +87,41 @@ function Rules({ rules }: { rules: PackDetail["rules"] }) {
   )
 }
 
-function Knowledge({ docs }: { docs: PackDetail["knowledge"] }) {
-  if (docs.length === 0) return <EmptyState icon={BookOpen} title="知识库还没有文档" />
+function Knowledge({ docs, packId }: { docs: PackDetail["knowledge"]; packId: string }) {
   return (
-    <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200">
-      {docs.map((d) => (
-        <div key={d.doc_name} className="flex items-center gap-2.5 px-3 py-2.5">
-          <FileText className="size-4 shrink-0 text-zinc-400" />
-          <div className="min-w-0 flex-1">
-            <div className="truncate font-medium" title={d.title}>
-              {d.title || d.doc_name}
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-zinc-500">
+          {docs.filter((d) => d.indexed !== false).length} 份文档会进入知识库
+        </span>
+        <KnowledgeGuide packId={packId} />
+      </div>
+      {docs.length === 0 ? (
+        <EmptyState icon={BookOpen} title="知识库还没有文档" />
+      ) : (
+        <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200">
+          {docs.map((d) => (
+            <div key={d.doc_name} className="flex items-center gap-2.5 px-3 py-2.5">
+              <span className="inline-flex h-5 w-11 shrink-0 items-center justify-center rounded bg-zinc-100 text-[11px] font-medium text-zinc-600 uppercase">
+                {d.format ?? "file"}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium" title={d.title}>
+                  {d.title || d.doc_name}
+                </div>
+                <div className="truncate text-xs text-zinc-400">{d.doc_name}</div>
+              </div>
+              {d.indexed === false ? (
+                <span className="shrink-0 text-xs text-zinc-400" title="行业包的配置数据，不进入知识库检索">
+                  配置数据 · 不入库
+                </span>
+              ) : (
+                <span className="shrink-0 text-xs text-zinc-500 tabular-nums">{formatBytes(d.size)}</span>
+              )}
             </div>
-            <div className="truncate text-xs text-zinc-400">{d.doc_name}</div>
-          </div>
-          <span className="shrink-0 text-xs text-zinc-500 tabular-nums">{formatBytes(d.size)}</span>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   )
 }
@@ -141,7 +161,7 @@ export function PackDetailSheet({
           </p>
           {section === "catalog" ? <Catalog items={q.data.catalog} /> : null}
           {section === "rules" ? <Rules rules={q.data.rules} /> : null}
-          {section === "knowledge" ? <Knowledge docs={q.data.knowledge} /> : null}
+          {section === "knowledge" ? <Knowledge docs={q.data.knowledge} packId={q.data.id} /> : null}
         </>
       )}
     </FormSheet>

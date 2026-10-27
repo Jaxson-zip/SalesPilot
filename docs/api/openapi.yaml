@@ -4573,11 +4573,19 @@ components:
         size:
           type: integer
           title: Size
+        format:
+          type: string
+          title: Format
+        indexed:
+          type: boolean
+          title: Indexed
       type: object
       required:
       - doc_name
       - title
       - size
+      - format
+      - indexed
       title: KnowledgeDoc
     LoginResult:
       properties:
@@ -5636,6 +5644,42 @@ components:
       - manager
       - admin
       title: Role
+    RuleItem:
+      properties:
+        label:
+          type: string
+          title: Label
+        value:
+          type: string
+          title: Value
+      type: object
+      required:
+      - label
+      - value
+      title: RuleItem
+    RuleNote:
+      properties:
+        title:
+          type: string
+          title: Title
+        items:
+          items:
+            $ref: '#/components/schemas/RuleItem'
+          type: array
+          title: Items
+        note:
+          type: string
+          title: Note
+          default: ''
+        source:
+          type: string
+          title: Source
+      type: object
+      required:
+      - title
+      - items
+      - source
+      title: RuleNote
     StageChange:
       properties:
         stage:
@@ -5871,6 +5915,11 @@ components:
             $ref: '#/components/schemas/PromptTemplate'
           type: array
           title: Ai Prompts
+        rule_notes:
+          additionalProperties:
+            $ref: '#/components/schemas/RuleNote'
+          type: object
+          title: Rule Notes
       type: object
       required:
       - expense_templates
@@ -5880,6 +5929,7 @@ components:
       - lost_reasons
       - quote_terms
       - ai_prompts
+      - rule_notes
       title: Templates
     ThreadItem:
       properties:

@@ -72,3 +72,15 @@ def test_manager_lists_pending_and_sees_target_in_preview(
 def test_sales_cannot_list_approvals() -> None:
     result = run_tool(TOOLS["list_pending_approvals"], _ctx(Role.SALES), {}, lambda *_: None)
     assert not result.ok and result.error and result.error["code"] == 40301
+
+
+def test_rule_notes_use_rules_numbers(client: TestClient) -> None:
+    notes = client.get("/api/templates", headers=SALES_H).json()["data"]["rule_notes"]
+    rules = load_rules()
+    commission = {i["label"]: i["value"] for i in notes["commission"]["items"]}
+    assert commission["硬件提成"] == f"{rules.commission.rates['hardware'] * 100:g}%"
+    assert "× 0.5" in commission["低毛利合同"]
+    quote = {i["label"]: i["value"] for i in notes["quote"]["items"]}
+    assert quote["毛利底线"] == "低于 25% 需主管审批" and quote["报价有效期"] == "30 天"
+    expense = {i["label"]: i["value"] for i in notes["expense"]["items"]}
+    assert expense["客户招待"] == "人均 ¥150" and "¥500/晚" in expense["差旅住宿"]

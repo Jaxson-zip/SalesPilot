@@ -7,6 +7,7 @@ import { BulkBar } from "@/components/biz/BulkBar"
 import { DataGrid } from "@/components/biz/DataGrid"
 import { EmptyState } from "@/components/biz/EmptyState"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
+import { RuleHint } from "@/components/biz/RuleHint"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { ViewBar, type ViewOption } from "@/components/biz/ViewBar"
 import { ExpenseSheet } from "@/components/expenses/ExpenseSheet"
@@ -68,7 +69,12 @@ export default function ExpensesPage() {
     <PageFrame
       title="报销"
       icon={Receipt}
-      actions={canCreate ? <FrameAction icon={Plus} label="新建报销" primary onClick={openNew} /> : null}
+      actions={
+        <>
+          <RuleHint noteKey="expense" label="报销标准" />
+          {canCreate ? <FrameAction icon={Plus} label="新建报销" primary onClick={openNew} /> : null}
+        </>
+      }
     >
       {sel.count ? (
         <BulkBar count={sel.count} onExport={() => lv.exportRows(sel.selected)} onClear={sel.clear} />

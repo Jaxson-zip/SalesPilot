@@ -116,7 +116,7 @@ EXPENSES: list[dict[str, Any]] = [
         "status": "pending_approval",
         "suggestion": "关联商机 ¥372,000 处于方案报价阶段，客户为 A 级重点客户，超标幅度可接受。",
         "attachments": [
-            ("invoice", "电子发票_海底捞福田店_860.00.pdf"),
+            ("invoice", "电子发票_示例餐饮福田店_860.00.pdf"),
             ("receipt", "消费小票_IMG_2041.png"),
         ],
     },

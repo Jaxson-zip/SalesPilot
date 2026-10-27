@@ -6,11 +6,12 @@ import { toast } from "sonner"
 
 import { AttachmentItem } from "@/components/biz/Attachments"
 import { SimpleSelect } from "@/components/biz/FormControls"
+import { UploadGuide } from "@/components/expenses/UploadGuide"
 import { useDeleteAttachment, useUploadAttachment } from "@/hooks/useExpenses"
 import { attachmentSummary, validateAttachmentFile } from "@/lib/expense"
 import { ATTACHMENT_KIND_META } from "@/lib/labels"
 import { cn } from "@/lib/utils"
-import type { AttachmentKind, AttachmentOut } from "@/types/api"
+import type { AttachmentKind, AttachmentOut, ExpenseType } from "@/types/api"
 
 const KIND_OPTIONS: { value: AttachmentKind; label: string }[] = (["invoice", "receipt", "other"] as const).map(
   (k) => ({ value: k, label: ATTACHMENT_KIND_META[k].label }),
@@ -22,11 +23,14 @@ const KIND_OPTIONS: { value: AttachmentKind; label: string }[] = (["invoice", "r
  */
 export function AttachmentUploader({
   expenseId,
+  type,
   attachments,
   editable,
   ensureDraft,
 }: {
   expenseId: string | null
+  /** 费用类型：决定格式说明里「本类需要」哪些票据 */
+  type: ExpenseType
   attachments: AttachmentOut[]
   editable: boolean
   /** 没有草稿时自动保存草稿，返回报销单 id；表单校验不通过返回 null */
@@ -77,6 +81,9 @@ export function AttachmentUploader({
           <div className="w-28">
             <SimpleSelect value={kind} onChange={setKind} options={KIND_OPTIONS} size="sm" ariaLabel="票据类型" />
           </div>
+          <span className="ml-auto">
+            <UploadGuide type={type} />
+          </span>
         </div>
       ) : null}
       {editable ? (

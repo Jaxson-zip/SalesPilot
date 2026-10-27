@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>电子发票样例</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 28px; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; color: #7a3b16; background: #fff; }
+  .sheet { position: relative; width: 760px; margin: 0 auto; border: 2px solid #b9622f; padding: 18px 20px 16px; }
+  .head { display: flex; justify-content: space-between; align-items: flex-start; }
+  h1 { margin: 0; font-size: 22px; letter-spacing: 3px; color: #9a3412; text-align: center; white-space: nowrap; }
+  .sub { text-align: center; font-size: 12px; color: #b45309; margin-top: 4px; }
+  .meta { font-size: 12px; line-height: 1.9; min-width: 210px; }
+  .meta b { color: #18181b; font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+  td, th { border: 1px solid #d6a07d; padding: 6px 8px; vertical-align: top; }
+  th { font-weight: 500; background: #fff7ed; }
+  .party td { height: 64px; }
+  .k { color: #9a3412; width: 92px; }
+  .v { color: #18181b; }
+  .num { text-align: right; color: #18181b; font-variant-numeric: tabular-nums; }
+  .total td { font-size: 13px; }
+  .foot { display: flex; justify-content: space-between; font-size: 12px; margin-top: 10px; }
+  .mark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .mark span { transform: rotate(-18deg); font-size: 64px; font-weight: 700; color: rgba(220, 38, 38, .16); border: 6px solid rgba(220, 38, 38, .16); padding: 6px 28px; letter-spacing: 8px; }
+  .callout { font-size: 11px; color: #2563eb; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="head">
+    <div style="width:150px"></div>
+    <div style="flex:1">
+      <h1>电子发票（普通发票）</h1>
+      <div class="sub">样例：用于说明报销时需要看清的信息</div>
+    </div>
+    <div class="meta">
+      发票号码：<b>00000000000000000000</b><br>
+      开票日期：<b>2026年10月23日</b>
+    </div>
+  </div>
+
+  <table class="party">
+    <tr>
+      <td class="k">购买方信息</td>
+      <td class="v">名称：<b>SalesPilot 演示公司</b><span class="callout">（① 抬头必须是公司全称）</span><br>统一社会信用代码 / 纳税人识别号：<b>91440300XXXXXXXXXX</b><span class="callout">（② 税号与公司一致）</span></td>
+      <td class="k">销售方信息</td>
+      <td class="v">名称：示例餐饮服务有限公司<br>统一社会信用代码 / 纳税人识别号：91440300YYYYYYYYYY</td>
+    </tr>
+  </table>
+
+  <table>
+    <tr><th>项目名称</th><th>规格型号</th><th>单位</th><th>数量</th><th>单价</th><th>金额</th><th>税率/征收率</th><th>税额</th></tr>
+    <tr><td class="v">*餐饮服务*餐费</td><td></td><td class="v">次</td><td class="num">1</td><td class="num">811.32</td><td class="num">811.32</td><td class="num">6%</td><td class="num">48.68</td></tr>
+    <tr><td colspan="5" class="k">合　　计</td><td class="num">¥811.32</td><td></td><td class="num">¥48.68</td></tr>
+    <tr class="total"><td colspan="2" class="k">价税合计（大写）</td><td colspan="3" class="v">捌佰陆拾圆整</td><td colspan="3" class="num">（小写）<b>¥860.00</b> <span class="callout">③ 与报销金额一致</span></td></tr>
+    <tr><td class="k">备注</td><td colspan="7" class="v">（可填写用餐人数、关联客户）</td></tr>
+  </table>
+
+  <div class="foot">
+    <span>开票人：示例</span>
+    <span class="callout">④ 开票日期在业务发生日之后的合理范围内</span>
+  </div>
+  <div class="mark"><span>样例 · 非真实发票</span></div>
+</div>
+</body>
+</html>

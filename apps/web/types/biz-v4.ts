@@ -38,6 +38,15 @@ export interface PromptTemplate {
   prompt: string
 }
 
+/** 规则说明（悬浮提示）：数字由后端按 rules.yaml 填入 */
+export interface RuleNote {
+  title: string
+  items: { label: string; value: string }[]
+  note: string
+  source: string
+}
+export type RuleNoteKey = "commission" | "quote" | "expense"
+
 export interface Templates {
   expense_templates: ExpenseTemplate[]
   expense_guides: ExpenseGuide[]
@@ -47,4 +56,5 @@ export interface Templates {
   quote_terms: string[]
   /** 当前角色的 AI 示例问题 */
   ai_prompts: PromptTemplate[]
+  rule_notes: Record<RuleNoteKey, RuleNote>
 }

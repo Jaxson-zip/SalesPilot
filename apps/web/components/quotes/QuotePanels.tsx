@@ -29,6 +29,7 @@ import { activityActionLabel, APPROVAL_STATUS_META, labelOf, QUOTE_STATUS_META }
 import { defaultScope } from "@/lib/views"
 import type { QuoteDetail, Role } from "@/types/api"
 import { PackName } from "@/components/biz/PackName"
+import { RuleHint } from "@/components/biz/RuleHint"
 
 /** 左侧字段面板顶部的规则提示：阈值由 core 判断，这里只展示结果 */
 function RuleAlert({ q }: { q: QuoteDetail }) {
@@ -49,7 +50,10 @@ function RuleAlert({ q }: { q: QuoteDetail }) {
   if (q.status === "draft")
     return (
       <Alert tone="info" title="提交后按业务规则自动判断">
-        毛利达标自动通过；低于底线或折扣超权限时进入主管审批
+        毛利达标自动通过；低于底线或折扣超权限时进入主管审批。
+        <span className="ml-1 inline-block align-middle">
+          <RuleHint noteKey="quote" label="查看审批规则" variant="link" align="start" />
+        </span>
       </Alert>
     )
   if (q.status === "accepted")
@@ -105,10 +109,16 @@ export function QuoteFields({ q }: { q: QuoteDetail }) {
         </FieldRow>
       ) : null}
       <FieldRow icon={Percent} label="毛利率">
-        <span className="tabular-nums">{formatPercent(q.margin_rate)}</span>
+        <span className="inline-flex items-center gap-1 tabular-nums">
+          {formatPercent(q.margin_rate)}
+          <RuleHint noteKey="quote" label="报价审批规则" variant="icon" align="start" />
+        </span>
       </FieldRow>
       <FieldRow icon={Wallet} label="预估提成">
-        <span className="tabular-nums">{formatFen(q.estimated_commission)}</span>
+        <span className="inline-flex items-center gap-1 tabular-nums">
+          {formatFen(q.estimated_commission)}
+          <RuleHint noteKey="commission" label="提成规则" variant="icon" align="start" />
+        </span>
       </FieldRow>
       <FieldRow icon={User} label="负责人">
         <Chip name={q.owner.name} />

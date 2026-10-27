@@ -161,7 +161,7 @@ export function validateAttachmentFile(file: { name: string; size: number; type:
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  return `${Number((bytes / 1024 / 1024).toFixed(1))} MB` // 10 MB 而不是 10.0 MB
 }
 
 /** 统计：「已上传 2 个文件 · 发票 1 · 小票 1」 */

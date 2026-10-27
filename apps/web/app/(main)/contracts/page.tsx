@@ -1,18 +1,17 @@
 "use client"
 
-import { FileSignature, Info } from "lucide-react"
+import { FileSignature } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { BulkBar } from "@/components/biz/BulkBar"
 import { DataGrid } from "@/components/biz/DataGrid"
 import { EmptyState } from "@/components/biz/EmptyState"
-import { FormSheet } from "@/components/biz/FormSheet"
-import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
+import { PageFrame } from "@/components/biz/PageFrame"
+import { RuleHint } from "@/components/biz/RuleHint"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { ViewBar, type ViewOption } from "@/components/biz/ViewBar"
 import { PaymentDialog } from "@/components/contracts/PaymentDialog"
 import { useSession } from "@/components/shell/SessionProvider"
-import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useContracts } from "@/hooks/useContracts"
 import { useListView } from "@/hooks/useListView"
@@ -68,25 +67,6 @@ function StatStrip({ s, loading }: { s: ContractSummary | undefined; loading: bo
   )
 }
 
-/** 提成规则说明（具体比例与阈值在 rules.yaml，前端不写死数字） */
-function RuleSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
-  return (
-    <FormSheet
-      open={open}
-      onOpenChange={onOpenChange}
-      title="提成规则"
-      footer={<Button onClick={() => onOpenChange(false)}>知道了</Button>}
-    >
-      <div className="space-y-2 leading-6 text-zinc-700">
-        <p>· 按物料类别（硬件 / 软件 / 服务）分别计提，比例见业务规则配置</p>
-        <p>· 毛利率低于底线的合同，提成按规则打折</p>
-        <p>· 合同成交时生成「预估提成」，按实际回款比例确认</p>
-        <p className="pt-2 text-xs text-zinc-400">配置来源：rules.yaml（通用规则 + 行业包覆盖），由报价引擎计算</p>
-      </div>
-    </FormSheet>
-  )
-}
-
 const contractId = (r: ContractItem) => r.id
 
 export default function ContractsPage() {
@@ -95,7 +75,6 @@ export default function ContractsPage() {
   const payable = canPay()
   const [view, setView] = useState("all")
   const [paying, setPaying] = useState<ContractItem | null>(null)
-  const [ruleOpen, setRuleOpen] = useState(false)
   const query = useContracts({ view: defaultScope(role), status: toStatus(view), page: 1, page_size: 100 })
   // 登记回款只给主管（契约 §0）；列内再按合同状态判断
   const allColumns = useMemo(() => contractColumns(payable ? setPaying : undefined), [payable])
@@ -118,7 +97,7 @@ export default function ContractsPage() {
     <PageFrame
       title={contractsLabel(role)}
       icon={FileSignature}
-      actions={<FrameAction icon={Info} label="提成规则" onClick={() => setRuleOpen(true)} />}
+      actions={<RuleHint noteKey="commission" label="提成规则" />}
     >
       {query.isError && !query.data ? (
         <QueryError
@@ -160,7 +139,6 @@ export default function ContractsPage() {
         </>
       )}
       <PaymentDialog contract={paying} onClose={() => setPaying(null)} />
-      <RuleSheet open={ruleOpen} onOpenChange={setRuleOpen} />
     </PageFrame>
   )
 }

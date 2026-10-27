@@ -21,6 +21,10 @@ export interface PackKnowledgeDoc {
   title: string
   /** 字节 */
   size: number
+  /** 扩展名（不含点）：md / pdf / xlsx / json … */
+  format?: string
+  /** 是否进入知识库（RAG 支持的格式）；其他文件是行业包的配置数据 */
+  indexed?: boolean
 }
 
 export interface PackDetail {

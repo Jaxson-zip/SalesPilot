@@ -153,6 +153,7 @@ describe("formatBytes / attachmentSummary", () => {
     expect(formatBytes(512)).toBe("512 B")
     expect(formatBytes(880640)).toBe("860 KB")
     expect(formatBytes(1258291)).toBe("1.2 MB")
+    expect(formatBytes(10 * 1024 * 1024)).toBe("10 MB") // 回归：曾显示「10.0 MB」
     expect(attachmentSummary([])).toBe("还没有上传票据")
     expect(attachmentSummary([{ kind: "invoice" }, { kind: "receipt" }])).toBe("已上传 2 个文件 · 发票 1 · 小票 1")
   })

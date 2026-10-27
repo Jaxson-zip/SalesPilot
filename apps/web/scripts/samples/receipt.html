@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>消费小票样例</title>
+<style>
+  body { margin: 0; padding: 24px; background: #f4f4f5; font-family: "Microsoft YaHei", "PingFang SC", monospace; }
+  .ticket { position: relative; width: 300px; margin: 0 auto; background: #fff; padding: 18px 18px 22px; color: #18181b; font-size: 13px; line-height: 1.75; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .center { text-align: center; }
+  h2 { margin: 0; font-size: 17px; }
+  .dash { border-top: 1px dashed #a1a1aa; margin: 8px 0; }
+  .row { display: flex; justify-content: space-between; }
+  .total { font-size: 15px; font-weight: 700; }
+  .callout { color: #2563eb; font-size: 11px; }
+  .mark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .mark span { transform: rotate(-24deg); font-size: 34px; font-weight: 700; color: rgba(220,38,38,.18); border: 4px solid rgba(220,38,38,.18); padding: 4px 14px; }
+</style>
+</head>
+<body>
+<div class="ticket">
+  <div class="center"><h2>示例餐饮（福田店）</h2>结账单</div>
+  <div class="dash"></div>
+  <div class="row"><span>桌号：A08</span><span>人数：<b>4</b></span></div>
+  <div class="callout">① 人数要能看清，用来核对人均标准</div>
+  <div class="row"><span>时间：2026-10-23 20:41</span></div>
+  <div class="callout">② 日期与报销的发生日期一致</div>
+  <div class="dash"></div>
+  <div class="row"><span>招牌套餐 ×1</span><span>468.00</span></div>
+  <div class="row"><span>时令蔬菜 ×2</span><span>96.00</span></div>
+  <div class="row"><span>海鲜拼盘 ×1</span><span>238.00</span></div>
+  <div class="row"><span>饮品 ×4</span><span>58.00</span></div>
+  <div class="dash"></div>
+  <div class="row total"><span>实付金额</span><span>¥860.00</span></div>
+  <div class="callout">③ 金额与发票、报销金额一致</div>
+  <div class="dash"></div>
+  <div class="center" style="font-size:12px;color:#71717a">支付方式：企业微信 · 谢谢惠顾</div>
+  <div class="mark"><span>样例 · 非真实小票</span></div>
+</div>
+</body>
+</html>

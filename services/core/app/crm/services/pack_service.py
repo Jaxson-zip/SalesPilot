@@ -16,6 +16,7 @@ from app.crm.schemas.dashboard import ProductLineItem, ProductLineUpdate
 from app.crm.schemas.opportunity import FINAL_STAGES
 from app.packs.base import Catalog, CatalogItem
 from app.packs.registry import PackInfo, get_pack, list_packs
+from app.rag.loaders import LOADERS
 from app.rules.loader import load_raw_rules
 
 
@@ -37,6 +38,8 @@ class KnowledgeDoc(BaseModel):
     doc_name: str
     title: str
     size: int  # 字节
+    format: str  # 扩展名（不含点），如 md / pdf / xlsx / json
+    indexed: bool  # 是否会进入知识库（RAG 支持的格式）；其他文件是行业包的配置数据
 
 
 class PackDetail(PackOut):
@@ -59,7 +62,14 @@ def _knowledge(pack: PackInfo) -> list[KnowledgeDoc]:
         return []
     files = sorted(p for p in pack.knowledge_dir.iterdir() if p.is_file())
     return [
-        KnowledgeDoc(doc_name=p.name, title=_doc_title(p), size=p.stat().st_size) for p in files
+        KnowledgeDoc(
+            doc_name=p.name,
+            title=_doc_title(p),
+            size=p.stat().st_size,
+            format=p.suffix.lower().lstrip("."),
+            indexed=p.suffix.lower() in LOADERS,
+        )
+        for p in files
     ]
 
 

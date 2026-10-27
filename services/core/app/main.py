@@ -27,6 +27,7 @@ from app.crm.routers import (
     rules,
     tasks,
 )
+from app.rag.autoload import start_auto_ingest
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("core")
@@ -39,6 +40,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.warning("database unavailable at startup; DB-backed endpoints will fail")
     saver = await run_in_threadpool(init_checkpointer, db_ok)
     app.state.checkpointer_kind = type(saver).__name__
+    if db_ok:
+        app.state.kb_autoload = await run_in_threadpool(start_auto_ingest)
     yield
     await run_in_threadpool(close_checkpointer)
 

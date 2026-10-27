@@ -20,6 +20,7 @@ class Source(BaseModel):
     doc_name: str
     section: str | None
     score: float
+    page: int | None = None  # PDF 的页码
 
 
 class PolicySearchResult(BaseModel):
@@ -59,7 +60,24 @@ def search(
             doc_name=row.KbChunk.doc_name,
             section=row.KbChunk.section,
             score=round(1 - float(row.distance), 4),
+            page=row.KbChunk.page,
         )
         for row in db.execute(stmt).all()
     ]
     return filter_hits(hits, threshold)
+
+
+def source_title(source: Source) -> str:
+    """前端「参考来源」标签：文档名 · 最后一级章节 · 第 N 页。"""
+    parts = [source.doc_name]
+    if source.section:
+        parts.append(source.section.split(" > ")[-1])
+    if source.page:
+        parts.append(f"第 {source.page} 页")
+    return " · ".join(parts)
+
+
+def source_refs(result: PolicySearchResult, limit: int = 4) -> list[dict[str, str]]:
+    """去重后的出处（同一文档同一章节只列一次），最多 limit 条。"""
+    titles = list(dict.fromkeys(source_title(s) for s in result.sources))
+    return [{"title": t} for t in titles[:limit]]

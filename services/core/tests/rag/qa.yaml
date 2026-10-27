@@ -1,0 +1,51 @@
+# 知识库评测集（架构设计 §5.5）：问题 + 期望命中的文档和章节。
+# - doc：期望出处（文档名，不含扩展名）；section：章节路径里应包含的文字（可省略）
+# - pack：问题属于哪个行业包（检索范围 = 公司制度 + 该行业包）；不写只查公司制度
+# - no_answer: true 表示知识库里没有答案，正确行为是拒答（found=false）
+# 运行：uv run python -m app.rag.evaluate（需要配置 Embedding 模型并已入库）
+
+cases:
+  - q: 请客户吃饭每人最多能报多少钱？
+    doc: 费用报销管理制度
+    section: "4.2"
+  - q: 去北京出差住酒店一晚能报多少？
+    doc: 费用报销管理制度
+    section: "3.2"
+  - q: 跨城出差应该坐什么交通工具？
+    doc: 费用报销管理制度
+    section: "3.1"
+  - q: 招待客户的报销要附哪些材料？
+    doc: 费用报销管理制度
+    section: "4.3"
+  - q: 一份 300 万的合同要哪些人审批？
+    doc: 合同审批与回款流程
+    section: "2.2"
+  - q: 客户一直不付尾款超过三个月会怎么样？
+    doc: 合同审批与回款流程
+    section: "3.3"
+  - q: 我们的标准付款比例是怎样的？
+    doc: 合同审批与回款流程
+    section: "3.1"
+  - q: 毛利很低的合同提成会打折吗？
+    doc: 销售提成制度
+    section: 低毛利
+  - q: 客户退款以后已经拿到的提成怎么办？
+    doc: 合同审批与回款流程
+    section: "4.3"
+  - q: 32B 模型 50 人同时用，一般配什么服务器？
+    pack: llm_deploy
+    doc: GPU与整机参数表
+    section: 整机配置
+  - q: L20 和 H20 显卡怎么选？
+    pack: llm_deploy
+    doc: GPU与整机参数表
+  - q: 部署一个模型大概需要多少显存，怎么算？
+    pack: llm_deploy
+    doc: 显存估算参考表
+    section: 估算公式
+  - q: 公司一年有几天年假？
+    no_answer: true
+  - q: 员工过生日公司有什么福利？
+    no_answer: true
+  - q: 办公室停车位怎么申请？
+    no_answer: true

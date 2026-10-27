@@ -70,6 +70,10 @@ def turn_artifacts(state: Mapping[str, Any]) -> list[dict[str, Any]]:
         arts.append({"type": "bom", "data": recommended_tier(tiers)})
     if quote := state.get("quote"):
         arts.append({"type": "quote", "data": quote})
+    refs = [r for e in state.get("tool_log") or [] for r in e.get("sources", [])]
+    if refs:
+        unique = list({r["title"]: r for r in refs}.values())
+        arts.append({"type": "sources", "data": unique})
     return arts
 
 

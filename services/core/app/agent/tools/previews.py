@@ -12,9 +12,9 @@ from datetime import datetime
 from typing import Any
 
 from app.agent.tools.base import ToolContext
+from app.crm.models import Approval
 from app.crm.schemas.finance import EXPENSE_TYPE_LABELS
 from app.crm.schemas.opportunity import STAGE_LABELS
-from app.crm.models import Approval
 from app.crm.services import approval_service, customer_service
 from app.crm.services import opportunity_service as opp_service
 from app.rules.calculators import stay_nights

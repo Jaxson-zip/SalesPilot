@@ -1,7 +1,6 @@
-"""知识库入库：加载 Markdown → 切块 → 哈希去重 → 经网关向量化 → 写入 kb_chunks。
+"""知识库入库：加载（Markdown / PDF / Excel）→ 切块 → 哈希去重 → 经网关向量化 → 写入 kb_chunks。
 
 命令：python -m app.rag.ingest --scope company | pack:llm_deploy | all
-TODO: PDF（按页）与 Excel（每张表转 Markdown 表格）加载；表格整表成块。
 """
 
 import argparse
@@ -15,7 +14,8 @@ from app.common.db import session_scope
 from app.crm.models import KbChunk
 from app.llm.client import embed_texts
 from app.packs.registry import list_packs
-from app.rag.chunking import Chunk, chunk_markdown, dedupe
+from app.rag.chunking import Chunk, dedupe, embedding_text
+from app.rag.loaders import load_file, supported_files
 
 logger = logging.getLogger("core.rag")
 CORE_ROOT = Path(__file__).resolve().parents[2]
@@ -33,11 +33,9 @@ def source_dirs() -> dict[str, tuple[Path, str | None]]:
 
 def load_chunks(scope: str) -> list[Chunk]:
     directory, pack = source_dirs()[scope]
-    chunks: list[Chunk] = []
-    for path in sorted(directory.glob("*.md")):
-        text = path.read_text(encoding="utf-8")
-        chunks.extend(chunk_markdown(text, scope=scope, doc_name=path.stem, pack=pack))
-    return chunks
+    if not directory.exists():
+        return []
+    return [c for path in supported_files(directory) for c in load_file(path, scope, pack)]
 
 
 def ingest_scope(db: Session, scope: str) -> int:
@@ -47,7 +45,7 @@ def ingest_scope(db: Session, scope: str) -> int:
     fresh = dedupe(chunks, existing)
     for start in range(0, len(fresh), EMBED_BATCH):
         batch = fresh[start : start + EMBED_BATCH]
-        vectors = embed_texts([c.content for c in batch])
+        vectors = embed_texts([embedding_text(c) for c in batch])
         db.add_all(
             KbChunk(
                 scope=c.scope,

@@ -22,6 +22,8 @@ dependencies = [
     "langgraph-checkpoint-postgres>=2.0",
     "langchain-text-splitters>=0.3",
     "python-multipart>=0.0.9",
+    "pypdf>=5",
+    "openpyxl>=3.1",
 ]
 
 [dependency-groups]
@@ -47,6 +49,8 @@ ignore = ["RUF001", "RUF002", "RUF003", "B008", "ANN401"]
 "tests/**" = ["ANN"]
 # 必须先设置测试库等环境变量，再导入 app（否则配置会读到开发库）
 "tests/conftest.py" = ["ANN", "E402"]
+# 生成示例知识文件的脚本：主体是数据表，一行一条记录更易读
+"seed/knowledge/sources/*.py" = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

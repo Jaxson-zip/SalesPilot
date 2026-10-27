@@ -1,0 +1,6053 @@
+# 由 services/core/scripts/export_openapi.py 从 FastAPI 自动生成，请勿手改。
+openapi: 3.1.0
+info:
+  title: SalesPilot Core
+  version: 0.1.0
+  description: SalesPilot 业务服务。统一响应 {code, message, data, request_id}；错误码见 docs/开发规范.md §8.2；字段说明见 docs/api/业务模块接口契约.md。
+paths:
+  /api/auth/mock-login:
+    post:
+      tags:
+      - auth
+      summary: Mock Login
+      operationId: mock_login_api_auth_mock_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MockLoginIn'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_LoginResult_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/me:
+    get:
+      tags:
+      - auth
+      summary: Me
+      operationId: me_api_me_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_UserOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers:
+    get:
+      tags:
+      - customers
+      summary: List Customers
+      operationId: list_customers_api_customers_get
+      parameters:
+      - name: view
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/View'
+          - type: 'null'
+          title: View
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Q
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Page_CustomerListItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - customers
+      summary: Create Customer
+      operationId: create_customer_api_customers_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_CustomerDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/transfer:
+    post:
+      tags:
+      - customers
+      summary: Transfer Customers
+      operationId: transfer_customers_api_customers_transfer_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerTransfer'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_TransferResult_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/{customer_id}:
+    get:
+      tags:
+      - customers
+      summary: Get Customer
+      operationId: get_customer_api_customers__customer_id__get
+      parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Customer Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_CustomerDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/{customer_id}/followups:
+    get:
+      tags:
+      - customers
+      summary: List Followups
+      operationId: list_followups_api_customers__customer_id__followups_get
+      parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Customer Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Page_FollowupItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - customers
+      summary: Create Followup
+      operationId: create_followup_api_customers__customer_id__followups_post
+      parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Customer Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FollowupIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_FollowupItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/{customer_id}/contacts:
+    get:
+      tags:
+      - customers
+      summary: List Contacts
+      operationId: list_contacts_api_customers__customer_id__contacts_get
+      parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Customer Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Page_ContactItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/packs:
+    get:
+      tags:
+      - rules
+      summary: List Packs
+      operationId: list_packs_api_packs_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_PackOut__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/packs/{pack_id}:
+    get:
+      tags:
+      - rules
+      summary: Get Pack
+      operationId: get_pack_api_packs__pack_id__get
+      parameters:
+      - name: pack_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Pack Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PackDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/commissions/estimate:
+    post:
+      tags:
+      - rules
+      summary: Estimate Commission
+      operationId: estimate_commission_api_commissions_estimate_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommissionEstimateIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_CommissionResult_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/expenses/precheck:
+    post:
+      tags:
+      - rules
+      summary: Precheck Expense
+      operationId: precheck_expense_api_expenses_precheck_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpensePrecheckIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ExpenseCheck_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/templates:
+    get:
+      tags:
+      - rules
+      summary: Get Templates
+      operationId: get_templates_api_templates_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Templates_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/dashboard:
+    get:
+      tags:
+      - dashboard
+      summary: Get Dashboard
+      operationId: get_dashboard_api_dashboard_get
+      parameters:
+      - name: view
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/View'
+          - type: 'null'
+          title: View
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Dashboard_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/activities:
+    get:
+      tags:
+      - dashboard
+      summary: List Activities
+      operationId: list_activities_api_activities_get
+      parameters:
+      - name: view
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/View'
+          - type: 'null'
+          title: View
+      - name: subject_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 20
+          - type: 'null'
+          title: Subject Type
+      - name: subject_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Subject Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Page_ActivityOut__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/opportunities:
+    get:
+      tags:
+      - opportunities
+      summary: List Opportunities
+      operationId: list_opportunities_api_opportunities_get
+      parameters:
+      - name: view
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/View'
+          - type: 'null'
+          title: View
+      - name: stage
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - lead
+            - qualified
+            - proposal
+            - negotiation
+            - won
+            - lost
+            type: string
+          - type: 'null'
+          title: Stage
+      - name: customer_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Customer Id
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Q
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Page_OpportunityItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - opportunities
+      summary: Create Opportunity
+      operationId: create_opportunity_api_opportunities_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpportunityCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_OpportunityItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/opportunities/{opportunity_id}:
+    get:
+      tags:
+      - opportunities
+      summary: Get Opportunity
+      operationId: get_opportunity_api_opportunities__opportunity_id__get
+      parameters:
+      - name: opportunity_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Opportunity Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_OpportunityDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - opportunities
+      summary: Update Opportunity
+      operationId: update_opportunity_api_opportunities__opportunity_id__patch
+      parameters:
+      - name: opportunity_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Opportunity Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpportunityUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_OpportunityItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/opportunities/{opportunity_id}/stage:
+    patch:
+      tags:
+      - opportunities
+      summary: Change Stage
+      operationId: change_stage_api_opportunities__opportunity_id__stage_patch
+      parameters:
+      - name: opportunity_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Opportunity Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StageChange'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_OpportunityItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/pipeline/summary:
+    get:
+      tags:
+      - opportunities
+      summary: Pipeline Summary
+      operationId: pipeline_summary_api_pipeline_summary_get
+      parameters:
+      - name: view
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/View'
+          - type: 'null'
+          title: View
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PipelineSummary_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/quotes:
+    get:
+      tags:
+      - quotes
+      summary: List Quotes
+      operationId: list_quotes_api_quotes_get
+      parameters:
+      - name: view
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/View'
+          - type: 'null'
+          title: View
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - draft
+            - pending_approval
+            - approved
+            - sent
+            - accepted
+            - rejected
+            type: string
+          - type: 'null'
+          title: Status
+      - name: opportunity_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Opportunity Id
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Q
+      - name: customer_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Customer Id
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Page_QuoteListItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/quotes/{quote_id}:
+    get:
+      tags:
+      - quotes
+      summary: Get Quote
+      operationId: get_quote_api_quotes__quote_id__get
+      parameters:
+      - name: quote_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Quote Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_QuoteDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/quotes/{quote_id}/items:
+    patch:
+      tags:
+      - quotes
+      summary: Update Items
+      operationId: update_items_api_quotes__quote_id__items_patch
+      parameters:
+      - name: quote_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Quote Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteItemsUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_QuoteDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/quotes/{quote_id}/submit:
+    post:
+      tags:
+      - quotes
+      summary: Submit Quote
+      operationId: submit_quote_api_quotes__quote_id__submit_post
+      parameters:
+      - name: quote_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Quote Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_QuoteDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/quotes/{quote_id}/send:
+    post:
+      tags:
+      - quotes
+      summary: Send Quote
+      operationId: send_quote_api_quotes__quote_id__send_post
+      parameters:
+      - name: quote_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Quote Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_QuoteDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/quotes/{quote_id}/accept:
+    post:
+      tags:
+      - quotes
+      summary: Accept Quote
+      operationId: accept_quote_api_quotes__quote_id__accept_post
+      parameters:
+      - name: quote_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Quote Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_QuoteDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/quotes/{quote_id}/reject:
+    post:
+      tags:
+      - quotes
+      summary: Reject Quote
+      operationId: reject_quote_api_quotes__quote_id__reject_post
+      parameters:
+      - name: quote_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Quote Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_QuoteDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/contracts:
+    get:
+      tags:
+      - contracts
+      summary: List Contracts
+      operationId: list_contracts_api_contracts_get
+      parameters:
+      - name: view
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/View'
+          - type: 'null'
+          title: View
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - active
+            - paid
+            type: string
+          - type: 'null'
+          title: Status
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ContractList_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/contracts/{contract_id}:
+    get:
+      tags:
+      - contracts
+      summary: Get Contract
+      operationId: get_contract_api_contracts__contract_id__get
+      parameters:
+      - name: contract_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Contract Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ContractItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/contracts/{contract_id}/payments:
+    post:
+      tags:
+      - contracts
+      summary: Add Payment
+      operationId: add_payment_api_contracts__contract_id__payments_post
+      parameters:
+      - name: contract_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Contract Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ContractItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/expenses:
+    get:
+      tags:
+      - expenses
+      summary: List Expenses
+      operationId: list_expenses_api_expenses_get
+      parameters:
+      - name: view
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/View'
+          - type: 'null'
+          title: View
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - draft
+            - pending_approval
+            - approved
+            - rejected
+            - paid
+            type: string
+          - type: 'null'
+          title: Status
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Page_ExpenseItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - expenses
+      summary: Create Expense
+      operationId: create_expense_api_expenses_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ExpenseDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/expenses/{expense_id}:
+    get:
+      tags:
+      - expenses
+      summary: Get Expense
+      operationId: get_expense_api_expenses__expense_id__get
+      parameters:
+      - name: expense_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Expense Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ExpenseDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/expenses/{expense_id}/submit:
+    post:
+      tags:
+      - expenses
+      summary: Submit Expense
+      operationId: submit_expense_api_expenses__expense_id__submit_post
+      parameters:
+      - name: expense_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Expense Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ExpenseDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/expenses/{expense_id}/attachments:
+    post:
+      tags:
+      - expenses
+      summary: Upload Attachment
+      operationId: upload_attachment_api_expenses__expense_id__attachments_post
+      parameters:
+      - name: expense_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Expense Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_attachment_api_expenses__expense_id__attachments_post'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_AttachmentOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/attachments/{attachment_id}:
+    delete:
+      tags:
+      - expenses
+      summary: Delete Attachment
+      operationId: delete_attachment_api_attachments__attachment_id__delete
+      parameters:
+      - name: attachment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Attachment Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_NoneType_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/attachments/{attachment_id}/file:
+    get:
+      tags:
+      - expenses
+      summary: Download Attachment
+      operationId: download_attachment_api_attachments__attachment_id__file_get
+      parameters:
+      - name: attachment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Attachment Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/approvals:
+    get:
+      tags:
+      - approvals
+      summary: List Approvals
+      operationId: list_approvals_api_approvals_get
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - pending
+            - done
+            type: string
+          - type: 'null'
+          title: Status
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Page_ApprovalItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/approvals/{approval_id}/decide:
+    post:
+      tags:
+      - approvals
+      summary: Decide
+      operationId: decide_api_approvals__approval_id__decide_post
+      parameters:
+      - name: approval_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Approval Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalDecision'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ApprovalItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/product-lines:
+    get:
+      tags:
+      - packs
+      summary: List Product Lines
+      operationId: list_product_lines_api_product_lines_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Page_ProductLineItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/product-lines/{line_id}:
+    put:
+      tags:
+      - packs
+      summary: Update Product Line
+      operationId: update_product_line_api_product_lines__line_id__put
+      parameters:
+      - name: line_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Line Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductLineUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ProductLineItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/tasks:
+    get:
+      tags:
+      - tasks
+      summary: List Tasks
+      operationId: list_tasks_api_tasks_get
+      parameters:
+      - name: view
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/View'
+          - type: 'null'
+          title: View
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - open
+            - done
+            type: string
+          - type: 'null'
+          title: Status
+      - name: due
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - today
+            - overdue
+            - week
+            type: string
+          - type: 'null'
+          title: Due
+      - name: subject_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - customer
+            - opportunity
+            type: string
+          - type: 'null'
+          title: Subject Type
+      - name: subject_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Subject Id
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Page_TaskItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - tasks
+      summary: Create Task
+      operationId: create_task_api_tasks_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_TaskItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/tasks/{task_id}:
+    patch:
+      tags:
+      - tasks
+      summary: Update Task
+      operationId: update_task_api_tasks__task_id__patch
+      parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Task Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_TaskItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - tasks
+      summary: Delete Task
+      operationId: delete_task_api_tasks__task_id__delete
+      parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Task Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_NoneType_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/users:
+    get:
+      tags:
+      - notifications
+      summary: List Users
+      description: 销售 / 主管始终返回本团队；管理员不属于任何团队，始终返回全部（scope 仅为兼容保留）。
+      operationId: list_users_api_users_get
+      parameters:
+      - name: scope
+        in: query
+        required: false
+        schema:
+          enum:
+          - team
+          - all
+          type: string
+          default: team
+          title: Scope
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Page_UserListItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/notifications:
+    get:
+      tags:
+      - notifications
+      summary: List Notifications
+      operationId: list_notifications_api_notifications_get
+      parameters:
+      - name: unread
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Unread
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_NotificationList_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/notifications/read:
+    post:
+      tags:
+      - notifications
+      summary: Mark Read
+      operationId: mark_read_api_notifications_read_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/NotificationRead'
+              - type: 'null'
+              title: Body
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_NotificationReadResult_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/agent/chat:
+    post:
+      tags:
+      - agent
+      summary: Chat
+      operationId: chat_api_agent_chat_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/agent/resume:
+    post:
+      tags:
+      - agent
+      summary: Resume
+      operationId: resume_api_agent_resume_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResumeIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/agent/models:
+    get:
+      tags:
+      - agent
+      summary: Chat Models
+      operationId: chat_models_api_agent_models_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ChatModels_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/agent/threads:
+    get:
+      tags:
+      - agent
+      summary: List Threads
+      operationId: list_threads_api_agent_threads_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 30
+          title: Limit
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ThreadPage_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/agent/threads/{thread_id}/messages:
+    get:
+      tags:
+      - agent
+      summary: Thread Messages
+      operationId: thread_messages_api_agent_threads__thread_id__messages_get
+      parameters:
+      - name: thread_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 100
+          title: Thread Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ThreadMessages_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /health:
+    get:
+      tags:
+      - health
+      summary: Health
+      description: 服务存活即返回 code=0；数据库不可用时 status=degraded、db=false。
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Health_'
+components:
+  schemas:
+    ActivityOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        subject_type:
+          type: string
+          title: Subject Type
+        subject_id:
+          type: string
+          format: uuid
+          title: Subject Id
+        actor:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        source:
+          type: string
+          enum:
+          - manual
+          - agent
+          title: Source
+        action:
+          type: string
+          title: Action
+        content:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Content
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - subject_type
+      - subject_id
+      - actor
+      - source
+      - action
+      - content
+      - created_at
+      title: ActivityOut
+    ApiResponse_ApprovalItem_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ApprovalItem'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ApprovalItem]
+    ApiResponse_AttachmentOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/AttachmentOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[AttachmentOut]
+    ApiResponse_ChatModels_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ChatModels'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ChatModels]
+    ApiResponse_CommissionResult_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/CommissionResult'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[CommissionResult]
+    ApiResponse_ContractItem_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ContractItem'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ContractItem]
+    ApiResponse_ContractList_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ContractList'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ContractList]
+    ApiResponse_CustomerDetail_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/CustomerDetail'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[CustomerDetail]
+    ApiResponse_Dashboard_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Dashboard'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Dashboard]
+    ApiResponse_ExpenseCheck_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ExpenseCheck'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ExpenseCheck]
+    ApiResponse_ExpenseDetail_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ExpenseDetail'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ExpenseDetail]
+    ApiResponse_FollowupItem_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/FollowupItem'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[FollowupItem]
+    ApiResponse_Health_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Health'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Health]
+    ApiResponse_LoginResult_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/LoginResult'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[LoginResult]
+    ApiResponse_NoneType_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[NoneType]
+    ApiResponse_NotificationList_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/NotificationList'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[NotificationList]
+    ApiResponse_NotificationReadResult_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/NotificationReadResult'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[NotificationReadResult]
+    ApiResponse_OpportunityDetail_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/OpportunityDetail'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[OpportunityDetail]
+    ApiResponse_OpportunityItem_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/OpportunityItem'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[OpportunityItem]
+    ApiResponse_PackDetail_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/PackDetail'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[PackDetail]
+    ApiResponse_Page_ActivityOut__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Page_ActivityOut_'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Page[ActivityOut]]
+    ApiResponse_Page_ApprovalItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Page_ApprovalItem_'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Page[ApprovalItem]]
+    ApiResponse_Page_ContactItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Page_ContactItem_'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Page[ContactItem]]
+    ApiResponse_Page_CustomerListItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Page_CustomerListItem_'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Page[CustomerListItem]]
+    ApiResponse_Page_ExpenseItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Page_ExpenseItem_'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Page[ExpenseItem]]
+    ApiResponse_Page_FollowupItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Page_FollowupItem_'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Page[FollowupItem]]
+    ApiResponse_Page_OpportunityItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Page_OpportunityItem_'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Page[OpportunityItem]]
+    ApiResponse_Page_ProductLineItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Page_ProductLineItem_'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Page[ProductLineItem]]
+    ApiResponse_Page_QuoteListItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Page_QuoteListItem_'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Page[QuoteListItem]]
+    ApiResponse_Page_TaskItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Page_TaskItem_'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Page[TaskItem]]
+    ApiResponse_Page_UserListItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Page_UserListItem_'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Page[UserListItem]]
+    ApiResponse_PipelineSummary_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/PipelineSummary'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[PipelineSummary]
+    ApiResponse_ProductLineItem_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ProductLineItem'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ProductLineItem]
+    ApiResponse_QuoteDetail_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/QuoteDetail'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[QuoteDetail]
+    ApiResponse_TaskItem_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/TaskItem'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[TaskItem]
+    ApiResponse_Templates_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Templates'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Templates]
+    ApiResponse_ThreadMessages_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ThreadMessages'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ThreadMessages]
+    ApiResponse_ThreadPage_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ThreadPage'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ThreadPage]
+    ApiResponse_TransferResult_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/TransferResult'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[TransferResult]
+    ApiResponse_UserOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/UserOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[UserOut]
+    ApiResponse_list_PackOut__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/PackOut'
+            type: array
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[list[PackOut]]
+    ApprovalBrief:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        status:
+          type: string
+          enum:
+          - pending
+          - approved
+          - rejected
+          title: Status
+        reason:
+          type: string
+          title: Reason
+        approver:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+        decided_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Decided At
+      type: object
+      required:
+      - id
+      - status
+      - reason
+      - approver
+      - comment
+      - decided_at
+      title: ApprovalBrief
+    ApprovalDecision:
+      properties:
+        decision:
+          type: string
+          enum:
+          - approve
+          - reject
+          title: Decision
+        comment:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Comment
+      type: object
+      required:
+      - decision
+      title: ApprovalDecision
+    ApprovalItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        target_type:
+          type: string
+          enum:
+          - quote
+          - expense
+          title: Target Type
+        target:
+          $ref: '#/components/schemas/ApprovalTarget'
+        reason:
+          type: string
+          title: Reason
+        ai_suggestion:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ai Suggestion
+        status:
+          type: string
+          enum:
+          - pending
+          - approved
+          - rejected
+          title: Status
+        attachments:
+          items:
+            $ref: '#/components/schemas/AttachmentOut'
+          type: array
+          title: Attachments
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+        decided_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Decided At
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - target_type
+      - target
+      - reason
+      - ai_suggestion
+      - status
+      - attachments
+      - created_at
+      title: ApprovalItem
+    ApprovalTarget:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        code:
+          type: string
+          title: Code
+        title:
+          type: string
+          title: Title
+        amount:
+          type: integer
+          title: Amount
+        owner:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+      type: object
+      required:
+      - id
+      - code
+      - title
+      - amount
+      - owner
+      title: ApprovalTarget
+    Artifact:
+      properties:
+        type:
+          type: string
+          title: Type
+        data:
+          title: Data
+      type: object
+      required:
+      - type
+      - data
+      title: Artifact
+    AttachmentOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        kind:
+          type: string
+          enum:
+          - invoice
+          - receipt
+          - other
+          title: Kind
+        file_name:
+          type: string
+          title: File Name
+        mime:
+          type: string
+          title: Mime
+        size:
+          type: integer
+          title: Size
+        url:
+          type: string
+          title: Url
+      type: object
+      required:
+      - id
+      - kind
+      - file_name
+      - mime
+      - size
+      - url
+      title: AttachmentOut
+    Body_upload_attachment_api_expenses__expense_id__attachments_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+        kind:
+          type: string
+          enum:
+          - invoice
+          - receipt
+          - other
+          title: Kind
+          default: other
+      type: object
+      required:
+      - file
+      title: Body_upload_attachment_api_expenses__expense_id__attachments_post
+    CatalogItem:
+      properties:
+        sku:
+          type: string
+          title: Sku
+        name:
+          type: string
+          title: Name
+        category:
+          type: string
+          enum:
+          - hardware
+          - software
+          - service
+          title: Category
+        unit:
+          type: string
+          title: Unit
+        cost:
+          type: integer
+          title: Cost
+        price:
+          type: integer
+          title: Price
+        specs:
+          additionalProperties: true
+          type: object
+          title: Specs
+      type: object
+      required:
+      - sku
+      - name
+      - category
+      - unit
+      - cost
+      - price
+      title: CatalogItem
+    ChatIn:
+      properties:
+        thread_id:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Thread Id
+        message:
+          type: string
+          maxLength: 4000
+          minLength: 1
+          title: Message
+        opportunity_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Opportunity Id
+        model:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Model
+      type: object
+      required:
+      - thread_id
+      - message
+      title: ChatIn
+    ChatModelOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        type:
+          type: string
+          enum:
+          - model
+          - group
+          title: Type
+        available:
+          type: boolean
+          title: Available
+        members:
+          items:
+            type: string
+          type: array
+          title: Members
+          default: []
+      type: object
+      required:
+      - id
+      - type
+      - available
+      title: ChatModelOut
+    ChatModels:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ChatModelOut'
+          type: array
+          title: Items
+        default:
+          type: string
+          title: Default
+        any_available:
+          type: boolean
+          title: Any Available
+        gateway_ok:
+          type: boolean
+          title: Gateway Ok
+      type: object
+      required:
+      - items
+      - default
+      - any_available
+      - gateway_ok
+      title: ChatModels
+    CodeRef:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        code:
+          type: string
+          title: Code
+      type: object
+      required:
+      - id
+      - code
+      title: CodeRef
+    CommissionBrief:
+      properties:
+        estimated:
+          type: integer
+          title: Estimated
+        confirmed:
+          type: integer
+          title: Confirmed
+      type: object
+      required:
+      - estimated
+      - confirmed
+      title: CommissionBrief
+    CommissionEstimateIn:
+      properties:
+        lines:
+          items:
+            $ref: '#/components/schemas/CommissionLineIn'
+          type: array
+          title: Lines
+        margin_rate:
+          type: number
+          maximum: 1.0
+          minimum: -1.0
+          title: Margin Rate
+        paid_ratio:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Paid Ratio
+          default: 1.0
+      type: object
+      required:
+      - lines
+      - margin_rate
+      title: CommissionEstimateIn
+    CommissionLineIn:
+      properties:
+        category:
+          type: string
+          enum:
+          - hardware
+          - software
+          - service
+          title: Category
+        amount:
+          type: integer
+          minimum: 0.0
+          title: Amount
+      type: object
+      required:
+      - category
+      - amount
+      title: CommissionLineIn
+    CommissionResult:
+      properties:
+        estimated:
+          type: integer
+          title: Estimated
+        confirmed:
+          type: integer
+          title: Confirmed
+        halved:
+          type: boolean
+          title: Halved
+        detail:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Detail
+      type: object
+      required:
+      - estimated
+      - confirmed
+      - halved
+      - detail
+      title: CommissionResult
+    ContactBrief:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+      type: object
+      required:
+      - id
+      - name
+      - title
+      title: ContactBrief
+    ContactItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        is_decision_maker:
+          type: boolean
+          title: Is Decision Maker
+      type: object
+      required:
+      - id
+      - name
+      - title
+      - phone
+      - is_decision_maker
+      title: ContactItem
+    ContractItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        code:
+          type: string
+          title: Code
+        customer:
+          anyOf:
+          - $ref: '#/components/schemas/CustomerBrief'
+          - type: 'null'
+        quote:
+          anyOf:
+          - $ref: '#/components/schemas/CodeRef'
+          - type: 'null'
+        amount:
+          type: integer
+          title: Amount
+        paid_amount:
+          type: integer
+          title: Paid Amount
+        paid_ratio:
+          type: number
+          title: Paid Ratio
+        status:
+          type: string
+          enum:
+          - active
+          - paid
+          title: Status
+        commission:
+          $ref: '#/components/schemas/CommissionBrief'
+        owner:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - code
+      - customer
+      - quote
+      - amount
+      - paid_amount
+      - paid_ratio
+      - status
+      - commission
+      - owner
+      - created_at
+      title: ContractItem
+    ContractList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ContractItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        summary:
+          $ref: '#/components/schemas/ContractSummary'
+      type: object
+      required:
+      - items
+      - total
+      - summary
+      title: ContractList
+    ContractSummary:
+      properties:
+        month_amount:
+          type: integer
+          title: Month Amount
+        estimated_commission:
+          type: integer
+          title: Estimated Commission
+        confirmed_commission:
+          type: integer
+          title: Confirmed Commission
+        unpaid_amount:
+          type: integer
+          title: Unpaid Amount
+      type: object
+      required:
+      - month_amount
+      - estimated_commission
+      - confirmed_commission
+      - unpaid_amount
+      title: ContractSummary
+    CustomerBrief:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - name
+      title: CustomerBrief
+    CustomerCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Name
+        industry:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Industry
+        level:
+          type: string
+          enum:
+          - A
+          - B
+          - C
+          title: Level
+          default: C
+        size:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Size
+        address:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Address
+        website:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Website
+        annual_budget:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Annual Budget
+        tags:
+          items:
+            type: string
+          type: array
+          maxItems: 20
+          title: Tags
+      type: object
+      required:
+      - name
+      title: CustomerCreate
+    CustomerDetail:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        industry:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Industry
+        level:
+          type: string
+          title: Level
+        owner:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        website:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Website
+        opportunity_amount:
+          type: integer
+          title: Opportunity Amount
+        last_followup_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Followup At
+        size:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Size
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+        annual_budget:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Annual Budget
+        tags:
+          items:
+            type: string
+          type: array
+          title: Tags
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - name
+      - industry
+      - level
+      - owner
+      - website
+      - opportunity_amount
+      - last_followup_at
+      - size
+      - address
+      - annual_budget
+      - tags
+      - created_at
+      title: CustomerDetail
+    CustomerListItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        industry:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Industry
+        level:
+          type: string
+          title: Level
+        owner:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        website:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Website
+        opportunity_amount:
+          type: integer
+          title: Opportunity Amount
+        last_followup_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Followup At
+      type: object
+      required:
+      - id
+      - name
+      - industry
+      - level
+      - owner
+      - website
+      - opportunity_amount
+      - last_followup_at
+      title: CustomerListItem
+    CustomerTransfer:
+      properties:
+        customer_ids:
+          items:
+            type: string
+            format: uuid
+          type: array
+          maxItems: 100
+          minItems: 1
+          title: Customer Ids
+        to_user_id:
+          type: string
+          format: uuid
+          title: To User Id
+      type: object
+      required:
+      - customer_ids
+      - to_user_id
+      title: CustomerTransfer
+    Dashboard:
+      properties:
+        won_amount_month:
+          type: integer
+          title: Won Amount Month
+        open_opportunities:
+          type: integer
+          title: Open Opportunities
+        open_amount:
+          type: integer
+          title: Open Amount
+        pending_approvals:
+          type: integer
+          title: Pending Approvals
+        estimated_commission_month:
+          type: integer
+          title: Estimated Commission Month
+        confirmed_commission_month:
+          type: integer
+          title: Confirmed Commission Month
+        tasks_today:
+          type: integer
+          title: Tasks Today
+          default: 0
+        tasks_overdue:
+          type: integer
+          title: Tasks Overdue
+          default: 0
+        funnel:
+          items:
+            $ref: '#/components/schemas/PipelineStage'
+          type: array
+          title: Funnel
+      type: object
+      required:
+      - won_amount_month
+      - open_opportunities
+      - open_amount
+      - pending_approvals
+      - estimated_commission_month
+      - confirmed_commission_month
+      - funnel
+      title: Dashboard
+    ExpenseCheck:
+      properties:
+        per_person:
+          type: integer
+          title: Per Person
+        limit_per_person:
+          type: integer
+          title: Limit Per Person
+        over_amount:
+          type: integer
+          title: Over Amount
+        need_approval:
+          type: boolean
+          title: Need Approval
+        reason:
+          type: string
+          title: Reason
+        unit:
+          type: string
+          enum:
+          - person
+          - night
+          title: Unit
+          default: person
+        rule_ref:
+          type: string
+          title: Rule Ref
+          default: ''
+      type: object
+      required:
+      - per_person
+      - limit_per_person
+      - over_amount
+      - need_approval
+      - reason
+      title: ExpenseCheck
+    ExpenseCreate:
+      properties:
+        type:
+          type: string
+          enum:
+          - entertainment
+          - transport
+          - hotel
+          - other
+          title: Type
+        amount:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: Amount
+        headcount:
+          anyOf:
+          - type: integer
+            maximum: 1000.0
+            minimum: 1.0
+          - type: 'null'
+          title: Headcount
+        occurred_on:
+          type: string
+          format: date
+          title: Occurred On
+        participants:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Participants
+        contact_ids:
+          items:
+            type: string
+            format: uuid
+          type: array
+          maxItems: 50
+          title: Contact Ids
+        colleague_ids:
+          items:
+            type: string
+            format: uuid
+          type: array
+          maxItems: 50
+          title: Colleague Ids
+        extra_guests:
+          type: integer
+          maximum: 500.0
+          minimum: 0.0
+          title: Extra Guests
+          default: 0
+        customer_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Customer Id
+        opportunity_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Opportunity Id
+        reason:
+          type: string
+          maxLength: 500
+          minLength: 1
+          title: Reason
+        idempotency_key:
+          anyOf:
+          - type: string
+            maxLength: 100
+            minLength: 1
+          - type: 'null'
+          title: Idempotency Key
+        details:
+          anyOf:
+          - $ref: '#/components/schemas/ExpenseDetails'
+          - type: 'null'
+      type: object
+      required:
+      - type
+      - amount
+      - occurred_on
+      - reason
+      title: ExpenseCreate
+      description: v3 §17：headcount / participants 由后端按参与人计算（客户端传入的被忽略，仅为兼容保留）。
+    ExpenseDetail:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        code:
+          type: string
+          title: Code
+        type:
+          type: string
+          enum:
+          - entertainment
+          - transport
+          - hotel
+          - other
+          title: Type
+        amount:
+          type: integer
+          title: Amount
+        headcount:
+          type: integer
+          title: Headcount
+        occurred_on:
+          type: string
+          format: date
+          title: Occurred On
+        customer:
+          anyOf:
+          - $ref: '#/components/schemas/CustomerBrief'
+          - type: 'null'
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        status:
+          type: string
+          enum:
+          - draft
+          - pending_approval
+          - approved
+          - rejected
+          - paid
+          title: Status
+        attachment_count:
+          type: integer
+          title: Attachment Count
+        over_limit:
+          type: boolean
+          title: Over Limit
+        owner:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        participants:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Participants
+        contacts:
+          items:
+            $ref: '#/components/schemas/ContactBrief'
+          type: array
+          title: Contacts
+        colleagues:
+          items:
+            $ref: '#/components/schemas/UserBrief'
+          type: array
+          title: Colleagues
+        extra_guests:
+          type: integer
+          title: Extra Guests
+        opportunity:
+          anyOf:
+          - $ref: '#/components/schemas/OppBrief'
+          - type: 'null'
+        attachments:
+          items:
+            $ref: '#/components/schemas/AttachmentOut'
+          type: array
+          title: Attachments
+        policy_check:
+          anyOf:
+          - $ref: '#/components/schemas/PolicyCheck'
+          - type: 'null'
+        details:
+          anyOf:
+          - $ref: '#/components/schemas/ExpenseDetails'
+          - type: 'null'
+      type: object
+      required:
+      - id
+      - code
+      - type
+      - amount
+      - headcount
+      - occurred_on
+      - customer
+      - reason
+      - status
+      - attachment_count
+      - over_limit
+      - owner
+      - created_at
+      - participants
+      - contacts
+      - colleagues
+      - extra_guests
+      - opportunity
+      - attachments
+      - policy_check
+      title: ExpenseDetail
+    ExpenseDetails:
+      properties:
+        from_city:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: From City
+        to_city:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: To City
+        transport_mode:
+          anyOf:
+          - type: string
+            enum:
+            - train
+            - flight
+            - taxi
+            - bus
+            - self_drive
+            - other
+          - type: 'null'
+          title: Transport Mode
+        city:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: City
+        check_in:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Check In
+        check_out:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Check Out
+      additionalProperties: false
+      type: object
+      title: ExpenseDetails
+      description: 按类型填写的补充信息（v4）：差旅交通填行程，差旅住宿填城市和入住 / 离店日期。
+    ExpenseGuide:
+      properties:
+        type:
+          type: string
+          enum:
+          - entertainment
+          - transport
+          - hotel
+          - other
+          title: Type
+        label:
+          type: string
+          title: Label
+        standard:
+          type: string
+          title: Standard
+        must:
+          type: string
+          title: Must
+        attachments:
+          items:
+            type: string
+          type: array
+          title: Attachments
+        rule_ref:
+          type: string
+          title: Rule Ref
+      type: object
+      required:
+      - type
+      - label
+      - standard
+      - must
+      - attachments
+      - rule_ref
+      title: ExpenseGuide
+    ExpenseItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        code:
+          type: string
+          title: Code
+        type:
+          type: string
+          enum:
+          - entertainment
+          - transport
+          - hotel
+          - other
+          title: Type
+        amount:
+          type: integer
+          title: Amount
+        headcount:
+          type: integer
+          title: Headcount
+        occurred_on:
+          type: string
+          format: date
+          title: Occurred On
+        customer:
+          anyOf:
+          - $ref: '#/components/schemas/CustomerBrief'
+          - type: 'null'
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        status:
+          type: string
+          enum:
+          - draft
+          - pending_approval
+          - approved
+          - rejected
+          - paid
+          title: Status
+        attachment_count:
+          type: integer
+          title: Attachment Count
+        over_limit:
+          type: boolean
+          title: Over Limit
+        owner:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - code
+      - type
+      - amount
+      - headcount
+      - occurred_on
+      - customer
+      - reason
+      - status
+      - attachment_count
+      - over_limit
+      - owner
+      - created_at
+      title: ExpenseItem
+    ExpensePrecheckIn:
+      properties:
+        type:
+          type: string
+          enum:
+          - entertainment
+          - transport
+          - hotel
+          - other
+          title: Type
+          default: entertainment
+        amount:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: Amount
+        headcount:
+          type: integer
+          maximum: 1000.0
+          minimum: 1.0
+          title: Headcount
+          default: 1
+        occurred_on:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Occurred On
+        details:
+          anyOf:
+          - $ref: '#/components/schemas/ExpenseDetails'
+          - type: 'null'
+      type: object
+      required:
+      - amount
+      title: ExpensePrecheckIn
+      description: 不落库的制度校验（POST /api/expenses/precheck）。
+    ExpenseTemplate:
+      properties:
+        id:
+          type: string
+          title: Id
+        label:
+          type: string
+          title: Label
+        type:
+          type: string
+          enum:
+          - entertainment
+          - transport
+          - hotel
+          - other
+          title: Type
+        transport_mode:
+          anyOf:
+          - type: string
+            enum:
+            - train
+            - flight
+            - taxi
+            - bus
+            - self_drive
+            - other
+          - type: 'null'
+          title: Transport Mode
+        reason:
+          type: string
+          title: Reason
+          default: ''
+        example:
+          type: string
+          title: Example
+          default: ''
+      type: object
+      required:
+      - id
+      - label
+      - type
+      title: ExpenseTemplate
+    FollowupIn:
+      properties:
+        type:
+          type: string
+          enum:
+          - phone
+          - visit
+          - wechat
+          - email
+          title: Type
+        content:
+          type: string
+          maxLength: 2000
+          minLength: 1
+          title: Content
+        occurred_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Occurred At
+        opportunity_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Opportunity Id
+      type: object
+      required:
+      - type
+      - content
+      title: FollowupIn
+    FollowupItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        customer_id:
+          type: string
+          format: uuid
+          title: Customer Id
+        opportunity_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Opportunity Id
+        type:
+          type: string
+          title: Type
+        content:
+          type: string
+          title: Content
+        source:
+          type: string
+          enum:
+          - manual
+          - agent
+          title: Source
+        occurred_at:
+          type: string
+          format: date-time
+          title: Occurred At
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - customer_id
+      - opportunity_id
+      - type
+      - content
+      - source
+      - occurred_at
+      - created_at
+      title: FollowupItem
+    FollowupTemplate:
+      properties:
+        id:
+          type: string
+          title: Id
+        label:
+          type: string
+          title: Label
+        type:
+          type: string
+          enum:
+          - phone
+          - visit
+          - wechat
+          title: Type
+        content:
+          type: string
+          title: Content
+      type: object
+      required:
+      - id
+      - label
+      - type
+      - content
+      title: FollowupTemplate
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    Health:
+      properties:
+        status:
+          type: string
+          title: Status
+        db:
+          type: boolean
+          title: Db
+        checkpointer:
+          type: string
+          title: Checkpointer
+      type: object
+      required:
+      - status
+      - db
+      - checkpointer
+      title: Health
+    HistoryMessage:
+      properties:
+        role:
+          type: string
+          enum:
+          - user
+          - assistant
+          title: Role
+        text:
+          type: string
+          title: Text
+        artifacts:
+          items:
+            $ref: '#/components/schemas/Artifact'
+          type: array
+          title: Artifacts
+        created_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Created At
+      type: object
+      required:
+      - role
+      - text
+      title: HistoryMessage
+    KnowledgeDoc:
+      properties:
+        doc_name:
+          type: string
+          title: Doc Name
+        title:
+          type: string
+          title: Title
+        size:
+          type: integer
+          title: Size
+      type: object
+      required:
+      - doc_name
+      - title
+      - size
+      title: KnowledgeDoc
+    LoginResult:
+      properties:
+        token:
+          type: string
+          title: Token
+        user:
+          $ref: '#/components/schemas/UserOut'
+      type: object
+      required:
+      - token
+      - user
+      title: LoginResult
+    MockLoginIn:
+      properties:
+        role:
+          $ref: '#/components/schemas/Role'
+      type: object
+      required:
+      - role
+      title: MockLoginIn
+    NextTask:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        title:
+          type: string
+          title: Title
+        due_at:
+          type: string
+          format: date-time
+          title: Due At
+        overdue:
+          type: boolean
+          title: Overdue
+      type: object
+      required:
+      - id
+      - title
+      - due_at
+      - overdue
+      title: NextTask
+    NotificationItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        type:
+          type: string
+          title: Type
+        title:
+          type: string
+          title: Title
+        body:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Body
+        link:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Link
+        read:
+          type: boolean
+          title: Read
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - type
+      - title
+      - body
+      - link
+      - read
+      - created_at
+      title: NotificationItem
+    NotificationList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/NotificationItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        unread:
+          type: integer
+          title: Unread
+      type: object
+      required:
+      - items
+      - total
+      - unread
+      title: NotificationList
+    NotificationRead:
+      properties:
+        ids:
+          anyOf:
+          - items:
+              type: string
+              format: uuid
+            type: array
+            maxItems: 200
+          - type: 'null'
+          title: Ids
+      type: object
+      title: NotificationRead
+    NotificationReadResult:
+      properties:
+        updated:
+          type: integer
+          title: Updated
+        unread:
+          type: integer
+          title: Unread
+      type: object
+      required:
+      - updated
+      - unread
+      title: NotificationReadResult
+    OppBrief:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - name
+      title: OppBrief
+    OpportunityCreate:
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+          title: Customer Id
+        name:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Name
+        amount:
+          type: integer
+          minimum: 0.0
+          title: Amount
+        win_rate:
+          type: integer
+          maximum: 100.0
+          minimum: 0.0
+          title: Win Rate
+          default: 10
+        expected_close_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Expected Close Date
+        product_line_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Product Line Id
+      type: object
+      required:
+      - customer_id
+      - name
+      - amount
+      title: OpportunityCreate
+    OpportunityDetail:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        customer:
+          $ref: '#/components/schemas/CustomerBrief'
+        stage:
+          type: string
+          enum:
+          - lead
+          - qualified
+          - proposal
+          - negotiation
+          - won
+          - lost
+          title: Stage
+        amount:
+          type: integer
+          title: Amount
+        win_rate:
+          type: integer
+          title: Win Rate
+        expected_close_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Expected Close Date
+        product_line:
+          anyOf:
+          - $ref: '#/components/schemas/ProductLineBrief'
+          - type: 'null'
+        owner:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        lost_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Lost Reason
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        next_task:
+          anyOf:
+          - $ref: '#/components/schemas/NextTask'
+          - type: 'null'
+        last_activity_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Activity At
+        idle_days:
+          type: integer
+          title: Idle Days
+          default: 0
+        stale:
+          type: boolean
+          title: Stale
+          default: false
+        quotes:
+          items:
+            $ref: '#/components/schemas/QuoteListItem'
+          type: array
+          title: Quotes
+        activities:
+          items:
+            $ref: '#/components/schemas/ActivityOut'
+          type: array
+          title: Activities
+      type: object
+      required:
+      - id
+      - name
+      - customer
+      - stage
+      - amount
+      - win_rate
+      - expected_close_date
+      - product_line
+      - owner
+      - updated_at
+      - quotes
+      - activities
+      title: OpportunityDetail
+    OpportunityItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        customer:
+          $ref: '#/components/schemas/CustomerBrief'
+        stage:
+          type: string
+          enum:
+          - lead
+          - qualified
+          - proposal
+          - negotiation
+          - won
+          - lost
+          title: Stage
+        amount:
+          type: integer
+          title: Amount
+        win_rate:
+          type: integer
+          title: Win Rate
+        expected_close_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Expected Close Date
+        product_line:
+          anyOf:
+          - $ref: '#/components/schemas/ProductLineBrief'
+          - type: 'null'
+        owner:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        lost_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Lost Reason
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        next_task:
+          anyOf:
+          - $ref: '#/components/schemas/NextTask'
+          - type: 'null'
+        last_activity_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Activity At
+        idle_days:
+          type: integer
+          title: Idle Days
+          default: 0
+        stale:
+          type: boolean
+          title: Stale
+          default: false
+      type: object
+      required:
+      - id
+      - name
+      - customer
+      - stage
+      - amount
+      - win_rate
+      - expected_close_date
+      - product_line
+      - owner
+      - updated_at
+      title: OpportunityItem
+    OpportunityUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Name
+        amount:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Amount
+        win_rate:
+          anyOf:
+          - type: integer
+            maximum: 100.0
+            minimum: 0.0
+          - type: 'null'
+          title: Win Rate
+        expected_close_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Expected Close Date
+        product_line_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Product Line Id
+      type: object
+      title: OpportunityUpdate
+      description: 只修改传入的字段。
+    PackDetail:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        description:
+          type: string
+          title: Description
+        version:
+          type: string
+          title: Version
+        catalog:
+          items:
+            $ref: '#/components/schemas/CatalogItem'
+          type: array
+          title: Catalog
+        rules:
+          additionalProperties: true
+          type: object
+          title: Rules
+        knowledge:
+          items:
+            $ref: '#/components/schemas/KnowledgeDoc'
+          type: array
+          title: Knowledge
+      type: object
+      required:
+      - id
+      - name
+      - description
+      - version
+      - catalog
+      - rules
+      - knowledge
+      title: PackDetail
+    PackOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        description:
+          type: string
+          title: Description
+        version:
+          type: string
+          title: Version
+      type: object
+      required:
+      - id
+      - name
+      - description
+      - version
+      title: PackOut
+    Page_ActivityOut_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ActivityOut'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: Page[ActivityOut]
+    Page_ApprovalItem_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ApprovalItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: Page[ApprovalItem]
+    Page_ContactItem_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ContactItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: Page[ContactItem]
+    Page_CustomerListItem_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/CustomerListItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: Page[CustomerListItem]
+    Page_ExpenseItem_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ExpenseItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: Page[ExpenseItem]
+    Page_FollowupItem_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/FollowupItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: Page[FollowupItem]
+    Page_OpportunityItem_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/OpportunityItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: Page[OpportunityItem]
+    Page_ProductLineItem_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ProductLineItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: Page[ProductLineItem]
+    Page_QuoteListItem_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/QuoteListItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: Page[QuoteListItem]
+    Page_TaskItem_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/TaskItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: Page[TaskItem]
+    Page_UserListItem_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/UserListItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: Page[UserListItem]
+    PaymentIn:
+      properties:
+        amount:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: Amount
+      type: object
+      required:
+      - amount
+      title: PaymentIn
+    PipelineStage:
+      properties:
+        stage:
+          type: string
+          title: Stage
+        count:
+          type: integer
+          title: Count
+        amount:
+          type: integer
+          title: Amount
+      type: object
+      required:
+      - stage
+      - count
+      - amount
+      title: PipelineStage
+    PipelineSummary:
+      properties:
+        stages:
+          items:
+            $ref: '#/components/schemas/PipelineStage'
+          type: array
+          title: Stages
+        total_amount:
+          type: integer
+          title: Total Amount
+        weighted_amount:
+          type: integer
+          title: Weighted Amount
+      type: object
+      required:
+      - stages
+      - total_amount
+      - weighted_amount
+      title: PipelineSummary
+    PolicyCheck:
+      properties:
+        passed:
+          type: boolean
+          title: Passed
+        per_person:
+          type: integer
+          title: Per Person
+        limit_per_person:
+          type: integer
+          title: Limit Per Person
+        over_amount:
+          type: integer
+          title: Over Amount
+        rule_ref:
+          type: string
+          title: Rule Ref
+        unit:
+          type: string
+          enum:
+          - person
+          - night
+          title: Unit
+          default: person
+      type: object
+      required:
+      - passed
+      - per_person
+      - limit_per_person
+      - over_amount
+      - rule_ref
+      title: PolicyCheck
+    ProductLineBrief:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        pack:
+          type: string
+          title: Pack
+      type: object
+      required:
+      - id
+      - name
+      - pack
+      title: ProductLineBrief
+    ProductLineItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        pack:
+          type: string
+          title: Pack
+        enabled:
+          type: boolean
+          title: Enabled
+        open_opportunities:
+          type: integer
+          title: Open Opportunities
+      type: object
+      required:
+      - id
+      - name
+      - pack
+      - enabled
+      - open_opportunities
+      title: ProductLineItem
+    ProductLineUpdate:
+      properties:
+        pack:
+          anyOf:
+          - type: string
+            maxLength: 50
+            minLength: 1
+          - type: 'null'
+          title: Pack
+        enabled:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Enabled
+      type: object
+      title: ProductLineUpdate
+    PromptTemplate:
+      properties:
+        title:
+          type: string
+          title: Title
+        prompt:
+          type: string
+          title: Prompt
+      type: object
+      required:
+      - title
+      - prompt
+      title: PromptTemplate
+    QuoteDetail:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        code:
+          type: string
+          title: Code
+        customer:
+          anyOf:
+          - $ref: '#/components/schemas/CustomerBrief'
+          - type: 'null'
+        opportunity:
+          anyOf:
+          - $ref: '#/components/schemas/OppBrief'
+          - type: 'null'
+        pack:
+          type: string
+          title: Pack
+        tier:
+          type: string
+          title: Tier
+        tier_name:
+          type: string
+          title: Tier Name
+        total_price:
+          type: integer
+          title: Total Price
+        total_cost:
+          type: integer
+          title: Total Cost
+        margin_rate:
+          type: number
+          title: Margin Rate
+        status:
+          type: string
+          enum:
+          - draft
+          - pending_approval
+          - approved
+          - sent
+          - accepted
+          - rejected
+          title: Status
+        source:
+          type: string
+          enum:
+          - agent
+          - manual
+          title: Source
+        owner:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        items:
+          items:
+            $ref: '#/components/schemas/QuoteLine'
+          type: array
+          title: Items
+        approvals:
+          items:
+            $ref: '#/components/schemas/ApprovalBrief'
+          type: array
+          title: Approvals
+        contract_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Contract Id
+        estimated_commission:
+          type: integer
+          title: Estimated Commission
+        list_price:
+          type: integer
+          title: List Price
+        discount_rate:
+          type: number
+          title: Discount Rate
+        valid_until:
+          type: string
+          format: date
+          title: Valid Until
+      type: object
+      required:
+      - id
+      - code
+      - customer
+      - opportunity
+      - pack
+      - tier
+      - tier_name
+      - total_price
+      - total_cost
+      - margin_rate
+      - status
+      - source
+      - owner
+      - created_at
+      - items
+      - approvals
+      - contract_id
+      - estimated_commission
+      - list_price
+      - discount_rate
+      - valid_until
+      title: QuoteDetail
+    QuoteItemsUpdate:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/QuoteLineIn'
+          type: array
+          maxItems: 100
+          minItems: 1
+          title: Items
+        discount_rate:
+          type: number
+          exclusiveMaximum: 1.0
+          minimum: 0.0
+          title: Discount Rate
+          default: 0
+      type: object
+      required:
+      - items
+      title: QuoteItemsUpdate
+      description: 调整后的完整明细（未列出的物料行会被移除）+ 整单折扣率。
+    QuoteLine:
+      properties:
+        sku:
+          type: string
+          title: Sku
+        name:
+          type: string
+          title: Name
+        unit:
+          type: string
+          title: Unit
+        qty:
+          type: integer
+          title: Qty
+        unit_cost:
+          type: integer
+          title: Unit Cost
+        unit_price:
+          type: integer
+          title: Unit Price
+        category:
+          type: string
+          title: Category
+        subtotal_cost:
+          type: integer
+          title: Subtotal Cost
+        subtotal_price:
+          type: integer
+          title: Subtotal Price
+      type: object
+      required:
+      - sku
+      - name
+      - unit
+      - qty
+      - unit_cost
+      - unit_price
+      - category
+      - subtotal_cost
+      - subtotal_price
+      title: QuoteLine
+    QuoteLineIn:
+      properties:
+        sku:
+          type: string
+          maxLength: 50
+          minLength: 1
+          title: Sku
+        qty:
+          type: integer
+          maximum: 100000.0
+          minimum: 1.0
+          title: Qty
+      type: object
+      required:
+      - sku
+      - qty
+      title: QuoteLineIn
+    QuoteListItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        code:
+          type: string
+          title: Code
+        customer:
+          anyOf:
+          - $ref: '#/components/schemas/CustomerBrief'
+          - type: 'null'
+        opportunity:
+          anyOf:
+          - $ref: '#/components/schemas/OppBrief'
+          - type: 'null'
+        pack:
+          type: string
+          title: Pack
+        tier:
+          type: string
+          title: Tier
+        tier_name:
+          type: string
+          title: Tier Name
+        total_price:
+          type: integer
+          title: Total Price
+        total_cost:
+          type: integer
+          title: Total Cost
+        margin_rate:
+          type: number
+          title: Margin Rate
+        status:
+          type: string
+          enum:
+          - draft
+          - pending_approval
+          - approved
+          - sent
+          - accepted
+          - rejected
+          title: Status
+        source:
+          type: string
+          enum:
+          - agent
+          - manual
+          title: Source
+        owner:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - code
+      - customer
+      - opportunity
+      - pack
+      - tier
+      - tier_name
+      - total_price
+      - total_cost
+      - margin_rate
+      - status
+      - source
+      - owner
+      - created_at
+      title: QuoteListItem
+    ResumeIn:
+      properties:
+        thread_id:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Thread Id
+        decision:
+          type: string
+          enum:
+          - approve
+          - reject
+          title: Decision
+      type: object
+      required:
+      - thread_id
+      - decision
+      title: ResumeIn
+    Role:
+      type: string
+      enum:
+      - sales
+      - manager
+      - admin
+      title: Role
+    StageChange:
+      properties:
+        stage:
+          type: string
+          enum:
+          - lead
+          - qualified
+          - proposal
+          - negotiation
+          - won
+          - lost
+          title: Stage
+        lost_reason:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Lost Reason
+      type: object
+      required:
+      - stage
+      title: StageChange
+    TaskCreate:
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Title
+        due_at:
+          type: string
+          format: date-time
+          title: Due At
+        subject_type:
+          type: string
+          enum:
+          - customer
+          - opportunity
+          title: Subject Type
+        subject_id:
+          type: string
+          format: uuid
+          title: Subject Id
+        type:
+          type: string
+          enum:
+          - call
+          - visit
+          - email
+          - meeting
+          - todo
+          title: Type
+          default: todo
+        note:
+          anyOf:
+          - type: string
+            maxLength: 2000
+          - type: 'null'
+          title: Note
+      type: object
+      required:
+      - title
+      - due_at
+      - subject_type
+      - subject_id
+      title: TaskCreate
+    TaskItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        title:
+          type: string
+          title: Title
+        type:
+          type: string
+          enum:
+          - call
+          - visit
+          - email
+          - meeting
+          - todo
+          title: Type
+        due_at:
+          type: string
+          format: date-time
+          title: Due At
+        done:
+          type: boolean
+          title: Done
+        done_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Done At
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+        subject_type:
+          type: string
+          enum:
+          - customer
+          - opportunity
+          title: Subject Type
+        subject_id:
+          type: string
+          format: uuid
+          title: Subject Id
+        subject_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subject Name
+        owner:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        overdue:
+          type: boolean
+          title: Overdue
+      type: object
+      required:
+      - id
+      - title
+      - type
+      - due_at
+      - done
+      - done_at
+      - note
+      - subject_type
+      - subject_id
+      - subject_name
+      - owner
+      - overdue
+      title: TaskItem
+    TaskTemplate:
+      properties:
+        type:
+          type: string
+          enum:
+          - call
+          - visit
+          - email
+          - meeting
+          - todo
+          title: Type
+        title:
+          type: string
+          title: Title
+      type: object
+      required:
+      - type
+      - title
+      title: TaskTemplate
+    TaskUpdate:
+      properties:
+        title:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Title
+        due_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Due At
+        note:
+          anyOf:
+          - type: string
+            maxLength: 2000
+          - type: 'null'
+          title: Note
+        type:
+          anyOf:
+          - type: string
+            enum:
+            - call
+            - visit
+            - email
+            - meeting
+            - todo
+          - type: 'null'
+          title: Type
+        done:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Done
+      type: object
+      title: TaskUpdate
+      description: 只修改传入的字段；done=true 完成任务（写 Activity task_done），done=false 重新打开。
+    Templates:
+      properties:
+        expense_templates:
+          items:
+            $ref: '#/components/schemas/ExpenseTemplate'
+          type: array
+          title: Expense Templates
+        expense_guides:
+          items:
+            $ref: '#/components/schemas/ExpenseGuide'
+          type: array
+          title: Expense Guides
+        followup:
+          items:
+            $ref: '#/components/schemas/FollowupTemplate'
+          type: array
+          title: Followup
+        task:
+          items:
+            $ref: '#/components/schemas/TaskTemplate'
+          type: array
+          title: Task
+        lost_reasons:
+          items:
+            type: string
+          type: array
+          title: Lost Reasons
+        quote_terms:
+          items:
+            type: string
+          type: array
+          title: Quote Terms
+        ai_prompts:
+          items:
+            $ref: '#/components/schemas/PromptTemplate'
+          type: array
+          title: Ai Prompts
+      type: object
+      required:
+      - expense_templates
+      - expense_guides
+      - followup
+      - task
+      - lost_reasons
+      - quote_terms
+      - ai_prompts
+      title: Templates
+    ThreadItem:
+      properties:
+        thread_id:
+          type: string
+          title: Thread Id
+        title:
+          type: string
+          title: Title
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        opportunity_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Opportunity Id
+      type: object
+      required:
+      - thread_id
+      - title
+      - updated_at
+      title: ThreadItem
+    ThreadMessages:
+      properties:
+        thread_id:
+          type: string
+          title: Thread Id
+        messages:
+          items:
+            $ref: '#/components/schemas/HistoryMessage'
+          type: array
+          title: Messages
+        pending:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Pending
+      type: object
+      required:
+      - thread_id
+      - messages
+      title: ThreadMessages
+    ThreadPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ThreadItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: ThreadPage
+    TransferResult:
+      properties:
+        transferred:
+          type: integer
+          title: Transferred
+        opportunities:
+          type: integer
+          title: Opportunities
+        tasks:
+          type: integer
+          title: Tasks
+        quotes:
+          type: integer
+          title: Quotes
+      type: object
+      required:
+      - transferred
+      - opportunities
+      - tasks
+      - quotes
+      title: TransferResult
+    UserBrief:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - name
+      title: UserBrief
+    UserListItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        role:
+          type: string
+          title: Role
+      type: object
+      required:
+      - id
+      - name
+      - role
+      title: UserListItem
+    UserOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        role:
+          type: string
+          title: Role
+        team_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Team Id
+      type: object
+      required:
+      - id
+      - name
+      - role
+      title: UserOut
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    View:
+      type: string
+      enum:
+      - mine
+      - team
+      - all
+      title: View

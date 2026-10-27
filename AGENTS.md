@@ -48,6 +48,14 @@ uv run --python 3.12 --with httpx --with pytest pytest tests/e2e -q
 cd apps/web && PW_CHANNEL=msedge pnpm test:e2e
 # 跑完端到端 / 浏览器测试后恢复干净的演示数据
 docker compose exec core python -m seed --reset
+
+# 改了接口后导出 OpenAPI（有测试检查 docs/api/openapi.yaml 是否最新）
+cd services/core && uv run python scripts/export_openapi.py
+# 知识库入库 / 评测（需要 Embedding 模型）
+docker compose exec core python -m app.rag.ingest --scope all
+docker compose exec core python -m app.rag.evaluate
+# 经 Nginx 访问（与云端一致，http://127.0.0.1:8080）；浏览器测试加 E2E_BASE_URL=http://127.0.0.1:8080
+docker compose --profile prod up -d
 ```
 
 > Windows 下用 curl 调试时用 `127.0.0.1` 而不是 `localhost`（后者可能解析到 IPv6，请求会卡住）；中文请求体用 UTF-8 文件发送（`--data-binary @body.json`）。

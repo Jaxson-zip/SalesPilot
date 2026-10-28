@@ -47,6 +47,7 @@ class TestTools:
             "search_customer",
             "add_followup",
             "digest_material",
+            "get_meddic",
             "update_opportunity_stage",
             "pipeline_summary",
             "parse_requirement",

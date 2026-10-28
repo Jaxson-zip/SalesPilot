@@ -71,3 +71,12 @@ privacy:
     quotes: [sales, manager, admin]
     contracts: [manager, admin]
     expenses: [sales, manager, admin]
+
+meddic:
+  # MEDDIC 赢单要素：进入某阶段时应该已经确认的项（没确认 → 商机上标「风险」，不阻止推进）
+  # identify_pain 痛点 / metrics 量化收益 / economic_buyer 经济决策人 /
+  # decision_criteria 决策标准 / decision_process 决策流程 / champion 内部支持者
+  stage_required:
+    qualified: [identify_pain]
+    proposal: [metrics, decision_criteria]
+    negotiation: [economic_buyer, decision_process, champion]

@@ -477,6 +477,50 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/opportunities/{opportunity_id}/meddic": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Meddic
+     * @description MEDDIC 赢单要素：6 项状态、证据、未确认项的建议问题、按阶段的风险。
+     */
+    get: operations["get_meddic_api_opportunities__opportunity_id__meddic_get"]
+    /**
+     * Update Meddic
+     * @description 只有负责人本人可以修改（传哪几项改哪几项）。
+     */
+    put: operations["update_meddic_api_opportunities__opportunity_id__meddic_put"]
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/opportunities/{opportunity_id}/meddic/assess": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Assess Meddic
+     * @description AI 根据跟进记录和联系人评估各项（只是建议，不保存）；没有可用模型时按规则判断。
+     */
+    post: operations["assess_meddic_api_opportunities__opportunity_id__meddic_assess_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/quotes": {
     parameters: {
       query?: never
@@ -1256,6 +1300,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[AssessOut] */
+    ApiResponse_AssessOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["AssessOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[AttachmentOut] */
     ApiResponse_AttachmentOut_: {
       /**
@@ -1554,6 +1617,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["MaterialOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[MeddicOut] */
+    ApiResponse_MeddicOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["MeddicOut"] | null
       /**
        * Request Id
        * @default
@@ -2301,6 +2383,18 @@ export interface components {
       type: string
       /** Data */
       data: unknown
+    }
+    /** AssessOut */
+    AssessOut: {
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: "ai" | "rule"
+      /** Summary */
+      summary: string
+      /** Items */
+      items: components["schemas"]["Suggestion"][]
     }
     /** AttachmentOut */
     AttachmentOut: {
@@ -3188,6 +3282,77 @@ export interface components {
       /** Truncated */
       truncated: boolean
     }
+    /** MeddicItem */
+    MeddicItem: {
+      /**
+       * Key
+       * @enum {string}
+       */
+      key: "metrics" | "economic_buyer" | "decision_criteria" | "decision_process" | "identify_pain" | "champion"
+      /** Label */
+      label: string
+      /** Hint */
+      hint: string
+      /**
+       * Status
+       * @default missing
+       * @enum {string}
+       */
+      status: "confirmed" | "partial" | "missing"
+      /** Evidence */
+      evidence: string | null
+      /** Updated At */
+      updated_at: string | null
+      /** Updated By */
+      updated_by: string | null
+      /** Questions */
+      questions: string[]
+      /**
+       * Required
+       * @default false
+       */
+      required: boolean
+      /**
+       * Risk
+       * @default false
+       */
+      risk: boolean
+    }
+    /** MeddicOut */
+    MeddicOut: {
+      /**
+       * Opportunity Id
+       * Format: uuid
+       */
+      opportunity_id: string
+      /** Stage */
+      stage: string
+      /** Score */
+      score: number
+      /** Items */
+      items: components["schemas"]["MeddicItem"][]
+      /** Gaps */
+      gaps: string[]
+      /** Risks */
+      risks: string[]
+    }
+    /** MeddicPatch */
+    MeddicPatch: {
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "confirmed" | "partial" | "missing"
+      /** Evidence */
+      evidence?: string | null
+    }
+    /** MeddicUpdate */
+    MeddicUpdate: {
+      /** Items */
+      items: {
+        [key: string]: components["schemas"]["MeddicPatch"]
+      }
+    }
     /** MockLoginIn */
     MockLoginIn: {
       role: components["schemas"]["Role"]
@@ -3962,6 +4127,21 @@ export interface components {
       stage: "lead" | "qualified" | "proposal" | "negotiation" | "won" | "lost"
       /** Lost Reason */
       lost_reason?: string | null
+    }
+    /** Suggestion */
+    Suggestion: {
+      /**
+       * Key
+       * @enum {string}
+       */
+      key: "metrics" | "economic_buyer" | "decision_criteria" | "decision_process" | "identify_pain" | "champion"
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "confirmed" | "partial" | "missing"
+      /** Evidence */
+      evidence: string | null
     }
     /** TaskCreate */
     TaskCreate: {
@@ -5326,6 +5506,109 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_PipelineSummary_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  get_meddic_api_opportunities__opportunity_id__meddic_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        opportunity_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_MeddicOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  update_meddic_api_opportunities__opportunity_id__meddic_put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        opportunity_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MeddicUpdate"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_MeddicOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  assess_meddic_api_opportunities__opportunity_id__meddic_assess_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        opportunity_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_AssessOut_"]
         }
       }
       /** @description Validation Error */

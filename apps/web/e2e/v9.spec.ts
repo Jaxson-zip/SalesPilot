@@ -71,3 +71,37 @@ test.describe("审查 v9：数据安全（操作日志、电话脱敏、导出�
     expect((await download).suggestedFilename()).toMatch(/\.csv$/)
   })
 })
+
+test.describe("审查 v9：MEDDIC 赢单辅导", () => {
+  test("商机侧栏：赢单要素可标注、阶段风险提示、AI 评估给出建议", async ({ page, request }) => {
+    test.setTimeout(120_000)
+    const api = await Api.as(request, "sales")
+    const customer = await api.call<{ id: string }>("POST", "/api/customers", { name: uniq("E2E赢单客户"), level: "A" })
+    const opp = await api.call<{ id: string }>("POST", "/api/opportunities", {
+      customer_id: customer.id,
+      name: uniq("E2E赢单商机"),
+      amount: 300_000_00,
+    })
+    await api.call("PATCH", `/api/opportunities/${opp.id}/stage`, { stage: "qualified" })
+    await api.call("POST", `/api/customers/${customer.id}/followups`, {
+      type: "visit",
+      content: "客户反馈合同审查靠人工，效率低；预算由周律师拍板",
+    })
+    await loginAs(page, "sales")
+    await page.goto(`/pipeline?opp=${opp.id}`)
+    const card = page.getByRole("region", { name: "赢单要素" })
+    await expect(card).toBeVisible()
+    await expect(card).toContainText("当前阶段还没确认：痛点")
+    await expect(card).toContainText("建议问")
+
+    await card.getByRole("button", { name: /痛点：缺失/ }).click()
+    await card.getByRole("radio", { name: "已确认" }).click()
+    await card.getByRole("textbox", { name: "痛点 证据" }).fill("合同审查靠人工，每月积压")
+    await card.getByRole("button", { name: "保存" }).click()
+    await expect(card.getByRole("button", { name: /痛点：已确认/ })).toBeVisible()
+    await expect(card).not.toContainText("当前阶段还没确认")
+
+    await card.getByRole("button", { name: "AI 评估" }).click()
+    await expect(card.getByRole("button", { name: /采纳 \d+ 项|忽略/ }).first()).toBeVisible({ timeout: 90_000 })
+  })
+})

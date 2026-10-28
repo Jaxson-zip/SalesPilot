@@ -12,7 +12,7 @@ from app.agent.tools.base import ToolContext, ToolResult, ToolSpec
 from app.crm.schemas.common import PageParams
 from app.crm.schemas.dashboard import CONTACT_ROLE_LABELS
 from app.crm.schemas.opportunity import STAGE_LABELS
-from app.crm.services import approval_service, contact_service
+from app.crm.services import approval_service, contact_service, meddic_service
 from app.crm.services import opportunity_service as opp_service
 
 
@@ -78,7 +78,39 @@ def list_pending_approvals(ctx: ToolContext, args: PendingApprovalsArgs) -> Tool
     return ToolResult(ok=True, summary=f"待审批 {page.total} 条", data=data)
 
 
+class MeddicArgs(BaseModel):
+    opportunity_id: uuid.UUID = Field(description="get_customer_context 返回的商机 id")
+
+
+def get_meddic(ctx: ToolContext, args: MeddicArgs) -> ToolResult:
+    """商机的 MEDDIC 赢单要素：已确认 / 待验证 / 缺失，当前阶段的风险项和建议问题。"""
+    with ctx.session() as db:
+        out = meddic_service.get_meddic(db, ctx.user, args.opportunity_id)
+    data = {
+        "score": out.score,
+        "risks": out.risks,
+        "items": [
+            {
+                "label": i.label,
+                "status": {"confirmed": "已确认", "partial": "待验证", "missing": "缺失"}[i.status],
+                "evidence": i.evidence,
+                "questions": i.questions,
+            }
+            for i in out.items
+        ],
+    }
+    risk = f"，风险：{'、'.join(out.risks)}" if out.risks else ""
+    return ToolResult(ok=True, summary=f"赢单要素完成度 {out.score}%{risk}", data=data)
+
+
 CONTEXT_TOOLS: list[ToolSpec] = [
+    ToolSpec(
+        "get_meddic",
+        "查询商机的 MEDDIC 赢单要素（痛点、量化收益、经济决策人、决策标准、决策流程、内部支持者）"
+        "的完成情况、当前阶段的风险和建议问题。用户问单子怎么推进、赢面、风险、下一步该见谁时使用",
+        MeddicArgs,
+        get_meddic,
+    ),
     ToolSpec(
         "get_customer_context",
         "查询客户的商机（id、阶段、金额、下一步）和联系人（id、姓名、职务）。"

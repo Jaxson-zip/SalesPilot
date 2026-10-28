@@ -106,6 +106,16 @@ class PrivacyRules(BaseModel):
     }
 
 
+class MeddicRules(BaseModel):
+    """各阶段应该已经确认的 MEDDIC 要素（进入该阶段还没确认 → 商机上提示风险）。"""
+
+    stage_required: dict[str, list[str]] = {
+        "qualified": ["identify_pain"],
+        "proposal": ["metrics", "decision_criteria"],
+        "negotiation": ["economic_buyer", "decision_process", "champion"],
+    }
+
+
 class RuleSet(BaseModel):
     margin: MarginRules
     discount: DiscountRules
@@ -117,6 +127,7 @@ class RuleSet(BaseModel):
     quote: QuoteRules = QuoteRules()
     payment: PaymentRules = PaymentRules()
     privacy: PrivacyRules = PrivacyRules()
+    meddic: MeddicRules = MeddicRules()
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

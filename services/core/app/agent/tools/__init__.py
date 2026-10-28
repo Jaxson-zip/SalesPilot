@@ -23,6 +23,7 @@ TOOLS: dict[str, ToolSpec] = {
 CHAT_TOOL_NAMES: tuple[str, ...] = (
     "search_customer",
     "get_customer_context",
+    "get_meddic",
     "add_followup",
     "digest_material",
     "update_opportunity_stage",
@@ -39,6 +40,7 @@ READ_ONLY_TOOLS = frozenset(
     {
         "search_customer",
         "get_customer_context",
+        "get_meddic",
         "pipeline_summary",
         "calc_commission",
         "search_policy",

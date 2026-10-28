@@ -1391,6 +1391,119 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/opportunities/{opportunity_id}/meddic:
+    get:
+      tags:
+      - opportunities
+      summary: Get Meddic
+      description: MEDDIC 赢单要素：6 项状态、证据、未确认项的建议问题、按阶段的风险。
+      operationId: get_meddic_api_opportunities__opportunity_id__meddic_get
+      parameters:
+      - name: opportunity_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Opportunity Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_MeddicOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - opportunities
+      summary: Update Meddic
+      description: 只有负责人本人可以修改（传哪几项改哪几项）。
+      operationId: update_meddic_api_opportunities__opportunity_id__meddic_put
+      parameters:
+      - name: opportunity_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Opportunity Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeddicUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_MeddicOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/opportunities/{opportunity_id}/meddic/assess:
+    post:
+      tags:
+      - opportunities
+      summary: Assess Meddic
+      description: AI 根据跟进记录和联系人评估各项（只是建议，不保存）；没有可用模型时按规则判断。
+      operationId: assess_meddic_api_opportunities__opportunity_id__meddic_assess_post
+      parameters:
+      - name: opportunity_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Opportunity Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_AssessOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/quotes:
     get:
       tags:
@@ -3418,6 +3531,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_AssessOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/AssessOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[AssessOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_AttachmentOut_:
       properties:
         code:
@@ -3813,6 +3951,31 @@ components:
           default: ''
       type: object
       title: ApiResponse[MaterialOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_MeddicOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/MeddicOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[MeddicOut]
       required:
       - code
       - message
@@ -4854,6 +5017,28 @@ components:
       - type
       - data
       title: Artifact
+    AssessOut:
+      properties:
+        source:
+          type: string
+          enum:
+          - ai
+          - rule
+          title: Source
+        summary:
+          type: string
+          title: Summary
+        items:
+          items:
+            $ref: '#/components/schemas/Suggestion'
+          type: array
+          title: Items
+      type: object
+      required:
+      - source
+      - summary
+      - items
+      title: AssessOut
     AttachmentOut:
       properties:
         id:
@@ -6602,6 +6787,148 @@ components:
       - chars
       - truncated
       title: MaterialOut
+    MeddicItem:
+      properties:
+        key:
+          type: string
+          enum:
+          - metrics
+          - economic_buyer
+          - decision_criteria
+          - decision_process
+          - identify_pain
+          - champion
+          title: Key
+        label:
+          type: string
+          title: Label
+        hint:
+          type: string
+          title: Hint
+        status:
+          type: string
+          enum:
+          - confirmed
+          - partial
+          - missing
+          title: Status
+          default: missing
+        evidence:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Evidence
+        updated_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Updated At
+        updated_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated By
+        questions:
+          items:
+            type: string
+          type: array
+          title: Questions
+        required:
+          type: boolean
+          title: Required
+          default: false
+        risk:
+          type: boolean
+          title: Risk
+          default: false
+      type: object
+      required:
+      - key
+      - label
+      - hint
+      - status
+      - evidence
+      - updated_at
+      - updated_by
+      - questions
+      - required
+      - risk
+      title: MeddicItem
+    MeddicOut:
+      properties:
+        opportunity_id:
+          type: string
+          format: uuid
+          title: Opportunity Id
+        stage:
+          type: string
+          title: Stage
+        score:
+          type: integer
+          title: Score
+        items:
+          items:
+            $ref: '#/components/schemas/MeddicItem'
+          type: array
+          title: Items
+        gaps:
+          items:
+            type: string
+          type: array
+          title: Gaps
+        risks:
+          items:
+            type: string
+          type: array
+          title: Risks
+      type: object
+      required:
+      - opportunity_id
+      - stage
+      - score
+      - items
+      - gaps
+      - risks
+      title: MeddicOut
+    MeddicPatch:
+      properties:
+        status:
+          type: string
+          enum:
+          - confirmed
+          - partial
+          - missing
+          title: Status
+        evidence:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Evidence
+      type: object
+      required:
+      - status
+      title: MeddicPatch
+    MeddicUpdate:
+      properties:
+        items:
+          additionalProperties:
+            $ref: '#/components/schemas/MeddicPatch'
+          propertyNames:
+            enum:
+            - metrics
+            - economic_buyer
+            - decision_criteria
+            - decision_process
+            - identify_pain
+            - champion
+          type: object
+          title: Items
+      type: object
+      required:
+      - items
+      title: MeddicUpdate
     MockLoginIn:
       properties:
         role:
@@ -8073,6 +8400,37 @@ components:
       required:
       - stage
       title: StageChange
+    Suggestion:
+      properties:
+        key:
+          type: string
+          enum:
+          - metrics
+          - economic_buyer
+          - decision_criteria
+          - decision_process
+          - identify_pain
+          - champion
+          title: Key
+        status:
+          type: string
+          enum:
+          - confirmed
+          - partial
+          - missing
+          title: Status
+        evidence:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Evidence
+      type: object
+      required:
+      - key
+      - status
+      - evidence
+      title: Suggestion
     TaskCreate:
       properties:
         title:

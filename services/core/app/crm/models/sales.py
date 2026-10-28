@@ -2,8 +2,10 @@
 
 import uuid
 from datetime import date, datetime
+from typing import Any
 
 from sqlalchemy import BigInteger, Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.db import Base
@@ -24,6 +26,8 @@ class Opportunity(OwnedMixin, Base):
     )
     lost_reason: Mapped[str | None] = mapped_column(Text)
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # 进入终态的时间
+    # MEDDIC 赢单要素：{key: {status, evidence, updated_at, updated_by}}（meddic_service）
+    meddic: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
 
 class Quote(OwnedMixin, Base):

@@ -51,6 +51,7 @@ ROUTES: dict[tuple[str, str], tuple[str, str]] = {
     ("POST", "/api/opportunities"): ("opportunity.create", "新建商机"),
     ("PATCH", "/api/opportunities/{id}"): ("opportunity.update", "修改商机"),
     ("PATCH", "/api/opportunities/{id}/stage"): ("opportunity.stage", "推进商机阶段"),
+    ("PUT", "/api/opportunities/{id}/meddic"): ("opportunity.meddic", "更新赢单要素"),
     ("PATCH", "/api/quotes/{id}/items"): ("quote.items", "修改报价明细"),
     ("POST", "/api/quotes/{id}/submit"): ("quote.submit", "提交报价审批"),
     ("POST", "/api/quotes/{id}/send"): ("quote.send", "发送报价"),

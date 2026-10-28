@@ -13,6 +13,7 @@ export const TOOL_TITLES: Record<string, string> = {
   pipeline_summary: "漏斗统计",
   calc_commission: "计算提成",
   get_customer_context: "查询客户的商机和联系人",
+  get_meddic: "查看赢单要素",
   create_task: "安排下一步",
   decide_approval: "处理审批",
   digest_material: "整理材料并写入",

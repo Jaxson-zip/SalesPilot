@@ -37,6 +37,7 @@ RESET_TABLES = (
     "contacts",
     "customers",
     "agent_threads",
+    "daily_reports",
 )
 
 

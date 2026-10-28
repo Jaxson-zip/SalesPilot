@@ -6,6 +6,7 @@ from app.crm.models.customer import Activity, Contact, Customer, Followup
 from app.crm.models.finance import Approval, Attachment, Expense
 from app.crm.models.knowledge import AgentThread, KbChunk
 from app.crm.models.org import ConfigOverride, ProductLine, Team, User
+from app.crm.models.report import DailyReport
 from app.crm.models.sales import (
     Commission,
     Contract,
@@ -28,6 +29,7 @@ __all__ = [
     "Contact",
     "Contract",
     "Customer",
+    "DailyReport",
     "Expense",
     "Followup",
     "KbChunk",

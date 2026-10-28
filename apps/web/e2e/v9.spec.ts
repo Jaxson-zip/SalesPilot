@@ -155,3 +155,35 @@ test.describe("审查 v9：竞品战卡", () => {
     await admin.call("DELETE", `/api/competitors/${hits.find((h) => h.name === name)!.id}`)
   })
 })
+
+test.describe("审查 v9：日报", () => {
+  test("销售看到当天记录、生成草稿并提交；主管在团队日报里看到内容", async ({ page, request }) => {
+    test.setTimeout(120_000)
+    const api = await Api.as(request, "sales")
+    const name = uniq("E2E日报客户")
+    const customer = await api.call<{ id: string }>("POST", "/api/customers", { name, level: "B" })
+    await api.call("POST", `/api/customers/${customer.id}/followups`, {
+      type: "phone",
+      content: "电话沟通部署方案，客户下周安排技术交流",
+    })
+    await loginAs(page, "sales")
+    await page.goto("/reports")
+    const facts = page.getByRole("region", { name: "当天记录" })
+    await expect(facts).toContainText(name)
+    await page.getByRole("button", { name: "AI 生成草稿" }).click()
+    page.once("dialog", (d) => void d.accept())
+    const editor = page.getByRole("textbox", { name: "日报正文" })
+    await expect(editor).not.toHaveValue("", { timeout: 90_000 })
+    const marker = uniq("E2E日报标记")
+    await editor.fill(`${await editor.inputValue()}\n${marker}`)
+    await page.getByRole("button", { name: /^(提交|更新并提交)$/ }).click()
+    await expect(page.getByText("已提交", { exact: true })).toBeVisible()
+
+    await loginAs(page, "manager")
+    await page.goto("/reports")
+    await page.getByRole("tab", { name: "团队日报" }).click()
+    const team = page.getByRole("list", { name: "团队日报" })
+    await team.getByRole("button", { name: "张晨 的日报" }).click()
+    await expect(team).toContainText(marker)
+  })
+})

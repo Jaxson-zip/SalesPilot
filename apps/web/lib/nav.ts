@@ -2,6 +2,7 @@ import {
   BookOpen,
   Boxes,
   Building2,
+  ClipboardList,
   FileSignature,
   FileText,
   LayoutDashboard,
@@ -40,6 +41,7 @@ const EXPENSES: NavItem = { href: "/expenses", label: "报销", icon: Receipt }
 const APPROVALS: NavItem = { href: "/approvals", label: "审批", icon: Stamp, pendingBadge: true }
 const PACKS: NavItem = { href: "/settings/packs", label: "行业包配置", icon: Boxes }
 const RULES: NavItem = { href: "/settings/rules", label: "业务规则", icon: Scale }
+const REPORTS: NavItem = { href: "/reports", label: "日报", icon: ClipboardList }
 const BATTLE: NavItem = { href: "/battlecards", label: "竞品战卡", icon: Swords }
 const AUDIT: NavItem = { href: "/settings/audit", label: "操作日志", icon: ScrollText }
 /** 使用说明：所有角色可见，放在侧栏底部（不属于任何业务分组） */
@@ -60,16 +62,19 @@ export function navGroupsFor(role: Role): NavGroup[] {
   if (role === "admin")
     return [
       top,
-      { label: "业务总览（只读）", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES] },
+      { label: "业务总览（只读）", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, REPORTS] },
       { label: "系统设置", items: [RULES, PACKS, BATTLE, AUDIT] },
     ]
   if (role === "manager")
     return [
       top,
-      { label: "工作区", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, EXPENSES, BATTLE] },
+      { label: "工作区", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, EXPENSES, REPORTS, BATTLE] },
       { label: "团队管理", items: [APPROVALS, { ...CONTRACTS, label: contractsLabel(role) }, AUDIT] },
     ]
-  return [top, { label: "工作区", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, BATTLE] }]
+  return [
+    top,
+    { label: "工作区", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, REPORTS, BATTLE] },
+  ]
 }
 
 /** 当前角色可见的全部导航项（命令面板用，含底部的使用说明） */
@@ -86,6 +91,7 @@ const ALL_ITEMS: NavItem[] = [
   CONTRACTS,
   EXPENSES,
   APPROVALS,
+  REPORTS,
   RULES,
   PACKS,
   BATTLE,

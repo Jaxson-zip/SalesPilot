@@ -50,8 +50,10 @@ describe("导航按角色分组（契约 §0）", () => {
     expect(isForbiddenPath("/settings/audit", "sales")).toBe(true)
     expect(isForbiddenPath("/settings/audit", "manager")).toBe(false)
     expect(isForbiddenPath("/quotes/q1", "admin")).toBe(false)
-    for (const role of ["sales", "manager", "admin"] as Role[])
+    for (const role of ["sales", "manager", "admin"] as Role[]) {
       expect(isForbiddenPath("/battlecards", role)).toBe(false)
+      expect(isForbiddenPath("/reports", role)).toBe(false)
+    }
   })
 
   it("业务页面识别（管理员只读提示）", () => {

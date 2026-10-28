@@ -56,6 +56,7 @@ ROUTES: dict[tuple[str, str], tuple[str, str]] = {
     ("POST", "/api/competitors"): ("competitor.create", "新建竞品战卡"),
     ("PUT", "/api/competitors/{id}"): ("competitor.update", "修改竞品战卡"),
     ("DELETE", "/api/competitors/{id}"): ("competitor.delete", "删除竞品战卡"),
+    ("PUT", "/api/reports/daily"): ("report.daily", "保存日报"),
     ("PATCH", "/api/quotes/{id}/items"): ("quote.items", "修改报价明细"),
     ("POST", "/api/quotes/{id}/submit"): ("quote.submit", "提交报价审批"),
     ("POST", "/api/quotes/{id}/send"): ("quote.send", "发送报价"),

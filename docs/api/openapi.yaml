@@ -428,6 +428,184 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/reports/daily:
+    get:
+      tags:
+      - reports
+      summary: Get Daily
+      description: 当天的日报（未写过时 status=none）和系统汇总的事实。
+      operationId: get_daily_api_reports_daily_get
+      parameters:
+      - name: date
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_DailyReportOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - reports
+      summary: Save Daily
+      operationId: save_daily_api_reports_daily_put
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DailyReportIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_DailyReportOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/reports/daily/draft:
+    post:
+      tags:
+      - reports
+      summary: Draft Daily
+      description: AI 按当天事实写草稿（不保存）；无模型时按模板。
+      operationId: draft_daily_api_reports_daily_draft_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_DraftOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/reports/team:
+    get:
+      tags:
+      - reports
+      summary: Team Daily
+      operationId: team_daily_api_reports_team_get
+      parameters:
+      - name: date
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_TeamDailyOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/reports/team/summary:
+    post:
+      tags:
+      - reports
+      summary: Team Summary
+      description: 近 N 天（默认 7 天）团队汇总。
+      operationId: team_summary_api_reports_team_summary_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SummaryIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_SummaryOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/customers:
     get:
       tags:
@@ -3978,6 +4156,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_DailyReportOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/DailyReportOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[DailyReportOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_Dashboard_:
       properties:
         code:
@@ -3998,6 +4201,31 @@ components:
           default: ''
       type: object
       title: ApiResponse[Dashboard]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_DraftOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/DraftOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[DraftOut]
       required:
       - code
       - message
@@ -4827,6 +5055,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_SummaryOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/SummaryOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[SummaryOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_TaskItem_:
       properties:
         code:
@@ -4847,6 +5100,31 @@ components:
           default: ''
       type: object
       title: ApiResponse[TaskItem]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_TeamDailyOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/TeamDailyOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[TeamDailyOut]
       required:
       - code
       - message
@@ -6350,6 +6628,127 @@ components:
       type: object
       title: CustomerUpdate
       description: 行内编辑（U10）：只修改传入的字段；name / level 传 null 视为不修改。
+    DailyFacts:
+      properties:
+        stats:
+          $ref: '#/components/schemas/DailyStats'
+          default:
+            followups: 0
+            quotes: 0
+            stage_changes: 0
+            tasks_done: 0
+            ai_actions: 0
+        actions:
+          items:
+            type: string
+          type: array
+          title: Actions
+        followups:
+          items:
+            type: string
+          type: array
+          title: Followups
+        tasks_done:
+          items:
+            type: string
+          type: array
+          title: Tasks Done
+        tomorrow:
+          items:
+            type: string
+          type: array
+          title: Tomorrow
+      type: object
+      title: DailyFacts
+      required:
+      - stats
+      - actions
+      - followups
+      - tasks_done
+      - tomorrow
+    DailyReportIn:
+      properties:
+        date:
+          type: string
+          format: date
+          title: Date
+        content:
+          type: string
+          maxLength: 5000
+          minLength: 1
+          title: Content
+        submit:
+          type: boolean
+          title: Submit
+          default: false
+      type: object
+      required:
+      - date
+      - content
+      title: DailyReportIn
+    DailyReportOut:
+      properties:
+        date:
+          type: string
+          format: date
+          title: Date
+        status:
+          type: string
+          enum:
+          - none
+          - draft
+          - submitted
+          title: Status
+        content:
+          type: string
+          title: Content
+          default: ''
+        submitted_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Submitted At
+        facts:
+          $ref: '#/components/schemas/DailyFacts'
+      type: object
+      required:
+      - date
+      - status
+      - facts
+      - content
+      - submitted_at
+      title: DailyReportOut
+    DailyStats:
+      properties:
+        followups:
+          type: integer
+          title: Followups
+          default: 0
+        quotes:
+          type: integer
+          title: Quotes
+          default: 0
+        stage_changes:
+          type: integer
+          title: Stage Changes
+          default: 0
+        tasks_done:
+          type: integer
+          title: Tasks Done
+          default: 0
+        ai_actions:
+          type: integer
+          title: Ai Actions
+          default: 0
+      type: object
+      title: DailyStats
+      required:
+      - followups
+      - quotes
+      - stage_changes
+      - tasks_done
+      - ai_actions
     Dashboard:
       properties:
         won_amount_month:
@@ -6395,6 +6794,32 @@ components:
       - tasks_today
       - tasks_overdue
       title: Dashboard
+    DraftIn:
+      properties:
+        date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date
+      type: object
+      title: DraftIn
+    DraftOut:
+      properties:
+        source:
+          type: string
+          enum:
+          - ai
+          - template
+          title: Source
+        content:
+          type: string
+          title: Content
+      type: object
+      required:
+      - source
+      - content
+      title: DraftOut
     ExpenseCheck:
       properties:
         per_person:
@@ -8879,6 +9304,42 @@ components:
       - status
       - evidence
       title: Suggestion
+    SummaryIn:
+      properties:
+        days:
+          type: integer
+          maximum: 31.0
+          minimum: 1.0
+          title: Days
+          default: 7
+      type: object
+      title: SummaryIn
+    SummaryOut:
+      properties:
+        source:
+          type: string
+          enum:
+          - ai
+          - template
+          title: Source
+        date_from:
+          type: string
+          format: date
+          title: Date From
+        date_to:
+          type: string
+          format: date
+          title: Date To
+        content:
+          type: string
+          title: Content
+      type: object
+      required:
+      - source
+      - date_from
+      - date_to
+      - content
+      title: SummaryOut
     TaskCreate:
       properties:
         title:
@@ -9055,6 +9516,68 @@ components:
       type: object
       title: TaskUpdate
       description: 只修改传入的字段；done=true 完成任务（写 Activity task_done），done=false 重新打开。
+    TeamDailyOut:
+      properties:
+        date:
+          type: string
+          format: date
+          title: Date
+        submitted:
+          type: integer
+          title: Submitted
+        total:
+          type: integer
+          title: Total
+        members:
+          items:
+            $ref: '#/components/schemas/TeamMemberReport'
+          type: array
+          title: Members
+      type: object
+      required:
+      - date
+      - submitted
+      - total
+      - members
+      title: TeamDailyOut
+    TeamMemberReport:
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          title: User Id
+        name:
+          type: string
+          title: Name
+        status:
+          type: string
+          enum:
+          - none
+          - draft
+          - submitted
+          title: Status
+        content:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Content
+        submitted_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Submitted At
+        stats:
+          $ref: '#/components/schemas/DailyStats'
+      type: object
+      required:
+      - user_id
+      - name
+      - status
+      - stats
+      - content
+      - submitted_at
+      title: TeamMemberReport
     Templates:
       properties:
         expense_templates:

@@ -138,6 +138,84 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/reports/daily": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Daily
+     * @description 当天的日报（未写过时 status=none）和系统汇总的事实。
+     */
+    get: operations["get_daily_api_reports_daily_get"]
+    /** Save Daily */
+    put: operations["save_daily_api_reports_daily_put"]
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/reports/daily/draft": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Draft Daily
+     * @description AI 按当天事实写草稿（不保存）；无模型时按模板。
+     */
+    post: operations["draft_daily_api_reports_daily_draft_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/reports/team": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Team Daily */
+    get: operations["team_daily_api_reports_team_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/reports/team/summary": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Team Summary
+     * @description 近 N 天（默认 7 天）团队汇总。
+     */
+    post: operations["team_summary_api_reports_team_summary_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/customers": {
     parameters: {
       query?: never
@@ -1531,6 +1609,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[DailyReportOut] */
+    ApiResponse_DailyReportOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["DailyReportOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[Dashboard] */
     ApiResponse_Dashboard_: {
       /**
@@ -1544,6 +1641,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["Dashboard"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[DraftOut] */
+    ApiResponse_DraftOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["DraftOut"] | null
       /**
        * Request Id
        * @default
@@ -2178,6 +2294,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[SummaryOut] */
+    ApiResponse_SummaryOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["SummaryOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[TaskItem] */
     ApiResponse_TaskItem_: {
       /**
@@ -2191,6 +2326,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["TaskItem"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[TeamDailyOut] */
+    ApiResponse_TeamDailyOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["TeamDailyOut"] | null
       /**
        * Request Id
        * @default
@@ -3001,6 +3155,89 @@ export interface components {
       /** Annual Budget */
       annual_budget?: number | null
     }
+    /** DailyFacts */
+    DailyFacts: {
+      /** @default {
+       *       "followups": 0,
+       *       "quotes": 0,
+       *       "stage_changes": 0,
+       *       "tasks_done": 0,
+       *       "ai_actions": 0
+       *     } */
+      stats: components["schemas"]["DailyStats"]
+      /** Actions */
+      actions: string[]
+      /** Followups */
+      followups: string[]
+      /** Tasks Done */
+      tasks_done: string[]
+      /** Tomorrow */
+      tomorrow: string[]
+    }
+    /** DailyReportIn */
+    DailyReportIn: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string
+      /** Content */
+      content: string
+      /**
+       * Submit
+       * @default false
+       */
+      submit?: boolean
+    }
+    /** DailyReportOut */
+    DailyReportOut: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "none" | "draft" | "submitted"
+      /**
+       * Content
+       * @default
+       */
+      content: string
+      /** Submitted At */
+      submitted_at: string | null
+      facts: components["schemas"]["DailyFacts"]
+    }
+    /** DailyStats */
+    DailyStats: {
+      /**
+       * Followups
+       * @default 0
+       */
+      followups: number
+      /**
+       * Quotes
+       * @default 0
+       */
+      quotes: number
+      /**
+       * Stage Changes
+       * @default 0
+       */
+      stage_changes: number
+      /**
+       * Tasks Done
+       * @default 0
+       */
+      tasks_done: number
+      /**
+       * Ai Actions
+       * @default 0
+       */
+      ai_actions: number
+    }
     /** Dashboard */
     Dashboard: {
       /** Won Amount Month */
@@ -3027,6 +3264,21 @@ export interface components {
       tasks_overdue: number
       /** Funnel */
       funnel: components["schemas"]["PipelineStage"][]
+    }
+    /** DraftIn */
+    DraftIn: {
+      /** Date */
+      date?: string | null
+    }
+    /** DraftOut */
+    DraftOut: {
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: "ai" | "template"
+      /** Content */
+      content: string
     }
     /** ExpenseCheck */
     ExpenseCheck: {
@@ -4322,6 +4574,34 @@ export interface components {
       /** Evidence */
       evidence: string | null
     }
+    /** SummaryIn */
+    SummaryIn: {
+      /**
+       * Days
+       * @default 7
+       */
+      days?: number
+    }
+    /** SummaryOut */
+    SummaryOut: {
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: "ai" | "template"
+      /**
+       * Date From
+       * Format: date
+       */
+      date_from: string
+      /**
+       * Date To
+       * Format: date
+       */
+      date_to: string
+      /** Content */
+      content: string
+    }
     /** TaskCreate */
     TaskCreate: {
       /** Title */
@@ -4416,6 +4696,40 @@ export interface components {
       type?: ("call" | "visit" | "email" | "meeting" | "todo") | null
       /** Done */
       done?: boolean | null
+    }
+    /** TeamDailyOut */
+    TeamDailyOut: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string
+      /** Submitted */
+      submitted: number
+      /** Total */
+      total: number
+      /** Members */
+      members: components["schemas"]["TeamMemberReport"][]
+    }
+    /** TeamMemberReport */
+    TeamMemberReport: {
+      /**
+       * User Id
+       * Format: uuid
+       */
+      user_id: string
+      /** Name */
+      name: string
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "none" | "draft" | "submitted"
+      /** Content */
+      content: string | null
+      /** Submitted At */
+      submitted_at: string | null
+      stats: components["schemas"]["DailyStats"]
     }
     /** Templates */
     Templates: {
@@ -4885,6 +5199,177 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_list_CompetitorOut__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  get_daily_api_reports_daily_get: {
+    parameters: {
+      query?: {
+        date?: string | null
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_DailyReportOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  save_daily_api_reports_daily_put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DailyReportIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_DailyReportOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  draft_daily_api_reports_daily_draft_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["DraftIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_DraftOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  team_daily_api_reports_team_get: {
+    parameters: {
+      query?: {
+        date?: string | null
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_TeamDailyOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  team_summary_api_reports_team_summary_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SummaryIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_SummaryOut_"]
         }
       }
       /** @description Validation Error */

@@ -14,6 +14,7 @@ import type * as M from "@/lib/materials"
 import type * as A from "@/hooks/useAuditLogs"
 import type * as K from "@/hooks/useCompetitors"
 import type * as D from "@/hooks/useMeddic"
+import type * as R from "@/hooks/useReports"
 
 type S = components["schemas"]
 /** A 能赋给 B 时为 true；不能时类型为 false，下面的 `= true` 就会报错 */
@@ -59,6 +60,8 @@ export const responses = {
   AuditItem: true as Fits<S["AuditItem"], A.AuditItem>,
   MeddicOut: true as Fits<S["MeddicOut"], D.MeddicOut>,
   CompetitorOut: true as Fits<S["CompetitorOut"], K.Competitor>,
+  DailyReportOut: true as Fits<S["DailyReportOut"], R.DailyReport>,
+  TeamDailyOut: true as Fits<S["TeamDailyOut"], R.TeamDaily>,
   MeddicAssessOut: true as Fits<S["AssessOut"], D.MeddicAssessOut>,
 } satisfies Record<string, true>
 

@@ -103,13 +103,21 @@ def to_items(db: Session, approvals: list[Approval]) -> list[ApprovalItem]:
         t = targets.get(a.target_id)
         if t is None:
             continue
-        amount = t.total_price if isinstance(t, Quote) else t.amount
+        if isinstance(t, Quote):
+            extra: dict[str, Any] = {"amount": t.total_price, "margin_rate": t.margin_rate}
+        else:
+            over = (t.policy_check or {}).get("over_amount")
+            extra = {
+                "amount": t.amount,
+                "over_amount": over if isinstance(over, int) else None,
+                "occurred_on": t.occurred_on,
+            }
         target = ApprovalTarget(
             id=t.id,
             code=t.code,
             title=_title(t, customers),
-            amount=amount,
             owner=lookup.pick(owners, t.owner_id),
+            **extra,
         )
         items.append(
             ApprovalItem(

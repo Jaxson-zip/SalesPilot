@@ -2132,6 +2132,12 @@ export interface components {
       /** Amount */
       amount: number
       owner: components["schemas"]["UserBrief"] | null
+      /** Over Amount */
+      over_amount: number | null
+      /** Margin Rate */
+      margin_rate: number | null
+      /** Occurred On */
+      occurred_on: string | null
     }
     /** Artifact */
     Artifact: {

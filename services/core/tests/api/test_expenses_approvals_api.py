@@ -149,6 +149,9 @@ def test_over_limit_approval_flow(client: TestClient, tracker: Tracker) -> None:
     approval = next(a for a in pending["items"] if a["target"]["id"] == eid)
     assert approval["target"]["amount"] == 86_000 and approval["target"]["owner"]["name"] == "张晨"
     assert len(approval["attachments"]) == 2 and "人均 ¥215" in approval["reason"]
+    # 审批列表直接给出超标金额和发生日期（不用从文字里解析）
+    assert approval["target"]["over_amount"] == 26_000 and approval["target"]["occurred_on"]
+    assert approval["target"]["margin_rate"] is None
 
     url = f"/api/approvals/{approval['id']}/decide"
     assert client.post(url, json={"decision": "approve"}, headers=SALES_H).json()["code"] == 40301

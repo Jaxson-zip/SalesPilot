@@ -227,6 +227,10 @@ class ApprovalTarget(BaseModel):
     title: str
     amount: int
     owner: UserBrief | None
+    # 审批时最关心的数字：报销超出标准多少（分）、报价毛利率；发生日期
+    over_amount: int | None = None
+    margin_rate: float | None = None
+    occurred_on: date | None = None
 
 
 class ApprovalItem(BaseModel):

@@ -45,6 +45,13 @@ export function useActivities(params: ActivityListParams, enabled = true) {
           signal,
         ),
       ),
+    // 「加载更多」只改 limit：先保留已显示的条目，不闪骨架屏；换了对象（view / subject）就不保留
+    placeholderData: (prev, prevQuery) => {
+      const p = prevQuery?.queryKey[1] as ActivityListParams | undefined
+      const same =
+        p?.view === params.view && p?.subject_type === params.subject_type && p?.subject_id === params.subject_id
+      return same ? prev : undefined
+    },
     enabled,
   })
 }

@@ -54,7 +54,13 @@ export function ReleaseDialog({
         </DialogHeader>
         {openOpps.length ? (
           <Alert tone="warn" title={`还有 ${openOpps.length} 个进行中的商机，不能退回`}>
-            先把「{openOpps.map((o) => o.name).join("」「")}」标记为赢单 / 输单，或请主管转给同事。
+            先把「
+            {openOpps
+              .slice(0, 3)
+              .map((o) => o.name)
+              .join("」「")}
+            」{openOpps.length > 3 ? ` 等 ${openOpps.length} 个商机` : ""}
+            标记为赢单 / 输单，或请主管转给同事。
           </Alert>
         ) : null}
         <QuickChips

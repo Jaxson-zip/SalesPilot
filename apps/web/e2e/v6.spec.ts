@@ -314,10 +314,17 @@ test.describe("审查 v6 待定项", () => {
     await expect(renamed).toHaveCount(0)
   })
 
-  test("有进行中商机的客户：退回公海弹窗直接说明原因，不能确认（不改演示数据）", async ({ page }) => {
+  test("有进行中商机的客户：退回公海弹窗直接说明原因，不能确认（不改演示数据）", async ({ page, request }) => {
+    // 按名称查（测试数据多了以后演示客户可能不在列表第一页）
+    const api = await Api.as(request, "sales")
+    const list = await api.call<{ items: { id: string; name: string }[] }>(
+      "GET",
+      "/api/customers?view=mine&q=深圳明理&page_size=50",
+    )
+    const mingli = list.items.find((c) => c.name === "深圳明理律师事务所")
+    if (!mingli) throw new Error("演示数据缺少深圳明理律师事务所")
     await loginAs(page, "sales")
-    await page.goto("/customers")
-    await page.getByRole("link").filter({ hasText: "深圳明理律师事务所" }).first().click()
+    await page.goto(`/customers/${mingli.id}`)
     await page.getByRole("button", { name: "退回公海" }).click()
     const dialog = page.getByRole("dialog", { name: "退回公海" })
     await expect(dialog).toContainText(/还有 \d+ 个进行中的商机，不能退回/)

@@ -391,11 +391,25 @@ export type ApprovalDecision = "approve" | "reject"
 export interface ApprovalItem {
   id: string
   target_type: ApprovalTargetType
-  target: { id: string; code: string; title: string; amount: number; owner: UserBrief | null }
+  target: {
+    id: string
+    code: string
+    title: string
+    amount: number
+    owner: UserBrief | null
+    /** 报销超出标准的金额（分） */
+    over_amount?: number | null
+    /** 报价毛利率（0–1） */
+    margin_rate?: number | null
+    /** 报销发生日期 */
+    occurred_on?: string | null
+  }
   reason: string
   ai_suggestion: string | null
   status: ApprovalStatus
   attachments: AttachmentOut[]
+  comment?: string | null
+  decided_at?: string | null
   created_at: string
 }
 

@@ -1,17 +1,29 @@
 "use client"
 
-import { FileText, Receipt, Lightbulb, TriangleAlert } from "lucide-react"
+import { FileText, Lightbulb, Receipt } from "lucide-react"
 import Link from "next/link"
 
 import { AttachmentPill } from "@/components/biz/Attachments"
-import { Chip } from "@/components/biz/Chip"
 import { Tag } from "@/components/biz/Tag"
 import { Button } from "@/components/ui/button"
-import { formatFen, formatRelative, ownerName } from "@/lib/format"
+import { formatFen, formatPercent, formatRelative, ownerName } from "@/lib/format"
 import { APPROVAL_STATUS_META, APPROVAL_TARGET_LABEL, labelOf } from "@/lib/labels"
 import type { ApprovalItem } from "@/types/api"
 
-/** ApprovalItem：类型、单据、金额、触发原因、附件、审批建议、通过 / 驳回 */
+/** 金额下面那一行：报销看超标多少，报价看毛利 */
+function KeyFigure({ a }: { a: ApprovalItem }) {
+  const t = a.target
+  if (a.target_type === "expense" && t.over_amount)
+    return <div className="text-sm font-medium text-red-600 tabular-nums">超标 {formatFen(t.over_amount)}</div>
+  if (a.target_type === "quote" && typeof t.margin_rate === "number")
+    return <div className="text-sm font-medium text-amber-600 tabular-nums">毛利 {formatPercent(t.margin_rate)}</div>
+  return null
+}
+
+/**
+ * 一条审批：主管先看「多少钱、超了多少」，所以金额放右上角大字，超标 / 毛利紧跟其下；
+ * 左边是事由（类型 · 客户）、申请人与时间、为什么要审批、票据；AI 建议放最后、最多两行。
+ */
 export function ApprovalRow({
   a,
   busy,
@@ -25,35 +37,54 @@ export function ApprovalRow({
 }) {
   const Icon = a.target_type === "quote" ? FileText : Receipt
   const status = labelOf(APPROVAL_STATUS_META, a.status)
-  const title = (
-    <span className="min-w-0 truncate font-medium">
-      {a.target.code}
-      {a.target.title ? ` · ${a.target.title}` : ""}
-    </span>
-  )
+  const t = a.target
+  const occurred = t.occurred_on ? `${t.occurred_on.slice(5)} 发生` : null
+  const title = <span className="font-medium break-words">{t.title || t.code}</span>
+  const actions =
+    a.status === "pending" ? (
+      <>
+        <Button variant="outline" size="sm" disabled={busy} onClick={onReject}>
+          驳回
+        </Button>
+        <Button size="sm" disabled={busy} onClick={onApprove}>
+          通过
+        </Button>
+      </>
+    ) : (
+      <Tag color={status.color}>{status.label}</Tag>
+    )
   return (
-    <div className="flex flex-wrap gap-3 border-b border-zinc-100 px-4 py-4 hover:bg-zinc-50/60 sm:flex-nowrap sm:px-5">
-      <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-zinc-100">
+    <div className="flex gap-3 border-b border-zinc-100 px-4 py-4 hover:bg-zinc-50/60 sm:px-5">
+      <span className="hidden size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 sm:inline-flex">
         <Icon className="size-4 text-zinc-600" />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-center gap-2">
-          <Tag>{APPROVAL_TARGET_LABEL[a.target_type]}</Tag>
-          {a.target_type === "quote" ? (
-            <Link href={`/quotes/${a.target.id}`} className="min-w-0 truncate hover:underline">
-              {title}
-            </Link>
-          ) : (
-            title
-          )}
-          <span className="shrink-0 text-zinc-500 tabular-nums">{formatFen(a.target.amount)}</span>
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-2">
+              <Tag>{APPROVAL_TARGET_LABEL[a.target_type]}</Tag>
+              {a.target_type === "quote" ? (
+                <Link href={`/quotes/${t.id}`} className="min-w-0 hover:underline">
+                  {title}
+                </Link>
+              ) : (
+                title
+              )}
+            </div>
+            <div className="mt-1 text-xs text-zinc-500">
+              {[t.code, ownerName(t.owner), occurred, `${formatRelative(a.created_at)}提交`]
+                .filter(Boolean)
+                .join(" · ")}
+            </div>
+          </div>
+          <div className="shrink-0 text-right sm:hidden">
+            <div className="text-lg leading-6 font-semibold tabular-nums">{formatFen(t.amount)}</div>
+            <KeyFigure a={a} />
+          </div>
         </div>
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-zinc-500">
-          <Chip name={ownerName(a.target.owner)} />
-          <span>{formatRelative(a.created_at)} 提交 ·</span>
-          <TriangleAlert className="size-3.5 text-amber-500" />
-          <span className="text-zinc-700">{a.reason}</span>
-        </div>
+
+        <div className="mt-2 text-zinc-700">{a.reason}</div>
+
         {a.attachments.length ? (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {a.attachments.map((f) => (
@@ -61,26 +92,25 @@ export function ApprovalRow({
             ))}
           </div>
         ) : null}
+
         {a.ai_suggestion ? (
-          <div className="mt-2 inline-flex items-start gap-1.5 text-zinc-600">
-            <Lightbulb className="mt-0.5 size-3.5 shrink-0 text-amber-500" />
-            <span>审批建议：{a.ai_suggestion}</span>
+          <div className="mt-2 flex items-start gap-1.5 text-xs text-zinc-500">
+            <Lightbulb className="mt-px size-3.5 shrink-0 text-amber-500" />
+            <span className="line-clamp-2" title={a.ai_suggestion}>
+              审批建议：{a.ai_suggestion}
+            </span>
           </div>
         ) : null}
+
+        {a.comment ? <div className="mt-2 text-xs text-zinc-500">审批意见：{a.comment}</div> : null}
+        {/* 手机：按钮放最下面一行 */}
+        <div className="mt-3 flex items-center justify-end gap-2 sm:hidden">{actions}</div>
       </div>
-      <div className="flex w-full shrink-0 items-start justify-end gap-2 sm:w-auto">
-        {a.status === "pending" ? (
-          <>
-            <Button variant="outline" size="sm" disabled={busy} onClick={onReject}>
-              驳回
-            </Button>
-            <Button size="sm" disabled={busy} onClick={onApprove}>
-              通过
-            </Button>
-          </>
-        ) : (
-          <Tag color={status.color}>{status.label}</Tag>
-        )}
+      {/* 桌面：金额、超标、按钮竖排在右侧一列 */}
+      <div className="hidden w-40 shrink-0 flex-col items-end gap-0.5 text-right sm:flex">
+        <div className="text-lg leading-6 font-semibold tabular-nums">{formatFen(t.amount)}</div>
+        <KeyFigure a={a} />
+        <div className="mt-auto flex gap-2 pt-3">{actions}</div>
       </div>
     </div>
   )

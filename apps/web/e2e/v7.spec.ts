@@ -35,22 +35,24 @@ test.describe("v7：AI 生成中切页面 / 刷新不丢", () => {
 })
 
 test.describe("v7：工作台动态与业务规则布局", () => {
-  test("团队动态只显示最近 6 条，其余在「查看全部」面板里", async ({ page }) => {
+  test("团队动态在卡片里滚动，不把整页撑长；可以加载更多", async ({ page }) => {
     await loginAs(page, "manager")
     await page.goto("/dashboard")
     const feed = page.getByRole("list", { name: "团队动态" })
     await expect(feed.getByRole("listitem").first()).toBeVisible()
-    expect(await feed.getByRole("listitem").count()).toBeLessThanOrEqual(6)
-    await page.getByRole("button", { name: "查看全部" }).click()
-    const all = page.getByRole("dialog").getByRole("list", { name: "全部团队动态" })
-    await expect(all.getByRole("listitem").nth(6)).toBeVisible()
+    const box = await feed.locator("..").boundingBox()
+    expect(box?.height ?? 0).toBeLessThanOrEqual(26 * 16 + 1) // 卡片内滚动
+    const before = await feed.getByRole("listitem").count()
+    await page.getByRole("button", { name: "加载更多" }).click()
+    await expect.poll(() => feed.getByRole("listitem").count()).toBeGreaterThan(before)
+    await expect(page.getByRole("dialog")).toHaveCount(0) // 不再弹侧边面板
   })
 
   test("业务规则按分组切换，一次只显示一组", async ({ page }) => {
     await loginAs(page, "admin")
     await page.goto("/settings/rules")
     await expect(page.getByRole("region", { name: "报价与审批" })).toBeVisible()
-    await page.getByRole("navigation", { name: "规则分组" }).getByRole("button", { name: /回款/ }).click()
+    await page.getByRole("tablist", { name: "规则分组" }).getByRole("tab", { name: /回款/ }).click()
     const group = page.getByRole("region", { name: "回款" })
     await expect(group).toContainText("标准回款计划")
     await expect(group).toContainText("签订后 60 天")

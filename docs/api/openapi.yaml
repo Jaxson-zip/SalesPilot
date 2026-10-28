@@ -4489,6 +4489,22 @@ components:
           anyOf:
           - $ref: '#/components/schemas/UserBrief'
           - type: 'null'
+        over_amount:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Over Amount
+        margin_rate:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Margin Rate
+        occurred_on:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Occurred On
       type: object
       required:
       - id
@@ -4496,6 +4512,9 @@ components:
       - title
       - amount
       - owner
+      - over_amount
+      - margin_rate
+      - occurred_on
       title: ApprovalTarget
     Artifact:
       properties:

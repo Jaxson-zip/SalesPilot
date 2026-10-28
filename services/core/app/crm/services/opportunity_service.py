@@ -11,7 +11,7 @@ from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_owner
 from app.common.scope import View, apply_scope, ensure_visible
-from app.crm.models import Customer, Opportunity, ProductLine, Team
+from app.crm.models import Customer, Opportunity, ProductLine, Team, User
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.opportunity import (
     FINAL_STAGES,
@@ -25,7 +25,13 @@ from app.crm.schemas.opportunity import (
     PipelineSummary,
     StageChange,
 )
-from app.crm.services import activity_service, lookup, opportunity_insights, quote_query
+from app.crm.services import (
+    activity_service,
+    lookup,
+    opportunity_insights,
+    quote_query,
+    wecom_service,
+)
 from app.rules import load_rules, weighted_amount
 from app.rules.crm_calc import default_win_rate
 
@@ -202,6 +208,23 @@ def apply_stage(
     db.flush()
     activity_service.record(
         db, user, "opportunity", opp.id, "stage_changed", content, source, subject=opp
+    )
+    if change.stage == "won":
+        _push_won(db, opp)
+
+
+def _push_won(db: Session, opp: Opportunity) -> None:
+    customer = db.get(Customer, opp.customer_id)
+    owner = db.get(User, opp.owner_id) if opp.owner_id else None
+    wecom_service.queue(
+        db,
+        "deal_won",
+        f"赢单：{opp.name}",
+        f"**🎉 赢单喜报**\n"
+        f"> 客户：{customer.name if customer else '—'}\n"
+        f"> 商机：{opp.name}\n"
+        f'> 金额：<font color="info">¥{opp.amount / 100:,.0f}</font>\n'
+        f"> 负责人：{owner.name if owner else '—'}",
     )
 
 

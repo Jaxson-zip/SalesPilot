@@ -1,4 +1,5 @@
 import {
+  BellRing,
   BookOpen,
   Boxes,
   Building2,
@@ -43,6 +44,7 @@ const PACKS: NavItem = { href: "/settings/packs", label: "行业包配置", icon
 const RULES: NavItem = { href: "/settings/rules", label: "业务规则", icon: Scale }
 const REPORTS: NavItem = { href: "/reports", label: "日报", icon: ClipboardList }
 const BATTLE: NavItem = { href: "/battlecards", label: "竞品战卡", icon: Swords }
+const PUSH: NavItem = { href: "/settings/integrations", label: "消息推送", icon: BellRing }
 const AUDIT: NavItem = { href: "/settings/audit", label: "操作日志", icon: ScrollText }
 /** 使用说明：所有角色可见，放在侧栏底部（不属于任何业务分组） */
 export const HELP: NavItem = { href: "/help", label: "使用说明", icon: BookOpen }
@@ -63,7 +65,7 @@ export function navGroupsFor(role: Role): NavGroup[] {
     return [
       top,
       { label: "业务总览（只读）", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, REPORTS] },
-      { label: "系统设置", items: [RULES, PACKS, BATTLE, AUDIT] },
+      { label: "系统设置", items: [RULES, PACKS, BATTLE, PUSH, AUDIT] },
     ]
   if (role === "manager")
     return [
@@ -95,6 +97,7 @@ const ALL_ITEMS: NavItem[] = [
   RULES,
   PACKS,
   BATTLE,
+  PUSH,
   AUDIT,
 ]
 

@@ -428,6 +428,124 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/integrations/wecom:
+    get:
+      tags:
+      - integrations
+      summary: Get Wecom
+      operationId: get_wecom_api_integrations_wecom_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_WecomConfigOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - integrations
+      summary: Save Wecom
+      operationId: save_wecom_api_integrations_wecom_put
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WecomConfigIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_WecomConfigOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/integrations/wecom/test:
+    post:
+      tags:
+      - integrations
+      summary: Test Wecom
+      operationId: test_wecom_api_integrations_wecom_test_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PushOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/integrations/flags:
+    get:
+      tags:
+      - integrations
+      summary: Flags
+      description: 各推送事件是否可用（决定前端是否显示「推送到群」），不含地址。
+      operationId: flags_api_integrations_flags_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_dict_str__bool__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/reports/daily:
     get:
       tags:
@@ -600,6 +718,76 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_SummaryOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/reports/team/push:
+    post:
+      tags:
+      - reports
+      summary: Push Summary
+      description: 把团队汇总推送到企业微信群。
+      operationId: push_summary_api_reports_team_push_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PushOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/reports/team/remind:
+    post:
+      tags:
+      - reports
+      summary: Remind
+      description: 在企业微信群里提醒当天未提交日报的销售。
+      operationId: remind_api_reports_team_remind_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemindIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PushOut_'
         '422':
           description: Validation Error
           content:
@@ -5005,6 +5193,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_PushOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/PushOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[PushOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_QuoteDetail_:
       properties:
         code:
@@ -5275,6 +5488,59 @@ components:
           default: ''
       type: object
       title: ApiResponse[UserOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_WecomConfigOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/WecomConfigOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[WecomConfigOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_dict_str__bool__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - additionalProperties:
+              type: boolean
+            type: object
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[dict[str, bool]]
       required:
       - code
       - message
@@ -8758,6 +9024,32 @@ components:
       - title
       - prompt
       title: PromptTemplate
+    PushIn:
+      properties:
+        content:
+          type: string
+          maxLength: 3000
+          minLength: 1
+          title: Content
+      type: object
+      required:
+      - content
+      title: PushIn
+    PushOut:
+      properties:
+        ok:
+          type: boolean
+          title: Ok
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+      type: object
+      required:
+      - ok
+      - error
+      title: PushOut
     QuoteDetail:
       properties:
         id:
@@ -9024,6 +9316,16 @@ components:
       - owner
       - created_at
       title: QuoteListItem
+    RemindIn:
+      properties:
+        date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date
+      type: object
+      title: RemindIn
     ResumeIn:
       properties:
         thread_id:
@@ -9822,3 +10124,112 @@ components:
       - team
       - all
       title: View
+    WecomConfigIn:
+      properties:
+        webhook_url:
+          anyOf:
+          - type: string
+            maxLength: 300
+          - type: 'null'
+          title: Webhook Url
+        enabled:
+          type: boolean
+          title: Enabled
+          default: true
+        events:
+          items:
+            type: string
+          type: array
+          title: Events
+      type: object
+      title: WecomConfigIn
+    WecomConfigOut:
+      properties:
+        configured:
+          type: boolean
+          title: Configured
+        source:
+          type: string
+          enum:
+          - web
+          - env
+          - none
+          title: Source
+        webhook_masked:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Webhook Masked
+        enabled:
+          type: boolean
+          title: Enabled
+        events:
+          items:
+            type: string
+          type: array
+          title: Events
+        options:
+          items:
+            $ref: '#/components/schemas/WecomEventOption'
+          type: array
+          title: Options
+        recent:
+          items:
+            $ref: '#/components/schemas/WecomPush'
+          type: array
+          title: Recent
+        web_base_url:
+          type: string
+          title: Web Base Url
+      type: object
+      required:
+      - configured
+      - source
+      - enabled
+      - events
+      - options
+      - recent
+      - web_base_url
+      - webhook_masked
+      title: WecomConfigOut
+    WecomEventOption:
+      properties:
+        key:
+          type: string
+          title: Key
+        label:
+          type: string
+          title: Label
+      type: object
+      required:
+      - key
+      - label
+      title: WecomEventOption
+    WecomPush:
+      properties:
+        at:
+          type: string
+          format: date-time
+          title: At
+        event:
+          type: string
+          title: Event
+        title:
+          type: string
+          title: Title
+        ok:
+          type: boolean
+          title: Ok
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+      type: object
+      required:
+      - at
+      - event
+      - title
+      - ok
+      - error
+      title: WecomPush

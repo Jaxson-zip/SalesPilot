@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDown, ClipboardList, Copy, Loader2, Sparkles } from "lucide-react"
+import { BellRing, ChevronDown, ClipboardList, Copy, Loader2, Send, Sparkles } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -26,6 +26,7 @@ import {
   type SummaryOut,
   type TeamMemberReport,
 } from "@/hooks/useReports"
+import { usePushFlags, usePushSummary, useRemindReports } from "@/hooks/useWecom"
 import { cn } from "@/lib/utils"
 
 /** 本地日期 yyyy-mm-dd（服务端按北京时间算「当天」） */
@@ -252,6 +253,9 @@ function MemberRow({ m }: { m: TeamMemberReport }) {
 }
 
 function SummaryCard({ s, onClose }: { s: SummaryOut; onClose: () => void }) {
+  const flags = usePushFlags()
+  const push = usePushSummary()
+  const canPush = flags.data?.report_summary === true
   return (
     <section
       aria-label="团队汇总"
@@ -280,6 +284,12 @@ function SummaryCard({ s, onClose }: { s: SummaryOut; onClose: () => void }) {
           <Copy />
           复制
         </Button>
+        {canPush ? (
+          <Button size="xs" variant="outline" disabled={push.isPending} onClick={() => push.mutate(s.content)}>
+            <Send />
+            推送到企业微信群
+          </Button>
+        ) : null}
       </div>
     </section>
   )
@@ -290,6 +300,9 @@ function TeamReports() {
   const q = useTeamReports(date)
   const summary = useTeamSummary()
   const [result, setResult] = useState<SummaryOut | null>(null)
+  const flags = usePushFlags()
+  const remind = useRemindReports()
+  const canRemind = flags.data?.report_remind === true && q.data && q.data.submitted < q.data.total
   return (
     <div className="mx-auto w-full max-w-4xl space-y-3 p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
@@ -299,10 +312,22 @@ function TeamReports() {
             已提交 <span className="font-medium tabular-nums">{q.data.submitted}</span> / {q.data.total}
           </span>
         ) : null}
+        {canRemind ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto"
+            disabled={remind.isPending}
+            onClick={() => remind.mutate(date)}
+          >
+            <BellRing />
+            群里提醒未提交
+          </Button>
+        ) : null}
         <Button
           size="sm"
           variant="outline"
-          className="ml-auto"
+          className={canRemind ? undefined : "ml-auto"}
           disabled={summary.isPending}
           onClick={() => summary.mutate(7, { onSuccess: setResult })}
         >

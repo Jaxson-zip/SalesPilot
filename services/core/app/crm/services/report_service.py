@@ -19,8 +19,9 @@ from sqlalchemy.orm import Session
 from app.common.auth import CurrentUser, Role
 from app.common.errors import BizError, ErrorCode
 from app.crm.models import AuditLog, Customer, DailyReport, Followup, Task, User
-from app.crm.services import audit_service
+from app.crm.services import audit_service, wecom_service
 from app.crm.services.codes import LOCAL_TZ, local_today
+from app.crm.services.wecom_service import PushIn, PushOut
 
 logger = logging.getLogger(__name__)
 
@@ -391,3 +392,28 @@ def team_summary(db: Session, user: CurrentUser, days: int, llm: Any) -> Summary
     return SummaryOut(
         source="template", date_from=d_from, date_to=d_to, content=f"【整体情况】\n{header}{tail}"
     )
+
+
+class RemindIn(BaseModel):
+    date: dt.date | None = None
+
+
+def push_summary(db: Session, user: CurrentUser, body: PushIn) -> PushOut:
+    _team_users(db, user)
+    content = f"**团队日报汇总**（{user.name} 推送）\n\n{body.content}"
+    return wecom_service.push_now(db, user, "report_summary", "团队日报汇总", content)
+
+
+def remind_missing(db: Session, user: CurrentUser, d: dt.date) -> PushOut:
+    """把当天还没提交日报的销售名单推到群里。"""
+    team = team_daily(db, user, d)
+    missing = [m.name for m in team.members if m.status != "submitted"]
+    if not missing:
+        raise BizError(ErrorCode.VALIDATION, "今天的日报都已提交，不需要提醒")
+    names = "、".join(missing)
+    content = (
+        f'**日报提醒（{d:%m-%d}）**\n> 还没提交：<font color="warning">{names}</font>\n\n'
+        f"请下班前到 {wecom_service.link('/reports', 'SalesPilot 日报')} 生成并提交。"
+    )
+    title = f"日报提醒：{len(missing)} 人"
+    return wecom_service.push_now(db, user, "report_remind", title, content)

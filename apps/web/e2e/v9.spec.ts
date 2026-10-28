@@ -187,3 +187,34 @@ test.describe("审查 v9：日报", () => {
     await expect(team).toContainText(marker)
   })
 })
+
+test.describe("审查 v9：企业微信推送", () => {
+  test("管理员配置群机器人：只接受企业微信地址、保存后脱敏显示（关闭推送，不向外发消息）", async ({
+    page,
+    request,
+  }) => {
+    await loginAs(page, "admin")
+    await page.goto("/settings/integrations")
+    const url = page.getByLabel("Webhook 地址")
+    await url.fill("http://127.0.0.1:8000/internal")
+    await page.getByRole("button", { name: "保存", exact: true }).click()
+    await expect(page.getByText(/请粘贴企业微信群机器人的 Webhook 地址/)).toBeVisible()
+
+    await page.getByRole("switch", { name: "开启推送" }).click() // 关闭：演示期间不实际推送
+    await url.fill("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=e2e00000-fake-0000-9999")
+    await page.getByRole("button", { name: "保存", exact: true }).click()
+    await expect(page.getByText("已配置")).toBeVisible()
+    await expect(page.getByText(/…key=e2e0\*\*\*\*9999/)).toBeVisible()
+    await expect(page.getByText("e2e00000-fake")).toHaveCount(0)
+
+    const admin = await Api.as(request, "admin")
+    await admin.call("PUT", "/api/integrations/wecom", {
+      webhook_url: "",
+      enabled: true,
+      events: ["approval_pending", "deal_won", "report_summary", "report_remind"],
+    })
+    const sales = await Api.as(request, "sales")
+    const flags = await sales.call<Record<string, boolean>>("GET", "/api/integrations/flags")
+    expect(Object.values(flags).every((v) => v === false)).toBe(true)
+  })
+})

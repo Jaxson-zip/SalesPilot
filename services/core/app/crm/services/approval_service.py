@@ -14,7 +14,7 @@ from app.common.auth import CurrentUser, Role
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_role, ensure_same_team
 from app.common.scope import View, apply_scope
-from app.crm.models import Approval, Expense, Quote
+from app.crm.models import Approval, Expense, Quote, User
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.finance import EXPENSE_TYPE_LABELS, ApprovalItem, ApprovalTarget
 from app.crm.services import (
@@ -23,6 +23,7 @@ from app.crm.services import (
     lookup,
     notification_service,
     quote_query,
+    wecom_service,
 )
 from app.packs.base import TIER_NAMES
 
@@ -64,6 +65,17 @@ def create_approval(
         f"待审批：{kind} {target.code}",
         reason,
         "/approvals",
+    )
+    owner = db.get(User, target.owner_id) if target.owner_id else None
+    amount = target.total_price if isinstance(target, Quote) else target.amount
+    wecom_service.queue(
+        db,
+        "approval_pending",
+        f"待审批：{kind} {target.code}",
+        f"**待审批：{kind} {target.code}**\n"
+        f"> 提交人：{owner.name if owner else '—'}\n"
+        f'> 金额：<font color="warning">¥{amount / 100:,.0f}</font>\n'
+        f"> 原因：{reason}\n\n{wecom_service.link('/approvals', '去审批')}",
     )
     return approval
 

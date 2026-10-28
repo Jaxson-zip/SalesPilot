@@ -16,10 +16,12 @@ from app.crm.services.report_service import (
     DailyReportOut,
     DraftIn,
     DraftOut,
+    RemindIn,
     SummaryIn,
     SummaryOut,
     TeamDailyOut,
 )
+from app.crm.services.wecom_service import PushIn, PushOut
 from app.llm.client import get_chat_model, model_available
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
@@ -67,3 +69,16 @@ async def team_summary(
     """近 N 天（默认 7 天）团队汇总。"""
     out = await run_in_threadpool(report_service.team_summary, db, user, body.days, _llm(request))
     return ok(out)
+
+
+@router.post("/team/push", response_model=ApiResponse[PushOut])
+async def push_summary(body: PushIn, user: CurrentUserDep, db: DbDep) -> ApiResponse[PushOut]:
+    """把团队汇总推送到企业微信群。"""
+    return ok(await run_in_threadpool(report_service.push_summary, db, user, body))
+
+
+@router.post("/team/remind", response_model=ApiResponse[PushOut])
+async def remind(body: RemindIn, user: CurrentUserDep, db: DbDep) -> ApiResponse[PushOut]:
+    """在企业微信群里提醒当天未提交日报的销售。"""
+    d = body.date or local_today()
+    return ok(await run_in_threadpool(report_service.remind_missing, db, user, d))

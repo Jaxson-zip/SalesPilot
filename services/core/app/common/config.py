@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     default_pack: str = "llm_deploy"
     embedding_dims: int = 1024
     db_connect_timeout_seconds: int = 3
+    # 企业微信群机器人 Webhook（可选；网页「系统设置 → 消息推送」里保存的地址优先）
+    wecom_webhook_url: str | None = None
+    # 推送消息里的链接前缀（部署后改成对外访问的网页地址）
+    web_base_url: str = "http://127.0.0.1:3005"
 
 
 @lru_cache

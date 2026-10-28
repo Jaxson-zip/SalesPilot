@@ -84,6 +84,18 @@ def _migrate_and_seed() -> None:
         seed_business(db)
 
 
+@pytest.fixture(autouse=True)
+def _no_real_wecom(monkeypatch: pytest.MonkeyPatch) -> None:
+    """测试绝不推送到真实的企业微信群（即使 .env 里配置了 WECOM_WEBHOOK_URL）。"""
+    from app.crm.services import wecom_service
+
+    def blocked(*_a: Any, **_k: Any) -> Any:
+        raise AssertionError("tests must not call the real WeCom webhook")
+
+    monkeypatch.setattr(wecom_service.httpx, "post", blocked)
+    monkeypatch.setattr(wecom_service.get_settings(), "wecom_webhook_url", None)
+
+
 @pytest.fixture(scope="session")
 def db_available() -> bool:
     if not _ensure_test_database() or not check_db():

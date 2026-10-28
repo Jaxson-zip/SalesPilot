@@ -138,6 +138,61 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/integrations/wecom": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Wecom */
+    get: operations["get_wecom_api_integrations_wecom_get"]
+    /** Save Wecom */
+    put: operations["save_wecom_api_integrations_wecom_put"]
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/integrations/wecom/test": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Test Wecom */
+    post: operations["test_wecom_api_integrations_wecom_test_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/integrations/flags": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Flags
+     * @description 各推送事件是否可用（决定前端是否显示「推送到群」），不含地址。
+     */
+    get: operations["flags_api_integrations_flags_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/reports/daily": {
     parameters: {
       query?: never
@@ -210,6 +265,46 @@ export interface paths {
      * @description 近 N 天（默认 7 天）团队汇总。
      */
     post: operations["team_summary_api_reports_team_summary_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/reports/team/push": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Push Summary
+     * @description 把团队汇总推送到企业微信群。
+     */
+    post: operations["push_summary_api_reports_team_push_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/reports/team/remind": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Remind
+     * @description 在企业微信群里提醒当天未提交日报的销售。
+     */
+    post: operations["remind_api_reports_team_remind_post"]
     delete?: never
     options?: never
     head?: never
@@ -2256,6 +2351,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[PushOut] */
+    ApiResponse_PushOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["PushOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[QuoteDetail] */
     ApiResponse_QuoteDetail_: {
       /**
@@ -2459,6 +2573,47 @@ export interface components {
        */
       message: string
       data: components["schemas"]["UserOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[WecomConfigOut] */
+    ApiResponse_WecomConfigOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["WecomConfigOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[dict[str, bool]] */
+    ApiResponse_dict_str__bool__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: {
+        [key: string]: boolean
+      } | null
       /**
        * Request Id
        * @default
@@ -4285,6 +4440,18 @@ export interface components {
       /** Prompt */
       prompt: string
     }
+    /** PushIn */
+    PushIn: {
+      /** Content */
+      content: string
+    }
+    /** PushOut */
+    PushOut: {
+      /** Ok */
+      ok: boolean
+      /** Error */
+      error: string | null
+    }
     /** QuoteDetail */
     QuoteDetail: {
       /**
@@ -4422,6 +4589,11 @@ export interface components {
        * Format: date-time
        */
       created_at: string
+    }
+    /** RemindIn */
+    RemindIn: {
+      /** Date */
+      date?: string | null
     }
     /** ResumeIn */
     ResumeIn: {
@@ -4855,6 +5027,63 @@ export interface components {
      * @enum {string}
      */
     View: "mine" | "team" | "all"
+    /** WecomConfigIn */
+    WecomConfigIn: {
+      /** Webhook Url */
+      webhook_url?: string | null
+      /**
+       * Enabled
+       * @default true
+       */
+      enabled?: boolean
+      /** Events */
+      events?: string[]
+    }
+    /** WecomConfigOut */
+    WecomConfigOut: {
+      /** Configured */
+      configured: boolean
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: "web" | "env" | "none"
+      /** Webhook Masked */
+      webhook_masked: string | null
+      /** Enabled */
+      enabled: boolean
+      /** Events */
+      events: string[]
+      /** Options */
+      options: components["schemas"]["WecomEventOption"][]
+      /** Recent */
+      recent: components["schemas"]["WecomPush"][]
+      /** Web Base Url */
+      web_base_url: string
+    }
+    /** WecomEventOption */
+    WecomEventOption: {
+      /** Key */
+      key: string
+      /** Label */
+      label: string
+    }
+    /** WecomPush */
+    WecomPush: {
+      /**
+       * At
+       * Format: date-time
+       */
+      at: string
+      /** Event */
+      event: string
+      /** Title */
+      title: string
+      /** Ok */
+      ok: boolean
+      /** Error */
+      error: string | null
+    }
   }
   responses: never
   parameters: never
@@ -5212,6 +5441,134 @@ export interface operations {
       }
     }
   }
+  get_wecom_api_integrations_wecom_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_WecomConfigOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  save_wecom_api_integrations_wecom_put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["WecomConfigIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_WecomConfigOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  test_wecom_api_integrations_wecom_test_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_PushOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  flags_api_integrations_flags_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_dict_str__bool__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
   get_daily_api_reports_daily_get: {
     parameters: {
       query?: {
@@ -5370,6 +5727,76 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_SummaryOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  push_summary_api_reports_team_push_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PushIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_PushOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  remind_api_reports_team_remind_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RemindIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_PushOut_"]
         }
       }
       /** @description Validation Error */

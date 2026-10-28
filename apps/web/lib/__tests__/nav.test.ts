@@ -25,6 +25,7 @@ describe("导航按角色分组（契约 §0）", () => {
       "/settings/rules",
       "/settings/packs",
       "/battlecards",
+      "/settings/integrations",
       "/settings/audit",
     ])
     expect(hrefs("admin")).not.toContain("/approvals")
@@ -49,6 +50,7 @@ describe("导航按角色分组（契约 §0）", () => {
     expect(isForbiddenPath("/settings/packs", "manager")).toBe(true)
     expect(isForbiddenPath("/settings/audit", "sales")).toBe(true)
     expect(isForbiddenPath("/settings/audit", "manager")).toBe(false)
+    expect(isForbiddenPath("/settings/integrations", "manager")).toBe(true)
     expect(isForbiddenPath("/quotes/q1", "admin")).toBe(false)
     for (const role of ["sales", "manager", "admin"] as Role[]) {
       expect(isForbiddenPath("/battlecards", role)).toBe(false)

@@ -58,6 +58,8 @@ export function AiMessage({
   const live = turn.status === "streaming"
   const seconds = Math.max(1, Math.round(((turn.endedAt ?? Date.now()) - turn.startedAt) / 1000))
   const showCaret = live && (turn.text.length > 0 || turn.steps.length > 0)
+  // 确认后的续写在卡片下面；光标跟着正在输出的那一段
+  const caretAfter = showCaret && turn.afterText.length > 0
   return (
     <div className="flex gap-3">
       <span
@@ -78,7 +80,7 @@ export function AiMessage({
           />
         ) : null}
         {turn.text ? (
-          <div className={cn("prose-chat break-words", showCaret && "[&>*:last-child]:caret")}>
+          <div className={cn("prose-chat break-words", showCaret && !caretAfter && "[&>*:last-child]:caret")}>
             <ChatMarkdown text={turn.text} />
           </div>
         ) : null}
@@ -94,12 +96,17 @@ export function AiMessage({
             onDecide={onDecide}
           />
         ) : null}
+        {turn.afterText ? (
+          <div className={cn("prose-chat break-words", caretAfter && "[&>*:last-child]:caret")}>
+            <ChatMarkdown text={turn.afterText} />
+          </div>
+        ) : null}
         {turn.status === "error" && turn.error ? (
           <ErrorBanner error={turn.error} onRetry={onRetry} disabled={busy || readonly} />
         ) : null}
         {turn.status === "stopped" ? <div className="text-xs text-zinc-400">已停止生成</div> : null}
         {turn.status === "done" ? (
-          <MsgActions text={turn.text} onRegenerate={readonly || busy ? undefined : onRetry} />
+          <MsgActions text={[turn.text, turn.afterText].filter(Boolean).join("\n\n")} onRegenerate={readonly || busy ? undefined : onRetry} />
         ) : null}
       </div>
     </div>

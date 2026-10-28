@@ -74,4 +74,28 @@ describe("applyDecision", () => {
     const waiting = run([{ event: "interrupt", data: { action: "submit_expense", preview: {} } }])
     expect(applyDecision(waiting, "approve").interrupt?.decision).toBe("approve")
   })
+
+  it("确认后的续写进 afterText（显示在卡片下面），不再接在卡片上面的正文后", () => {
+    const waiting = run([
+      { event: "message.delta", data: { text: "我先查一下客户。" } },
+      { event: "interrupt", data: { action: "create_task", preview: {} } },
+    ])
+    const resumed = applyAgentEvent(applyDecision(waiting, "approve"), {
+      event: "message.delta",
+      data: { text: "已创建提醒任务。" },
+    })
+    expect(resumed.text).toBe("我先查一下客户。")
+    expect(resumed.afterText).toBe("已创建提醒任务。")
+  })
+
+  it("同一条回复第二次要确认时，上一段续写并入正文", () => {
+    const first = applyAgentEvent(
+      applyDecision(run([{ event: "interrupt", data: { action: "approve", preview: {} } }]), "approve"),
+      { event: "message.delta", data: { text: "第一条已通过。" } },
+    )
+    const second = applyAgentEvent(first, { event: "interrupt", data: { action: "approve", preview: {} } })
+    expect(second.text).toBe("第一条已通过。")
+    expect(second.afterText).toBe("")
+    expect(second.interrupt?.decision).toBeUndefined()
+  })
 })

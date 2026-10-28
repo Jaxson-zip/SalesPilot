@@ -56,6 +56,7 @@ function assistantTurn(m: ThreadMessage): AssistantTurn {
     role: "assistant",
     steps: [],
     text: m.text,
+    afterText: "",
     artifacts: (m.artifacts ?? []).map((a) => ({ id: nextId("art"), type: a.type, data: a.data })),
     interrupt: null,
     status: "done",

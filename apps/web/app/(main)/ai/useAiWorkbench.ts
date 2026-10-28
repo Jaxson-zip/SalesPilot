@@ -20,12 +20,17 @@ export function useAiWorkbench() {
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const history = useMemo(() => toHistoryItems(threads.data?.items ?? []), [threads.data])
 
-  // 一轮对话结束（流式 → 空闲）后刷新会话列表：新会话出现在历史里、旧会话排到最前
+  // 一轮对话结束（流式 → 空闲）后刷新会话列表：新会话出现在历史里、旧会话排到最前。
+  // 本轮确认执行过写操作（审批、改阶段、建任务…）时刷新全部业务数据，侧栏待审批数、通知等随之更新
   const wasStreaming = useRef(false)
+  const last = stream.turns.at(-1)
+  const wrote = last?.role === "assistant" && last.interrupt?.decision === "approve"
   useEffect(() => {
-    if (wasStreaming.current && !stream.isStreaming) void qc.invalidateQueries({ queryKey: threadKeys.list })
+    if (wasStreaming.current && !stream.isStreaming) {
+      void qc.invalidateQueries(wrote ? undefined : { queryKey: threadKeys.list })
+    }
     wasStreaming.current = stream.isStreaming
-  }, [stream.isStreaming, qc])
+  }, [stream.isStreaming, wrote, qc])
 
   const firstUser = stream.turns.find((t) => t.role === "user")
   const title = firstUser?.role === "user" ? firstUser.text : "新对话"

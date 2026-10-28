@@ -40,6 +40,8 @@ export interface AssistantTurn {
   role: "assistant"
   steps: AgentStep[]
   text: string
+  /** 用户确认 / 取消之后的续写：显示在确认卡片下面，阅读顺序和发生顺序一致 */
+  afterText: string
   artifacts: AgentArtifact[]
   interrupt: AgentInterrupt | null
   status: TurnStatus
@@ -60,6 +62,7 @@ export function createAssistantTurn(): AssistantTurn {
     role: "assistant",
     steps: [],
     text: "",
+    afterText: "",
     artifacts: [],
     interrupt: null,
     status: "streaming",
@@ -108,10 +111,13 @@ function applyStepEvent(turn: AssistantTurn, ev: AgentEvent): AssistantTurn {
   }
 }
 
-/** 写操作中断：追加 wait 步骤并显示 ConfirmCard */
+const joinText = (a: string, b: string): string => (a && b ? `${a}\n\n${b}` : a || b)
+
+/** 写操作中断：追加 wait 步骤并显示 ConfirmCard（同一条回复里第二次确认时，上一段续写并入正文） */
 function applyInterrupt(turn: AssistantTurn, action: string, preview: Record<string, unknown>): AssistantTurn {
   const title = actionTitle(action)
-  const waiting = addStep(finish(turn, "done"), {
+  const merged = { ...turn, text: joinText(turn.text, turn.afterText), afterText: "" }
+  const waiting = addStep(finish(merged, "done"), {
     id: nextId("wait"),
     title,
     tool: action,
@@ -141,7 +147,9 @@ export function applyAgentEvent(turn: AssistantTurn, ev: AgentEvent): AssistantT
     case "artifact":
       return { ...turn, artifacts: upsertArtifact(turn.artifacts, ev.data.type, ev.data.data) }
     case "message.delta":
-      return { ...turn, text: turn.text + ev.data.text }
+      return turn.interrupt?.decision
+        ? { ...turn, afterText: turn.afterText + ev.data.text }
+        : { ...turn, text: turn.text + ev.data.text }
     case "done":
       return finish(turn, "done")
     case "error":
@@ -157,8 +165,6 @@ export function applyDecision(turn: AssistantTurn, decision: ResumeDecision): As
   return {
     ...turn,
     interrupt: { ...turn.interrupt, decision },
-    // 确认后的续写另起一段
-    text: turn.text ? `${turn.text}\n\n` : turn.text,
     steps: turn.steps.map((s) =>
       s.status === "wait" ? { ...s, status: "done", desc: decision === "approve" ? "已确认执行" : "已取消" } : s,
     ),

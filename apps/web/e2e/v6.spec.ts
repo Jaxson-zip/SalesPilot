@@ -224,3 +224,34 @@ test.describe("B5 客户公海", () => {
     await expect(page.getByRole("button", { name: "退回公海" })).toBeVisible()
   })
 })
+
+test.describe("AI 工作台会话记录栏", () => {
+  test("桌面：可收起并记住；平板默认收起；手机从标题行打开浮层，点遮罩关闭", async ({ page }) => {
+    await loginAs(page, "sales")
+    await page.goto("/ai")
+    const panel = page.getByRole("navigation", { name: "会话记录" })
+    await expect(panel).toBeVisible()
+    await page.getByRole("button", { name: "收起会话记录" }).click()
+    await expect(panel).toBeHidden()
+    await page.reload()
+    await expect(panel).toBeHidden() // 记住偏好
+    await page.getByRole("button", { name: "展开会话记录" }).click()
+    await expect(panel).toBeVisible()
+    await panel.getByRole("button", { name: "收起" }).click()
+    await expect(panel).toBeHidden()
+
+    await page.evaluate(() => window.localStorage.removeItem("sp.aiHistory"))
+    await page.setViewportSize({ width: 1024, height: 768 })
+    await page.reload()
+    await expect(panel).toBeHidden() // 768–1279 默认收起，给对话区留空间
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.reload()
+    await expect(panel).toBeHidden()
+    await expect(page.getByText("今天要给哪位客户出方案？")).toBeInViewport() // 欢迎页顶部不被裁掉
+    await page.getByRole("button", { name: "展开会话记录" }).click()
+    await expect(panel).toBeVisible()
+    await page.mouse.click(370, 400) // 遮罩
+    await expect(panel).toBeHidden()
+  })
+})

@@ -1,6 +1,6 @@
 "use client"
 
-import { History, SquarePen } from "lucide-react"
+import { SquarePen } from "lucide-react"
 import { useEffect, useRef, type ReactNode } from "react"
 
 import { AiMessage } from "@/components/agent/AiMessage"
@@ -10,27 +10,10 @@ import type { ResumeDecision } from "@/types/api"
 
 const ICON_BTN = "inline-flex size-7 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100"
 
-/** 会话标题栏：历史按钮（<768）+ 标题 + 新对话 */
-function ChatHeader({
-  title,
-  onToggleHistory,
-  onNew,
-}: {
-  title: string
-  onToggleHistory: () => void
-  onNew: () => void
-}) {
+/** 会话标题栏：标题 + 新对话（会话记录开关在页面标题行） */
+function ChatHeader({ title, onNew }: { title: string; onNew: () => void }) {
   return (
     <div className="flex h-11 shrink-0 items-center gap-2 border-b border-zinc-100 px-3 sm:px-4">
-      <button
-        type="button"
-        title="会话历史"
-        aria-label="会话历史"
-        onClick={onToggleHistory}
-        className={`${ICON_BTN} md:hidden`}
-      >
-        <History className="size-4" />
-      </button>
       <span className="min-w-0 flex-1 truncate font-medium" title={title}>
         {title}
       </span>
@@ -47,7 +30,6 @@ export function ChatView({
   turns,
   busy,
   composer,
-  onToggleHistory,
   onDecide,
   onRetry,
   onNew,
@@ -56,7 +38,6 @@ export function ChatView({
   turns: ChatTurn[]
   busy: boolean
   composer: ReactNode
-  onToggleHistory: () => void
   onDecide: (decision: ResumeDecision) => void
   onRetry: () => void
   onNew: () => void
@@ -71,7 +52,7 @@ export function ChatView({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <ChatHeader title={title} onToggleHistory={onToggleHistory} onNew={onNew} />
+      <ChatHeader title={title} onNew={onNew} />
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div className="mx-auto max-w-[760px] space-y-7 px-4 py-6 sm:px-6">
           {turns.map((t, i) =>

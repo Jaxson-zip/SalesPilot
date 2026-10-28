@@ -33,7 +33,9 @@ export default function DashboardPage() {
   const d = query.data
   const prefix = role === "admin" ? "全公司" : isLead ? "团队" : ""
   const loading = query.isPending
-  const todo = todoSummary(d?.tasks_today, d?.tasks_overdue)
+  const summary = todoSummary(d?.tasks_today, d?.tasks_overdue)
+  // 主管 / 管理员看到的是团队（全公司）的任务，不是自己的
+  const todo = summary && prefix ? `${prefix}${summary}` : summary
 
   const cards = [
     { label: `${prefix}本月赢单`, value: formatFen(d?.won_amount_month), icon: Trophy },
@@ -101,7 +103,7 @@ export default function DashboardPage() {
         )}
         <div className="mb-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
           <FunnelChart stages={d?.funnel} loading={loading} />
-          <TodoCard view={view} />
+          <TodoCard view={view} title={`${prefix}待办`} />
         </div>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
           <div className="min-w-0 lg:col-span-2">

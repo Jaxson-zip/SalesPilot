@@ -140,4 +140,4 @@ def test_update_customer_inline(client: TestClient, temp_name: str) -> None:
     )
     assert manager.status_code in (403, 404)
     acts = client.get(f"/api/activities?subject_type=customer&subject_id={cid}", headers=h).json()
-    assert any((a["content"] or "") == "修改了等级、年度预算" for a in acts["data"]["items"])
+    assert any((a["content"] or "") == "等级、年度预算" for a in acts["data"]["items"])

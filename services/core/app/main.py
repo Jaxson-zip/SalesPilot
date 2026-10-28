@@ -10,6 +10,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.agent.checkpoint import close_checkpointer, init_checkpointer
 from app.agent.router import router as agent_router
+from app.common.config import get_settings
 from app.common.db import check_db
 from app.common.request_id import RequestIdMiddleware
 from app.common.response import ApiResponse, ok, register_exception_handlers
@@ -35,6 +36,9 @@ logger = logging.getLogger("core")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    if get_settings().jwt_secret in {"change-me", "change-me-to-a-random-string-of-32-chars"}:
+        # 演示登录（/api/auth/mock-login）对所有人开放，部署到公网前至少要换掉默认密钥
+        logger.warning("JWT_SECRET is the default value; set a random secret before deploying")
     db_ok = await run_in_threadpool(check_db)
     if not db_ok:
         logger.warning("database unavailable at startup; DB-backed endpoints will fail")

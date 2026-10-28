@@ -141,9 +141,7 @@ def create_opportunity(db: Session, user: CurrentUser, data: OpportunityCreate) 
     opp.name = data.name.strip()
     db.add(opp)
     db.flush()
-    activity_service.record(
-        db, user, "opportunity", opp.id, "create", f"创建了商机 {opp.name}", subject=opp
-    )
+    activity_service.record(db, user, "opportunity", opp.id, "create", opp.name, subject=opp)
     return get_item(db, user, opp.id)
 
 
@@ -160,7 +158,7 @@ def update_opportunity(
         setattr(opp, key, value.strip() if key == "name" else value)
     if changes:
         activity_service.record(
-            db, user, "opportunity", opp.id, "updated", _describe(changes), subject=opp
+            db, user, "opportunity", opp.id, "update", _describe(changes), subject=opp
         )
     return get_item(db, user, opp.id)
 
@@ -173,7 +171,7 @@ def _describe(changes: dict[str, Any]) -> str:
         "expected_close_date": "预计成交日",
         "product_line_id": "产品线",
     }
-    return "修改了" + "、".join(labels.get(k, k) for k in changes)
+    return "、".join(labels.get(k, k) for k in changes)
 
 
 def apply_stage(

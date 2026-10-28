@@ -22,6 +22,7 @@ export function TaskRow({
   canComplete,
   href,
   showSubject,
+  showOwner,
   onComplete,
   completing,
 }: {
@@ -30,6 +31,8 @@ export function TaskRow({
   /** 点标题跳转（工作台待办：跳到对应商机 / 客户） */
   href?: string
   showSubject?: boolean
+  /** 团队待办：显示负责人 */
+  showOwner?: boolean
   onComplete: (t: TaskItem) => void
   completing?: boolean
 }) {
@@ -53,7 +56,13 @@ export function TaskRow({
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col py-1.5">
         <div className="flex min-w-0 items-center gap-1.5">{title}</div>
-        {showSubject ? <div className="truncate text-xs text-zinc-400">{t.subject_name}</div> : null}
+        {showSubject || showOwner ? (
+          <div className="truncate text-xs text-zinc-400">
+            {[showSubject ? t.subject_name : null, showOwner ? (t.owner?.name ?? "未分配") : null]
+              .filter(Boolean)
+              .join(" · ")}
+          </div>
+        ) : null}
       </div>
       <span className="shrink-0 text-xs text-zinc-400">{TASK_TYPE_LABEL[t.type] ?? t.type}</span>
       <span className={cn("shrink-0 text-xs tabular-nums", overdue ? "text-red-600" : "text-zinc-500")}>

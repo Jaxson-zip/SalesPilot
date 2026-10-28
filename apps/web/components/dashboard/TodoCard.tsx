@@ -12,7 +12,7 @@ import type { DataView } from "@/types/api"
 const MAX_ROWS = 8
 
 /** 工作台「待办」（原型 TaskList，v3 §12）：今天到期 + 已逾期的未完成任务，可直接勾选完成，点标题跳到商机 / 客户 */
-export function TodoCard({ view }: { view: DataView }) {
+export function TodoCard({ view, title = "待办" }: { view: DataView; title?: string }) {
   const { canEdit } = usePermissions()
   const today = useTasks({ view, status: "open", due: "today" })
   const overdue = useTasks({ view, status: "open", due: "overdue" })
@@ -40,6 +40,7 @@ export function TodoCard({ view }: { view: DataView }) {
           key={t.id}
           t={t}
           showSubject
+          showOwner={view !== "mine"}
           href={taskSubjectHref(t)}
           canComplete={canEdit(t.owner?.id)}
           onComplete={complete}
@@ -51,7 +52,7 @@ export function TodoCard({ view }: { view: DataView }) {
   return (
     <div className="min-w-0 rounded-lg border border-zinc-200">
       <div className="flex h-10 items-center gap-2 border-b border-zinc-100 px-4">
-        <span className="font-medium">待办</span>
+        <span className="font-medium">{title}</span>
         {items.length ? <span className="text-zinc-400 tabular-nums">{items.length}</span> : null}
         <span className="flex-1" />
         {overdueCount ? <Tag color="red">逾期 {overdueCount}</Tag> : null}

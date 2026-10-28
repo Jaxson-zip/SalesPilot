@@ -13,7 +13,7 @@ from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_business_writer, ensure_owner
 from app.common.scope import View, ensure_visible
-from app.crm.models import Commission, Contract, Opportunity, Quote, QuoteItem
+from app.crm.models import Commission, Contract, Customer, Opportunity, Quote, QuoteItem
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.opportunity import FINAL_STAGES, StageChange
 from app.crm.schemas.quote import (
@@ -47,6 +47,7 @@ TRANSITIONS: dict[str, tuple[str, str]] = {
     "accept": ("sent", "accepted"),
     "reject": ("sent", "rejected"),
 }
+RULE_NO_CUSTOMER = "quote_no_customer"
 ACTION_LABELS = {"submit": "提交", "send": "发送客户", "accept": "客户接受", "reject": "客户拒绝"}
 
 
@@ -84,6 +85,7 @@ def create_from_tier(
     tier: SolutionTier,
     opportunity_id: uuid.UUID | None,
     idempotency_key: str,
+    customer_id: uuid.UUID | None = None,
 ) -> QuoteOut:
     """按方案档位生成草稿报价单；同一幂等键重复调用返回同一张。毛利由规则代码重新计算。
 
@@ -93,12 +95,14 @@ def create_from_tier(
     if found := _existing(db, idempotency_key):
         return found
     opp = get_owned(db, user, opportunity_id) if opportunity_id else None
+    if opp is None and customer_id is not None:
+        ensure_owner(db.get(Customer, customer_id), user)  # 只能给自己负责的客户出报价
     total_cost = sum(i.unit_cost * i.qty for i in tier.items)
     margin = check_margin(total_cost, tier.total_price, load_rules(get_pack(pack).rules_file))
     quote = Quote(
         code=next_code(db, Quote.code, "Q"),
         opportunity_id=opp.id if opp else None,
-        customer_id=opp.customer_id if opp else None,
+        customer_id=opp.customer_id if opp else customer_id,
         pack=pack,
         tier=tier.tier,
         status="draft",
@@ -268,6 +272,12 @@ def transition(
     ensure_owner(quote, user)  # 提交 / 发送 / 接受 / 拒绝：只有负责人本人
     assert quote is not None
     _check_transition(quote, action)
+    if action == "submit" and quote.customer_id is None:
+        raise BizError(
+            ErrorCode.RULE_VIOLATION,
+            "报价单还没有关联客户：请从商机侧栏点「出方案」，或在 AI 对话里写明客户名称后重新生成",
+            {"rule": RULE_NO_CUSTOMER},
+        )
     if action == "submit":
         content = _submit(db, user, quote)
     elif action == "accept":

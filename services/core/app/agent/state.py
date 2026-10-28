@@ -13,6 +13,8 @@ class AgentState(TypedDict):
     user_id: str  # 会话归属，resume 时校验
     user_message: NotRequired[str]
     opportunity_id: NotRequired[str | None]
+    customer_id: NotRequired[str | None]  # 出方案时从对话里识别出的客户（唯一匹配才关联）
+    customer_name: NotRequired[str | None]
     intent: NotRequired[Intent]
     pack_id: NotRequired[str | None]
     requirement: NotRequired[dict[str, Any]]  # 跨轮次累积的需求草稿

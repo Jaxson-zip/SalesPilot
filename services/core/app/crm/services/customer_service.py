@@ -125,9 +125,7 @@ def create_customer(db: Session, user: CurrentUser, data: CustomerCreate) -> Cus
     customer.name = data.name.strip()
     db.add(customer)
     db.flush()
-    activity_service.record(
-        db, user, "customer", customer.id, "create", f"创建了客户 {customer.name}"
-    )
+    activity_service.record(db, user, "customer", customer.id, "create", customer.name)
     return get_customer(db, user, customer.id)
 
 
@@ -226,9 +224,44 @@ def update_customer(
         setattr(customer, key, value)
     if changes:
         db.flush()
-        text = "修改了" + "、".join(_FIELD_LABELS.get(k, k) for k in changes)
+        text = "、".join(_FIELD_LABELS.get(k, k) for k in changes)
         activity_service.record(db, user, "customer", customer.id, "update", text, subject=customer)
     return get_customer(db, user, customer.id)
+
+
+_CITY_PREFIXES = (
+    "深圳市",
+    "深圳",
+    "广州市",
+    "广州",
+    "东莞",
+    "佛山",
+    "珠海",
+    "北京",
+    "上海",
+    "杭州",
+)
+
+
+def mention_keys(name: str) -> list[str]:
+    """客户名在口语里的说法：去后缀、去城市前缀后的核心名，以及它的前 4 / 3 / 2 个字。
+
+    「深圳明理律师事务所」→ 明理律师事务所、明理律师、明理律、明理（用户常说「明理律所」）。
+    """
+    key = core_name(name)
+    for city in _CITY_PREFIXES:
+        if key.startswith(city) and len(key) - len(city) >= 2:
+            key = key[len(city) :]
+            break
+    return [k for k in dict.fromkeys([key, key[:4], key[:3], key[:2]]) if len(k) >= 2]
+
+
+def find_mentioned(db: Session, user: CurrentUser, text: str) -> list[Customer]:
+    """AI 出方案时，从用户这句话里找出提到的客户（只在自己负责的客户里找）。"""
+    if not text.strip():
+        return []
+    mine = db.scalars(select(Customer).where(Customer.owner_id == user.id)).all()
+    return [c for c in mine if any(k in text for k in mention_keys(c.name))]
 
 
 def _bigrams(text: str) -> set[str]:

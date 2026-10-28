@@ -120,6 +120,7 @@ def fake_create_from_tier(
     tier: SolutionTier,
     opportunity_id: Any,
     idempotency_key: str,
+    customer_id: Any = None,
 ) -> QuoteOut:
     return QuoteOut(
         id=uuid.uuid5(uuid.NAMESPACE_URL, idempotency_key),

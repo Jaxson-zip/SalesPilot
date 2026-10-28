@@ -37,8 +37,9 @@ export function Welcome({
   const { role } = useSession()
   const intro = INTRO[readOnly ? "admin" : role]
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-6 sm:px-6">
-      <div className="w-full max-w-[720px]">
+    // my-auto 居中：justify-center + overflow 时内容超高，顶部会被裁掉且滚不上去
+    <div className="flex min-w-0 flex-1 flex-col items-center overflow-y-auto px-4 py-6 sm:px-6">
+      <div className="my-auto w-full max-w-[720px]">
         <div className="mb-2 flex items-center justify-center gap-3 text-center">
           <span className="text-ai inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-zinc-200">
             <Sparkles className="size-5" />

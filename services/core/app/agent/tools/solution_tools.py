@@ -100,6 +100,7 @@ class GenerateQuoteArgs(BaseModel):
     pack_id: str
     tier: SolutionTier
     opportunity_id: uuid.UUID | None = None
+    customer_id: uuid.UUID | None = None
     idempotency_key: str = Field(min_length=1, max_length=100)
 
 
@@ -112,6 +113,7 @@ def generate_quote(ctx: ToolContext, args: GenerateQuoteArgs) -> ToolResult:
             tier=args.tier,
             opportunity_id=args.opportunity_id,
             idempotency_key=args.idempotency_key,
+            customer_id=args.customer_id,
         )
     return ToolResult(
         ok=True, summary=f"报价单 {quote.code} 已创建", data=quote.model_dump(mode="json")

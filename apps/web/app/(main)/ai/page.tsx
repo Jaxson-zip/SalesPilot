@@ -1,21 +1,23 @@
 "use client"
 
-import { Sparkles } from "lucide-react"
+import { PanelLeft, Sparkles } from "lucide-react"
 
 import { ChatHistory } from "@/components/agent/ChatHistory"
 import { ChatView } from "@/components/agent/ChatView"
 import { Composer } from "@/components/agent/Composer"
 import { Welcome } from "@/components/agent/Welcome"
-import { PageFrame } from "@/components/biz/PageFrame"
+import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { usePermissions } from "@/hooks/usePermissions"
 import { DEFAULT_PACK_LABEL } from "@/lib/agent-labels"
 
 import { useAiWorkbench } from "./useAiWorkbench"
+import { useHistoryPanel } from "./useHistoryPanel"
 
 /** AI 方案工作台（DeepSeek 布局：左历史 + 中间居中会话 + 底部大输入框） */
 export default function AiPage() {
-  const w = useAiWorkbench()
-  const { stream, input, setInput, model, setModel, histOpen, setHistOpen, history, title, send, newChat } = w
+  const panel = useHistoryPanel()
+  const w = useAiWorkbench(panel.closeOverlay)
+  const { stream, input, setInput, model, setModel, history, title, send, newChat } = w
   const { canAiWrite } = usePermissions()
 
   const composer = (welcome: boolean) => (
@@ -40,14 +42,22 @@ export default function AiPage() {
   )
 
   return (
-    <PageFrame title="AI 方案工作台" icon={Sparkles}>
+    <PageFrame
+      title="AI 方案工作台"
+      icon={Sparkles}
+      actions={
+        <FrameAction icon={PanelLeft} label={panel.pinned ? "收起会话记录" : "展开会话记录"} onClick={panel.toggle} />
+      }
+    >
       <div className="relative flex min-h-0 flex-1">
         <ChatHistory
           items={history}
           status={w.historyState}
           activeId={stream.threadId}
           loadingId={w.loadingId}
-          open={histOpen}
+          pinned={panel.pinned}
+          overlay={panel.overlay}
+          onClose={panel.toggle}
           onNew={newChat}
           onSelect={(id) => void w.openThread(id)}
         />
@@ -59,7 +69,6 @@ export default function AiPage() {
             turns={stream.turns}
             busy={stream.isStreaming}
             composer={composer(false)}
-            onToggleHistory={() => setHistOpen((o) => !o)}
             onDecide={stream.resume}
             onRetry={stream.retry}
             onNew={newChat}

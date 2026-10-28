@@ -5,11 +5,13 @@
 需求抽取：有模型时用结构化输出（requirement_fields.extract_with_llm），规则抽取兜底并合并。
 """
 
+import logging
 from collections.abc import Callable
 from typing import Any
 
 from langchain_core.messages import AIMessage
 from langgraph.types import interrupt
+from sqlalchemy import select
 
 from app.agent.deps import AgentDeps
 from app.agent.nodes.common import (
@@ -23,17 +25,58 @@ from app.agent.nodes.common import (
 from app.agent.nodes.requirement_fields import extract_with_llm
 from app.agent.state import AgentState
 from app.common.errors import BizError
+from app.crm.models import Opportunity
+from app.crm.schemas.opportunity import FINAL_STAGES
+from app.crm.services import customer_service
 from app.packs.base import MarginHint
 from app.packs.registry import get_configurator
 
 Node = Callable[[AgentState], dict[str, Any]]
 
 
+logger = logging.getLogger(__name__)
+
+
+def link_customer(deps: AgentDeps, state: AgentState) -> dict[str, Any]:
+    """没有从商机进入时，按用户这句话里提到的客户关联报价单。
+
+    只在自己负责的客户里找，且只有唯一匹配才关联（多个或没有都不猜）；
+    该客户恰好只有一个进行中的商机时一并关联商机（行业包随商机产品线）。
+    """
+    if state.get("opportunity_id") or state.get("customer_id"):
+        return {}
+    try:
+        return _match_customer(deps, state)
+    except Exception:
+        logger.warning("link_customer failed; quote will not be linked", exc_info=True)
+        return {}
+
+
+def _match_customer(deps: AgentDeps, state: AgentState) -> dict[str, Any]:
+    with deps.ctx.session() as db:
+        found = customer_service.find_mentioned(db, deps.ctx.user, state.get("user_message", ""))
+        if len(found) != 1:
+            return {}
+        customer = found[0]
+        opps = db.scalars(
+            select(Opportunity.id).where(
+                Opportunity.customer_id == customer.id,
+                Opportunity.owner_id == deps.ctx.user.id,
+                Opportunity.stage.not_in(FINAL_STAGES),
+            )
+        ).all()
+        out: dict[str, Any] = {"customer_id": str(customer.id), "customer_name": customer.name}
+        if len(opps) == 1:
+            out["opportunity_id"] = str(opps[0])
+        return out
+
+
 def make_parse_requirement(deps: AgentDeps) -> Node:
     def parse_requirement(state: AgentState) -> dict[str, Any]:
         node_start("parse_requirement")
+        linked = link_customer(deps, state)
         try:
-            pack_id = deps.resolve_pack(state.get("opportunity_id"))
+            pack_id = deps.resolve_pack(linked.get("opportunity_id", state.get("opportunity_id")))
         except BizError as exc:
             return {"error": {"code": exc.code, "message": exc.message}}
         text = state.get("user_message", "")
@@ -51,6 +94,7 @@ def make_parse_requirement(deps: AgentDeps) -> Node:
                 "tool_log": log_tool(state, "parse_requirement", result),
             }
         return {
+            **linked,
             "pack_id": pack_id,
             "requirement": result.data["requirement"],
             "missing": result.data["missing"],
@@ -169,6 +213,9 @@ def make_confirm(deps: AgentDeps) -> Node:
         preview = {
             "pack_id": state.get("pack_id"),
             "opportunity_id": state.get("opportunity_id"),
+            # 从商机进入时客户随商机；否则提示没有识别出客户（这样的报价单不能提交）
+            "customer_name": state.get("customer_name")
+            or (None if state.get("opportunity_id") else "未识别出客户，报价单只能先存为草稿"),
             "tier": tier.get("tier"),
             "name": tier.get("name"),
             "summary": tier.get("summary"),
@@ -194,6 +241,7 @@ def make_save_quote(deps: AgentDeps) -> Node:
             "pack_id": state["pack_id"],
             "tier": tier,
             "opportunity_id": state.get("opportunity_id"),
+            "customer_id": state.get("customer_id"),
             "idempotency_key": key,
         }
         result = call_tool(deps, "generate_quote", args)

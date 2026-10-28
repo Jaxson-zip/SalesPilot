@@ -117,6 +117,8 @@ const ACTIVITY_LABEL_BY_SUBJECT: Record<string, string> = {
   "expense.approval_approve": "主管通过了报销",
   "expense.approval_reject": "主管驳回了报销",
   "customer.create": "创建了客户",
+  "customer.update": "修改了客户",
+  "opportunity.updated": "修改了商机", // 旧数据
   "customer.task_done": "完成了任务",
   "customer.transfer": "转移了负责人",
 }

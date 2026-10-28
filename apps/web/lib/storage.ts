@@ -20,6 +20,7 @@ export const STORAGE_KEYS = {
   token: "sp.token",
   role: "sp.role",
   sidebar: "sp.sidebar",
+  aiHistory: "sp.aiHistory",
 } as const
 
 export function getToken(): string | null {

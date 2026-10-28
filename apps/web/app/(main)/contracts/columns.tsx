@@ -67,6 +67,7 @@ export function contractColumns(
       id: "next_payment",
       label: "下期回款",
       icon: CalendarClock,
+      width: "w-[250px]",
       cell: (c) => <NextPaymentCell c={c} />,
     },
     {

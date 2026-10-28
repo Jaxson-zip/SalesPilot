@@ -47,6 +47,12 @@ function RuleAlert({ q }: { q: QuoteDetail }) {
         {last.comment || last.reason}
       </Alert>
     )
+  if (q.status === "draft" && !q.customer)
+    return (
+      <Alert tone="warn" title="还没有关联客户，不能提交">
+        AI 没有从对话里识别出客户。请从商机侧栏点「出方案」，或在 AI 对话里写明客户名称后重新生成。
+      </Alert>
+    )
   if (q.status === "draft")
     return (
       <Alert tone="info" title="提交后按业务规则自动判断">

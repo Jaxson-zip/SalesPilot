@@ -4,9 +4,11 @@ import uuid
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from app.common.auth import CurrentUser, Role
 from app.common.db import session_scope
+from app.crm.models import Customer
 from app.crm.services import quote_service
 from app.crm.services.demo import DEMO_USERS, EXTRA_SALES, demo_id
 from app.packs.base import SolutionTier
@@ -25,6 +27,11 @@ def create_quote(
 ) -> str:
     owner = user or DEMO_USERS[Role.SALES]
     with session_scope() as db:
+        customer_id = None
+        if opp_id is None:  # 不带商机时挂到负责人的一个客户上（提交要求有客户）
+            customer_id = db.scalars(
+                select(Customer.id).where(Customer.owner_id == owner.id).limit(1)
+            ).first()
         out = quote_service.create_from_tier(
             db,
             owner,
@@ -32,6 +39,7 @@ def create_quote(
             tier=tier,
             opportunity_id=uuid.UUID(opp_id) if opp_id else None,
             idempotency_key=f"test:{uuid.uuid4().hex}",
+            customer_id=customer_id,
         )
     tracker.quotes.append(out.id)
     return str(out.id)
@@ -237,3 +245,19 @@ def test_payment_plan_default_overdue_and_replace(client: TestClient, tracker: T
     bad = [{**items[0], "amount": 1}, items[1]]
     r = client.put(url, json={"items": bad}, headers=SALES_H).json()
     assert r["code"] == 42201 and r["data"]["rule"] == "plan_total_mismatch"
+
+
+def test_quote_without_customer_cannot_be_submitted(tracker: Tracker, client: TestClient) -> None:
+    """AI 没识别出客户时生成的报价单只能留作草稿，提交 42201 quote_no_customer。"""
+    with session_scope() as db:
+        out = quote_service.create_from_tier(
+            db,
+            DEMO_USERS[Role.SALES],
+            pack="llm_deploy",
+            tier=make_tier(GOOD),
+            opportunity_id=None,
+            idempotency_key=f"test:{uuid.uuid4().hex}",
+        )
+    tracker.quotes.append(out.id)
+    r = act(client, str(out.id), "submit")
+    assert r["code"] == 42201 and r["data"]["rule"] == "quote_no_customer"

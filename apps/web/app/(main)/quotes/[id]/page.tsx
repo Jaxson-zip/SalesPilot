@@ -57,7 +57,8 @@ export default function QuoteDetailPage() {
         key={a}
         size="sm"
         variant={a === primary ? "default" : "outline"}
-        disabled={action.isPending}
+        // 没有客户的报价单不能提交（后端 42201 quote_no_customer），左侧提示原因
+        disabled={action.isPending || (a === "submit" && !q?.customer)}
         onClick={() => run(a)}
         title={QUOTE_ACTIONS[a].label}
         className="max-sm:w-8 max-sm:px-0"

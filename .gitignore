@@ -37,3 +37,4 @@ Thumbs.db
 
 # 课程材料（不进仓库）
 *.pdf
+/.audit/

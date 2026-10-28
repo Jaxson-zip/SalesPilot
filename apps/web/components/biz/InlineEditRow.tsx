@@ -22,6 +22,13 @@ export interface InlineEditProps extends InlineSpec {
   placeholder?: string
 }
 
+/** 当前值不在预设选项里（历史数据）时补进去，否则下拉显示为空 */
+function withCurrent(options: { value: string; label: string }[], current: string) {
+  return !current || options.some((o) => o.value === current)
+    ? options
+    : [{ value: current, label: current }, ...options]
+}
+
 /**
  * 记录详情的字段行（U10 行内编辑，Twenty 的做法）：点值进入编辑；
  * 文本 / 金额 / 整数回车或失焦保存、Esc 取消；日期和下拉选中即保存。值没变不发请求。
@@ -106,7 +113,7 @@ export function InlineEditRow({
       <SimpleSelect
         value={draft}
         onChange={(v) => void commit(v)}
-        options={options ?? []}
+        options={withCurrent(options ?? [], draft)}
         ariaLabel={label}
         size="sm"
         disabled={saving}

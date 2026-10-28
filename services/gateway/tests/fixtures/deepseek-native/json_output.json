@@ -1,0 +1,35 @@
+{
+  "_recorded_at": "2026-10-27 22:54:28",
+  "_case": "json_output",
+  "response": {
+    "id": "77a9fb9d-eb87-41c5-9575-5b015dd76e40",
+    "created": 1793166865,
+    "model": "deepseek-flash",
+    "object": "chat.completion",
+    "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "content": "{\"ok\": true}",
+          "role": "assistant",
+          "tool_calls": null,
+          "function_call": null
+        },
+        "provider_specific_fields": {}
+      }
+    ],
+    "usage": {
+      "completion_tokens": 5,
+      "prompt_tokens": 56,
+      "total_tokens": 61,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 56
+    }
+  }
+}

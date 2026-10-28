@@ -1,0 +1,35 @@
+{
+  "_recorded_at": "2026-10-27 22:54:26",
+  "_case": "tool_second_turn",
+  "response": {
+    "id": "0bc88d0c-08d3-442d-bcce-92d2a769ef63",
+    "created": 1793166863,
+    "model": "deepseek-flash",
+    "object": "chat.completion",
+    "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "content": "北京现在天气晴朗，气温大约 20℃。整体比较舒适，适合外出，不过日间温差可能较大，建议带件外套备用。",
+          "role": "assistant",
+          "tool_calls": null,
+          "function_call": null
+        },
+        "provider_specific_fields": {}
+      }
+    ],
+    "usage": {
+      "completion_tokens": 31,
+      "prompt_tokens": 327,
+      "total_tokens": 358,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "cached_tokens": 128
+      },
+      "prompt_cache_hit_tokens": 128,
+      "prompt_cache_miss_tokens": 199
+    }
+  }
+}

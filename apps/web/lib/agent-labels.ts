@@ -39,6 +39,7 @@ export const MODEL_OPTIONS: { value: string; label: string }[] = [
   { value: "chat-agent", label: "自动" },
   { value: "hunyuan-turbo", label: "混元" },
   { value: "deepseek-chat", label: "DeepSeek" },
+  { value: "deepseek-native", label: "DeepSeek（原生链路）" },
   { value: "qwen-plus", label: "Qwen" },
 ]
 export const DEFAULT_MODEL = MODEL_OPTIONS[0].value

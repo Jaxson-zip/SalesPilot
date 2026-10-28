@@ -39,6 +39,21 @@ models:
       json_mode: true
       max_context: 128000               # 契约测试实测 25.6 万 token 输入仍返回 200；保守按 128K（原写 64000 已过时）
 
+  # native 链路示例：同一个 DeepSeek，走 LiteLLM 的原生 deepseek 适配（provider/model 写法，不用写 api_base）。
+  # 用于对照两条链路的契约测试结果；不放进分组，模型选择器里可以手动指定。
+  - alias: deepseek-native
+    link: native
+    model: deepseek/deepseek-chat
+    api_key: ${DEEPSEEK_API_KEY}
+    capabilities:
+      stream: true
+      tools: true
+      stream_tools: true
+      tool_choice_required: true
+      parallel_tool_calls: true
+      json_mode: true
+      max_context: 128000
+
   - alias: qwen-plus
     link: openai_compat
     model: qwen-plus                     # 以官方文档为准

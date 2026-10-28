@@ -1,0 +1,54 @@
+{
+  "_recorded_at": "2026-10-27 22:54:20",
+  "_case": "tool_parallel",
+  "response": {
+    "id": "109c3b0d-9e9c-4650-9712-8e562eb719ba",
+    "created": 1793166857,
+    "model": "deepseek-flash",
+    "object": "chat.completion",
+    "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+    "choices": [
+      {
+        "finish_reason": "tool_calls",
+        "index": 0,
+        "message": {
+          "content": "我会同时查询北京和上海的天气。",
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "index": 0,
+              "function": {
+                "arguments": "{\"city\": \"北京\"}",
+                "name": "get_weather"
+              },
+              "id": "call_00_znGLD3MAfQg8AwWzRr9V7038",
+              "type": "function"
+            },
+            {
+              "index": 1,
+              "function": {
+                "arguments": "{\"city\": \"上海\"}",
+                "name": "get_weather"
+              },
+              "id": "call_01_TLDoRZ6EpOjWArbTyyVS8658",
+              "type": "function"
+            }
+          ],
+          "function_call": null
+        },
+        "provider_specific_fields": {}
+      }
+    ],
+    "usage": {
+      "completion_tokens": 74,
+      "prompt_tokens": 268,
+      "total_tokens": 342,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "cached_tokens": 128
+      },
+      "prompt_cache_hit_tokens": 128,
+      "prompt_cache_miss_tokens": 140
+    }
+  }
+}

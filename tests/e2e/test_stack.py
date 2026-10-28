@@ -82,27 +82,29 @@ def test_core_rejects_missing_token() -> None:
 # ---------- 数据权限（销售看本人 / 主管看团队） ----------
 
 
-def _customers(role: str, view: str) -> list[dict]:
-    r = httpx.get(f"{WEB}/api/customers", params={"view": view}, headers=login(role))
+def _customers(role: str, view: str, q: str | None = None) -> list[dict]:
+    """按名称查：测试反复跑会新建客户，演示客户可能不在第一页。"""
+    params = {"view": view, **({"q": q} if q else {})}
+    r = httpx.get(f"{WEB}/api/customers", params=params, headers=login(role))
     body = r.json()
     assert body["code"] == 0, body
     return body["data"]["items"]
 
 
 def test_sales_only_sees_own_customers() -> None:
-    names = {c["name"] for c in _customers("sales", "mine")}
-    assert "深圳明理律师事务所" in names
-    assert "鹏城第三人民医院" not in names  # 属于同组销售王磊
+    assert any(c["name"] == "深圳明理律师事务所" for c in _customers("sales", "mine", "深圳明理"))
+    # 属于同组销售王磊
+    assert not _customers("sales", "mine", "鹏城第三")
 
 
 def test_manager_sees_whole_team() -> None:
-    names = {c["name"] for c in _customers("manager", "team")}
-    assert {"深圳明理律师事务所", "鹏城第三人民医院"} <= names
+    for name in ("深圳明理律师事务所", "鹏城第三人民医院"):
+        assert any(c["name"] == name for c in _customers("manager", "team", name[:4]))
 
 
 def test_sales_cannot_open_other_sales_customer() -> None:
     other = next(
-        c for c in _customers("manager", "team") if c["name"] == "鹏城第三人民医院"
+        c for c in _customers("manager", "team", "鹏城第三") if c["name"] == "鹏城第三人民医院"
     )
     body = httpx.get(
         f"{WEB}/api/customers/{other['id']}", headers=login("sales")

@@ -38,7 +38,9 @@ def ok(body: dict) -> dict:
 
 
 def my_customer(role: str = "sales") -> dict:
-    items = ok(call("GET", "/api/customers", role, params={"view": "mine"}))["items"]
+    # 按名称查：测试反复跑会新建客户，演示客户可能不在第一页
+    params = {"view": "mine", "q": "深圳明理"}
+    items = ok(call("GET", "/api/customers", role, params=params))["items"]
     return next(c for c in items if c["name"] == "深圳明理律师事务所")
 
 
@@ -113,7 +115,7 @@ def test_opportunity_create_and_stage_flow() -> None:
 
 
 def test_sales_cannot_create_opportunity_for_other_sales_customer() -> None:
-    team = ok(call("GET", "/api/customers", "manager", params={"view": "team"}))[
+    team = ok(call("GET", "/api/customers", "manager", params={"view": "team", "q": "鹏城第三"}))[
         "items"
     ]
     other = next(c for c in team if c["name"] == "鹏城第三人民医院")

@@ -53,7 +53,7 @@ def test_unknown_and_unavailable_and_embedding_checks() -> None:
 
 def test_project_models_yaml_loads_without_keys() -> None:
     reg = load_registry(SERVICE_DIR / "models.yaml", {})
-    assert set(reg.groups) == {"chat-default", "chat-agent", "embed"}
+    assert set(reg.groups) == {"chat-default", "chat-agent", "embed", "rerank"}
     assert not any(m.available for m in reg.models.values())
     assert all(reg.models[a].capabilities.tools for a in reg.groups["chat-agent"])
 

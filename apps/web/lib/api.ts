@@ -125,17 +125,22 @@ async function send<T>(path: string, opts: RequestOptions): Promise<T> {
   return parseEnvelope<T>(res, requestId)
 }
 
-/** 通用请求：自动带 token 与 X-Request-ID；401 时尝试重新登录一次 */
-export async function apiFetch<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+/** 401（token 过期 / 失效）时重新登录一次再重试；SSE 也用它 */
+export async function withReauth<T>(run: () => Promise<T>): Promise<T> {
   try {
-    return await send<T>(path, opts)
+    return await run()
   } catch (err) {
     if (isApiError(err) && err.code === ErrorCode.UNAUTHORIZED && unauthorizedHandler) {
       const ok = await unauthorizedHandler()
-      if (ok) return send<T>(path, opts)
+      if (ok) return run()
     }
     throw err
   }
+}
+
+/** 通用请求：自动带 token 与 X-Request-ID；401 时尝试重新登录一次 */
+export function apiFetch<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+  return withReauth(() => send<T>(path, opts))
 }
 
 export const api = {

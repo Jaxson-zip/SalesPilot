@@ -1,6 +1,6 @@
 import { createParser, type EventSourceMessage } from "eventsource-parser"
 
-import { ApiError, buildHeaders, isAbortError, newRequestId, parseEnvelope } from "@/lib/api"
+import { ApiError, buildHeaders, isAbortError, newRequestId, parseEnvelope, withReauth } from "@/lib/api"
 import { ErrorCode, type AgentEvent, type AgentEventName } from "@/types/api"
 
 /** §8.3 的事件名白名单；未知事件直接忽略，保证向前兼容 */
@@ -44,8 +44,13 @@ export interface StreamOptions {
  * POST 一个 SSE 接口并逐条回调事件。
  * 不能用原生 EventSource（只支持 GET），所以用 fetch + eventsource-parser。
  * 如果后端返回的是 JSON（例如参数错误），按统一响应解析并抛出 ApiError。
+ * token 失效（40101）时和普通请求一样重新登录一次再重试——这时还没有收到任何事件，重试是安全的。
  */
-export async function postSSE(path: string, body: unknown, opts: StreamOptions): Promise<void> {
+export function postSSE(path: string, body: unknown, opts: StreamOptions): Promise<void> {
+  return withReauth(() => streamOnce(path, body, opts))
+}
+
+async function streamOnce(path: string, body: unknown, opts: StreamOptions): Promise<void> {
   const requestId = newRequestId()
   const headers = buildHeaders({ Accept: "text/event-stream", "Content-Type": "application/json" }, requestId)
   let res: Response

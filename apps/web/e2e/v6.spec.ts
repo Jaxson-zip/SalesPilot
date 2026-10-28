@@ -225,34 +225,62 @@ test.describe("B5 客户公海", () => {
   })
 })
 
-test.describe("AI 工作台会话记录栏", () => {
-  test("桌面：可收起并记住；平板默认收起；手机从标题行打开浮层，点遮罩关闭", async ({ page }) => {
+test.describe("AI 工作台会话记录（左侧导航里）", () => {
+  test("只在 /ai 显示；点一条打开会话并写进地址；新对话回到欢迎页；手机随导航抽屉打开", async ({ page, request }) => {
+    const api = await Api.as(request, "sales")
+    const thread = `pw-${Date.now().toString(36)}`
+    await api.sse("/api/agent/chat", { thread_id: thread, message: "出差住宿的报销标准是多少？" })
     await loginAs(page, "sales")
+
+    await page.goto("/dashboard")
+    await expect(page.getByRole("navigation", { name: "会话记录" })).toHaveCount(0)
+
     await page.goto("/ai")
     const panel = page.getByRole("navigation", { name: "会话记录" })
     await expect(panel).toBeVisible()
-    await page.getByRole("button", { name: "收起会话记录" }).click()
-    await expect(panel).toBeHidden()
-    await page.reload()
-    await expect(panel).toBeHidden() // 记住偏好
-    await page.getByRole("button", { name: "展开会话记录" }).click()
-    await expect(panel).toBeVisible()
-    await panel.getByRole("button", { name: "收起" }).click()
-    await expect(panel).toBeHidden()
+    await panel
+      .getByRole("link", { name: /出差住宿的报销标准/ })
+      .first()
+      .click()
+    await expect(page).toHaveURL(/\/ai\?t=/)
+    await expect(page.getByText("出差住宿的报销标准是多少？").last()).toBeVisible()
 
-    await page.evaluate(() => window.localStorage.removeItem("sp.aiHistory"))
-    await page.setViewportSize({ width: 1024, height: 768 })
-    await page.reload()
-    await expect(panel).toBeHidden() // 768–1279 默认收起，给对话区留空间
+    await page.reload() // 刷新后按地址恢复会话
+    await expect(page.getByText("出差住宿的报销标准是多少？").last()).toBeVisible()
+
+    await page.getByRole("link", { name: "新对话" }).click()
+    await expect(page).toHaveURL(/\/ai$/)
+    await expect(page.getByText("今天要给哪位客户出方案？")).toBeVisible()
 
     await page.setViewportSize({ width: 390, height: 844 })
     await page.reload()
-    await expect(panel).toBeHidden()
     await expect(page.getByText("今天要给哪位客户出方案？")).toBeInViewport() // 欢迎页顶部不被裁掉
-    await page.getByRole("button", { name: "展开会话记录" }).click()
-    await expect(panel).toBeVisible()
-    await page.mouse.click(370, 400) // 遮罩
     await expect(panel).toBeHidden()
+    await page.getByRole("button", { name: "打开导航" }).click()
+    await expect(panel).toBeVisible()
+    await panel
+      .getByRole("link", { name: /出差住宿的报销标准/ })
+      .first()
+      .click()
+    await expect(panel).toBeHidden() // 选中后抽屉关闭
+    await expect(page).toHaveURL(/\/ai\?t=/)
+  })
+
+  test("出方案：说明文字先逐字出来，方案卡片和确认框随后出现", async ({ page }) => {
+    await loginAs(page, "sales")
+    await page.goto("/ai")
+    await page
+      .getByRole("textbox")
+      .first()
+      .fill("给明理律所出一份 Qwen3-32B 私有化方案，50 人并发，做合同审查，预算 40 万以内")
+    await page.keyboard.press("Enter")
+    await expect(page).toHaveURL(/\/ai\?t=/) // 新会话写进地址
+    const confirm = page.getByRole("button", { name: "确认执行" })
+    // 说明正文出现时确认框还没出来（逐字显示 + 卡片等文字显示完）
+    await expect(page.locator(".prose-chat").first()).toBeVisible({ timeout: 60_000 })
+    expect(await confirm.count()).toBe(0)
+    await expect(confirm).toBeVisible({ timeout: 60_000 })
+    await expect(page.locator(".prose-chat").first()).toContainText("推荐")
   })
 })
 
@@ -264,7 +292,7 @@ test.describe("审查 v6 待定项", () => {
     await loginAs(page, "sales")
     await page.goto("/ai")
     const panel = page.getByRole("navigation", { name: "会话记录" })
-    const row = panel.getByRole("button", { name: /公司一年有几天年假/ }).first()
+    const row = panel.getByRole("link", { name: /公司一年有几天年假/ }).first()
     await expect(row).toContainText(/\d{2}:\d{2}/)
 
     await row.hover()
@@ -276,7 +304,7 @@ test.describe("审查 v6 待定项", () => {
     const name = uniq("年假问答")
     await panel.getByRole("textbox", { name: "会话名称" }).fill(name)
     await page.keyboard.press("Enter")
-    const renamed = panel.getByRole("button", { name: new RegExp(name) })
+    const renamed = panel.getByRole("link", { name: new RegExp(name) })
     await expect(renamed).toBeVisible()
 
     await renamed.hover()

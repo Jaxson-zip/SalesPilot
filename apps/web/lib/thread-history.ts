@@ -98,3 +98,8 @@ export function lastUserText(turns: ChatTurn[]): string | null {
   }
   return null
 }
+
+/** AI 工作台打开某个会话的地址（侧栏链接、刷新后恢复） */
+export function aiThreadHref(id: string): string {
+  return `/ai?t=${encodeURIComponent(id)}`
+}

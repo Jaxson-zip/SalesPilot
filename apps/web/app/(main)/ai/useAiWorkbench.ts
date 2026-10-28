@@ -10,7 +10,7 @@ import { DEFAULT_MODEL } from "@/lib/agent-labels"
 import { lastUserText, messagesToTurns, toHistoryItems } from "@/lib/thread-history"
 
 /** AI 工作台页面状态：输入框、模型、会话历史（服务端会话列表 + 点击加载消息） */
-export function useAiWorkbench(onNavigate?: () => void) {
+export function useAiWorkbench() {
   const stream = useAgentStream()
   const qc = useQueryClient()
   const threads = useAgentThreads()
@@ -44,11 +44,9 @@ export function useAiWorkbench(onNavigate?: () => void) {
   const newChat = () => {
     stream.reset()
     setInput("")
-    onNavigate?.()
   }
 
   const openThread = async (id: string) => {
-    onNavigate?.()
     if (id === stream.threadId || loadingId) return
     setLoadingId(id)
     try {

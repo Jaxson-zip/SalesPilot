@@ -1,27 +1,57 @@
 "use client"
 
-import { PanelLeft, Sparkles } from "lucide-react"
+import { Loader2, Sparkles } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useEffect, useRef } from "react"
 
-import { ChatHistory } from "@/components/agent/ChatHistory"
 import { ChatView } from "@/components/agent/ChatView"
 import { Composer } from "@/components/agent/Composer"
 import { Welcome } from "@/components/agent/Welcome"
-import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
-import { useDeleteThread, useRenameThread } from "@/hooks/useAgentThreads"
+import { PageFrame } from "@/components/biz/PageFrame"
 import { usePermissions } from "@/hooks/usePermissions"
 import { DEFAULT_PACK_LABEL } from "@/lib/agent-labels"
+import { aiThreadHref } from "@/lib/thread-history"
 
 import { useAiWorkbench } from "./useAiWorkbench"
-import { useHistoryPanel } from "./useHistoryPanel"
 
-/** AI 方案工作台（DeepSeek 布局：左历史 + 中间居中会话 + 底部大输入框） */
-export default function AiPage() {
-  const panel = useHistoryPanel()
-  const w = useAiWorkbench(panel.closeOverlay)
-  const { stream, input, setInput, model, setModel, history, title, send, newChat } = w
+type Workbench = ReturnType<typeof useAiWorkbench>
+
+/**
+ * 当前会话与地址 `/ai?t=<id>` 同步（会话记录在左侧导航里，靠地址通信）：
+ * - 地址变了（点侧栏某条 / 点「新对话」/ 刷新）→ 打开对应会话或清空
+ * - 发出第一条消息生成了新会话 → 把 id 写进地址（replace，不多一条历史记录）
+ */
+function useThreadUrl(w: Workbench): () => void {
+  const t = useSearchParams().get("t")
+  const router = useRouter()
+  const latest = useRef({ w, t })
+  useEffect(() => {
+    latest.current = { w, t }
+  })
+
+  useEffect(() => {
+    const { w } = latest.current
+    if (t) {
+      if (t !== w.stream.threadId) void w.openThread(t)
+    } else if (w.stream.threadId) {
+      w.newChat()
+    }
+  }, [t])
+
+  const threadId = w.stream.threadId
+  useEffect(() => {
+    if (threadId && threadId !== latest.current.t) router.replace(aiThreadHref(threadId), { scroll: false })
+  }, [threadId, router])
+
+  return () => router.push("/ai")
+}
+
+/** AI 方案工作台（DeepSeek 布局：会话记录在左侧导航 + 中间居中会话 + 底部大输入框） */
+function AiWorkbench() {
+  const w = useAiWorkbench()
+  const { stream, input, setInput, model, setModel, title, send } = w
   const { canAiWrite } = usePermissions()
-  const rename = useRenameThread()
-  const remove = useDeleteThread()
+  const goNew = useThreadUrl(w)
 
   const composer = (welcome: boolean) => (
     <Composer
@@ -45,46 +75,37 @@ export default function AiPage() {
   )
 
   return (
-    <PageFrame
-      title="AI 方案工作台"
-      icon={Sparkles}
-      actions={
-        <FrameAction icon={PanelLeft} label={panel.pinned ? "收起会话记录" : "展开会话记录"} onClick={panel.toggle} />
-      }
-    >
+    <PageFrame title="AI 方案工作台" icon={Sparkles}>
       <div className="relative flex min-h-0 flex-1">
-        <ChatHistory
-          items={history}
-          status={w.historyState}
-          activeId={stream.threadId}
-          loadingId={w.loadingId}
-          pinned={panel.pinned}
-          overlay={panel.overlay}
-          onClose={panel.toggle}
-          onNew={newChat}
-          onSelect={(id) => void w.openThread(id)}
-          onRename={(id, title) => rename.mutate({ id, title })}
-          onDelete={(id) =>
-            remove.mutate(id, {
-              // 删的是正在看的会话：回到新对话
-              onSuccess: () => id === stream.threadId && newChat(),
-            })
-          }
-        />
-        {stream.turns.length === 0 ? (
-          <Welcome composer={composer(true)} onPick={send} readOnly={!canAiWrite} />
-        ) : (
+        {stream.turns.length > 0 ? (
           <ChatView
             title={title}
             turns={stream.turns}
             busy={stream.isStreaming}
+            loading={Boolean(w.loadingId)}
             composer={composer(false)}
             onDecide={stream.resume}
             onRetry={stream.retry}
-            onNew={newChat}
+            onNew={goNew}
           />
+        ) : w.loadingId ? (
+          <div className="flex flex-1 items-center justify-center gap-2 text-sm text-zinc-400">
+            <Loader2 className="size-4 animate-spin" />
+            正在加载会话…
+          </div>
+        ) : (
+          <Welcome composer={composer(true)} onPick={send} readOnly={!canAiWrite} />
         )}
       </div>
     </PageFrame>
+  )
+}
+
+export default function AiPage() {
+  // useSearchParams 需要 Suspense 边界
+  return (
+    <Suspense fallback={null}>
+      <AiWorkbench />
+    </Suspense>
   )
 }

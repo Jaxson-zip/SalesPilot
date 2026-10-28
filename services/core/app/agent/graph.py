@@ -18,7 +18,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from app.agent.deps import AgentDeps
-from app.agent.nodes.respond import make_respond
+from app.agent.nodes.respond import make_explain, make_respond
 from app.agent.nodes.router import make_router, route_intent
 from app.agent.nodes.solution import (
     make_ask_user,
@@ -54,6 +54,7 @@ def build_graph(deps: AgentDeps, checkpointer: BaseCheckpointSaver) -> CompiledS
     g.add_node("configure", make_configure(deps))
     g.add_node("price", make_price(deps))
     g.add_node("check_margin", make_check_margin(deps))
+    g.add_node("explain", make_explain(deps))
     g.add_node("confirm", make_confirm(deps))
     g.add_node("save_quote", make_save_quote(deps))
     g.add_node("respond", make_respond(deps))
@@ -69,7 +70,8 @@ def build_graph(deps: AgentDeps, checkpointer: BaseCheckpointSaver) -> CompiledS
     g.add_edge("ask_user", END)
     g.add_conditional_edges("configure", route_after_configure, ["price", "respond"])
     g.add_edge("price", "check_margin")
-    g.add_conditional_edges("check_margin", route_after_margin, ["confirm", "configure", "respond"])
+    g.add_conditional_edges("check_margin", route_after_margin, ["explain", "configure", "respond"])
+    g.add_edge("explain", "confirm")
     g.add_conditional_edges("confirm", route_after_confirm, ["save_quote", "respond"])
     g.add_edge("save_quote", "respond")
     g.add_edge("respond", END)

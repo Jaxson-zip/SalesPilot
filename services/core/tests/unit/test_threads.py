@@ -34,7 +34,8 @@ class TestHistory:
         out = read_thread_messages(None, tool_ctx.user, tool_ctx.thread_id, saver)
         assert [m.role for m in out.messages] == ["user", "assistant"]
         assert out.messages[0].text == SOLUTION_MSG and out.messages[0].created_at is not None
-        assert out.messages[1].text == PENDING_TEXT
+        # 确认前已流式输出方案说明，历史里就是这段说明（不再是占位文字）
+        assert out.messages[1].text != PENDING_TEXT and "推荐" in out.messages[1].text
         assert [a.type for a in out.messages[1].artifacts] == ["solution_tiers", "bom"]
         assert out.pending is not None and out.pending["action"] == "generate_quote"
 
@@ -44,6 +45,7 @@ class TestHistory:
         assert [m.role for m in out.messages] == ["user", "assistant"]
         reply = out.messages[1]
         assert "Q-2026-001" in reply.text and reply.created_at is not None
+        assert reply.text.startswith("按需求")  # 方案说明与确认后的结果合成一条
         assert [a.type for a in reply.artifacts] == ["solution_tiers", "bom", "quote"]
 
     def test_ask_user_and_chitchat_text_only(self, tool_ctx: ToolContext) -> None:

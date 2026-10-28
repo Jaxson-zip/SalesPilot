@@ -77,11 +77,32 @@ def _pending(snapshot: StateSnapshot) -> dict[str, Any] | None:
     return None
 
 
+def _merge_turns(messages: list[HistoryMessage]) -> list[HistoryMessage]:
+    """同一轮里连续的 AI 消息（确认前的方案说明 + 确认后的结果）合成一条，卡片按类型去重。"""
+    out: list[HistoryMessage] = []
+    for m in messages:
+        prev = out[-1] if out else None
+        if prev is None or m.role != "assistant" or prev.role != "assistant":
+            out.append(m)
+            continue
+        arts = {a.type: a for a in prev.artifacts} | {a.type: a for a in m.artifacts}
+        out[-1] = prev.model_copy(
+            update={
+                "text": f"{prev.text}\n\n{m.text}",
+                "artifacts": list(arts.values()),
+                "created_at": m.created_at or prev.created_at,
+            }
+        )
+    return out
+
+
 def build_messages(thread_id: str, snapshot: StateSnapshot) -> ThreadMessages:
     values: dict[str, Any] = snapshot.values or {}
-    messages = [m for m in (to_history(x) for x in values.get("messages", [])) if m is not None]
+    raw = [m for m in (to_history(x) for x in values.get("messages", [])) if m is not None]
+    messages = _merge_turns(raw)
     pending = _pending(snapshot)
-    if pending is not None:
+    explained = bool(messages) and messages[-1].role == "assistant"
+    if pending is not None and not explained:
         arts = [Artifact.model_validate(a) for a in turn_artifacts(values)]
         messages.append(HistoryMessage(role="assistant", text=PENDING_TEXT, artifacts=arts))
     return ThreadMessages(thread_id=thread_id, messages=messages, pending=pending)

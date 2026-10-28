@@ -199,7 +199,7 @@ def route_after_margin(state: AgentState) -> str:
     if state.get("error"):
         return "respond"
     if state.get("margin_ok"):
-        return "confirm"
+        return "explain"
     return "configure" if state.get("hint") else "respond"
 
 

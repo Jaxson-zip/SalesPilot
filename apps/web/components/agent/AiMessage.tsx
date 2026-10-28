@@ -1,12 +1,15 @@
 "use client"
 
 import { CircleAlert, RotateCcw, Sparkles } from "lucide-react"
+import { useState } from "react"
+
 import { ArtifactView } from "@/components/agent/ArtifactView"
 import { ChatMarkdown } from "@/components/agent/ChatMarkdown"
 import { ConfirmCard } from "@/components/agent/ConfirmCard"
 import { MsgActions } from "@/components/agent/MsgActions"
 import { ThinkBlock } from "@/components/agent/ThinkBlock"
 import { Button } from "@/components/ui/button"
+import { useSmoothText } from "@/hooks/useSmoothText"
 import type { AssistantTurn } from "@/lib/agent-reducer"
 import { previewRows } from "@/lib/interrupt-preview"
 import { cn } from "@/lib/utils"
@@ -38,6 +41,9 @@ function ErrorBanner({
 
 /**
  * 一条 AI 回复（不用气泡）：ThinkBlock → 流式正文 → 结构化卡片 → ConfirmCard → MsgActions
+ *
+ * 正文逐字显示（useSmoothText）；生成中时卡片和确认框等这段话显示完、并且后端停下来（等确认 / 结束）
+ * 才出现，避免「卡片一下子全弹出来、文字还在后面打」。
  */
 export function AiMessage({
   turn,
@@ -56,10 +62,16 @@ export function AiMessage({
   onRetry: () => void
 }) {
   const live = turn.status === "streaming"
+  const [animate] = useState(live)
+  const text = useSmoothText(turn.text, animate)
+  const afterText = useSmoothText(turn.afterText, animate || turn.afterText === "")
+  const typing = text.length < turn.text.length || afterText.length < turn.afterText.length
   const seconds = Math.max(1, Math.round(((turn.endedAt ?? Date.now()) - turn.startedAt) / 1000))
-  const showCaret = live && (turn.text.length > 0 || turn.steps.length > 0)
+  const showCaret = (live || typing) && (turn.text.length > 0 || turn.steps.length > 0)
   // 确认后的续写在卡片下面；光标跟着正在输出的那一段
   const caretAfter = showCaret && turn.afterText.length > 0
+  // 生成中：卡片等前面的说明打完、后端停下（等确认或已结束）再出现
+  const showCards = !(live || typing) || (Boolean(turn.interrupt) && text.length >= turn.text.length)
   return (
     <div className="flex gap-3">
       <span
@@ -79,15 +91,19 @@ export function AiMessage({
             onRetry={readonly ? undefined : onRetry}
           />
         ) : null}
-        {turn.text ? (
+        {text ? (
           <div className={cn("prose-chat break-words", showCaret && !caretAfter && "[&>*:last-child]:caret")}>
-            <ChatMarkdown text={turn.text} />
+            <ChatMarkdown text={text} />
           </div>
         ) : null}
-        {turn.artifacts.map((a) => (
-          <ArtifactView key={a.id} artifact={a} />
-        ))}
-        {turn.interrupt ? (
+        {showCards
+          ? turn.artifacts.map((a) => (
+              <div key={a.id} className={cn(animate && "animate-in fade-in slide-in-from-bottom-1 duration-300")}>
+                <ArtifactView artifact={a} />
+              </div>
+            ))
+          : null}
+        {showCards && turn.interrupt ? (
           <ConfirmCard
             title={turn.interrupt.title}
             rows={previewRows(turn.interrupt.preview)}
@@ -96,16 +112,16 @@ export function AiMessage({
             onDecide={onDecide}
           />
         ) : null}
-        {turn.afterText ? (
+        {afterText ? (
           <div className={cn("prose-chat break-words", caretAfter && "[&>*:last-child]:caret")}>
-            <ChatMarkdown text={turn.afterText} />
+            <ChatMarkdown text={afterText} />
           </div>
         ) : null}
         {turn.status === "error" && turn.error ? (
           <ErrorBanner error={turn.error} onRetry={onRetry} disabled={busy || readonly} />
         ) : null}
         {turn.status === "stopped" ? <div className="text-xs text-zinc-400">已停止生成</div> : null}
-        {turn.status === "done" ? (
+        {turn.status === "done" && !typing ? (
           <MsgActions
             text={[turn.text, turn.afterText].filter(Boolean).join("\n\n")}
             onRegenerate={readonly || busy ? undefined : onRetry}

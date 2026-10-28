@@ -38,6 +38,7 @@ RESET_TABLES = (
     "customers",
     "agent_threads",
     "daily_reports",
+    "ai_usage",
 )
 
 

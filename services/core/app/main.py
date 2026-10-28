@@ -33,6 +33,7 @@ from app.crm.routers import (
     rules,
     settings,
     tasks,
+    usage,
 )
 from app.rag.autoload import start_auto_ingest
 from app.rules.overrides import refresh_on_startup as refresh_overrides
@@ -69,6 +70,7 @@ def create_app() -> FastAPI:
         competitors.router,
         integrations.router,
         reports.router,
+        usage.router,
         customers.router,
         rules.router,
         dashboard.router,

@@ -311,6 +311,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/ai-usage": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Ai Usage */
+    get: operations["ai_usage_api_ai_usage_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/customers": {
     parameters: {
       query?: never
@@ -2593,6 +2610,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["TransferResult"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[UsageStats] */
+    ApiResponse_UsageStats_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["UsageStats"] | null
       /**
        * Request Id
        * @default
@@ -5112,6 +5148,63 @@ export interface components {
       /** Quotes */
       quotes: number
     }
+    /** UsageRow */
+    UsageRow: {
+      /** Key */
+      key: string
+      /** Label */
+      label: string
+      /** Calls */
+      calls: number
+      /** Prompt Tokens */
+      prompt_tokens: number
+      /** Completion Tokens */
+      completion_tokens: number
+      /** Cost */
+      cost: number
+    }
+    /** UsageStats */
+    UsageStats: {
+      /**
+       * Period
+       * @enum {string}
+       */
+      period: "7d" | "30d" | "month"
+      /**
+       * Date From
+       * Format: date
+       */
+      date_from: string
+      /**
+       * Date To
+       * Format: date
+       */
+      date_to: string
+      /**
+       * Scope
+       * @enum {string}
+       */
+      scope: "company" | "team"
+      total: components["schemas"]["UsageRow"]
+      /** By User */
+      by_user: components["schemas"]["UsageRow"][]
+      /** By Feature */
+      by_feature: components["schemas"]["UsageRow"][]
+      /** By Model */
+      by_model: components["schemas"]["UsageRow"][]
+      /** By Day */
+      by_day: components["schemas"]["UsageRow"][]
+      /** Input Price */
+      input_price: number
+      /** Output Price */
+      output_price: number
+      /** Monthly Budget */
+      monthly_budget: number
+      /** Month Cost */
+      month_cost: number
+      /** Unattributed Calls */
+      unattributed_calls: number
+    }
     /** UserBrief */
     UserBrief: {
       /**
@@ -5934,6 +6027,39 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_PushOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  ai_usage_api_ai_usage_get: {
+    parameters: {
+      query?: {
+        period?: "7d" | "30d" | "month"
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_UsageStats_"]
         }
       }
       /** @description Validation Error */

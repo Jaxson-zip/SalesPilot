@@ -8,6 +8,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app.llm import usage
+
 REQUEST_ID_HEADER = "X-Request-ID"
 _request_id: ContextVar[str] = ContextVar("request_id", default="")
 
@@ -31,9 +33,12 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
         rid = request.headers.get(REQUEST_ID_HEADER) or new_request_id()
         token = _request_id.set(rid)
         request.state.request_id = rid
+        # 记录 AI 用量时用来归属到人和功能（见 app/llm/usage.py）
+        usage_token = usage.bind(request.url.path, request.headers.get("authorization"))
         try:
             response = await call_next(request)
         finally:
             _request_id.reset(token)
+            usage.reset(usage_token)
         response.headers[REQUEST_ID_HEADER] = rid
         return response

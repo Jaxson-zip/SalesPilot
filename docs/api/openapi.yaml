@@ -794,6 +794,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/ai-usage:
+    get:
+      tags:
+      - ai-usage
+      summary: Ai Usage
+      operationId: ai_usage_api_ai_usage_get
+      parameters:
+      - name: period
+        in: query
+        required: false
+        schema:
+          enum:
+          - 7d
+          - 30d
+          - month
+          type: string
+          default: 30d
+          title: Period
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_UsageStats_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/customers:
     get:
       tags:
@@ -5524,6 +5563,31 @@ components:
           default: ''
       type: object
       title: ApiResponse[TransferResult]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_UsageStats_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/UsageStats'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[UsageStats]
       required:
       - code
       - message
@@ -10272,6 +10336,112 @@ components:
       - tasks
       - quotes
       title: TransferResult
+    UsageRow:
+      properties:
+        key:
+          type: string
+          title: Key
+        label:
+          type: string
+          title: Label
+        calls:
+          type: integer
+          title: Calls
+        prompt_tokens:
+          type: integer
+          title: Prompt Tokens
+        completion_tokens:
+          type: integer
+          title: Completion Tokens
+        cost:
+          type: integer
+          title: Cost
+      type: object
+      required:
+      - key
+      - label
+      - calls
+      - prompt_tokens
+      - completion_tokens
+      - cost
+      title: UsageRow
+    UsageStats:
+      properties:
+        period:
+          type: string
+          enum:
+          - 7d
+          - 30d
+          - month
+          title: Period
+        date_from:
+          type: string
+          format: date
+          title: Date From
+        date_to:
+          type: string
+          format: date
+          title: Date To
+        scope:
+          type: string
+          enum:
+          - company
+          - team
+          title: Scope
+        total:
+          $ref: '#/components/schemas/UsageRow'
+        by_user:
+          items:
+            $ref: '#/components/schemas/UsageRow'
+          type: array
+          title: By User
+        by_feature:
+          items:
+            $ref: '#/components/schemas/UsageRow'
+          type: array
+          title: By Feature
+        by_model:
+          items:
+            $ref: '#/components/schemas/UsageRow'
+          type: array
+          title: By Model
+        by_day:
+          items:
+            $ref: '#/components/schemas/UsageRow'
+          type: array
+          title: By Day
+        input_price:
+          type: number
+          title: Input Price
+        output_price:
+          type: number
+          title: Output Price
+        monthly_budget:
+          type: integer
+          title: Monthly Budget
+        month_cost:
+          type: integer
+          title: Month Cost
+        unattributed_calls:
+          type: integer
+          title: Unattributed Calls
+      type: object
+      required:
+      - period
+      - date_from
+      - date_to
+      - scope
+      - total
+      - by_user
+      - by_feature
+      - by_model
+      - by_day
+      - input_price
+      - output_price
+      - monthly_budget
+      - month_cost
+      - unattributed_calls
+      title: UsageStats
     UserBrief:
       properties:
         id:

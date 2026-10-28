@@ -14,6 +14,7 @@ import type * as M from "@/lib/materials"
 import type * as A from "@/hooks/useAuditLogs"
 import type * as I from "@/components/customers/CustomerIntel"
 import type * as K from "@/hooks/useCompetitors"
+import type * as U from "@/app/(main)/settings/ai-usage/page"
 import type * as D from "@/hooks/useMeddic"
 import type * as R from "@/hooks/useReports"
 import type * as W from "@/hooks/useWecom"
@@ -66,6 +67,7 @@ export const responses = {
   TeamDailyOut: true as Fits<S["TeamDailyOut"], R.TeamDaily>,
   WecomConfigOut: true as Fits<S["WecomConfigOut"], W.WecomConfig>,
   CompanyIntel: true as Fits<S["CompanyIntel"], I.CompanyIntel>,
+  UsageStats: true as Fits<S["UsageStats"], U.UsageStats>,
   MeddicAssessOut: true as Fits<S["AssessOut"], D.MeddicAssessOut>,
 } satisfies Record<string, true>
 

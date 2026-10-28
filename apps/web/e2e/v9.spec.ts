@@ -235,3 +235,28 @@ test.describe("审查 v9：外部情报", () => {
     await expect(page.getByRole("region", { name: "工商信息" })).toContainText("统一社会信用代码")
   })
 })
+
+test.describe("审查 v9：AI 用量", () => {
+  test("销售用 AI 后，主管在 AI 用量里看到该成员和功能；销售无权查看", async ({ page, request }) => {
+    test.setTimeout(120_000)
+    const sales = await Api.as(request, "sales")
+    const customer = await sales.call<{ id: string }>("POST", "/api/customers", {
+      name: uniq("E2E用量客户"),
+      level: "B",
+    })
+    await sales.call("POST", `/api/customers/${customer.id}/followups`, { type: "phone", content: "确认试点范围" })
+    const draft = await sales.call<{ source: string }>("POST", "/api/reports/daily/draft", {})
+    test.skip(draft.source !== "ai", "大模型不可用，没有产生 AI 调用")
+
+    await loginAs(page, "manager")
+    await page.goto("/settings/ai-usage")
+    await page.getByRole("radio", { name: "近 7 天" }).click()
+    await expect(page.getByRole("region", { name: "按人员" })).toContainText("张晨")
+    await expect(page.getByRole("region", { name: "按功能" })).toContainText("日报草稿")
+    await expect(page.getByRole("region", { name: "每日用量" })).toBeVisible()
+
+    await loginAs(page, "sales")
+    await page.goto("/settings/ai-usage")
+    await expect(page.getByText("AI 用量统计仅主管和管理员可以查看")).toBeVisible()
+  })
+})

@@ -116,6 +116,15 @@ class MeddicRules(BaseModel):
     }
 
 
+class AiUsageRules(BaseModel):
+    """AI 成本估算：按 token 单价（元 / 百万 tokens）；预算只做提醒，不拦截调用。"""
+
+    input_price_per_million: float = 2.0
+    output_price_per_million: float = 8.0
+    monthly_budget: int = 50_000  # 全公司每月预算（分），0 表示不设
+    team_monthly_budget: int = 0  # 每个团队每月预算（分），0 表示不设
+
+
 class RuleSet(BaseModel):
     margin: MarginRules
     discount: DiscountRules
@@ -128,6 +137,7 @@ class RuleSet(BaseModel):
     payment: PaymentRules = PaymentRules()
     privacy: PrivacyRules = PrivacyRules()
     meddic: MeddicRules = MeddicRules()
+    ai_usage: AiUsageRules = AiUsageRules()
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

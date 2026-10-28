@@ -196,6 +196,34 @@ GLOBAL_FIELDS: list[SettingField] = [
         max=5,
     ),
     _f("agent.max_tool_calls", "单轮最多调用工具次数", "AI 助手", "int", unit="次", min=1, max=20),
+    _f(
+        "ai_usage.input_price_per_million",
+        "输入单价",
+        "AI 用量",
+        "float",
+        unit="元/百万 tokens",
+        min=0,
+        max=1000,
+        help="按所用模型的官方价格填写，用于估算 AI 费用",
+    ),
+    _f(
+        "ai_usage.output_price_per_million",
+        "输出单价",
+        "AI 用量",
+        "float",
+        unit="元/百万 tokens",
+        min=0,
+        max=1000,
+    ),
+    _f(
+        "ai_usage.monthly_budget",
+        "全公司月度预算",
+        "AI 用量",
+        "money",
+        min=0,
+        help="超过 80% 时 AI 用量页提醒；0 表示不设，不会拦截调用",
+    ),
+    _f("ai_usage.team_monthly_budget", "每个团队月度预算", "AI 用量", "money", min=0),
 ]
 
 

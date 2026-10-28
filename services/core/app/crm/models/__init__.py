@@ -16,11 +16,13 @@ from app.crm.models.sales import (
     Quote,
     QuoteItem,
 )
+from app.crm.models.usage import AiUsage
 from app.crm.models.workflow import Notification, Task
 
 __all__ = [
     "Activity",
     "AgentThread",
+    "AiUsage",
     "Approval",
     "Attachment",
     "AuditLog",

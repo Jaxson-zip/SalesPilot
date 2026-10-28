@@ -17,6 +17,7 @@ from langchain_openai import ChatOpenAI
 from app.common.config import get_settings
 from app.common.errors import BizError, ErrorCode
 from app.common.request_id import REQUEST_ID_HEADER, get_request_id
+from app.llm.usage import UsageCallback
 
 logger = logging.getLogger("core.llm")
 
@@ -43,7 +44,11 @@ def get_chat_model(
         timeout=settings.llm_timeout_seconds,
         max_retries=0,  # 重试和失败切换由网关负责
         streaming=streaming,
+        stream_usage=True,  # 流式也拿到 token 用量（网关在最后一片返回 usage）
         default_headers=_headers(request_id),
+        callbacks=[
+            UsageCallback(model or settings.llm_default_group, request_id or get_request_id())
+        ],
     )
 
 

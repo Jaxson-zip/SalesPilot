@@ -80,3 +80,10 @@ meddic:
     qualified: [identify_pain]
     proposal: [metrics, decision_criteria]
     negotiation: [economic_buyer, decision_process, champion]
+
+ai_usage:
+  # AI 成本估算单价（元 / 百万 tokens），按所用模型的官方价格填写；费用 = 输入 × 输入单价 + 输出 × 输出单价
+  input_price_per_million: 2.0
+  output_price_per_million: 8.0
+  monthly_budget: 50000        # 全公司每月预算（分），0 表示不设；只提醒不拦截
+  team_monthly_budget: 0       # 每个团队每月预算（分）

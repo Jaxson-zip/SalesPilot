@@ -29,7 +29,7 @@ export class Api {
     return { Authorization: `Bearer ${this.token}` }
   }
 
-  async call<T>(method: "GET" | "POST" | "PATCH", path: string, data?: unknown): Promise<T> {
+  async call<T>(method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE", path: string, data?: unknown): Promise<T> {
     const res = await this.request.fetch(path, { method, data, headers: this.authHeader })
     const body = (await res.json()) as Envelope<T>
     expect(body.code, `${method} ${path}: ${body.message}`).toBe(0)

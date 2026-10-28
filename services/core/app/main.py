@@ -19,6 +19,7 @@ from app.crm.routers import (
     approvals,
     audit,
     auth,
+    competitors,
     contracts,
     customers,
     dashboard,
@@ -63,6 +64,7 @@ def create_app() -> FastAPI:
     routers = (
         auth.router,
         audit.router,
+        competitors.router,
         customers.router,
         rules.router,
         dashboard.router,

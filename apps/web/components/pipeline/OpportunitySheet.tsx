@@ -24,6 +24,7 @@ import { InlineEditRow } from "@/components/biz/InlineEditRow"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { PackName } from "@/components/biz/PackName"
 import { Tag } from "@/components/biz/Tag"
+import { CompetitorsCard } from "@/components/pipeline/CompetitorsCard"
 import { MeddicCard } from "@/components/pipeline/MeddicCard"
 import { SubjectTasks } from "@/components/tasks/TaskList"
 import { Button } from "@/components/ui/button"
@@ -312,6 +313,7 @@ export function OpportunitySheet({
           )}
           <Fields o={o} editable={editable} />
           <MeddicCard oppId={o.id} editable={editable} />
+          <CompetitorsCard oppId={o.id} editable={editable} />
           {/* U9：去掉固定文字的「下一步建议」，换成真实的下一步任务（v3 §12） */}
           <SubjectTasks subjectType="opportunity" subjectId={o.id} subjectName={o.name} editable={editable} />
           {detail.isPending ? (

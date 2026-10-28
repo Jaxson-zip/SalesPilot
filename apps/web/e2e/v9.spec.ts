@@ -105,3 +105,53 @@ test.describe("审查 v9：MEDDIC 赢单辅导", () => {
     await expect(card.getByRole("button", { name: /采纳 \d+ 项|忽略/ }).first()).toBeVisible({ timeout: 90_000 })
   })
 })
+
+test.describe("审查 v9：竞品战卡", () => {
+  test("销售按客户原话搜战卡，在商机里标注竞品后直接看应对话术", async ({ page, request }) => {
+    const api = await Api.as(request, "sales")
+    const customer = await api.call<{ id: string }>("POST", "/api/customers", { name: uniq("E2E战卡客户"), level: "B" })
+    const opp = await api.call<{ id: string }>("POST", "/api/opportunities", {
+      customer_id: customer.id,
+      name: uniq("E2E战卡商机"),
+      amount: 100_000_00,
+    })
+    await loginAs(page, "sales")
+    await page.goto("/battlecards")
+    await page.getByRole("textbox", { name: "搜索竞品战卡" }).fill("自己搭")
+    const list = page.getByRole("list", { name: "竞品战卡" })
+    await expect(list.getByRole("button", { name: /客户自建/ })).toBeVisible()
+    await expect(list).toContainText("3 个月内上线")
+    await expect(page.getByRole("button", { name: "新建战卡" })).toHaveCount(0)
+
+    await page.goto(`/pipeline?opp=${opp.id}`)
+    const card = page.getByRole("region", { name: "竞争对手" })
+    await card.getByRole("button", { name: "标注竞品" }).click()
+    await page.getByRole("menuitemcheckbox", { name: "公有云大模型 API" }).click()
+    await page.keyboard.press("Escape")
+    await card.getByRole("button", { name: "公有云大模型 API 应对话术" }).click()
+    await expect(card).toContainText("云上 API 便宜多了")
+    await expect(card).toContainText("我们怎么赢")
+  })
+
+  test("管理员新建战卡，销售能搜到", async ({ page, request }) => {
+    const name = uniq("E2E竞品")
+    await loginAs(page, "admin")
+    await page.goto("/battlecards")
+    await page.getByRole("button", { name: "新建战卡" }).click()
+    await page.getByRole("textbox", { name: "竞品名称" }).fill(name)
+    await page.getByRole("textbox", { name: "他们的弱点" }).fill("售后响应慢")
+    await page.getByRole("textbox", { name: "说法 1" }).fill("他们送一年免费维保")
+    await page.getByRole("textbox", { name: "应对 1" }).fill("我们的维保含驻场，算下来更划算")
+    await page.getByRole("button", { name: "保存" }).click()
+    await expect(page.getByRole("button", { name: `${name} 战卡` })).toBeVisible()
+
+    const api = await Api.as(request, "sales")
+    const hits = await api.call<{ name: string; id: string }[]>(
+      "GET",
+      `/api/competitors?q=${encodeURIComponent("免费维保")}`,
+    )
+    expect(hits.map((h) => h.name)).toContain(name)
+    const admin = await Api.as(request, "admin")
+    await admin.call("DELETE", `/api/competitors/${hits.find((h) => h.name === name)!.id}`)
+  })
+})

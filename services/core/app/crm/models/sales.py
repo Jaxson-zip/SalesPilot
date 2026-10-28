@@ -28,6 +28,7 @@ class Opportunity(OwnedMixin, Base):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # 进入终态的时间
     # MEDDIC 赢单要素：{key: {status, evidence, updated_at, updated_by}}（meddic_service）
     meddic: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    competitor_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)  # 遇到的竞品
 
 
 class Quote(OwnedMixin, Base):

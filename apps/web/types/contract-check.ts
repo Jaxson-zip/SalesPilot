@@ -12,6 +12,7 @@ import type * as C from "@/lib/settings"
 import type * as T from "@/types/api"
 import type * as M from "@/lib/materials"
 import type * as A from "@/hooks/useAuditLogs"
+import type * as K from "@/hooks/useCompetitors"
 import type * as D from "@/hooks/useMeddic"
 
 type S = components["schemas"]
@@ -57,6 +58,7 @@ export const responses = {
   MaterialOut: true as Fits<S["MaterialOut"], M.MaterialOut>,
   AuditItem: true as Fits<S["AuditItem"], A.AuditItem>,
   MeddicOut: true as Fits<S["MeddicOut"], D.MeddicOut>,
+  CompetitorOut: true as Fits<S["CompetitorOut"], K.Competitor>,
   MeddicAssessOut: true as Fits<S["AssessOut"], D.MeddicAssessOut>,
 } satisfies Record<string, true>
 

@@ -12,7 +12,12 @@ from app.agent.tools.base import ToolContext, ToolResult, ToolSpec
 from app.crm.schemas.common import PageParams
 from app.crm.schemas.dashboard import CONTACT_ROLE_LABELS
 from app.crm.schemas.opportunity import STAGE_LABELS
-from app.crm.services import approval_service, contact_service, meddic_service
+from app.crm.services import (
+    approval_service,
+    competitor_service,
+    contact_service,
+    meddic_service,
+)
 from app.crm.services import opportunity_service as opp_service
 
 
@@ -103,7 +108,31 @@ def get_meddic(ctx: ToolContext, args: MeddicArgs) -> ToolResult:
     return ToolResult(ok=True, summary=f"赢单要素完成度 {out.score}%{risk}", data=data)
 
 
+class BattlecardArgs(BaseModel):
+    keyword: str | None = Field(
+        default=None, max_length=200, description="竞品叫法或客户原话，例如「云上 API 更便宜」"
+    )
+    opportunity_id: uuid.UUID | None = Field(default=None, description="查这个商机标注的竞品")
+
+
+def get_battlecard(ctx: ToolContext, args: BattlecardArgs) -> ToolResult:
+    """竞品战卡：优势、弱点、我们怎么赢、常见说法与应对、历史战绩。"""
+    with ctx.session() as db:
+        cards = competitor_service.find_for_chat(db, ctx.user, args.keyword, args.opportunity_id)
+    data = [competitor_service.as_dict(c) for c in cards[:3]]
+    if not cards:
+        return ToolResult(ok=True, summary="战卡库里没有匹配的竞品", data=[])
+    return ToolResult(ok=True, summary=f"找到 {len(cards)} 张战卡：{cards[0].name}", data=data)
+
+
 CONTEXT_TOOLS: list[ToolSpec] = [
+    ToolSpec(
+        "get_battlecard",
+        "查竞品战卡（竞品优势、弱点、我们怎么赢、常见说法与应对话术、输赢战绩）。"
+        "用户提到竞品、客户拿别家比价、或问「客户说 xxx 怎么回」时使用",
+        BattlecardArgs,
+        get_battlecard,
+    ),
     ToolSpec(
         "get_meddic",
         "查询商机的 MEDDIC 赢单要素（痛点、量化收益、经济决策人、决策标准、决策流程、内部支持者）"

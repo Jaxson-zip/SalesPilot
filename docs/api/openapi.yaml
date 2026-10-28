@@ -206,6 +206,228 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/competitors:
+    get:
+      tags:
+      - competitors
+      summary: List Competitors
+      description: q 匹配名称、别名、弱点、打法和常见说法（现场按客户原话搜）。
+      operationId: list_competitors_api_competitors_get
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Q
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_CompetitorOut__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - competitors
+      summary: Create Competitor
+      operationId: create_competitor_api_competitors_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompetitorIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_CompetitorOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/competitors/{competitor_id}:
+    put:
+      tags:
+      - competitors
+      summary: Update Competitor
+      operationId: update_competitor_api_competitors__competitor_id__put
+      parameters:
+      - name: competitor_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Competitor Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompetitorIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_CompetitorOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - competitors
+      summary: Delete Competitor
+      operationId: delete_competitor_api_competitors__competitor_id__delete
+      parameters:
+      - name: competitor_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Competitor Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_NoneType_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/opportunities/{opportunity_id}/competitors:
+    get:
+      tags:
+      - competitors
+      summary: Opportunity Competitors
+      operationId: opportunity_competitors_api_opportunities__opportunity_id__competitors_get
+      parameters:
+      - name: opportunity_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Opportunity Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_CompetitorOut__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - competitors
+      summary: Set Opportunity Competitors
+      description: 覆盖式设置商机遇到的竞品（仅负责人）。
+      operationId: set_opportunity_competitors_api_opportunities__opportunity_id__competitors_put
+      parameters:
+      - name: opportunity_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Opportunity Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OppCompetitorsIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_CompetitorOut__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/customers:
     get:
       tags:
@@ -3631,6 +3853,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_CompetitorOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/CompetitorOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[CompetitorOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_ContactItem_:
       properties:
         code:
@@ -4783,6 +5030,34 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_list_CompetitorOut__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/CompetitorOut'
+            type: array
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[list[CompetitorOut]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_list_PackOut__:
       properties:
         code:
@@ -5430,6 +5705,151 @@ components:
       - halved
       - detail
       title: CommissionResult
+    CompetitorIn:
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Name
+        aliases:
+          items:
+            type: string
+          type: array
+          maxItems: 20
+          title: Aliases
+        summary:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Summary
+        strengths:
+          items:
+            type: string
+          type: array
+          maxItems: 20
+          title: Strengths
+        weaknesses:
+          items:
+            type: string
+          type: array
+          maxItems: 20
+          title: Weaknesses
+        win_tactics:
+          items:
+            type: string
+          type: array
+          maxItems: 20
+          title: Win Tactics
+        objections:
+          items:
+            $ref: '#/components/schemas/Objection'
+          type: array
+          maxItems: 30
+          title: Objections
+      type: object
+      required:
+      - name
+      title: CompetitorIn
+    CompetitorOut:
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Name
+        aliases:
+          items:
+            type: string
+          type: array
+          maxItems: 20
+          title: Aliases
+        summary:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Summary
+        strengths:
+          items:
+            type: string
+          type: array
+          maxItems: 20
+          title: Strengths
+        weaknesses:
+          items:
+            type: string
+          type: array
+          maxItems: 20
+          title: Weaknesses
+        win_tactics:
+          items:
+            type: string
+          type: array
+          maxItems: 20
+          title: Win Tactics
+        objections:
+          items:
+            $ref: '#/components/schemas/Objection'
+          type: array
+          maxItems: 30
+          title: Objections
+        id:
+          type: string
+          format: uuid
+          title: Id
+        updated_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated By
+        stats:
+          $ref: '#/components/schemas/CompetitorStats'
+          default:
+            open: 0
+            won: 0
+            lost: 0
+            lost_reasons: []
+      type: object
+      required:
+      - name
+      - id
+      - aliases
+      - summary
+      - strengths
+      - weaknesses
+      - win_tactics
+      - objections
+      - updated_by
+      - stats
+      title: CompetitorOut
+    CompetitorStats:
+      properties:
+        open:
+          type: integer
+          title: Open
+          default: 0
+        won:
+          type: integer
+          title: Won
+          default: 0
+        lost:
+          type: integer
+          title: Lost
+          default: 0
+        lost_reasons:
+          items:
+            type: string
+          type: array
+          title: Lost Reasons
+      type: object
+      title: CompetitorStats
+      required:
+      - open
+      - won
+      - lost
+      - lost_reasons
     ContactBrief:
       properties:
         id:
@@ -7076,6 +7496,23 @@ components:
       - updated
       - unread
       title: NotificationReadResult
+    Objection:
+      properties:
+        say:
+          type: string
+          maxLength: 300
+          minLength: 1
+          title: Say
+        respond:
+          type: string
+          maxLength: 1000
+          minLength: 1
+          title: Respond
+      type: object
+      required:
+      - say
+      - respond
+      title: Objection
     OppBrief:
       properties:
         id:
@@ -7090,6 +7527,17 @@ components:
       - id
       - name
       title: OppBrief
+    OppCompetitorsIn:
+      properties:
+        ids:
+          items:
+            type: string
+            format: uuid
+          type: array
+          maxItems: 10
+          title: Ids
+      type: object
+      title: OppCompetitorsIn
     OpportunityCreate:
       properties:
         customer_id:

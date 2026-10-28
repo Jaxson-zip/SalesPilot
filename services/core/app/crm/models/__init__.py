@@ -1,6 +1,7 @@
 """导入全部 ORM 模型，供 Alembic 和 metadata 使用。"""
 
 from app.crm.models.audit import AuditLog
+from app.crm.models.competitor import Competitor
 from app.crm.models.customer import Activity, Contact, Customer, Followup
 from app.crm.models.finance import Approval, Attachment, Expense
 from app.crm.models.knowledge import AgentThread, KbChunk
@@ -22,6 +23,7 @@ __all__ = [
     "Attachment",
     "AuditLog",
     "Commission",
+    "Competitor",
     "ConfigOverride",
     "Contact",
     "Contract",

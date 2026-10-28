@@ -78,6 +78,66 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/competitors": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Competitors
+     * @description q 匹配名称、别名、弱点、打法和常见说法（现场按客户原话搜）。
+     */
+    get: operations["list_competitors_api_competitors_get"]
+    put?: never
+    /** Create Competitor */
+    post: operations["create_competitor_api_competitors_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/competitors/{competitor_id}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Update Competitor */
+    put: operations["update_competitor_api_competitors__competitor_id__put"]
+    post?: never
+    /** Delete Competitor */
+    delete: operations["delete_competitor_api_competitors__competitor_id__delete"]
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/opportunities/{opportunity_id}/competitors": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Opportunity Competitors */
+    get: operations["opportunity_competitors_api_opportunities__opportunity_id__competitors_get"]
+    /**
+     * Set Opportunity Competitors
+     * @description 覆盖式设置商机遇到的竞品（仅负责人）。
+     */
+    put: operations["set_opportunity_competitors_api_opportunities__opportunity_id__competitors_put"]
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/customers": {
     parameters: {
       query?: never
@@ -1376,6 +1436,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[CompetitorOut] */
+    ApiResponse_CompetitorOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["CompetitorOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[ContactItem] */
     ApiResponse_ContactItem_: {
       /**
@@ -2252,6 +2331,26 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[list[CompetitorOut]] */
+    ApiResponse_list_CompetitorOut__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: components["schemas"]["CompetitorOut"][] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[list[PackOut]] */
     ApiResponse_list_PackOut__: {
       /**
@@ -2603,6 +2702,74 @@ export interface components {
       detail: {
         [key: string]: number
       }
+    }
+    /** CompetitorIn */
+    CompetitorIn: {
+      /** Name */
+      name: string
+      /** Aliases */
+      aliases?: string[]
+      /** Summary */
+      summary?: string | null
+      /** Strengths */
+      strengths?: string[]
+      /** Weaknesses */
+      weaknesses?: string[]
+      /** Win Tactics */
+      win_tactics?: string[]
+      /** Objections */
+      objections?: components["schemas"]["Objection"][]
+    }
+    /** CompetitorOut */
+    CompetitorOut: {
+      /** Name */
+      name: string
+      /** Aliases */
+      aliases: string[]
+      /** Summary */
+      summary: string | null
+      /** Strengths */
+      strengths: string[]
+      /** Weaknesses */
+      weaknesses: string[]
+      /** Win Tactics */
+      win_tactics: string[]
+      /** Objections */
+      objections: components["schemas"]["Objection"][]
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Updated By */
+      updated_by: string | null
+      /** @default {
+       *       "open": 0,
+       *       "won": 0,
+       *       "lost": 0,
+       *       "lost_reasons": []
+       *     } */
+      stats: components["schemas"]["CompetitorStats"]
+    }
+    /** CompetitorStats */
+    CompetitorStats: {
+      /**
+       * Open
+       * @default 0
+       */
+      open: number
+      /**
+       * Won
+       * @default 0
+       */
+      won: number
+      /**
+       * Lost
+       * @default 0
+       */
+      lost: number
+      /** Lost Reasons */
+      lost_reasons: string[]
     }
     /** ContactBrief */
     ContactBrief: {
@@ -3440,6 +3607,13 @@ export interface components {
       /** Unread */
       unread: number
     }
+    /** Objection */
+    Objection: {
+      /** Say */
+      say: string
+      /** Respond */
+      respond: string
+    }
     /** OppBrief */
     OppBrief: {
       /**
@@ -3449,6 +3623,11 @@ export interface components {
       id: string
       /** Name */
       name: string
+    }
+    /** OppCompetitorsIn */
+    OppCompetitorsIn: {
+      /** Ids */
+      ids?: string[]
     }
     /** OpportunityCreate */
     OpportunityCreate: {
@@ -4498,6 +4677,214 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_ExportOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  list_competitors_api_competitors_get: {
+    parameters: {
+      query?: {
+        q?: string | null
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_CompetitorOut__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  create_competitor_api_competitors_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CompetitorIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_CompetitorOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  update_competitor_api_competitors__competitor_id__put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        competitor_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CompetitorIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_CompetitorOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  delete_competitor_api_competitors__competitor_id__delete: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        competitor_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_NoneType_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  opportunity_competitors_api_opportunities__opportunity_id__competitors_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        opportunity_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_CompetitorOut__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  set_opportunity_competitors_api_opportunities__opportunity_id__competitors_put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        opportunity_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OppCompetitorsIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_CompetitorOut__"]
         }
       }
       /** @description Validation Error */

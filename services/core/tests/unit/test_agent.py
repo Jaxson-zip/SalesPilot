@@ -48,6 +48,7 @@ class TestTools:
             "add_followup",
             "digest_material",
             "get_meddic",
+            "get_battlecard",
             "update_opportunity_stage",
             "pipeline_summary",
             "parse_requirement",

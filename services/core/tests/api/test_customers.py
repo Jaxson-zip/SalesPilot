@@ -116,3 +116,28 @@ def test_create_rejects_same_core_name(client: TestClient, temp_name: str) -> No
     dup = {"name": f"{temp_name}（深圳）", "level": "B"}
     r = client.post("/api/customers", json=dup, headers=auth_header(Role.SALES))
     assert r.status_code == 409 and temp_name in r.json()["message"]
+
+
+def test_update_customer_inline(client: TestClient, temp_name: str) -> None:
+    """U10：负责人改字段，写入动态；改成别的客户的名字被拒；主管不能改。"""
+    h = auth_header(Role.SALES)
+    cid = client.post("/api/customers", json={"name": temp_name, "level": "C"}, headers=h).json()[
+        "data"
+    ]["id"]
+    r = client.patch(
+        f"/api/customers/{cid}", json={"level": "A", "annual_budget": 50_000_000}, headers=h
+    )
+    data = r.json()["data"]
+    assert data["level"] == "A" and data["annual_budget"] == 50_000_000
+    cleared = client.patch(f"/api/customers/{cid}", json={"address": None}, headers=h)
+    assert cleared.json()["data"]["address"] is None
+    dup = client.patch(f"/api/customers/{cid}", json={"name": "深圳明理律师事务所"}, headers=h)
+    assert dup.status_code == 409
+    renamed = client.patch(f"/api/customers/{cid}", json={"name": f"{temp_name}（改）"}, headers=h)
+    assert renamed.json()["code"] == 0  # 与自己核心名相同不算重复
+    manager = client.patch(
+        f"/api/customers/{cid}", json={"level": "B"}, headers=auth_header(Role.MANAGER)
+    )
+    assert manager.status_code in (403, 404)
+    acts = client.get(f"/api/activities?subject_type=customer&subject_id={cid}", headers=h).json()
+    assert any((a["content"] or "") == "修改了等级、年度预算" for a in acts["data"]["items"])

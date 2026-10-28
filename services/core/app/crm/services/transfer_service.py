@@ -49,7 +49,7 @@ def _ids(db: Session, stmt: Any) -> list[uuid.UUID]:
     return list(db.scalars(stmt).all())
 
 
-def _move(db: Session, customer: Customer, owner: dict[str, Any]) -> dict[str, int]:
+def move_customer(db: Session, customer: Customer, owner: dict[str, Any]) -> dict[str, int]:
     """把客户及其进行中的业务数据转给新负责人，返回各类转移数量。"""
     cid = customer.id
     opp_ids = _ids(
@@ -110,7 +110,7 @@ def transfer_customers(db: Session, user: CurrentUser, data: CustomerTransfer) -
         if customer.owner_id == target.id:
             continue
         old = db.get(User, customer.owner_id) if customer.owner_id else None
-        stats = _move(db, customer, owner)
+        stats = move_customer(db, customer, owner)
         _notify_and_log(
             db, user, customer, old.name if old else "公海", target, stats["opportunities"]
         )

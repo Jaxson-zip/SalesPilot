@@ -124,3 +124,103 @@ test.describe("B9 回款计划", () => {
     await expect(sheet.getByRole("button", { name: "调整计划" })).toHaveCount(0)
   })
 })
+
+test.describe("U10 行内编辑", () => {
+  test("客户字段：点值编辑，回车保存，刷新后仍在；金额格式错误不提交", async ({ page, request }) => {
+    const api = await Api.as(request, "sales")
+    const customer = await api.call<{ id: string }>("POST", "/api/customers", { name: uniq("E2E行内编辑"), level: "C" })
+    await loginAs(page, "sales")
+    await page.goto(`/customers/${customer.id}`)
+
+    await page.getByRole("button", { name: "编辑地址" }).click()
+    await page.getByRole("textbox", { name: "地址" }).fill("深圳市南山区科技园")
+    await page.keyboard.press("Enter")
+    await expect(page.getByRole("button", { name: "编辑地址" })).toHaveText("深圳市南山区科技园")
+
+    await page.getByRole("button", { name: "编辑年度预算" }).click()
+    const budget = page.getByRole("textbox", { name: "年度预算" })
+    await budget.fill("abc")
+    await page.keyboard.press("Enter")
+    await expect(page.getByText("请输入金额，最多两位小数")).toBeVisible()
+    await budget.fill("500000")
+    await page.keyboard.press("Enter")
+    await expect(page.getByRole("button", { name: "编辑年度预算" })).toHaveText("¥500,000")
+
+    await page.getByRole("button", { name: "编辑等级" }).click()
+    await page.getByRole("combobox", { name: "等级" }).click()
+    await page.getByRole("option", { name: "A 级（重点客户）" }).click()
+    await expect(page.getByRole("button", { name: "编辑等级" })).toHaveText("A")
+
+    await page.reload()
+    await expect(page.getByRole("button", { name: "编辑地址" })).toHaveText("深圳市南山区科技园")
+    await expect(page.getByRole("button", { name: "编辑年度预算" })).toHaveText("¥500,000")
+  })
+
+  test("商机侧栏：改金额和赢率，Esc 取消不关侧栏；主管只读", async ({ page, request }) => {
+    const api = await Api.as(request, "sales")
+    const customer = await api.call<{ id: string }>("POST", "/api/customers", { name: uniq("E2E商机编辑"), level: "B" })
+    const opp = await api.call<{ id: string }>("POST", "/api/opportunities", {
+      customer_id: customer.id,
+      name: uniq("E2E行内商机"),
+      amount: 100_000_00,
+      win_rate: 30,
+    })
+    await loginAs(page, "sales")
+    await page.goto(`/pipeline?opp=${opp.id}`)
+    const sheet = page.getByRole("dialog")
+
+    await sheet.getByRole("button", { name: "编辑赢率" }).click()
+    await sheet.getByRole("textbox", { name: "赢率" }).fill("120")
+    await page.keyboard.press("Enter")
+    await expect(sheet.getByText("请输入 0–100 的整数")).toBeVisible()
+    await page.keyboard.press("Escape")
+    await expect(sheet).toBeVisible() // Esc 只退出编辑
+    await expect(sheet.getByRole("button", { name: "编辑赢率" })).toHaveText("30%")
+
+    await sheet.getByRole("button", { name: "编辑金额" }).click()
+    await sheet.getByRole("textbox", { name: "金额" }).fill("150000")
+    await page.keyboard.press("Enter")
+    await expect(sheet.getByRole("button", { name: "编辑金额" })).toHaveText("¥150,000")
+    expect((await api.call<{ amount: number }>("GET", `/api/opportunities/${opp.id}`)).amount).toBe(150_000_00)
+
+    await loginAs(page, "manager")
+    await page.goto(`/pipeline?opp=${opp.id}`)
+    await expect(page.getByRole("dialog")).toContainText("¥150,000")
+    await expect(page.getByRole("button", { name: "编辑金额" })).toHaveCount(0)
+  })
+})
+
+test.describe("B5 客户公海", () => {
+  test("退回公海要写原因；公海视图能看到；主管只读；销售领取后恢复可编辑", async ({ page, request }) => {
+    const api = await Api.as(request, "sales")
+    const name = uniq("E2E公海客户")
+    const customer = await api.call<{ id: string }>("POST", "/api/customers", { name, level: "C" })
+    await loginAs(page, "sales")
+    await page.goto(`/customers/${customer.id}`)
+
+    await page.getByRole("button", { name: "退回公海" }).click()
+    const dialog = page.getByRole("dialog", { name: "退回公海" })
+    await expect(dialog.getByRole("button", { name: "确认退回" })).toBeDisabled()
+    await dialog.getByRole("button", { name: "长期联系不上" }).click()
+    await dialog.getByRole("button", { name: "确认退回" }).click()
+    await expect(page.getByText("公海客户", { exact: true })).toBeVisible()
+    await expect(page.getByRole("button", { name: "编辑地址" })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: "写跟进" })).toHaveCount(0)
+
+    await page.goto("/customers")
+    await page.getByRole("button", { name: /我的客户/ }).click()
+    await page.getByRole("menuitemradio", { name: "公海" }).click()
+    await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible()
+
+    await loginAs(page, "manager")
+    await page.goto(`/customers/${customer.id}`)
+    await expect(page.getByText("转移负责人", { exact: false })).toBeVisible()
+    await expect(page.getByRole("button", { name: "领取客户" })).toHaveCount(0)
+
+    await loginAs(page, "sales")
+    await page.goto(`/customers/${customer.id}`)
+    await page.getByRole("button", { name: "领取客户" }).click()
+    await expect(page.getByRole("button", { name: "编辑地址" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "退回公海" })).toBeVisible()
+  })
+})

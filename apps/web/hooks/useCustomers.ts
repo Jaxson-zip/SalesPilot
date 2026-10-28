@@ -13,6 +13,8 @@ import type {
   CustomerDetail,
   CustomerListParams,
   CustomerTransferIn,
+  CustomerUpdate,
+  PoolRelease,
   Paged,
   SimilarCustomer,
 } from "@/types/api"
@@ -22,6 +24,7 @@ export const customerKeys = {
   list: (p: CustomerListParams) => ["customers", "list", p] as const,
   detail: (id: string) => ["customers", "detail", id] as const,
   similar: (name: string) => ["customers", "similar", name] as const,
+  pool: ["customers", "pool"] as const,
 }
 
 /** GET /api/customers?view=&page=&page_size= */
@@ -35,6 +38,15 @@ export function useCustomers(params: CustomerListParams, enabled = true) {
         signal,
       ),
     placeholderData: keepPreviousData,
+    enabled,
+  })
+}
+
+/** GET /api/customers/pool：本团队公海（B5），一次取满一页 */
+export function usePoolCustomers(enabled = true) {
+  return useQuery({
+    queryKey: customerKeys.pool,
+    queryFn: ({ signal }) => api.get<Paged<Customer>>("/api/customers/pool", { page: 1, page_size: 100 }, signal),
     enabled,
   })
 }
@@ -73,6 +85,41 @@ export function useCreateCustomer() {
     onError: notifyError,
   })
 }
+
+/** PATCH /api/customers/{id}（U10 行内编辑，仅负责人） */
+export function useUpdateCustomer(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CustomerUpdate) => api.patch<CustomerDetail>(`/api/customers/${id}`, body),
+    onSuccess: (c) => {
+      qc.setQueryData(customerKeys.detail(id), c)
+      toast.success("已保存")
+      void qc.invalidateQueries({ queryKey: customerKeys.all })
+      void qc.invalidateQueries({ queryKey: activityKeys.all })
+    },
+    onError: notifyError,
+  })
+}
+
+function usePoolMutation<V>(id: string, path: "release" | "claim", done: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: V) => api.post<CustomerDetail>(`/api/customers/${id}/${path}`, body ?? {}),
+    onSuccess: (c) => {
+      qc.setQueryData(customerKeys.detail(id), c)
+      toast.success(done, { description: c.name })
+      void qc.invalidateQueries({ queryKey: customerKeys.all })
+      void qc.invalidateQueries({ queryKey: activityKeys.all })
+    },
+    onError: notifyError,
+  })
+}
+
+/** POST /api/customers/{id}/release：退回公海（负责人或本团队主管；有进行中商机时 42201） */
+export const useReleaseCustomer = (id: string) => usePoolMutation<PoolRelease>(id, "release", "已退回公海")
+
+/** POST /api/customers/{id}/claim：从公海领取（仅销售，先到先得） */
+export const useClaimCustomer = (id: string) => usePoolMutation<void>(id, "claim", "已领取客户")
 
 /** POST /api/customers/transfer（v3 §16，仅主管）：客户及其未结束的商机、未完成的任务、未成交的报价一起转移 */
 export function useTransferCustomers() {

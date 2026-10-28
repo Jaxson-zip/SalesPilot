@@ -73,6 +73,66 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/customers/pool": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Pool
+     * @description 客户公海（B5）：本团队负责人为空的客户。
+     */
+    get: operations["list_pool_api_customers_pool_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/customers/{customer_id}/release": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Release To Pool
+     * @description 退回公海：负责人或本团队主管；有进行中的商机时 42201 has_open_opportunities。
+     */
+    post: operations["release_to_pool_api_customers__customer_id__release_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/customers/{customer_id}/claim": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Claim From Pool
+     * @description 从公海领取（仅销售，先到先得；已被领取 40901）。
+     */
+    post: operations["claim_from_pool_api_customers__customer_id__claim_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/customers/similar": {
     parameters: {
       query?: never
@@ -107,7 +167,11 @@ export interface paths {
     delete?: never
     options?: never
     head?: never
-    patch?: never
+    /**
+     * Update Customer
+     * @description 行内编辑（U10）：只有负责人能改；只修改传入的字段。
+     */
+    patch: operations["update_customer_api_customers__customer_id__patch"]
     trace?: never
   }
   "/api/customers/{customer_id}/followups": {
@@ -2203,6 +2267,26 @@ export interface components {
        */
       to_user_id: string
     }
+    /**
+     * CustomerUpdate
+     * @description 行内编辑（U10）：只修改传入的字段；name / level 传 null 视为不修改。
+     */
+    CustomerUpdate: {
+      /** Name */
+      name?: string | null
+      /** Industry */
+      industry?: string | null
+      /** Level */
+      level?: ("A" | "B" | "C") | null
+      /** Size */
+      size?: string | null
+      /** Address */
+      address?: string | null
+      /** Website */
+      website?: string | null
+      /** Annual Budget */
+      annual_budget?: number | null
+    }
     /** Dashboard */
     Dashboard: {
       /** Won Amount Month */
@@ -3023,6 +3107,11 @@ export interface components {
        */
       unit: "person" | "night"
     }
+    /** PoolRelease */
+    PoolRelease: {
+      /** Reason */
+      reason: string
+    }
     /** ProductLineBrief */
     ProductLineBrief: {
       /**
@@ -3661,6 +3750,110 @@ export interface operations {
       }
     }
   }
+  list_pool_api_customers_pool_get: {
+    parameters: {
+      query?: {
+        page?: number
+        page_size?: number
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_Page_CustomerListItem__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  release_to_pool_api_customers__customer_id__release_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        customer_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PoolRelease"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_CustomerDetail_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  claim_from_pool_api_customers__customer_id__claim_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        customer_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_CustomerDetail_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
   similar_customers_api_customers_similar_get: {
     parameters: {
       query: {
@@ -3706,6 +3899,43 @@ export interface operations {
       cookie?: never
     }
     requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_CustomerDetail_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  update_customer_api_customers__customer_id__patch: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        customer_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CustomerUpdate"]
+      }
+    }
     responses: {
       /** @description Successful Response */
       200: {

@@ -20,6 +20,7 @@ import Link from "next/link"
 import { Chip } from "@/components/biz/Chip"
 import { FieldRow } from "@/components/biz/FieldRow"
 import { FormSheet } from "@/components/biz/FormSheet"
+import { InlineEditRow } from "@/components/biz/InlineEditRow"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { PackName } from "@/components/biz/PackName"
 import { Tag } from "@/components/biz/Tag"
@@ -27,7 +28,7 @@ import { SubjectTasks } from "@/components/tasks/TaskList"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useContacts } from "@/hooks/useFollowups"
-import { useOpportunity } from "@/hooks/useOpportunities"
+import { useOpportunity, useUpdateOpportunity } from "@/hooks/useOpportunities"
 import { formatFen, formatRelative, ownerName } from "@/lib/format"
 import {
   activityActionLabel,
@@ -132,18 +133,49 @@ function KeyContacts({ customerId }: { customerId: string }) {
   )
 }
 
-function Fields({ o }: { o: OpportunityItem & Partial<Pick<OpportunityDetail, "quotes">> }) {
+function Fields({
+  o,
+  editable,
+}: {
+  o: OpportunityItem & Partial<Pick<OpportunityDetail, "quotes">>
+  editable: boolean
+}) {
+  const update = useUpdateOpportunity(o.id)
+  // 赢单 / 输单后金额等字段不再修改
+  const canEdit = editable && !isFinalStage(o.stage)
   return (
     <div>
-      <FieldRow icon={Coins} label="金额">
-        <span className="tabular-nums">{formatFen(o.amount)}</span>
-      </FieldRow>
-      <FieldRow icon={Percent} label="赢率">
-        <span className="tabular-nums">{o.win_rate}%</span>
-      </FieldRow>
-      <FieldRow icon={Calendar} label="预计成交">
-        {o.expected_close_date ?? "—"}
-      </FieldRow>
+      <InlineEditRow
+        icon={Coins}
+        label="金额"
+        kind="money"
+        required
+        value={o.amount}
+        editable={canEdit}
+        display={<span className="tabular-nums">{formatFen(o.amount)}</span>}
+        onSave={(v) => update.mutateAsync({ amount: v as number })}
+      />
+      <InlineEditRow
+        icon={Percent}
+        label="赢率"
+        kind="int"
+        min={0}
+        max={100}
+        required
+        value={o.win_rate}
+        editable={canEdit}
+        display={<span className="tabular-nums">{o.win_rate}%</span>}
+        onSave={(v) => update.mutateAsync({ win_rate: v as number })}
+      />
+      <InlineEditRow
+        icon={Calendar}
+        label="预计成交"
+        kind="date"
+        value={o.expected_close_date}
+        editable={canEdit}
+        display={o.expected_close_date ?? "—"}
+        onSave={(v) => update.mutateAsync({ expected_close_date: v as string | null })}
+      />
       <FieldRow icon={Package} label="产品线">
         {o.product_line?.name ?? "—"}
       </FieldRow>
@@ -277,7 +309,7 @@ export function OpportunitySheet({
           ) : (
             <StageReadOnly stage={o.stage} />
           )}
-          <Fields o={o} />
+          <Fields o={o} editable={editable} />
           {/* U9：去掉固定文字的「下一步建议」，换成真实的下一步任务（v3 §12） */}
           <SubjectTasks subjectType="opportunity" subjectId={o.id} subjectName={o.name} editable={editable} />
           {detail.isPending ? (

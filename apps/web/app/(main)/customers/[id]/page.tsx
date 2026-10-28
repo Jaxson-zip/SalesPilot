@@ -1,9 +1,10 @@
 "use client"
 
-import { Building2, Clock, Contact, FileText, PencilLine, Sparkles, Target } from "lucide-react"
+import { Building2, Clock, Contact, FileText, Hand, PencilLine, Sparkles, Target, Undo2 } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useRef, useState } from "react"
 
+import { Alert } from "@/components/biz/Alert"
 import { DataGrid } from "@/components/biz/DataGrid"
 import { EmptyState } from "@/components/biz/EmptyState"
 import { Crumb, FrameAction, PageFrame } from "@/components/biz/PageFrame"
@@ -12,9 +13,10 @@ import { RecordTabs } from "@/components/biz/RecordTabs"
 import { ContactsPanel } from "@/components/customers/ContactsPanel"
 import { CustomerFields, CustomerOpportunities } from "@/components/customers/CustomerFields"
 import { CustomerTimeline, FollowupComposer } from "@/components/customers/CustomerTimeline"
+import { ReleaseDialog } from "@/components/customers/ReleaseDialog"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useCustomer } from "@/hooks/useCustomers"
+import { useClaimCustomer, useCustomer } from "@/hooks/useCustomers"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useQuotes } from "@/hooks/useQuotes"
 import { defaultScope } from "@/lib/views"
@@ -45,12 +47,18 @@ function CustomerQuotes({ customerId, role }: { customerId: string; role: Role }
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const customerId = decodeURIComponent(id)
-  const { role } = useSession()
-  const { canFollowup, canAiWrite, canEdit } = usePermissions()
+  const { role, userId } = useSession()
+  const { canFollowup: canWriteFollowup, canAiWrite, canEdit } = usePermissions()
   const query = useCustomer(customerId)
+  const claim = useClaimCustomer(customerId)
+  const [releasing, setReleasing] = useState(false)
   const [tab, setTab] = useState("timeline")
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const c = query.data
+  // 公海客户（B5）：负责人为空，只读，领取后才能编辑和写跟进
+  const inPool = Boolean(c) && !c?.owner
+  const canFollowup = canWriteFollowup && !inPool
+  const canRelease = Boolean(c?.owner) && (c?.owner?.id === userId || role === "manager")
 
   const writeFollowup = () => {
     setTab("timeline")
@@ -83,6 +91,11 @@ export default function CustomerDetailPage() {
     body = (
       <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto lg:flex-row lg:overflow-hidden">
         <div className="shrink-0 border-b border-zinc-200 p-4 lg:w-[340px] lg:overflow-y-auto lg:border-r lg:border-b-0">
+          {inPool ? (
+            <Alert tone="info" className="mb-3" title="公海客户">
+              {role === "sales" ? "领取后才能编辑和写跟进。" : "可以在客户列表勾选后「转移负责人」分配给销售。"}
+            </Alert>
+          ) : null}
           <CustomerFields c={cust} editable={canEdit(cust.owner?.id)} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col lg:min-h-0">
@@ -136,12 +149,17 @@ export default function CustomerDetailPage() {
       crumb={<Crumb parent="客户" href="/customers" icon={Building2} current={c?.name ?? "客户详情"} />}
       actions={
         <>
+          {inPool && role === "sales" ? (
+            <FrameAction icon={Hand} label="领取客户" primary onClick={() => !claim.isPending && claim.mutate()} />
+          ) : null}
+          {canRelease ? <FrameAction icon={Undo2} label="退回公海" onClick={() => setReleasing(true)} /> : null}
           {canFollowup ? <FrameAction icon={PencilLine} label="写跟进" onClick={writeFollowup} /> : null}
           {canAiWrite ? <FrameAction icon={Sparkles} label="为该客户出方案" href="/ai" primary /> : null}
         </>
       }
     >
       {body}
+      {c && canRelease ? <ReleaseDialog customer={c} open={releasing} onOpenChange={setReleasing} /> : null}
     </PageFrame>
   )
 }

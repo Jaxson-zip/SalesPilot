@@ -5,15 +5,18 @@ import Link from "next/link"
 
 import { Chip, LinkChip } from "@/components/biz/Chip"
 import { FieldRow } from "@/components/biz/FieldRow"
+import { InlineEditRow } from "@/components/biz/InlineEditRow"
 import { colorFor, Tag } from "@/components/biz/Tag"
 import { SubjectTasks } from "@/components/tasks/TaskList"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOpportunities } from "@/hooks/useOpportunities"
+import { useUpdateCustomer } from "@/hooks/useCustomers"
+import { INDUSTRY_OPTIONS, SIZE_OPTIONS } from "@/lib/customer"
 import { displayHost, formatFen } from "@/lib/format"
 import { STAGE_META } from "@/lib/labels"
 import { isNotImplemented } from "@/lib/errors"
 import { defaultScope } from "@/lib/views"
-import type { CustomerDetail, Role } from "@/types/api"
+import type { CustomerDetail, CustomerUpdate, Role } from "@/types/api"
 
 function levelColor(level: string) {
   const head = level.trim().charAt(0).toUpperCase()
@@ -53,7 +56,16 @@ export function CustomerOpportunities({ customerId, role }: { customerId: string
 }
 
 /** RecordFields：客户字段 + 下一步（联系人、商机在右侧标签页） */
+const LEVELS = [
+  { value: "A", label: "A 级（重点客户）" },
+  { value: "B", label: "B 级" },
+  { value: "C", label: "C 级" },
+]
+const toOptions = (xs: readonly string[]) => xs.map((x) => ({ value: x, label: x }))
+
 export function CustomerFields({ c, editable }: { c: CustomerDetail; editable: boolean }) {
+  const update = useUpdateCustomer(c.id)
+  const save = (key: keyof CustomerUpdate) => (v: string | number | null) => update.mutateAsync({ [key]: v })
   return (
     <>
       <div className="mb-4 flex items-center gap-3">
@@ -65,27 +77,69 @@ export function CustomerFields({ c, editable }: { c: CustomerDetail; editable: b
           <div className="text-xs text-zinc-400">创建于 {c.created_at.slice(0, 10)}</div>
         </div>
       </div>
-      <FieldRow icon={TagIcon} label="行业">
-        {c.industry ? <Tag color={colorFor(c.industry)}>{c.industry}</Tag> : "—"}
-      </FieldRow>
-      <FieldRow icon={Star} label="等级">
-        {c.level ? <Tag color={levelColor(c.level)}>{c.level}</Tag> : "—"}
-      </FieldRow>
-      <FieldRow icon={Users} label="规模">
-        {c.size ?? "—"}
-      </FieldRow>
-      <FieldRow icon={MapPin} label="地址">
-        {c.address ?? "—"}
-      </FieldRow>
-      <FieldRow icon={LinkIcon} label="网站">
-        {c.website ? <LinkChip>{displayHost(c.website)}</LinkChip> : "—"}
-      </FieldRow>
+      <InlineEditRow
+        icon={TagIcon}
+        label="行业"
+        kind="select"
+        options={toOptions(INDUSTRY_OPTIONS)}
+        value={c.industry}
+        editable={editable}
+        display={c.industry ? <Tag color={colorFor(c.industry)}>{c.industry}</Tag> : "—"}
+        onSave={save("industry")}
+      />
+      <InlineEditRow
+        icon={Star}
+        label="等级"
+        kind="select"
+        required
+        options={LEVELS}
+        value={c.level}
+        editable={editable}
+        display={c.level ? <Tag color={levelColor(c.level)}>{c.level}</Tag> : "—"}
+        onSave={save("level")}
+      />
+      <InlineEditRow
+        icon={Users}
+        label="规模"
+        kind="select"
+        options={toOptions(SIZE_OPTIONS)}
+        value={c.size}
+        editable={editable}
+        display={c.size ?? "—"}
+        onSave={save("size")}
+      />
+      <InlineEditRow
+        icon={MapPin}
+        label="地址"
+        kind="text"
+        value={c.address}
+        editable={editable}
+        display={c.address ?? "—"}
+        placeholder="例如：深圳市南山区科技园"
+        onSave={save("address")}
+      />
+      <InlineEditRow
+        icon={LinkIcon}
+        label="网站"
+        kind="text"
+        value={c.website}
+        editable={editable}
+        display={c.website ? <LinkChip>{displayHost(c.website)}</LinkChip> : "—"}
+        placeholder="https://"
+        onSave={save("website")}
+      />
       <FieldRow icon={User} label="负责人">
         {c.owner ? <Chip name={c.owner.name} /> : "—"}
       </FieldRow>
-      <FieldRow icon={Wallet} label="年度预算">
-        <span className="tabular-nums">{c.annual_budget === null ? "—" : formatFen(c.annual_budget)}</span>
-      </FieldRow>
+      <InlineEditRow
+        icon={Wallet}
+        label="年度预算"
+        kind="money"
+        value={c.annual_budget}
+        editable={editable}
+        display={<span className="tabular-nums">{c.annual_budget === null ? "—" : formatFen(c.annual_budget)}</span>}
+        onSave={save("annual_budget")}
+      />
       <FieldRow icon={Hash} label="标签">
         {c.tags.length ? (
           <span className="inline-flex gap-1">

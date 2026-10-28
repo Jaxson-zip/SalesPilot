@@ -12,7 +12,7 @@ import { NewCustomerSheet } from "@/components/customers/NewCustomerSheet"
 import { TransferDialog } from "@/components/customers/TransferDialog"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
-import { useCustomers } from "@/hooks/useCustomers"
+import { useCustomers, usePoolCustomers } from "@/hooks/useCustomers"
 import { useListView } from "@/hooks/useListView"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useRowSelection } from "@/hooks/useRowSelection"
@@ -20,9 +20,14 @@ import type { Customer, CustomerView } from "@/types/api"
 
 import { customerColumns, customerCsv, customerFilters, customerSort } from "./columns"
 
-function isView(v: string): v is CustomerView {
-  return v === "mine" || v === "team" || v === "all"
+/** 「公海」（B5）不是数据范围，单独走 /api/customers/pool */
+type ListView = CustomerView | "pool"
+
+function isView(v: string): v is ListView {
+  return v === "mine" || v === "team" || v === "all" || v === "pool"
 }
+
+const POOL_VIEW: ViewOption = { value: "pool", label: "公海" }
 
 const customerId = (c: Customer) => c.id
 
@@ -32,7 +37,7 @@ const TOGGLEABLE = customerColumns.slice(1).map((c) => ({ id: c.id, label: c.lab
 export default function CustomersPage() {
   const { role } = useSession()
   const { canCreate } = usePermissions()
-  const [selected, setView] = useState<CustomerView | null>(null)
+  const [selected, setView] = useState<ListView | null>(null)
   const [creating, setCreating] = useState(false)
   const [transferring, setTransferring] = useState(false)
   const views: ViewOption[] =
@@ -43,15 +48,18 @@ export default function CustomersPage() {
             // 主管一般不直接负责客户，默认看团队
             { value: "team", label: "团队客户" },
             { value: "mine", label: "我负责的" },
+            POOL_VIEW,
           ]
-        : [{ value: "mine", label: "我的客户" }]
+        : [{ value: "mine", label: "我的客户" }, POOL_VIEW]
   // 切换角色后原视图可能不可用（例如主管 → 销售），回落到第一个视图
   const first = views[0].value
-  const view: CustomerView =
-    selected && views.some((v) => v.value === selected) ? selected : isView(first) ? first : "mine"
+  const view: ListView = selected && views.some((v) => v.value === selected) ? selected : isView(first) ? first : "mine"
+  const pool = view === "pool"
 
   // 筛选 / 排序在前端处理，一次取满一页（接口上限 100）
-  const query = useCustomers({ view, page: 1, page_size: 100 })
+  const scoped = useCustomers({ view: pool ? "mine" : view, page: 1, page_size: 100 }, !pool)
+  const poolQuery = usePoolCustomers(pool)
+  const query = pool ? poolQuery : scoped
   const all = useMemo(() => query.data?.items ?? [], [query.data])
   const filters = useMemo(() => customerFilters(all), [all])
   const lv = useListView({
@@ -115,6 +123,12 @@ export default function CustomersPage() {
           empty={
             filtered ? (
               <EmptyState icon={Building2} title="没有符合筛选条件的客户" description="可以在上方清除筛选。" />
+            ) : pool ? (
+              <EmptyState
+                icon={Building2}
+                title="公海里没有客户"
+                description="负责人退回的客户会出现在这里，本团队的销售可以领取。"
+              />
             ) : (
               <EmptyState
                 icon={Building2}

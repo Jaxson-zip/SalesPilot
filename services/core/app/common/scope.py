@@ -1,5 +1,7 @@
 """数据范围过滤（开发规范 §1.3）：sales → owner_id；manager → team_id；admin → 不过滤。
 
+单条记录的可见性（can_see）另外放开本团队的公海记录（负责人为空，B5），列表仍按上面过滤。
+
 所有 service 的列表 / 详情查询都必须经过 apply_scope，接口和 Agent 工具共用。
 """
 
@@ -61,4 +63,6 @@ def can_see(obj: ScopedModel, user: CurrentUser) -> bool:
         return True
     if obj.owner_id == user.id:
         return True
+    if obj.owner_id is None and user.team_id is not None and obj.team_id == user.team_id:
+        return True  # 本团队公海（B5）：只读可见，领取后才能修改
     return user.role is Role.MANAGER and user.team_id is not None and obj.team_id == user.team_id

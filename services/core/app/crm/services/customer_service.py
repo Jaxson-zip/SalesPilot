@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
-from app.common.permissions import ensure_business_writer
+from app.common.permissions import ensure_business_writer, ensure_owner
 from app.common.scope import View, apply_scope, can_see, ensure_visible
 from app.crm.models import Customer, Followup, Opportunity, User
 from app.crm.schemas.common import Page, PageParams, UserBrief
@@ -18,6 +18,7 @@ from app.crm.schemas.customer import (
     CustomerDetail,
     CustomerListItem,
     CustomerSearchItem,
+    CustomerUpdate,
     SimilarCustomer,
 )
 from app.crm.services import activity_service
@@ -40,8 +41,10 @@ def _last_followup_subq() -> Any:
     )
 
 
-def build_list_query(user: CurrentUser, view: View | None, q: str | None) -> Select[Any]:
-    """列表查询（不含分页）：客户 + 负责人 + 商机金额合计 + 最近跟进时间，按数据范围过滤。"""
+def build_list_query(
+    user: CurrentUser, view: View | None, q: str | None, *, scoped: bool = True
+) -> Select[Any]:
+    """列表查询（不含分页）：客户 + 负责人 + 商机金额合计 + 最近跟进时间，默认按数据范围过滤。"""
     opp = _opportunity_amount_subq()
     fu = _last_followup_subq()
     stmt = (
@@ -58,7 +61,7 @@ def build_list_query(user: CurrentUser, view: View | None, q: str | None) -> Sel
     if q:
         pattern = f"%{q.strip()}%"
         stmt = stmt.where(or_(Customer.name.ilike(pattern), Customer.industry.ilike(pattern)))
-    return apply_scope(stmt, Customer, user, view)
+    return apply_scope(stmt, Customer, user, view) if scoped else stmt
 
 
 def _owner(customer: Customer, owner_name: str | None) -> UserBrief | None:
@@ -67,7 +70,7 @@ def _owner(customer: Customer, owner_name: str | None) -> UserBrief | None:
     return UserBrief(id=customer.owner_id, name=owner_name)
 
 
-def _to_item(row: Any) -> CustomerListItem:
+def to_list_item(row: Any) -> CustomerListItem:
     c: Customer = row.Customer
     return CustomerListItem(
         id=c.id,
@@ -84,7 +87,7 @@ def _to_item(row: Any) -> CustomerListItem:
 def _to_detail(row: Any) -> CustomerDetail:
     c: Customer = row.Customer
     return CustomerDetail(
-        **_to_item(row).model_dump(),
+        **to_list_item(row).model_dump(),
         size=c.size,
         address=c.address,
         annual_budget=c.annual_budget,
@@ -100,15 +103,15 @@ def list_customers(
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     stmt = base.order_by(Customer.created_at.desc()).offset(page.offset).limit(page.page_size)
     rows = db.execute(stmt).all()
-    return Page[CustomerListItem](items=[_to_item(r) for r in rows], total=total)
+    return Page[CustomerListItem](items=[to_list_item(r) for r in rows], total=total)
 
 
 def get_customer(db: Session, user: CurrentUser, customer_id: uuid.UUID) -> CustomerDetail:
-    stmt = build_list_query(user, View.ALL, None).where(Customer.id == customer_id)
+    # 不在查询里加范围：公海客户（负责人为空）本团队可见，统一由 ensure_visible 判断
+    stmt = build_list_query(user, None, None, scoped=False).where(Customer.id == customer_id)
     row = db.execute(stmt).first()
-    if row is None:
-        raise BizError(ErrorCode.NOT_FOUND, "客户不存在")
-    ensure_visible(row.Customer, user)
+    ensure_visible(row.Customer if row else None, user)
+    assert row is not None
     return _to_detail(row)
 
 
@@ -188,6 +191,44 @@ def find_similar(db: Session, user: CurrentUser, name: str) -> list[SimilarCusto
             )
         )
     return out
+
+
+_FIELD_LABELS = {
+    "name": "名称",
+    "industry": "行业",
+    "level": "等级",
+    "size": "规模",
+    "address": "地址",
+    "website": "网站",
+    "annual_budget": "年度预算",
+}
+
+
+def update_customer(
+    db: Session, user: CurrentUser, customer_id: uuid.UUID, data: CustomerUpdate
+) -> CustomerDetail:
+    """负责人修改客户字段（U10 行内编辑）；改名时同样按核心名查重（排除自己）。"""
+    customer = db.get(Customer, customer_id)
+    ensure_owner(customer, user)
+    assert customer is not None
+    changes = {
+        k: v
+        for k, v in data.model_dump(exclude_unset=True).items()
+        if not (v is None and k in {"name", "level"})  # 非空字段传 null 视为不修改
+    }
+    if "name" in changes:
+        changes["name"] = changes["name"].strip()
+        others = list(db.scalars(select(Customer.name).where(Customer.id != customer.id)))
+        same = [n for n, exact in similar_names(changes["name"], others) if exact]
+        if same:
+            raise BizError(ErrorCode.DUPLICATE, f"客户已存在：{same[0]}")
+    for key, value in changes.items():
+        setattr(customer, key, value)
+    if changes:
+        db.flush()
+        text = "修改了" + "、".join(_FIELD_LABELS.get(k, k) for k in changes)
+        activity_service.record(db, user, "customer", customer.id, "update", text, subject=customer)
+    return get_customer(db, user, customer.id)
 
 
 def _bigrams(text: str) -> set[str]:

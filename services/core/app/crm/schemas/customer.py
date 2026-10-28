@@ -41,6 +41,22 @@ class CustomerCreate(BaseModel):
     tags: list[str] = Field(default_factory=list, max_length=20)
 
 
+class CustomerUpdate(BaseModel):
+    """行内编辑（U10）：只修改传入的字段；name / level 传 null 视为不修改。"""
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    industry: str | None = Field(default=None, max_length=50)
+    level: Level | None = None
+    size: str | None = Field(default=None, max_length=50)
+    address: str | None = Field(default=None, max_length=200)
+    website: str | None = Field(default=None, max_length=200)
+    annual_budget: int | None = Field(default=None, ge=0)
+
+
+class PoolRelease(BaseModel):
+    reason: str = Field(min_length=1, max_length=200)
+
+
 class SimilarCustomer(BaseModel):
     """新建客户时的查重提示。看不到的客户只给名称和负责人，不给 id。"""
 

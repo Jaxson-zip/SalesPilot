@@ -79,6 +79,22 @@ export interface CustomerDetail {
   created_at: string
 }
 
+/** PATCH /api/customers/{id}（U10 行内编辑）：只修改传入的字段；annual_budget 单位：分 */
+export interface CustomerUpdate {
+  name?: string
+  industry?: string | null
+  level?: CustomerLevel
+  size?: string | null
+  address?: string | null
+  website?: string | null
+  annual_budget?: number | null
+}
+
+/** POST /api/customers/{id}/release：退回公海（B5） */
+export interface PoolRelease {
+  reason: string
+}
+
 /** GET /api/customers/similar：新建客户查重。看不到的客户 id 为 null，只给名称和负责人 */
 export interface SimilarCustomer {
   id: string | null

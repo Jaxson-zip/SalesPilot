@@ -133,6 +133,8 @@ const ACTIVITY_LABEL_BY_ACTION: Record<string, string> = {
   transfer: "转移了负责人",
   payment_plan: "调整了回款计划",
   contact_added: "添加了联系人",
+  pool_release: "退回了公海",
+  pool_claim: "从公海领取了客户",
   contact_updated: "更新了联系人",
   contact_removed: "删除了联系人",
   "followup.phone": "记录了电话跟进",

@@ -187,6 +187,130 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/pool:
+    get:
+      tags:
+      - customers
+      summary: List Pool
+      description: 客户公海（B5）：本团队负责人为空的客户。
+      operationId: list_pool_api_customers_pool_get
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Page_CustomerListItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/{customer_id}/release:
+    post:
+      tags:
+      - customers
+      summary: Release To Pool
+      description: 退回公海：负责人或本团队主管；有进行中的商机时 42201 has_open_opportunities。
+      operationId: release_to_pool_api_customers__customer_id__release_post
+      parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Customer Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PoolRelease'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_CustomerDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/{customer_id}/claim:
+    post:
+      tags:
+      - customers
+      summary: Claim From Pool
+      description: 从公海领取（仅销售，先到先得；已被领取 40901）。
+      operationId: claim_from_pool_api_customers__customer_id__claim_post
+      parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Customer Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_CustomerDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/customers/similar:
     get:
       tags:
@@ -246,6 +370,47 @@ paths:
           - type: string
           - type: 'null'
           title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_CustomerDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - customers
+      summary: Update Customer
+      description: 行内编辑（U10）：只有负责人能改；只修改传入的字段。
+      operationId: update_customer_api_customers__customer_id__patch
+      parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Customer Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerUpdate'
       responses:
         '200':
           description: Successful Response
@@ -4500,6 +4665,57 @@ components:
       - customer_ids
       - to_user_id
       title: CustomerTransfer
+    CustomerUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Name
+        industry:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Industry
+        level:
+          anyOf:
+          - type: string
+            enum:
+            - A
+            - B
+            - C
+          - type: 'null'
+          title: Level
+        size:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Size
+        address:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Address
+        website:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Website
+        annual_budget:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Annual Budget
+      type: object
+      title: CustomerUpdate
+      description: 行内编辑（U10）：只修改传入的字段；name / level 传 null 视为不修改。
     Dashboard:
       properties:
         won_amount_month:
@@ -6072,6 +6288,17 @@ components:
       - rule_ref
       - unit
       title: PolicyCheck
+    PoolRelease:
+      properties:
+        reason:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Reason
+      type: object
+      required:
+      - reason
+      title: PoolRelease
     ProductLineBrief:
       properties:
         id:

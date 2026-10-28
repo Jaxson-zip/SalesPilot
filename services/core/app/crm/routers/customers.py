@@ -14,6 +14,8 @@ from app.crm.schemas.customer import (
     CustomerCreate,
     CustomerDetail,
     CustomerListItem,
+    CustomerUpdate,
+    PoolRelease,
     SimilarCustomer,
 )
 from app.crm.schemas.dashboard import (
@@ -28,6 +30,7 @@ from app.crm.services import (
     contact_service,
     customer_service,
     followup_service,
+    pool_service,
     transfer_service,
 )
 
@@ -54,6 +57,33 @@ def transfer_customers(
     return ok(transfer_service.transfer_customers(db, user, body))
 
 
+@router.get("/pool", response_model=ApiResponse[Page[CustomerListItem]])
+def list_pool(
+    user: CurrentUserDep,
+    db: DbDep,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> ApiResponse[Page[CustomerListItem]]:
+    """客户公海（B5）：本团队负责人为空的客户。"""
+    return ok(pool_service.list_pool(db, user, PageParams(page=page, page_size=page_size)))
+
+
+@router.post("/{customer_id}/release", response_model=ApiResponse[CustomerDetail])
+def release_to_pool(
+    customer_id: uuid.UUID, body: PoolRelease, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[CustomerDetail]:
+    """退回公海：负责人或本团队主管；有进行中的商机时 42201 has_open_opportunities。"""
+    return ok(pool_service.release(db, user, customer_id, body.reason))
+
+
+@router.post("/{customer_id}/claim", response_model=ApiResponse[CustomerDetail])
+def claim_from_pool(
+    customer_id: uuid.UUID, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[CustomerDetail]:
+    """从公海领取（仅销售，先到先得；已被领取 40901）。"""
+    return ok(pool_service.claim(db, user, customer_id))
+
+
 @router.get("/similar", response_model=ApiResponse[list[SimilarCustomer]])
 def similar_customers(
     user: CurrentUserDep, db: DbDep, name: Annotated[str, Query(min_length=1, max_length=200)]
@@ -74,6 +104,14 @@ def create_customer(
     body: CustomerCreate, user: CurrentUserDep, db: DbDep
 ) -> ApiResponse[CustomerDetail]:
     return ok(customer_service.create_customer(db, user, body))
+
+
+@router.patch("/{customer_id}", response_model=ApiResponse[CustomerDetail])
+def update_customer(
+    customer_id: uuid.UUID, body: CustomerUpdate, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[CustomerDetail]:
+    """行内编辑（U10）：只有负责人能改；只修改传入的字段。"""
+    return ok(customer_service.update_customer(db, user, customer_id, body))
 
 
 @router.get("/{customer_id}/followups", response_model=ApiResponse[Page[FollowupItem]])

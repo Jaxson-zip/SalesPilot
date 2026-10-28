@@ -17,6 +17,14 @@ export const INDUSTRY_OPTIONS = [
 ] as const
 
 /** 规模区间（人） */
+/** 退回公海的常见原因（B5），点选后可补充 */
+export const POOL_RELEASE_REASONS = [
+  "长期联系不上",
+  "预算冻结，暂无采购计划",
+  "非目标客户",
+  "负责人离职 / 调岗",
+] as const
+
 export const SIZE_OPTIONS = ["1–49 人", "50–199 人", "200–499 人", "500–999 人", "1000 人以上"] as const
 
 export interface CustomerFormValues {

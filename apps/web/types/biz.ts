@@ -112,6 +112,15 @@ export interface OpportunityCreate {
   product_line_id?: string
 }
 
+/** PATCH /api/opportunities/{id}（U10 行内编辑）：只修改传入的字段 */
+export interface OpportunityUpdate {
+  name?: string
+  amount?: number
+  win_rate?: number
+  expected_close_date?: string | null
+  product_line_id?: string | null
+}
+
 export interface StageChange {
   stage: OpportunityStage
   lost_reason?: string

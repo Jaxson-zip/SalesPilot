@@ -14,6 +14,7 @@ import type {
   OpportunityDetail,
   OpportunityItem,
   OpportunityListParams,
+  OpportunityUpdate,
   Paged,
   PipelineSummary,
   StageChange,
@@ -83,6 +84,23 @@ export function useCreateOpportunity() {
     onSuccess: (opp) => {
       toast.success("商机已创建", { description: `${opp.name} · ${STAGE_META.lead.label}` })
       void invalidatePipeline(qc)
+    },
+    onError: notifyError,
+  })
+}
+
+/** PATCH /api/opportunities/{id}（U10 行内编辑） */
+export function useUpdateOpportunity(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: OpportunityUpdate) => api.patch<OpportunityItem>(`/api/opportunities/${id}`, body),
+    onSuccess: () => {
+      toast.success("已保存")
+      void Promise.all([
+        invalidatePipeline(qc),
+        qc.invalidateQueries({ queryKey: opportunityKeys.detail(id) }),
+        qc.invalidateQueries({ queryKey: ["customers"] }),
+      ])
     },
     onError: notifyError,
   })

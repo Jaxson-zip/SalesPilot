@@ -1,0 +1,505 @@
+{
+  "_recorded_at": "2026-10-27 22:34:11",
+  "_case": "chat_stream",
+  "response": {
+    "chunks": [
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "refusal": null,
+              "content": "",
+              "role": "assistant",
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "我是",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "通义千",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "问（Q",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "wen），阿里巴巴",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "集团旗下的超大规模语言模型",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "，能够回答问题、创作",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "文字（如写故事",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "、公文、邮件",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "、剧本等）、进行",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "逻辑推理、编程，还能",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "表达观点，支持",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "多语言，并能",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "根据上下文与",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "用户进行多轮互动",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "。",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "delta": {
+              "content": null,
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-f4e01e37-51cd-9d8a-8b50-588b450b6c85",
+        "created": 1793165649,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "content": null,
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "usage": {
+          "completion_tokens": 61,
+          "prompt_tokens": 12,
+          "total_tokens": 73,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": null,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": 61,
+            "image_tokens": null,
+            "video_tokens": null
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": null,
+            "cached_tokens": 0,
+            "text_tokens": null,
+            "image_tokens": null,
+            "video_tokens": null
+          }
+        }
+      }
+    ]
+  }
+}

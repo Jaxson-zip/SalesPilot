@@ -1,0 +1,176 @@
+{
+  "_recorded_at": "2026-10-27 22:34:19",
+  "_case": "tool_stream",
+  "response": {
+    "chunks": [
+      {
+        "id": "chatcmpl-827cdf03-1d31-9163-9bb2-469c622b0fb1",
+        "created": 1793165659,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "refusal": null,
+              "content": "",
+              "role": "assistant",
+              "function_call": null,
+              "tool_calls": [
+                {
+                  "id": "call_e279657b4be8401c818713",
+                  "function": {
+                    "arguments": "",
+                    "name": "get_weather"
+                  },
+                  "type": "function",
+                  "index": 0
+                }
+              ],
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-827cdf03-1d31-9163-9bb2-469c622b0fb1",
+        "created": 1793165659,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "",
+              "role": null,
+              "function_call": null,
+              "tool_calls": [
+                {
+                  "id": "",
+                  "function": {
+                    "arguments": "{\"city\": \"",
+                    "name": null
+                  },
+                  "type": "function",
+                  "index": 0
+                }
+              ],
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-827cdf03-1d31-9163-9bb2-469c622b0fb1",
+        "created": 1793165659,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "",
+              "role": null,
+              "function_call": null,
+              "tool_calls": [
+                {
+                  "id": "",
+                  "function": {
+                    "arguments": "北京\"}",
+                    "name": null
+                  },
+                  "type": "function",
+                  "index": 0
+                }
+              ],
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-827cdf03-1d31-9163-9bb2-469c622b0fb1",
+        "created": 1793165659,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": null,
+        "choices": [
+          {
+            "finish_reason": "tool_calls",
+            "index": 0,
+            "delta": {
+              "content": null,
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "chatcmpl-827cdf03-1d31-9163-9bb2-469c622b0fb1",
+        "created": 1793165659,
+        "model": "qwen-plus",
+        "object": "chat.completion.chunk",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "content": null,
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "usage": {
+          "completion_tokens": 19,
+          "prompt_tokens": 147,
+          "total_tokens": 166,
+          "completion_tokens_details": null,
+          "prompt_tokens_details": {
+            "audio_tokens": null,
+            "cached_tokens": 64,
+            "text_tokens": null,
+            "image_tokens": null,
+            "video_tokens": null
+          }
+        }
+      }
+    ]
+  }
+}

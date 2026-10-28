@@ -46,13 +46,20 @@ def test_summary_and_report() -> None:
 
 
 def test_qa_set_points_to_existing_documents() -> None:
-    """评测集里期望的文档都真实存在，且至少 15 题、包含无答案题。"""
+    """评测集里期望的文档和章节都真实存在，且至少 15 题、包含无答案题。
+
+    回归：曾把「4.3」写成期望章节，但原文 4.3 是编号段落、不是标题，任何块的章节都不可能包含它，
+    这道题永远判错，评测把标注错误算成了检索错误。
+    """
     cases = load_cases()
     assert len(cases) >= 15 and sum(c.no_answer for c in cases) >= 3
-    docs = {c.doc_name for scope in ("company", "pack:llm_deploy") for c in load_chunks(scope)}
+    chunks = [c for scope in ("company", "pack:llm_deploy") for c in load_chunks(scope)]
     for case in cases:
-        if not case.no_answer:
-            assert case.doc in docs, case.q
+        if case.no_answer:
+            continue
+        sections = [c.section or "" for c in chunks if c.doc_name == case.doc]
+        assert sections, f"文档不存在：{case.q}"
+        assert case.section is None or any(case.section in s for s in sections), case.q
 
 
 def test_auto_ingest_decision() -> None:

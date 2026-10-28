@@ -1,0 +1,49 @@
+{
+  "_recorded_at": "2026-10-27 22:34:13",
+  "_case": "tool_single",
+  "response": {
+    "id": "chatcmpl-d848ac76-8db3-9136-9f95-6846413ee6ff",
+    "created": 1793165650,
+    "model": "qwen-plus",
+    "object": "chat.completion",
+    "system_fingerprint": null,
+    "choices": [
+      {
+        "finish_reason": "tool_calls",
+        "index": 0,
+        "message": {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "index": 0,
+              "function": {
+                "arguments": "{\"city\": \"北京\"}",
+                "name": "get_weather"
+              },
+              "id": "call_a4df76b5b27f44c5927016",
+              "type": "function"
+            }
+          ],
+          "function_call": null,
+          "provider_specific_fields": {
+            "refusal": null
+          }
+        },
+        "provider_specific_fields": {}
+      }
+    ],
+    "usage": {
+      "completion_tokens": 19,
+      "prompt_tokens": 147,
+      "total_tokens": 166,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cached_tokens": 0
+      }
+    },
+    "moderation": null,
+    "service_tier": null
+  }
+}

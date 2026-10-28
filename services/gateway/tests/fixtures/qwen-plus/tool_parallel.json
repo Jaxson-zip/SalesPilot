@@ -1,0 +1,58 @@
+{
+  "_recorded_at": "2026-10-27 22:34:16",
+  "_case": "tool_parallel",
+  "response": {
+    "id": "chatcmpl-70b972e1-0255-9a74-a5f9-9f634ddac690",
+    "created": 1793165652,
+    "model": "qwen-plus",
+    "object": "chat.completion",
+    "system_fingerprint": null,
+    "choices": [
+      {
+        "finish_reason": "tool_calls",
+        "index": 0,
+        "message": {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "index": 0,
+              "function": {
+                "arguments": "{\"city\": \"北京\"}",
+                "name": "get_weather"
+              },
+              "id": "call_a2e06b9d8ad04d58a16c3a",
+              "type": "function"
+            },
+            {
+              "index": 1,
+              "function": {
+                "arguments": "{\"city\": \"上海\"}",
+                "name": "get_weather"
+              },
+              "id": "call_92d5b4cbbd064a2098d573",
+              "type": "function"
+            }
+          ],
+          "function_call": null,
+          "provider_specific_fields": {
+            "refusal": null
+          }
+        },
+        "provider_specific_fields": {}
+      }
+    ],
+    "usage": {
+      "completion_tokens": 39,
+      "prompt_tokens": 150,
+      "total_tokens": 189,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cached_tokens": 64
+      }
+    },
+    "moderation": null,
+    "service_tier": null
+  }
+}

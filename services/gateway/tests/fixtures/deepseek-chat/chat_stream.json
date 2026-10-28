@@ -1,11 +1,11 @@
 {
-  "_recorded_at": "2026-10-27 20:38:29",
+  "_recorded_at": "2026-10-27 22:33:49",
   "_case": "chat_stream",
   "response": {
     "chunks": [
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -30,8 +30,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -57,8 +57,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -84,8 +84,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -111,8 +111,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -138,8 +138,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -165,8 +165,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -192,8 +192,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -219,8 +219,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -246,8 +246,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -273,8 +273,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -300,8 +300,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -327,8 +327,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -354,8 +354,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -381,8 +381,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -408,8 +408,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -435,8 +435,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -462,8 +462,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -489,8 +489,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -516,8 +516,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -543,8 +543,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -555,7 +555,7 @@
             "delta": {
               "provider_specific_fields": null,
               "refusal": null,
-              "content": "帮你",
+              "content": "帮助你",
               "role": null,
               "function_call": null,
               "tool_calls": null,
@@ -570,8 +570,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -582,7 +582,7 @@
             "delta": {
               "provider_specific_fields": null,
               "refusal": null,
-              "content": "解答",
+              "content": "探索",
               "role": null,
               "function_call": null,
               "tool_calls": null,
@@ -597,8 +597,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -609,7 +609,7 @@
             "delta": {
               "provider_specific_fields": null,
               "refusal": null,
-              "content": "问题",
+              "content": "信息",
               "role": null,
               "function_call": null,
               "tool_calls": null,
@@ -624,8 +624,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -651,8 +651,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -663,7 +663,7 @@
             "delta": {
               "provider_specific_fields": null,
               "refusal": null,
-              "content": "处理",
+              "content": "解决问题",
               "role": null,
               "function_call": null,
               "tool_calls": null,
@@ -678,8 +678,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -690,7 +690,7 @@
             "delta": {
               "provider_specific_fields": null,
               "refusal": null,
-              "content": "任务",
+              "content": "！",
               "role": null,
               "function_call": null,
               "tool_calls": null,
@@ -705,278 +705,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
-        "model": "deepseek-chat",
-        "object": "chat.completion.chunk",
-        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
-        "choices": [
-          {
-            "finish_reason": null,
-            "index": 0,
-            "delta": {
-              "provider_specific_fields": null,
-              "refusal": null,
-              "content": "，",
-              "role": null,
-              "function_call": null,
-              "tool_calls": null,
-              "audio": null
-            },
-            "logprobs": null
-          }
-        ],
-        "provider_specific_fields": null,
-        "citations": null,
-        "moderation": null,
-        "service_tier": null
-      },
-      {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
-        "model": "deepseek-chat",
-        "object": "chat.completion.chunk",
-        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
-        "choices": [
-          {
-            "finish_reason": null,
-            "index": 0,
-            "delta": {
-              "provider_specific_fields": null,
-              "refusal": null,
-              "content": "让",
-              "role": null,
-              "function_call": null,
-              "tool_calls": null,
-              "audio": null
-            },
-            "logprobs": null
-          }
-        ],
-        "provider_specific_fields": null,
-        "citations": null,
-        "moderation": null,
-        "service_tier": null
-      },
-      {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
-        "model": "deepseek-chat",
-        "object": "chat.completion.chunk",
-        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
-        "choices": [
-          {
-            "finish_reason": null,
-            "index": 0,
-            "delta": {
-              "provider_specific_fields": null,
-              "refusal": null,
-              "content": "每一次",
-              "role": null,
-              "function_call": null,
-              "tool_calls": null,
-              "audio": null
-            },
-            "logprobs": null
-          }
-        ],
-        "provider_specific_fields": null,
-        "citations": null,
-        "moderation": null,
-        "service_tier": null
-      },
-      {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
-        "model": "deepseek-chat",
-        "object": "chat.completion.chunk",
-        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
-        "choices": [
-          {
-            "finish_reason": null,
-            "index": 0,
-            "delta": {
-              "provider_specific_fields": null,
-              "refusal": null,
-              "content": "交流",
-              "role": null,
-              "function_call": null,
-              "tool_calls": null,
-              "audio": null
-            },
-            "logprobs": null
-          }
-        ],
-        "provider_specific_fields": null,
-        "citations": null,
-        "moderation": null,
-        "service_tier": null
-      },
-      {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
-        "model": "deepseek-chat",
-        "object": "chat.completion.chunk",
-        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
-        "choices": [
-          {
-            "finish_reason": null,
-            "index": 0,
-            "delta": {
-              "provider_specific_fields": null,
-              "refusal": null,
-              "content": "都",
-              "role": null,
-              "function_call": null,
-              "tool_calls": null,
-              "audio": null
-            },
-            "logprobs": null
-          }
-        ],
-        "provider_specific_fields": null,
-        "citations": null,
-        "moderation": null,
-        "service_tier": null
-      },
-      {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
-        "model": "deepseek-chat",
-        "object": "chat.completion.chunk",
-        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
-        "choices": [
-          {
-            "finish_reason": null,
-            "index": 0,
-            "delta": {
-              "provider_specific_fields": null,
-              "refusal": null,
-              "content": "变得",
-              "role": null,
-              "function_call": null,
-              "tool_calls": null,
-              "audio": null
-            },
-            "logprobs": null
-          }
-        ],
-        "provider_specific_fields": null,
-        "citations": null,
-        "moderation": null,
-        "service_tier": null
-      },
-      {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
-        "model": "deepseek-chat",
-        "object": "chat.completion.chunk",
-        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
-        "choices": [
-          {
-            "finish_reason": null,
-            "index": 0,
-            "delta": {
-              "provider_specific_fields": null,
-              "refusal": null,
-              "content": "温暖",
-              "role": null,
-              "function_call": null,
-              "tool_calls": null,
-              "audio": null
-            },
-            "logprobs": null
-          }
-        ],
-        "provider_specific_fields": null,
-        "citations": null,
-        "moderation": null,
-        "service_tier": null
-      },
-      {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
-        "model": "deepseek-chat",
-        "object": "chat.completion.chunk",
-        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
-        "choices": [
-          {
-            "finish_reason": null,
-            "index": 0,
-            "delta": {
-              "provider_specific_fields": null,
-              "refusal": null,
-              "content": "而有",
-              "role": null,
-              "function_call": null,
-              "tool_calls": null,
-              "audio": null
-            },
-            "logprobs": null
-          }
-        ],
-        "provider_specific_fields": null,
-        "citations": null,
-        "moderation": null,
-        "service_tier": null
-      },
-      {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
-        "model": "deepseek-chat",
-        "object": "chat.completion.chunk",
-        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
-        "choices": [
-          {
-            "finish_reason": null,
-            "index": 0,
-            "delta": {
-              "provider_specific_fields": null,
-              "refusal": null,
-              "content": "价值",
-              "role": null,
-              "function_call": null,
-              "tool_calls": null,
-              "audio": null
-            },
-            "logprobs": null
-          }
-        ],
-        "provider_specific_fields": null,
-        "citations": null,
-        "moderation": null,
-        "service_tier": null
-      },
-      {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
-        "model": "deepseek-chat",
-        "object": "chat.completion.chunk",
-        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
-        "choices": [
-          {
-            "finish_reason": null,
-            "index": 0,
-            "delta": {
-              "provider_specific_fields": null,
-              "refusal": null,
-              "content": "。",
-              "role": null,
-              "function_call": null,
-              "tool_calls": null,
-              "audio": null
-            },
-            "logprobs": null
-          }
-        ],
-        "provider_specific_fields": null,
-        "citations": null,
-        "moderation": null,
-        "service_tier": null
-      },
-      {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -999,8 +729,8 @@
         "service_tier": null
       },
       {
-        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
-        "created": 1793158708,
+        "id": "2b231d69-0537-40f1-8f39-e761b80bba86",
+        "created": 1793165629,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -1020,15 +750,15 @@
         ],
         "provider_specific_fields": null,
         "usage": {
-          "completion_tokens": 35,
+          "completion_tokens": 25,
           "prompt_tokens": 8,
-          "total_tokens": 43,
+          "total_tokens": 33,
           "completion_tokens_details": {
             "accepted_prediction_tokens": null,
             "audio_tokens": null,
             "reasoning_tokens": 0,
             "rejected_prediction_tokens": null,
-            "text_tokens": 35,
+            "text_tokens": 25,
             "image_tokens": null,
             "video_tokens": null
           },

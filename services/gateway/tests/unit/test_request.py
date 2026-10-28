@@ -190,3 +190,18 @@ def test_simplify_schema_handles_nested_and_oneof() -> None:
         "type": "array",
         "items": {"type": "object", "properties": {"default": {"type": "string"}}},
     }
+
+
+def test_context_overflow_rejected_locally() -> None:
+    """回归：通义收到 2 倍窗口的输入时一直不返回，30 秒后网关超时 504；现在本地直接拦截。"""
+    caps = Capabilities(max_context=1000)
+    with pytest.raises(GatewayError) as err:
+        normalize_request({"messages": [{"role": "user", "content": "字" * 2000}]}, caps)
+    assert err.value.status == 400 and err.value.code == "context_length_exceeded"
+
+
+def test_context_estimate_has_margin_and_unknown_window_passes() -> None:
+    """估算偏粗：略超窗口（125% 以内）的请求照常发给上游；没写 max_context 的模型不检查。"""
+    near = {"messages": [{"role": "user", "content": "字" * 1100}]}
+    normalize_request(near, Capabilities(max_context=1000))
+    normalize_request({"messages": [{"role": "user", "content": "字" * 99999}]}, Capabilities())

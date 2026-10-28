@@ -7,12 +7,15 @@ import json
 import re
 from typing import Any
 
-from app.compat.errors import invalid_param
+from app.compat.errors import context_exceeded, invalid_param
+from app.compat.stream import estimate_prompt_tokens
 from app.registry import Capabilities
 
 TOOL_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 REQUIRED_TOOL_HINT = "你必须调用至少一个提供的工具来完成本次回答，不要直接用文字回答。"
 JSON_HINT = "请只输出一个合法的 JSON 对象，不要输出 Markdown 代码块或任何多余文字。"
+# 估算偏粗（中日韩 1 字 / token，其余 4 字符 / token），超过 max_context 的 125% 才在本地拦截，避免误拒
+CONTEXT_MARGIN = 1.25
 _UNSUPPORTED_SCHEMA_KEYS = ("default", "examples", "$schema", "$id", "title", "format", "pattern")
 
 Downgrades = list[str]
@@ -27,7 +30,21 @@ def normalize_request(body: dict[str, Any], caps: Capabilities) -> tuple[dict[st
     _map_param_names(req, caps, downgrades)
     _normalize_tools(req, caps, downgrades)
     req["messages"] = normalize_messages(req.get("messages") or [], caps, hints, downgrades)
+    check_context(req["messages"], caps)
     return req, downgrades
+
+
+def check_context(messages: list[dict[str, Any]], caps: Capabilities) -> None:
+    """明显超出上下文窗口时直接返回 context_length_exceeded，不发给上游。
+
+    各家对超长的反应不同：有的报错、有的悄悄截断、有的一直不返回直到网关超时（实测通义 30 秒 504）。
+    在网关统一拦截，调用方拿到的错误码一致；分组里会切到窗口更大的模型。
+    """
+    if not caps.max_context:
+        return
+    tokens = estimate_prompt_tokens(messages)
+    if tokens > caps.max_context * CONTEXT_MARGIN:
+        raise context_exceeded(f"输入约 {tokens} token，超过模型上下文窗口 {caps.max_context}")
 
 
 # ---------- #1 参数不被支持 ----------

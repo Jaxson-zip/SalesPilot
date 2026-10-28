@@ -1,9 +1,9 @@
 {
-  "_recorded_at": "2026-10-27 20:38:42",
+  "_recorded_at": "2026-10-27 22:34:01",
   "_case": "json_output",
   "response": {
-    "id": "c5982fb3-32c9-4bf5-957f-05709e2da4e3",
-    "created": 1793158720,
+    "id": "7c0d4705-ddb3-4830-8db2-3d97ed8dab94",
+    "created": 1793165637,
     "model": "deepseek-flash",
     "object": "chat.completion",
     "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",

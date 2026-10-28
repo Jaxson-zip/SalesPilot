@@ -1,9 +1,9 @@
 {
-  "_recorded_at": "2026-10-27 20:38:36",
+  "_recorded_at": "2026-10-27 22:33:55",
   "_case": "tool_parallel",
   "response": {
-    "id": "70ac29d3-d5e8-4286-94d1-187f4f18d579",
-    "created": 1793158714,
+    "id": "0fe82f90-6b95-404e-987f-ce99e2dcbe9b",
+    "created": 1793165632,
     "model": "deepseek-flash",
     "object": "chat.completion",
     "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -12,7 +12,7 @@
         "finish_reason": "tool_calls",
         "index": 0,
         "message": {
-          "content": "",
+          "content": "我来帮您同时查询北京和上海的天气。",
           "role": "assistant",
           "tool_calls": [
             {
@@ -21,7 +21,7 @@
                 "arguments": "{\"city\": \"北京\"}",
                 "name": "get_weather"
               },
-              "id": "call_00_QRk4RC0TI3jpmKQPR3q61462",
+              "id": "call_00_Gxs2890HpYH8ls4NqSeK0845",
               "type": "function"
             },
             {
@@ -30,7 +30,7 @@
                 "arguments": "{\"city\": \"上海\"}",
                 "name": "get_weather"
               },
-              "id": "call_01_AKpKxw6dJTMbfBRRIyHC2421",
+              "id": "call_01_jkl1bDwEvvvR9AqxsOfY5027",
               "type": "function"
             }
           ],
@@ -43,9 +43,9 @@
       }
     ],
     "usage": {
-      "completion_tokens": 67,
+      "completion_tokens": 76,
       "prompt_tokens": 268,
-      "total_tokens": 335,
+      "total_tokens": 344,
       "completion_tokens_details": null,
       "prompt_tokens_details": {
         "audio_tokens": null,

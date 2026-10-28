@@ -1,0 +1,39 @@
+{
+  "_recorded_at": "2026-10-27 22:34:32",
+  "_case": "group_failover",
+  "response": {
+    "id": "chatcmpl-daa847b2-2f8e-9229-89de-d53888efa1e5",
+    "created": 1793165669,
+    "model": "qwen-plus",
+    "object": "chat.completion",
+    "system_fingerprint": null,
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "content": "Hi there! 😊 How can I help you today?",
+          "role": "assistant",
+          "tool_calls": null,
+          "function_call": null,
+          "provider_specific_fields": {
+            "refusal": null
+          }
+        },
+        "provider_specific_fields": {}
+      }
+    ],
+    "usage": {
+      "completion_tokens": 12,
+      "prompt_tokens": 9,
+      "total_tokens": 21,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cached_tokens": 0
+      }
+    },
+    "moderation": null,
+    "service_tier": null
+  }
+}

@@ -1,9 +1,9 @@
 {
-  "_recorded_at": "2026-10-27 20:38:34",
+  "_recorded_at": "2026-10-27 22:33:53",
   "_case": "tool_single",
   "response": {
-    "id": "b1b9aebf-bbc9-4c3d-ab5c-88a07c991c14",
-    "created": 1793158711,
+    "id": "ec4ab7a7-67bc-4299-9777-6cd2d5c3a958",
+    "created": 1793165630,
     "model": "deepseek-flash",
     "object": "chat.completion",
     "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -21,7 +21,7 @@
                 "arguments": "{\"city\": \"北京\"}",
                 "name": "get_weather"
               },
-              "id": "call_00_IyFWTAADrqg2P2jmvGzV3468",
+              "id": "call_00_y8lmukvgUuDyEujnrml43567",
               "type": "function"
             }
           ],

@@ -1,11 +1,11 @@
 {
-  "_recorded_at": "2026-10-27 20:38:38",
+  "_recorded_at": "2026-10-27 22:33:57",
   "_case": "tool_stream",
   "response": {
     "chunks": [
       {
-        "id": "c17f606b-0671-40c3-a8f1-025ac901e602",
-        "created": 1793158718,
+        "id": "b3a9a679-ca74-499e-91e9-f9fd4e6599ac",
+        "created": 1793165637,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -30,8 +30,8 @@
         "service_tier": null
       },
       {
-        "id": "c17f606b-0671-40c3-a8f1-025ac901e602",
-        "created": 1793158718,
+        "id": "b3a9a679-ca74-499e-91e9-f9fd4e6599ac",
+        "created": 1793165637,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -47,7 +47,7 @@
               "function_call": null,
               "tool_calls": [
                 {
-                  "id": "call_00_MQVdfWfrAGim61ce2Xt11865",
+                  "id": "call_00_I7FPUcosSxTbuBNoo0fh3663",
                   "function": {
                     "arguments": "",
                     "name": "get_weather"
@@ -67,8 +67,8 @@
         "service_tier": null
       },
       {
-        "id": "c17f606b-0671-40c3-a8f1-025ac901e602",
-        "created": 1793158718,
+        "id": "b3a9a679-ca74-499e-91e9-f9fd4e6599ac",
+        "created": 1793165637,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -104,8 +104,8 @@
         "service_tier": null
       },
       {
-        "id": "c17f606b-0671-40c3-a8f1-025ac901e602",
-        "created": 1793158718,
+        "id": "b3a9a679-ca74-499e-91e9-f9fd4e6599ac",
+        "created": 1793165637,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -141,8 +141,8 @@
         "service_tier": null
       },
       {
-        "id": "c17f606b-0671-40c3-a8f1-025ac901e602",
-        "created": 1793158718,
+        "id": "b3a9a679-ca74-499e-91e9-f9fd4e6599ac",
+        "created": 1793165637,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -178,8 +178,8 @@
         "service_tier": null
       },
       {
-        "id": "c17f606b-0671-40c3-a8f1-025ac901e602",
-        "created": 1793158718,
+        "id": "b3a9a679-ca74-499e-91e9-f9fd4e6599ac",
+        "created": 1793165637,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -215,8 +215,8 @@
         "service_tier": null
       },
       {
-        "id": "c17f606b-0671-40c3-a8f1-025ac901e602",
-        "created": 1793158718,
+        "id": "b3a9a679-ca74-499e-91e9-f9fd4e6599ac",
+        "created": 1793165637,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -252,8 +252,8 @@
         "service_tier": null
       },
       {
-        "id": "c17f606b-0671-40c3-a8f1-025ac901e602",
-        "created": 1793158718,
+        "id": "b3a9a679-ca74-499e-91e9-f9fd4e6599ac",
+        "created": 1793165637,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -289,8 +289,8 @@
         "service_tier": null
       },
       {
-        "id": "c17f606b-0671-40c3-a8f1-025ac901e602",
-        "created": 1793158718,
+        "id": "b3a9a679-ca74-499e-91e9-f9fd4e6599ac",
+        "created": 1793165637,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -326,8 +326,8 @@
         "service_tier": null
       },
       {
-        "id": "c17f606b-0671-40c3-a8f1-025ac901e602",
-        "created": 1793158718,
+        "id": "b3a9a679-ca74-499e-91e9-f9fd4e6599ac",
+        "created": 1793165637,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -363,8 +363,8 @@
         "service_tier": null
       },
       {
-        "id": "c17f606b-0671-40c3-a8f1-025ac901e602",
-        "created": 1793158718,
+        "id": "b3a9a679-ca74-499e-91e9-f9fd4e6599ac",
+        "created": 1793165637,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -400,8 +400,8 @@
         "service_tier": null
       },
       {
-        "id": "c17f606b-0671-40c3-a8f1-025ac901e602",
-        "created": 1793158718,
+        "id": "b3a9a679-ca74-499e-91e9-f9fd4e6599ac",
+        "created": 1793165637,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -424,8 +424,8 @@
         "service_tier": null
       },
       {
-        "id": "c17f606b-0671-40c3-a8f1-025ac901e602",
-        "created": 1793158718,
+        "id": "b3a9a679-ca74-499e-91e9-f9fd4e6599ac",
+        "created": 1793165637,
         "model": "deepseek-chat",
         "object": "chat.completion.chunk",
         "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",

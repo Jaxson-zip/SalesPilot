@@ -54,6 +54,10 @@ def invalid_param(message: str, param: str | None = None) -> GatewayError:
     return GatewayError(400, CODE_INVALID_PARAM, message, "invalid_request_error", "invalid_param", param)
 
 
+def context_exceeded(message: str) -> GatewayError:
+    return GatewayError(400, CODE_INVALID_PARAM, message, "invalid_request_error", "context_length_exceeded")
+
+
 def capability_mismatch(message: str) -> GatewayError:
     return GatewayError(
         400, CODE_CAPABILITY_MISMATCH, message, "invalid_request_error", "capability_mismatch"

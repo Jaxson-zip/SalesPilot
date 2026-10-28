@@ -1,9 +1,9 @@
 {
-  "_recorded_at": "2026-10-27 20:39:14",
+  "_recorded_at": "2026-10-27 22:34:05",
   "_case": "group_failover",
   "response": {
-    "id": "99d59cbf-50eb-4a82-b516-d52181a15b5d",
-    "created": 1793158750,
+    "id": "803ab9df-4a4b-40d9-a0ee-82aa26167922",
+    "created": 1793165642,
     "model": "deepseek-flash",
     "object": "chat.completion",
     "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
@@ -12,7 +12,7 @@
         "finish_reason": "stop",
         "index": 0,
         "message": {
-          "content": "Hello! How can I help you today?",
+          "content": "Hi! How can I help you today?",
           "role": "assistant",
           "tool_calls": null,
           "function_call": null,

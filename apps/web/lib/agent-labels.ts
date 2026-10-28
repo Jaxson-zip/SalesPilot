@@ -36,7 +36,7 @@ export function actionTitle(action: string): string {
 
 /** 模型选择（pill Select）。value 对应网关 models.yaml 的别名 / 分组名 */
 export const MODEL_OPTIONS: { value: string; label: string }[] = [
-  { value: "chat-agent", label: "自动（失败切换）" },
+  { value: "chat-agent", label: "自动" },
   { value: "hunyuan-turbo", label: "混元" },
   { value: "deepseek-chat", label: "DeepSeek" },
   { value: "qwen-plus", label: "Qwen" },

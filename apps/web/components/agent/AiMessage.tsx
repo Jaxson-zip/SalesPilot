@@ -1,9 +1,8 @@
 "use client"
 
 import { CircleAlert, RotateCcw, Sparkles } from "lucide-react"
-import ReactMarkdown from "react-markdown"
-
 import { ArtifactView } from "@/components/agent/ArtifactView"
+import { ChatMarkdown } from "@/components/agent/ChatMarkdown"
 import { ConfirmCard } from "@/components/agent/ConfirmCard"
 import { MsgActions } from "@/components/agent/MsgActions"
 import { ThinkBlock } from "@/components/agent/ThinkBlock"
@@ -80,7 +79,7 @@ export function AiMessage({
         ) : null}
         {turn.text ? (
           <div className={cn("prose-chat break-words", showCaret && "[&>*:last-child]:caret")}>
-            <ReactMarkdown>{turn.text}</ReactMarkdown>
+            <ChatMarkdown text={turn.text} />
           </div>
         ) : null}
         {turn.artifacts.map((a) => (

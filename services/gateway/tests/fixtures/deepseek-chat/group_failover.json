@@ -1,0 +1,41 @@
+{
+  "_recorded_at": "2026-10-27 20:39:14",
+  "_case": "group_failover",
+  "response": {
+    "id": "99d59cbf-50eb-4a82-b516-d52181a15b5d",
+    "created": 1793158750,
+    "model": "deepseek-flash",
+    "object": "chat.completion",
+    "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "content": "Hello! How can I help you today?",
+          "role": "assistant",
+          "tool_calls": null,
+          "function_call": null,
+          "provider_specific_fields": {
+            "refusal": null
+          }
+        },
+        "provider_specific_fields": {}
+      }
+    ],
+    "usage": {
+      "completion_tokens": 9,
+      "prompt_tokens": 5,
+      "total_tokens": 14,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cached_tokens": 0
+      },
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 5
+    },
+    "moderation": null,
+    "service_tier": null
+  }
+}

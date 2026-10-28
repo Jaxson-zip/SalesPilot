@@ -32,3 +32,21 @@ async def test_litellm_mock_response_through_router() -> None:
     text = "".join(e["choices"][0]["delta"].get("content", "") for e in events[:-1])
     assert text == "hello world"
     assert events[-2]["choices"][0]["finish_reason"] == "stop" and "usage" in events[-2]
+
+
+async def test_request_with_tools_does_not_need_extra_install() -> None:
+    """回归：litellm 1.106 遇到带 tools 的请求会导入 MCP 模块，没装 mcp 包时所有工具调用都返回 502。
+
+    依赖里写成 litellm[mcp]；这里走真实 litellm（mock_response），没有 Key 也能发现缺包。
+    """
+    registry = make_registry()
+    router = GatewayRouter(registry, LiteLLMBackend(registry, 5))
+    tool = {"type": "function", "function": {"name": "f", "parameters": {"type": "object", "properties": {}}}}
+    body: dict[str, Any] = {
+        "model": "g-chat",
+        "messages": [{"role": "user", "content": "hi"}],
+        "tools": [tool],
+        "mock_response": "ok",
+    }
+    resp = await router.complete(body, CallLog("r", "chat", "g-chat"))
+    assert resp["choices"][0]["message"]["content"] == "ok"

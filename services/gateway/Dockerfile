@@ -14,6 +14,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # 先装依赖（利用缓存），只装运行依赖
+# 国内网络下载 PyPI 容易超时：放宽超时、降低并发（只在构建时生效）
+ARG UV_HTTP_TIMEOUT=300
+ARG UV_CONCURRENT_DOWNLOADS=4
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 

@@ -1,0 +1,60 @@
+{
+  "_recorded_at": "2026-10-27 20:38:36",
+  "_case": "tool_parallel",
+  "response": {
+    "id": "70ac29d3-d5e8-4286-94d1-187f4f18d579",
+    "created": 1793158714,
+    "model": "deepseek-flash",
+    "object": "chat.completion",
+    "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+    "choices": [
+      {
+        "finish_reason": "tool_calls",
+        "index": 0,
+        "message": {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "index": 0,
+              "function": {
+                "arguments": "{\"city\": \"北京\"}",
+                "name": "get_weather"
+              },
+              "id": "call_00_QRk4RC0TI3jpmKQPR3q61462",
+              "type": "function"
+            },
+            {
+              "index": 1,
+              "function": {
+                "arguments": "{\"city\": \"上海\"}",
+                "name": "get_weather"
+              },
+              "id": "call_01_AKpKxw6dJTMbfBRRIyHC2421",
+              "type": "function"
+            }
+          ],
+          "function_call": null,
+          "provider_specific_fields": {
+            "refusal": null
+          }
+        },
+        "provider_specific_fields": {}
+      }
+    ],
+    "usage": {
+      "completion_tokens": 67,
+      "prompt_tokens": 268,
+      "total_tokens": 335,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cached_tokens": 128
+      },
+      "prompt_cache_hit_tokens": 128,
+      "prompt_cache_miss_tokens": 140
+    },
+    "moderation": null,
+    "service_tier": null
+  }
+}

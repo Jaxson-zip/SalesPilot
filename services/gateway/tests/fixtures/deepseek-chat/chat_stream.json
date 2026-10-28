@@ -1,0 +1,1046 @@
+{
+  "_recorded_at": "2026-10-27 20:38:29",
+  "_case": "chat_stream",
+  "response": {
+    "chunks": [
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "refusal": null,
+              "content": "",
+              "role": "assistant",
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "我是",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "Deep",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "Se",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "ek",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "，",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "由",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "深度",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "求",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "索",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "公司",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "创造的",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "AI",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "助手",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "，",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "致力于",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "用",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "热情",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "细腻",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "的方式",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "帮你",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "解答",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "问题",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "、",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "处理",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "任务",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "，",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "让",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "每一次",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "交流",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "都",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "变得",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "温暖",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "而有",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "价值",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "provider_specific_fields": null,
+              "refusal": null,
+              "content": "。",
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "citations": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "delta": {
+              "content": null,
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "moderation": null,
+        "service_tier": null
+      },
+      {
+        "id": "f632037d-e377-4917-b426-63b9c77e5a7c",
+        "created": 1793158708,
+        "model": "deepseek-chat",
+        "object": "chat.completion.chunk",
+        "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+        "choices": [
+          {
+            "finish_reason": null,
+            "index": 0,
+            "delta": {
+              "content": null,
+              "role": null,
+              "function_call": null,
+              "tool_calls": null,
+              "audio": null
+            },
+            "logprobs": null
+          }
+        ],
+        "provider_specific_fields": null,
+        "usage": {
+          "completion_tokens": 35,
+          "prompt_tokens": 8,
+          "total_tokens": 43,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": null,
+            "audio_tokens": null,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": null,
+            "text_tokens": 35,
+            "image_tokens": null,
+            "video_tokens": null
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": null,
+            "cached_tokens": 0,
+            "text_tokens": null,
+            "image_tokens": null,
+            "video_tokens": null
+          }
+        }
+      }
+    ]
+  }
+}

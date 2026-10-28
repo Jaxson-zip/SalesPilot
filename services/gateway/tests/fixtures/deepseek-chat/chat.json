@@ -1,0 +1,41 @@
+{
+  "_recorded_at": "2026-10-27 20:38:26",
+  "_case": "chat",
+  "response": {
+    "id": "e82cd425-dc5c-4afb-a40f-4549acb9085f",
+    "created": 1793158704,
+    "model": "deepseek-flash",
+    "object": "chat.completion",
+    "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "content": "你好",
+          "role": "assistant",
+          "tool_calls": null,
+          "function_call": null,
+          "provider_specific_fields": {
+            "refusal": null
+          }
+        },
+        "provider_specific_fields": {}
+      }
+    ],
+    "usage": {
+      "completion_tokens": 1,
+      "prompt_tokens": 9,
+      "total_tokens": 10,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cached_tokens": 0
+      },
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 9
+    },
+    "moderation": null,
+    "service_tier": null
+  }
+}

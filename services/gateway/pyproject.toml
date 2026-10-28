@@ -6,7 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi",
     "uvicorn[standard]",
-    "litellm==1.106.4",
+    "litellm[mcp]==1.106.4",   # 带 tools 的请求会导入 MCP 模块，缺了 mcp 包所有工具调用都会失败
     "pydantic>=2",
     "pydantic-settings",
     "python-dotenv",

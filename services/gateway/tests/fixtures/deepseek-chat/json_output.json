@@ -1,0 +1,41 @@
+{
+  "_recorded_at": "2026-10-27 20:38:42",
+  "_case": "json_output",
+  "response": {
+    "id": "c5982fb3-32c9-4bf5-957f-05709e2da4e3",
+    "created": 1793158720,
+    "model": "deepseek-flash",
+    "object": "chat.completion",
+    "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "content": "{\"ok\": true}",
+          "role": "assistant",
+          "tool_calls": null,
+          "function_call": null,
+          "provider_specific_fields": {
+            "refusal": null
+          }
+        },
+        "provider_specific_fields": {}
+      }
+    ],
+    "usage": {
+      "completion_tokens": 5,
+      "prompt_tokens": 56,
+      "total_tokens": 61,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cached_tokens": 0
+      },
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 56
+    },
+    "moderation": null,
+    "service_tier": null
+  }
+}

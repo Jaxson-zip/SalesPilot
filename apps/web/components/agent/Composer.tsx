@@ -3,7 +3,16 @@
 import { ArrowUp, Boxes, Cpu, Lock } from "lucide-react"
 import { useRef, type KeyboardEvent } from "react"
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAgentModels } from "@/hooks/useAgentModels"
 import { modelOptions, ruleModeHint } from "@/lib/agent-models"
@@ -50,22 +59,47 @@ function PackChip({ pack }: { pack: string }) {
 function ModelSelect({ model, onModelChange }: { model: string; onModelChange: (model: string) => void }) {
   const { data } = useAgentModels()
   const hint = ruleModeHint(data)
+  const options = modelOptions(data)
+  const current = options.find((m) => m.value === model)
+  const groups = [
+    { label: "自动切换", items: options.filter((m) => m.kind === "auto") },
+    { label: "指定模型", items: options.filter((m) => m.kind === "model") },
+  ].filter((g) => g.items.length > 0)
   return (
     <>
       <Select value={model} onValueChange={onModelChange}>
         <SelectTrigger
           size="sm"
+          aria-label="选择模型"
+          title="选择回答用的大模型"
           className="h-8 shrink-0 gap-1.5 rounded-full border-zinc-200 px-3 text-xs text-zinc-700 shadow-none hover:bg-zinc-50"
         >
           <Cpu className="size-3.5 text-zinc-500" />
-          <SelectValue />
+          <span className="text-zinc-400 max-sm:hidden">模型</span>
+          <SelectValue>
+            {current ? (
+              <>
+                {current.label}
+                {current.detail ? <span className="text-zinc-400 max-sm:hidden"> · {current.detail}</span> : null}
+              </>
+            ) : (
+              model
+            )}
+          </SelectValue>
         </SelectTrigger>
-        <SelectContent>
-          {modelOptions(data).map((m) => (
-            <SelectItem key={m.value} value={m.value} disabled={!m.available}>
-              {m.label}
-              {m.available ? null : <span className="text-zinc-400">（未配置）</span>}
-            </SelectItem>
+        <SelectContent className="min-w-56">
+          {groups.map((g, i) => (
+            <SelectGroup key={g.label}>
+              {i > 0 ? <SelectSeparator /> : null}
+              <SelectLabel>{g.label}</SelectLabel>
+              {g.items.map((m) => (
+                <SelectItem key={m.value} value={m.value} disabled={!m.available}>
+                  {m.label}
+                  {m.detail ? <span className="text-zinc-400">（{m.detail}，失败时换下一个）</span> : null}
+                  {m.available ? null : <span className="text-zinc-400">（未配置 Key）</span>}
+                </SelectItem>
+              ))}
+            </SelectGroup>
           ))}
         </SelectContent>
       </Select>

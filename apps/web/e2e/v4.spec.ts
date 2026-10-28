@@ -120,10 +120,38 @@ test("v4：使用说明页——按角色的上手步骤，报销标准来自规
   await expect(page.getByRole("region", { name: "报销怎么填" })).toContainText("人均 150 元")
 })
 
+/** 固定 /api/agent/models 的返回，测试不受本机 .env 里有没有 Key 影响 */
+async function mockModels(page: Page, deepseek: boolean): Promise<void> {
+  const items = [
+    { id: "deepseek-chat", type: "model", available: deepseek, members: [] },
+    { id: "qwen-plus", type: "model", available: false, members: [] },
+    { id: "chat-default", type: "group", available: deepseek, members: ["deepseek-chat"] },
+    { id: "chat-agent", type: "group", available: deepseek, members: ["qwen-plus", "deepseek-chat"] },
+  ]
+  const data = { items, default: "chat-agent", any_available: deepseek, gateway_ok: true }
+  await page.route("**/api/agent/models", (route) =>
+    route.fulfill({ json: { code: 0, message: "ok", data, request_id: "e2e" } }),
+  )
+}
+
 test("v4：AI 欢迎页按角色给示例问题；没配模型时提示规则模式", async ({ page }) => {
+  await mockModels(page, false)
   await loginAs(page, "manager")
   await page.goto("/ai")
   await expect(page.getByRole("button", { name: /待审批/ })).toBeVisible()
   await expect(page.getByRole("button", { name: /对话报销/ })).toHaveCount(0)
   await expect(page.getByText("规则模式")).toBeVisible()
+})
+
+test("模型选择：写明当前用哪个模型，未配 Key 的不可选，不露出内部分组 ID", async ({ page }) => {
+  await mockModels(page, true)
+  await loginAs(page, "sales")
+  await page.goto("/ai")
+  const select = page.getByRole("combobox", { name: "选择模型" })
+  await expect(select).toContainText("自动")
+  await expect(select).toContainText("当前 DeepSeek") // 分组第一个 qwen 没配 Key，实际用的是 DeepSeek
+  await expect(page.getByText("规则模式")).toHaveCount(0)
+  await select.click()
+  await expect(page.getByRole("option", { name: /Qwen/ })).toHaveAttribute("aria-disabled", "true")
+  await expect(page.getByRole("option", { name: /chat-default/ })).toHaveCount(0)
 })

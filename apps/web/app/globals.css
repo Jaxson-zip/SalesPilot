@@ -186,6 +186,37 @@
   .prose-chat a {
     text-decoration: underline;
   }
+  .prose-chat h1,
+  .prose-chat h2,
+  .prose-chat h3,
+  .prose-chat h4 {
+    font-weight: 600;
+  }
+  /* 表格（remark-gfm）：外层 .prose-table 负责窄屏横向滚动，不撑破消息列 */
+  .prose-chat .prose-table {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+  }
+  .prose-chat table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+  }
+  .prose-chat th,
+  .prose-chat td {
+    padding: 0.4rem 0.75rem;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .prose-chat th {
+    background: var(--muted);
+    font-weight: 500;
+  }
+  .prose-chat tr + tr td,
+  .prose-chat thead + tbody tr td {
+    border-top: 1px solid var(--border);
+  }
 }
 
 /* 报价单打印页（/quotes/[id]/print）：打印时只输出 .print-root（A4），隐藏应用外壳、工具栏和 toast */

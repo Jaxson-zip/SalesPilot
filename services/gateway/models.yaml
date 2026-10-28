@@ -37,7 +37,7 @@ models:
       tool_choice_required: true
       parallel_tool_calls: true
       json_mode: true
-      max_context: 64000
+      max_context: 128000               # 契约测试实测 25.6 万 token 输入仍返回 200；保守按 128K（原写 64000 已过时）
 
   - alias: qwen-plus
     link: openai_compat

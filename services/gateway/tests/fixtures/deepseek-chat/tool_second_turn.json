@@ -1,0 +1,41 @@
+{
+  "_recorded_at": "2026-10-27 20:38:40",
+  "_case": "tool_second_turn",
+  "response": {
+    "id": "fc6000b0-1334-429f-b992-85716c31aed0",
+    "created": 1793158717,
+    "model": "deepseek-flash",
+    "object": "chat.completion",
+    "system_fingerprint": "bc19ba97cbe016479903222bb1578db6",
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "content": "北京现在天气晴朗，气温约 20°C，很适合外出活动。",
+          "role": "assistant",
+          "tool_calls": null,
+          "function_call": null,
+          "provider_specific_fields": {
+            "refusal": null
+          }
+        },
+        "provider_specific_fields": {}
+      }
+    ],
+    "usage": {
+      "completion_tokens": 16,
+      "prompt_tokens": 327,
+      "total_tokens": 343,
+      "completion_tokens_details": null,
+      "prompt_tokens_details": {
+        "audio_tokens": null,
+        "cached_tokens": 128
+      },
+      "prompt_cache_hit_tokens": 128,
+      "prompt_cache_miss_tokens": 199
+    },
+    "moderation": null,
+    "service_tier": null
+  }
+}

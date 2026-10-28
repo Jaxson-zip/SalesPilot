@@ -73,3 +73,21 @@ def test_no_hit_no_sources(tool_ctx: ToolContext, monkeypatch: pytest.MonkeyPatc
     )
     events = run_chat(make_deps(tool_ctx), InMemorySaver(), "年假的报销标准是什么")
     assert not [e for e in events if e["event"] == "artifact"]
+
+
+def test_search_policy_falls_back_to_rules_when_kb_unavailable(
+    tool_ctx: ToolContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """回归：没配 Embedding 时 search_policy 把「502 网关错误」交给模型，回复里出现技术报错。"""
+    from app.agent.tools.policy_tools import SearchPolicyArgs, search_policy
+    from app.common.errors import BizError, ErrorCode
+
+    def unavailable(*_a: Any, **_k: Any) -> PolicySearchResult:
+        raise BizError(ErrorCode.UPSTREAM, "模型网关上游错误：502")
+
+    monkeypatch.setattr(retriever, "search", unavailable)
+    result = search_policy(tool_ctx, SearchPolicyArgs(query="请客户吃饭每人能报多少"))
+    assert result.ok and result.data["kb_available"] is False and result.data["found"] is False
+    rules = "\n".join(line for lines in result.data["rules"].values() for line in lines)
+    assert "¥150" in rules  # 招待人均标准来自 rules.yaml
+    assert "502" not in result.summary

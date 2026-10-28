@@ -62,6 +62,10 @@ function AiWorkbench() {
       onChange={setInput}
       onSubmit={() => send(input)}
       onStop={stream.stop}
+      material={canAiWrite ? w.material : undefined}
+      uploading={w.uploading}
+      onAttach={canAiWrite ? (f) => void w.attach(f) : undefined}
+      onClearMaterial={w.clearMaterial}
       streaming={stream.isStreaming}
       model={model}
       onModelChange={setModel}

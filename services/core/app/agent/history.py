@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.agent.deps import AgentDeps
 from app.agent.graph import build_graph
+from app.agent.materials import strip as strip_material
 from app.agent.nodes.respond import turn_artifacts
 from app.agent.runs import registry
 from app.agent.threads import ensure_owner, find_thread
@@ -36,9 +37,15 @@ class Artifact(BaseModel):
     data: Any
 
 
+class MaterialMeta(BaseModel):
+    name: str
+    chars: int
+
+
 class HistoryMessage(BaseModel):
     role: Literal["user", "assistant"]
     text: str
+    material: MaterialMeta | None = None  # 用户这条消息附带的材料（原文不返回）
     artifacts: list[Artifact] = Field(default_factory=list)
     created_at: datetime | None = None
 
@@ -69,7 +76,13 @@ def to_history(msg: BaseMessage) -> HistoryMessage | None:
     extra = msg.additional_kwargs or {}
     created_at = extra.get("created_at")
     if isinstance(msg, HumanMessage):
-        return HistoryMessage(role="user", text=_text(msg), created_at=created_at)
+        material = extra.get("material")
+        return HistoryMessage(
+            role="user",
+            text=strip_material(_text(msg)),
+            material=MaterialMeta.model_validate(material) if material else None,
+            created_at=created_at,
+        )
     if not isinstance(msg, AIMessage) or msg.tool_calls or not _text(msg):
         return None
     arts = [Artifact.model_validate(a) for a in extra.get("artifacts", [])]

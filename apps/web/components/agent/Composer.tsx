@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowUp, Boxes, Cpu, Lock } from "lucide-react"
+import { ArrowUp, Boxes, Cpu, FileText, Loader2, Lock, Paperclip, X } from "lucide-react"
 import { useRef, type KeyboardEvent } from "react"
 
 import {
@@ -16,6 +16,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAgentModels } from "@/hooks/useAgentModels"
 import { modelOptions, ruleModeHint } from "@/lib/agent-models"
+import { MATERIAL_ACCEPT, MATERIAL_DEFAULT_ASK, type MaterialOut } from "@/lib/materials"
 import { cn } from "@/lib/utils"
 
 interface ComposerProps {
@@ -31,6 +32,77 @@ interface ComposerProps {
   compact?: boolean
   rows?: number
   placeholder?: string
+  /** 一手材料：传了 onAttach 才显示「上传材料」按钮 */
+  material?: MaterialOut | null
+  uploading?: boolean
+  onAttach?: (file: File) => void
+  onClearMaterial?: () => void
+}
+
+const KIND_LABEL: Record<MaterialOut["kind"], string> = {
+  text: "文本",
+  docx: "Word",
+  pdf: "PDF",
+  image: "图片识别",
+}
+
+/** 已上传的材料：名称、字数，可移除 */
+function MaterialChip({ material, onClear }: { material: MaterialOut; onClear?: () => void }) {
+  return (
+    <div className="mx-3 mt-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs">
+      <FileText className="size-4 shrink-0 text-zinc-500" />
+      <span className="min-w-0 truncate font-medium text-zinc-800">{material.name}</span>
+      <span className="shrink-0 text-zinc-400">
+        {KIND_LABEL[material.kind]} · {material.chars.toLocaleString()} 字
+        {material.truncated ? "（只取前 12000 字）" : ""}
+      </span>
+      <div className="flex-1" />
+      <button
+        type="button"
+        aria-label="移除材料"
+        onClick={onClear}
+        className="rounded p-0.5 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700"
+      >
+        <X className="size-3.5" />
+      </button>
+    </div>
+  )
+}
+
+/** 上传材料按钮：会议纪要、聊天记录、名片截图 → AI 整理成跟进 / 联系人 / 下一步 */
+function AttachButton({ uploading, onPick }: { uploading?: boolean; onPick: (file: File) => void }) {
+  const input = useRef<HTMLInputElement>(null)
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label="上传材料"
+          disabled={uploading}
+          onClick={() => input.current?.click()}
+          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-zinc-200 px-3 text-xs text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+        >
+          {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <Paperclip className="size-3.5" />}
+          <span className="max-sm:hidden">{uploading ? "读取中…" : "上传材料"}</span>
+          <input
+            ref={input}
+            type="file"
+            hidden
+            accept={MATERIAL_ACCEPT}
+            data-testid="material-input"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              e.target.value = ""
+              if (file) onPick(file)
+            }}
+          />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>
+        上传会议纪要、聊天记录、名片截图（Word / PDF / 文本 / 图片），AI 整理成跟进、联系人和下一步
+      </TooltipContent>
+    </Tooltip>
+  )
 }
 
 /** 行业包只读标签：锁图标，销售不能切换 */
@@ -158,9 +230,13 @@ export function Composer(props: ComposerProps) {
     compact,
     rows = 2,
     placeholder,
+    material,
+    uploading,
+    onAttach,
+    onClearMaterial,
   } = props
   const composing = useRef(false)
-  const canSend = value.trim().length > 0
+  const canSend = (value.trim().length > 0 || Boolean(material)) && !uploading
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !composing.current) {
@@ -171,6 +247,7 @@ export function Composer(props: ComposerProps) {
 
   return (
     <div className="rounded-[20px] border border-zinc-200 bg-white shadow-sm focus-within:border-zinc-300">
+      {material ? <MaterialChip material={material} onClear={onClearMaterial} /> : null}
       <textarea
         rows={rows}
         value={value}
@@ -178,11 +255,16 @@ export function Composer(props: ComposerProps) {
         onKeyDown={onKeyDown}
         onCompositionStart={() => (composing.current = true)}
         onCompositionEnd={() => (composing.current = false)}
-        placeholder={placeholder ?? "给 SalesPilot 发消息，例如：给明理律所出一份 Qwen3-32B 私有化方案"}
+        placeholder={
+          material
+            ? `可以补充说明，例如：这是和明理律所的拜访纪要（不填则「${MATERIAL_DEFAULT_ASK}」）`
+            : (placeholder ?? "给 SalesPilot 发消息，例如：给明理律所出一份 Qwen3-32B 私有化方案")
+        }
         className="w-full resize-none bg-transparent px-4 pt-3.5 text-[14px] outline-none placeholder:text-zinc-400"
       />
       <div className="flex min-w-0 items-center gap-1.5 px-3 pb-3">
         {!compact && pack ? <PackChip pack={pack} /> : null}
+        {onAttach ? <AttachButton uploading={uploading} onPick={onAttach} /> : null}
         <ModelSelect model={model} onModelChange={onModelChange} />
         <div className="flex-1" />
         <SendButton streaming={streaming} disabled={!streaming && !canSend} onClick={streaming ? onStop : onSubmit} />

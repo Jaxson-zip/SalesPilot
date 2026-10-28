@@ -58,6 +58,8 @@ def make_router(deps: AgentDeps) -> Callable[[AgentState], dict[str, Any]]:
         node_start("router")
         pending = bool(state.get("missing"))
         text = state.get("user_message", "")
+        if state.get("material"):
+            return {**turn_reset(), "intent": "crm_action"}  # 上传了材料：直接整理写入
         intent = llm_intent(deps, text, pending) or classify_intent(text, pending)
         return {**turn_reset(), "intent": intent}
 

@@ -15,6 +15,7 @@ export const TOOL_TITLES: Record<string, string> = {
   get_customer_context: "查询客户的商机和联系人",
   create_task: "安排下一步",
   decide_approval: "处理审批",
+  digest_material: "整理材料并写入",
 }
 
 export const ACTION_TITLES: Record<string, string> = {
@@ -24,6 +25,7 @@ export const ACTION_TITLES: Record<string, string> = {
   update_opportunity_stage: "更新商机阶段",
   create_task: "安排下一步",
   decide_approval: "处理审批",
+  digest_material: "整理材料：记跟进、补联系人、安排下一步",
 }
 
 export function toolTitle(name: string): string {

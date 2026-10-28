@@ -7,6 +7,7 @@ import { notifyError } from "@/hooks/notify"
 import { fetchThreadMessages, threadKeys } from "@/hooks/useAgentThreads"
 import { useAgentStream } from "@/hooks/useAgentStream"
 import { DEFAULT_MODEL } from "@/lib/agent-labels"
+import { extractMaterial, type MaterialOut } from "@/lib/materials"
 import { lastUserText, messagesToTurns } from "@/lib/thread-history"
 
 /**
@@ -19,6 +20,20 @@ export function useAiWorkbench() {
   const [input, setInput] = useState("")
   const [model, setModel] = useState(DEFAULT_MODEL)
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [material, setMaterial] = useState<MaterialOut | null>(null)
+  const [uploading, setUploading] = useState(false)
+
+  /** 上传材料：服务端解析成文字（不入库），发送时随消息一起交给 AI */
+  const attach = async (file: File) => {
+    setUploading(true)
+    try {
+      setMaterial(await extractMaterial(file))
+    } catch (err) {
+      notifyError(err)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   // 一轮对话结束（流式 → 空闲）后刷新会话列表：新会话出现在历史里、旧会话排到最前。
   // 本轮确认执行过写操作（审批、改阶段、建任务…）时刷新全部业务数据，侧栏待审批数、通知等随之更新
@@ -37,14 +52,16 @@ export function useAiWorkbench() {
 
   const send = (text: string) => {
     const msg = text.trim()
-    if (!msg || stream.isStreaming) return
-    stream.send(msg, model)
+    if ((!msg && !material) || stream.isStreaming) return
+    stream.send(msg, model, material ? { name: material.name, text: material.text } : null)
     setInput("")
+    setMaterial(null)
   }
 
   const newChat = () => {
     stream.reset()
     setInput("")
+    setMaterial(null)
   }
 
   const openThread = async (id: string) => {
@@ -75,6 +92,10 @@ export function useAiWorkbench() {
     model,
     setModel,
     loadingId,
+    material,
+    uploading,
+    attach,
+    clearMaterial: () => setMaterial(null),
     title,
     send,
     newChat,

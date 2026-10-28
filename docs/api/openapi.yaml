@@ -2859,6 +2859,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/agent/materials:
+    post:
+      tags:
+      - agent
+      summary: Extract Material
+      description: 一手材料 → 文字（不入库）：文本 / Word / PDF 本地解析，图片走视觉模型识别。
+      operationId: extract_material_api_agent_materials_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_extract_material_api_agent_materials_post'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_MaterialOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/agent/models:
     get:
       tags:
@@ -3537,6 +3572,31 @@ components:
           default: ''
       type: object
       title: ApiResponse[LoginResult]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_MaterialOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/MaterialOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[MaterialOut]
       required:
       - code
       - message
@@ -4562,6 +4622,16 @@ components:
       - size
       - url
       title: AttachmentOut
+    Body_extract_material_api_agent_materials_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_extract_material_api_agent_materials_post
     Body_upload_attachment_api_expenses__expense_id__attachments_post:
       properties:
         file:
@@ -4688,6 +4758,10 @@ components:
             maxLength: 100
           - type: 'null'
           title: Model
+        material:
+          anyOf:
+          - $ref: '#/components/schemas/MaterialIn'
+          - type: 'null'
       type: object
       required:
       - thread_id
@@ -6006,6 +6080,10 @@ components:
         text:
           type: string
           title: Text
+        material:
+          anyOf:
+          - $ref: '#/components/schemas/MaterialMeta'
+          - type: 'null'
         artifacts:
           items:
             $ref: '#/components/schemas/Artifact'
@@ -6021,6 +6099,7 @@ components:
       required:
       - role
       - text
+      - material
       - artifacts
       - created_at
       title: HistoryMessage
@@ -6088,6 +6167,67 @@ components:
       - token
       - user
       title: LoginResult
+    MaterialIn:
+      properties:
+        name:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Name
+        text:
+          type: string
+          maxLength: 12000
+          minLength: 1
+          title: Text
+      type: object
+      required:
+      - name
+      - text
+      title: MaterialIn
+      description: 随聊天消息一起发送的材料（前端从 /materials 拿到的文字，用户可以不改直接发）。
+    MaterialMeta:
+      properties:
+        name:
+          type: string
+          title: Name
+        chars:
+          type: integer
+          title: Chars
+      type: object
+      required:
+      - name
+      - chars
+      title: MaterialMeta
+    MaterialOut:
+      properties:
+        name:
+          type: string
+          title: Name
+        kind:
+          type: string
+          enum:
+          - text
+          - docx
+          - pdf
+          - image
+          title: Kind
+        text:
+          type: string
+          title: Text
+        chars:
+          type: integer
+          title: Chars
+        truncated:
+          type: boolean
+          title: Truncated
+      type: object
+      required:
+      - name
+      - kind
+      - text
+      - chars
+      - truncated
+      title: MaterialOut
     MockLoginIn:
       properties:
         role:

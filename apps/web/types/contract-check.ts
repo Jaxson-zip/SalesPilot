@@ -10,6 +10,7 @@ import type { components } from "@/types/generated/openapi"
 import type * as P from "@/lib/pack-rules"
 import type * as C from "@/lib/settings"
 import type * as T from "@/types/api"
+import type * as M from "@/lib/materials"
 
 type S = components["schemas"]
 /** A 能赋给 B 时为 true；不能时类型为 false，下面的 `= true` 就会报错 */
@@ -51,6 +52,7 @@ export const responses = {
   CatalogRow: true as Fits<S["CatalogRow"], P.PackCatalogItem>,
   KnowledgeDoc: true as Fits<S["KnowledgeDoc"], P.PackKnowledgeDoc>,
   KnowledgeUploadOut: true as Fits<S["KnowledgeUploadOut"], C.KnowledgeUploadOut>,
+  MaterialOut: true as Fits<S["MaterialOut"], M.MaterialOut>,
 } satisfies Record<string, true>
 
 /* ---------- 请求：前端 → 后端 ---------- */
@@ -78,4 +80,5 @@ export const requests = {
   ProductLineUpdate: true as Fits<T.ProductLineUpdate, S["ProductLineUpdate"]>,
   SettingsUpdate: true as Fits<C.SettingsUpdate, S["SettingsUpdate"]>,
   CatalogEdit: true as Fits<C.CatalogEdit, S["CatalogEdit"]>,
+  MaterialIn: true as Fits<M.MaterialIn, S["MaterialIn"]>,
 } satisfies Record<string, true>

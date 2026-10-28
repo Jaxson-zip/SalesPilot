@@ -35,7 +35,7 @@ def _deps(role: Role, llm: ScriptedModel, thread: str) -> AgentDeps:
 
 
 def _chat(deps: AgentDeps, saver: InMemorySaver, text: str) -> list[dict[str, Any]]:
-    run = service.prepare_chat(deps, text, None, saver)
+    run = service.prepare_chat(deps, text, None, checkpointer=saver)
     return list(iter_graph_events(run.graph, run.payload, run.config, run.thread_id))
 
 

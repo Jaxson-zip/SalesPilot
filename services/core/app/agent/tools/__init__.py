@@ -10,12 +10,13 @@ from app.agent.tools.base import (
 )
 from app.agent.tools.context_tools import CONTEXT_TOOLS
 from app.agent.tools.crm_tools import CRM_TOOLS
+from app.agent.tools.material_tools import MATERIAL_TOOLS
 from app.agent.tools.policy_tools import POLICY_TOOLS
 from app.agent.tools.solution_tools import SOLUTION_TOOLS
 from app.common.auth import Role
 
 TOOLS: dict[str, ToolSpec] = {
-    t.name: t for t in [*CRM_TOOLS, *CONTEXT_TOOLS, *SOLUTION_TOOLS, *POLICY_TOOLS]
+    t.name: t for t in [*CRM_TOOLS, *MATERIAL_TOOLS, *CONTEXT_TOOLS, *SOLUTION_TOOLS, *POLICY_TOOLS]
 }
 
 # 对话里交给模型自主调用（function calling）的工具；出方案链路的工具由状态图按固定顺序调用
@@ -23,6 +24,7 @@ CHAT_TOOL_NAMES: tuple[str, ...] = (
     "search_customer",
     "get_customer_context",
     "add_followup",
+    "digest_material",
     "update_opportunity_stage",
     "create_task",
     "submit_expense",

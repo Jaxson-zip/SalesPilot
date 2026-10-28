@@ -34,6 +34,10 @@ const FIELDS: Record<string, { label: string; format?: Formatter }> = {
   due_at: { label: "到期" },
   task_type: { label: "方式" },
   decision: { label: "结果" },
+  // 一手材料消化（digest_material）
+  followup: { label: "跟进" },
+  new_contacts: { label: "联系人" },
+  next_steps: { label: "下一步" },
   comment: { label: "意见" },
 }
 

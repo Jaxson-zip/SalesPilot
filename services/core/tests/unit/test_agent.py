@@ -28,7 +28,7 @@ def make_deps(ctx: ToolContext, llm: Any = None, max_retries: int = 2) -> AgentD
 
 
 def run_chat(deps: AgentDeps, saver: InMemorySaver, message: str) -> list[dict[str, Any]]:
-    run = service.prepare_chat(deps, message, None, saver)
+    run = service.prepare_chat(deps, message, None, checkpointer=saver)
     return list(iter_graph_events(run.graph, run.payload, run.config, run.thread_id))
 
 
@@ -46,6 +46,7 @@ class TestTools:
         expected = {
             "search_customer",
             "add_followup",
+            "digest_material",
             "update_opportunity_stage",
             "pipeline_summary",
             "parse_requirement",
@@ -69,6 +70,7 @@ class TestTools:
             "submit_expense",
             "decide_approval",
             "create_task",
+            "digest_material",
         }
 
     def test_success_emits_start_end(self, tool_ctx: ToolContext) -> None:

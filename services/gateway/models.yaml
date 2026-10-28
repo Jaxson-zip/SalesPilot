@@ -67,6 +67,18 @@ models:
       json_mode: true
       max_context: 128000
 
+  # 视觉模型：只用于「上传截图 / 名片 → 识别文字」，不放进对话分组（不支持工具调用）
+  - alias: qwen-vl
+    link: openai_compat
+    model: qwen-vl-max                   # 以官方文档为准
+    api_base: ${DASHSCOPE_API_BASE}
+    api_key: ${DASHSCOPE_API_KEY}
+    capabilities:
+      stream: true
+      tools: false
+      content_parts: true
+      max_context: 32000
+
   - alias: embed-qwen
     link: openai_compat
     model: text-embedding-v4             # 通义 Embedding，默认 1024 维；以官方文档为准

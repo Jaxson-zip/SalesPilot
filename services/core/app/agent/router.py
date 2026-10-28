@@ -3,12 +3,12 @@
 import uuid
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Path, Query, Request
+from fastapi import APIRouter, File, Path, Query, Request, UploadFile
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 from starlette.concurrency import run_in_threadpool
 
-from app.agent import models, service, threads
+from app.agent import materials, models, service, threads
 from app.agent.checkpoint import get_checkpointer
 from app.agent.history import ThreadMessages, read_thread_messages
 from app.agent.runs import registry
@@ -26,6 +26,8 @@ class ChatIn(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     opportunity_id: uuid.UUID | None = None
     model: str | None = Field(default=None, max_length=100)
+    # 上传的一手材料（先调 /materials 取文字）；有材料时 AI 直接整理成跟进 / 联系人 / 下一步
+    material: materials.MaterialIn | None = None
 
 
 class ResumeIn(BaseModel):
@@ -40,7 +42,9 @@ def _request_id(request: Request) -> str:
 @router.post("/chat")
 async def chat(body: ChatIn, user: CurrentUserDep, request: Request) -> EventSourceResponse:
     deps = service.build_deps(user, body.thread_id, _request_id(request), body.model)
-    run = await run_in_threadpool(service.prepare_chat, deps, body.message, body.opportunity_id)
+    run = await run_in_threadpool(
+        service.prepare_chat, deps, body.message, body.opportunity_id, body.material
+    )
     return EventSourceResponse(follow_run(service.start_run(run, user)))
 
 
@@ -49,6 +53,15 @@ async def resume(body: ResumeIn, user: CurrentUserDep, request: Request) -> Even
     deps = service.build_deps(user, body.thread_id, _request_id(request), None)
     run = await run_in_threadpool(service.prepare_resume, deps, body.decision)
     return EventSourceResponse(follow_run(service.start_run(run, user)))
+
+
+@router.post("/materials", response_model=ApiResponse[materials.MaterialOut])
+def extract_material(
+    user: CurrentUserDep, request: Request, file: Annotated[UploadFile, File()]
+) -> ApiResponse[materials.MaterialOut]:
+    """一手材料 → 文字（不入库）：文本 / Word / PDF 本地解析，图片走视觉模型识别。"""
+    content = file.file.read(materials.MAX_BYTES + 1)
+    return ok(materials.extract(file.filename or "", content, _request_id(request)))
 
 
 @router.get("/models", response_model=ApiResponse[models.ChatModels])

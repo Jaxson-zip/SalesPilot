@@ -120,11 +120,50 @@ def _approval(ctx: ToolContext, a: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+ROLE_SHORT = {
+    "decision_maker": "决策人",
+    "influencer": "影响者",
+    "technical": "技术",
+    "finance": "财务",
+    "user": "使用者",
+}
+
+
+def _person(c: dict[str, Any]) -> str:
+    extra = [str(c[k]) for k in ("title",) if c.get(k)]
+    if c.get("role") in ROLE_SHORT:
+        extra.append(ROLE_SHORT[c["role"]])
+    if c.get("phone"):
+        extra.append(str(c["phone"]))
+    return f"{c.get('name')}（{'，'.join(extra)}）" if extra else str(c.get("name"))
+
+
+def _step(s: dict[str, Any]) -> str:
+    try:
+        due = datetime.fromisoformat(str(s.get("due_at"))).strftime("%m-%d")
+    except ValueError:
+        due = ""
+    return f"{due} {s.get('title')}".strip()
+
+
+def _digest(ctx: ToolContext, a: dict[str, Any]) -> dict[str, Any]:
+    contacts = [c for c in a.get("contacts") or [] if isinstance(c, dict)]
+    steps = [s for s in a.get("next_steps") or [] if isinstance(s, dict)]
+    return {
+        "customer_name": _customer_name(ctx, a.get("customer_id")),
+        "opportunity_name": _opportunity_name(ctx, a.get("opportunity_id")),
+        "followup": a.get("summary"),
+        "new_contacts": "\n".join(_person(c) for c in contacts) or None,
+        "next_steps": "\n".join(_step(s) for s in steps) or None,
+    }
+
+
 BUILDERS: dict[str, Callable[[ToolContext, dict[str, Any]], dict[str, Any]]] = {
     "submit_expense": _expense,
     "update_opportunity_stage": _stage,
     "create_task": _task,
     "decide_approval": _approval,
+    "digest_material": _digest,
 }
 
 

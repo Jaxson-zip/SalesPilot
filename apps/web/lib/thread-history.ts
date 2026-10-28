@@ -22,6 +22,7 @@ export interface ThreadPage {
 export interface ThreadMessage {
   role: "user" | "assistant"
   text: string
+  material?: { name: string; chars: number } | null
   artifacts?: { type: string; data: unknown }[]
   created_at?: string | null
 }
@@ -95,7 +96,7 @@ function assistantTurn(m: ThreadMessage): AssistantTurn {
 /** 服务端消息 → ChatTurn；有待确认操作时挂到最后一条 AI 回复上（可继续确认 / 取消） */
 export function messagesToTurns(data: ThreadMessages): ChatTurn[] {
   const turns: ChatTurn[] = data.messages.map((m) =>
-    m.role === "user" ? { id: nextId("u"), role: "user", text: m.text } : assistantTurn(m),
+    m.role === "user" ? { id: nextId("u"), role: "user", text: m.text, material: m.material } : assistantTurn(m),
   )
   const p = data.pending
   const last = turns[turns.length - 1]

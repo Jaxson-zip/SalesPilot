@@ -32,7 +32,7 @@ export function ConfirmCard({
           {rows.map(([k, v]) => (
             <div key={k} className="flex min-w-0">
               <dt className="w-16 shrink-0 text-zinc-500">{k}</dt>
-              <dd className="min-w-0 break-words">{v}</dd>
+              <dd className="min-w-0 break-words whitespace-pre-line">{v}</dd>
             </div>
           ))}
         </dl>

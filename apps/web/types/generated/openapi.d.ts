@@ -994,6 +994,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/agent/materials": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Extract Material
+     * @description 一手材料 → 文字（不入库）：文本 / Word / PDF 本地解析，图片走视觉模型识别。
+     */
+    post: operations["extract_material_api_agent_materials_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/agent/models": {
     parameters: {
       query?: never
@@ -1436,6 +1456,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["LoginResult"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[MaterialOut] */
+    ApiResponse_MaterialOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["MaterialOut"] | null
       /**
        * Request Id
        * @default
@@ -2167,6 +2206,11 @@ export interface components {
       /** Url */
       url: string
     }
+    /** Body_extract_material_api_agent_materials_post */
+    Body_extract_material_api_agent_materials_post: {
+      /** File */
+      file: string
+    }
     /** Body_upload_attachment_api_expenses__expense_id__attachments_post */
     Body_upload_attachment_api_expenses__expense_id__attachments_post: {
       /** File */
@@ -2232,6 +2276,7 @@ export interface components {
       opportunity_id?: string | null
       /** Model */
       model?: string | null
+      material?: components["schemas"]["MaterialIn"] | null
     }
     /** ChatModelOut */
     ChatModelOut: {
@@ -2896,6 +2941,7 @@ export interface components {
       role: "user" | "assistant"
       /** Text */
       text: string
+      material: components["schemas"]["MaterialMeta"] | null
       /** Artifacts */
       artifacts: components["schemas"]["Artifact"][]
       /** Created At */
@@ -2934,6 +2980,39 @@ export interface components {
       /** Token */
       token: string
       user: components["schemas"]["UserOut"]
+    }
+    /**
+     * MaterialIn
+     * @description 随聊天消息一起发送的材料（前端从 /materials 拿到的文字，用户可以不改直接发）。
+     */
+    MaterialIn: {
+      /** Name */
+      name: string
+      /** Text */
+      text: string
+    }
+    /** MaterialMeta */
+    MaterialMeta: {
+      /** Name */
+      name: string
+      /** Chars */
+      chars: number
+    }
+    /** MaterialOut */
+    MaterialOut: {
+      /** Name */
+      name: string
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "text" | "docx" | "pdf" | "image"
+      /** Text */
+      text: string
+      /** Chars */
+      chars: number
+      /** Truncated */
+      truncated: boolean
     }
     /** MockLoginIn */
     MockLoginIn: {
@@ -6339,6 +6418,41 @@ export interface operations {
         }
         content: {
           "application/json": unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  extract_material_api_agent_materials_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_extract_material_api_agent_materials_post"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_MaterialOut_"]
         }
       }
       /** @description Validation Error */

@@ -13,6 +13,7 @@ import {
   type ChatTurn,
 } from "@/lib/agent-reducer"
 import { api, isAbortError, isApiError } from "@/lib/api"
+import { MATERIAL_DEFAULT_ASK, type MaterialIn } from "@/lib/materials"
 import { getSSE, postSSE, type StreamOptions } from "@/lib/sse"
 import type { ThreadRunning } from "@/lib/thread-history"
 import { ErrorCode, type ResumeDecision } from "@/types/api"
@@ -45,7 +46,7 @@ export interface UseAgentStream {
   turns: ChatTurn[]
   threadId: string | null
   isStreaming: boolean
-  send: (message: string, model: string) => void
+  send: (message: string, model: string, material?: MaterialIn | null) => void
   resume: (decision: ResumeDecision) => void
   stop: () => void
   retry: () => void
@@ -113,7 +114,7 @@ export function useAgentStream(): UseAgentStream {
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const [threadId, setThreadId] = useState<string | null>(null)
   const threadRef = useRef<string | null>(null)
-  const lastChat = useRef<{ message: string; model: string } | null>(null)
+  const lastChat = useRef<{ message: string; model: string; material?: MaterialIn | null } | null>(null)
 
   const patch = useCallback<Patch>((fn) => setTurns((ts) => updateLastAssistant(ts, fn)), [])
   const onThread = useCallback((id: string) => {
@@ -131,13 +132,14 @@ export function useAgentStream(): UseAgentStream {
   }, [])
 
   const send = useCallback(
-    (message: string, model: string) => {
-      const text = message.trim()
+    (message: string, model: string, material?: MaterialIn | null) => {
+      const text = message.trim() || (material ? MATERIAL_DEFAULT_ASK : "")
       if (!text || abortRef.current) return
-      lastChat.current = { message: text, model }
+      lastChat.current = { message: text, model, material }
       const thread_id = ensureThread()
-      setTurns((ts) => [...ts, { id: nextId("u"), role: "user", text }, createAssistantTurn()])
-      void run((o) => postSSE(CHAT_PATH, { thread_id, message: text, model }, o))
+      const meta = material ? { name: material.name, chars: material.text.length } : null
+      setTurns((ts) => [...ts, { id: nextId("u"), role: "user", text, material: meta }, createAssistantTurn()])
+      void run((o) => postSSE(CHAT_PATH, { thread_id, message: text, model, material: material ?? undefined }, o))
     },
     [abortRef, ensureThread, run],
   )
@@ -157,7 +159,13 @@ export function useAgentStream(): UseAgentStream {
     if (!last || abortRef.current) return
     const thread_id = ensureThread()
     setTurns((ts) => [...ts, createAssistantTurn()])
-    void run((o) => postSSE(CHAT_PATH, { thread_id, message: last.message, model: last.model }, o))
+    void run((o) =>
+      postSSE(
+        CHAT_PATH,
+        { thread_id, message: last.message, model: last.model, material: last.material ?? undefined },
+        o,
+      ),
+    )
   }, [abortRef, ensureThread, run])
 
   // 停止：先通知后台停下（断开连接不会让它停），再结束本地这条回复

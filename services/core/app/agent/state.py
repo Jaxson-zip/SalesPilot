@@ -12,6 +12,7 @@ class AgentState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     user_id: str  # 会话归属，resume 时校验
     user_message: NotRequired[str]
+    material: NotRequired[str | None]  # 本轮上传的材料名（材料原文在用户消息里）
     opportunity_id: NotRequired[str | None]
     customer_id: NotRequired[str | None]  # 出方案时从对话里识别出的客户（唯一匹配才关联）
     customer_name: NotRequired[str | None]

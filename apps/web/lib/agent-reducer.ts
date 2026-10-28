@@ -29,10 +29,17 @@ export interface AgentInterrupt {
 
 export type TurnStatus = "streaming" | "done" | "error" | "stopped"
 
+/** 随消息发送的一手材料（只在前端显示名称和字数，原文不回显） */
+export interface MaterialMeta {
+  name: string
+  chars: number
+}
+
 export interface UserTurn {
   id: string
   role: "user"
   text: string
+  material?: MaterialMeta | null
 }
 
 export interface AssistantTurn {

@@ -15,6 +15,7 @@ from app.agent.checkpoint import get_checkpointer
 from app.agent.deps import AgentDeps
 from app.agent.graph import build_graph
 from app.agent.history import build_messages
+from app.agent.materials import MaterialIn, compose
 from app.agent.nodes.common import now_iso
 from app.agent.runs import Run, RunKind, registry
 from app.agent.sse import iter_graph_events
@@ -98,6 +99,7 @@ def prepare_chat(
     deps: AgentDeps,
     message: str,
     opportunity_id: uuid.UUID | None,
+    material: MaterialIn | None = None,
     checkpointer: BaseCheckpointSaver | None = None,
 ) -> PreparedRun:
     thread_id = deps.ctx.thread_id
@@ -105,10 +107,16 @@ def prepare_chat(
     config = _config(thread_id)
     snapshot = _check_owner(graph, config, deps.ctx.user)
     _ensure_idle(thread_id)
+    extra: dict[str, Any] = {"created_at": now_iso()}
+    content = message
+    if material is not None:
+        extra["material"] = {"name": material.name, "chars": len(material.text)}
+        content = compose(message, material)
     payload = {
-        "messages": [HumanMessage(content=message, additional_kwargs={"created_at": now_iso()})],
+        "messages": [HumanMessage(content=content, additional_kwargs=extra)],
         "user_id": str(deps.ctx.user.id),
         "user_message": message,
+        "material": material.name if material else None,
         "opportunity_id": str(opportunity_id) if opportunity_id else None,
     }
     touch_thread(deps.ctx.session, deps.ctx.user, thread_id, message, opportunity_id)

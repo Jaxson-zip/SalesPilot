@@ -89,7 +89,7 @@ export function ChatView({
         >
           {turns.map((t, i) =>
             t.role === "user" ? (
-              <UserMsg key={t.id} text={t.text} />
+              <UserMsg key={t.id} text={t.text} material={t.material} />
             ) : (
               <AiMessage
                 key={t.id}

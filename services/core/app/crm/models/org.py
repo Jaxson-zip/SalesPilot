@@ -1,8 +1,10 @@
 """组织：团队、用户、产品线（产品线 → 行业包映射由管理员维护）。"""
 
 import uuid
+from typing import Any
 
-from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.db import Base
@@ -35,3 +37,19 @@ class ProductLine(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(100), unique=True)
     pack: Mapped[str] = mapped_column(String(50))  # 行业包 id，如 llm_deploy
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class ConfigOverride(TimestampMixin, Base):
+    """管理员在网页上改过的配置（业务规则、行业包参数、产品价格）。
+
+    文件（rules.yaml / catalog.json）是默认值，这里只存改动；删掉一行即恢复默认。
+    scope：global（通用规则）或行业包 id；key：点分路径，如 margin.floor_rate、catalog.SRV-L20-4。
+    """
+
+    __tablename__ = "config_overrides"
+    __table_args__ = (UniqueConstraint("scope", "key", name="uq_config_overrides_scope_key"),)
+
+    scope: Mapped[str] = mapped_column(String(50))
+    key: Mapped[str] = mapped_column(String(200))
+    value: Mapped[Any] = mapped_column(JSONB)
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)

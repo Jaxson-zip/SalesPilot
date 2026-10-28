@@ -7,6 +7,8 @@
  * - 请求：前端发送的结构必须能赋给后端入参（前端漏必填字段、类型不对 → tsc 报错）
  */
 import type { components } from "@/types/generated/openapi"
+import type * as P from "@/lib/pack-rules"
+import type * as C from "@/lib/settings"
 import type * as T from "@/types/api"
 
 type S = components["schemas"]
@@ -45,6 +47,10 @@ export const responses = {
   ApprovalItem: true as Fits<S["ApprovalItem"], T.ApprovalItem>,
   ProductLineItem: true as Fits<S["ProductLineItem"], T.ProductLineItem>,
   PackOut: true as Fits<S["PackOut"], T.PackOut>,
+  SettingsOut: true as Fits<S["SettingsOut"], C.SettingsOut>,
+  CatalogRow: true as Fits<S["CatalogRow"], P.PackCatalogItem>,
+  KnowledgeDoc: true as Fits<S["KnowledgeDoc"], P.PackKnowledgeDoc>,
+  KnowledgeUploadOut: true as Fits<S["KnowledgeUploadOut"], C.KnowledgeUploadOut>,
 } satisfies Record<string, true>
 
 /* ---------- 请求：前端 → 后端 ---------- */
@@ -70,4 +76,6 @@ export const requests = {
   ContactUpdate: true as Fits<T.ContactUpdate, S["ContactUpdate"]>,
   PaymentPlanUpdate: true as Fits<T.PaymentPlanUpdate, S["PaymentPlanUpdate"]>,
   ProductLineUpdate: true as Fits<T.ProductLineUpdate, S["ProductLineUpdate"]>,
+  SettingsUpdate: true as Fits<C.SettingsUpdate, S["SettingsUpdate"]>,
+  CatalogEdit: true as Fits<C.CatalogEdit, S["CatalogEdit"]>,
 } satisfies Record<string, true>

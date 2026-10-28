@@ -9,7 +9,7 @@ from typing import Any, Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
-from app.rules import RuleSet, check_margin
+from app.rules import RuleSet, check_margin, overrides
 
 Category = Literal["hardware", "software", "service"]
 TierId = Literal["economy", "standard", "premium"]
@@ -78,9 +78,12 @@ class Catalog:
         self._items = {item.sku: item for item in items}
 
     @classmethod
-    def from_file(cls, path: Path) -> "Catalog":
+    def from_file(cls, path: Path, scope: str | None = None) -> "Catalog":
+        """读取 catalog.json；传入行业包 id 时合并管理员在网页上改过的名称、单位、成本、售价。"""
         raw = json.loads(path.read_text(encoding="utf-8"))
-        return cls([CatalogItem.model_validate(i) for i in raw["items"]])
+        edits = overrides.nested(scope, "catalog").get("catalog", {}) if scope else {}
+        items = [{**i, **edits.get(i["sku"], {})} for i in raw["items"]]
+        return cls([CatalogItem.model_validate(i) for i in items])
 
     def get(self, sku: str) -> CatalogItem:
         return self._items[sku]

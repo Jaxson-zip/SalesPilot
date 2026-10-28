@@ -45,7 +45,7 @@ test.describe("角色与操作权限", () => {
 
   test("主管拖不动销售的商机卡片，打开后也没有阶段按钮", async ({ page, request }) => {
     const sales = await Api.as(request, "sales")
-    const customers = await sales.call<{ items: Customer[] }>("GET", "/api/customers?view=mine")
+    const customers = await sales.call<{ items: Customer[] }>("GET", "/api/customers?view=mine&q=深圳明理&page_size=50")
     const mingli = customers.items.find((c) => c.name === "深圳明理律师事务所")
     if (!mingli) throw new Error("演示数据缺少深圳明理律师事务所")
     const opp = await sales.call<Opportunity>("POST", "/api/opportunities", {

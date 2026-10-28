@@ -11,7 +11,10 @@ interface Expense {
 }
 
 async function mingliId(api: Api): Promise<string> {
-  const list = await api.call<{ items: { id: string; name: string }[] }>("GET", "/api/customers?view=mine")
+  const list = await api.call<{ items: { id: string; name: string }[] }>(
+    "GET",
+    "/api/customers?view=mine&q=深圳明理&page_size=50",
+  )
   const c = list.items.find((x) => x.name === "深圳明理律师事务所")
   if (!c) throw new Error("演示数据缺少深圳明理律师事务所")
   return c.id

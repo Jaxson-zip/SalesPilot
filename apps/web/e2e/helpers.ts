@@ -62,7 +62,10 @@ export async function entertainmentDraft(
   headcount: number,
   reason: string,
 ): Promise<{ id: string; code: string; status: string }> {
-  const customers = await api.call<{ items: { id: string; name: string }[] }>("GET", "/api/customers?view=mine")
+  const customers = await api.call<{ items: { id: string; name: string }[] }>(
+    "GET",
+    "/api/customers?view=mine&q=深圳明理&page_size=50",
+  )
   const mingli = customers.items.find((c) => c.name === "深圳明理律师事务所")
   if (!mingli) throw new Error("演示数据缺少深圳明理律师事务所，请先运行 seed")
   const contacts = await api.call<{ items: { id: string }[] }>("GET", `/api/customers/${mingli.id}/contacts`)

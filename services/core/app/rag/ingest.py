@@ -13,6 +13,7 @@ from pathlib import Path
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.common.config import get_settings
 from app.common.db import session_scope
 from app.crm.models import KbChunk
 from app.llm.client import embed_texts
@@ -34,11 +35,21 @@ def source_dirs() -> dict[str, tuple[Path, str | None]]:
     return dirs
 
 
+def uploaded_knowledge_dir(pack_id: str) -> Path:
+    """管理员在网页上传的行业包文档（在 uploads 卷里，不随镜像重建丢失）。"""
+    return Path(get_settings().upload_dir) / "knowledge" / pack_id
+
+
 def load_chunks(scope: str) -> list[Chunk]:
     directory, pack = source_dirs()[scope]
-    if not directory.exists():
-        return []
-    return [c for path in supported_files(directory) for c in load_file(path, scope, pack)]
+    dirs = [directory] + ([uploaded_knowledge_dir(pack)] if pack else [])
+    return [
+        c
+        for d in dirs
+        if d.exists()
+        for path in supported_files(d)
+        for c in load_file(path, scope, pack)
+    ]
 
 
 def ingest_scope(db: Session, scope: str, *, reset: bool = False) -> int:

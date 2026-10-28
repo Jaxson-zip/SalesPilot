@@ -18,7 +18,7 @@ from app.packs.base import (
 from app.packs.llm_deploy.requirement import LlmDeployRequirement
 from app.packs.llm_deploy.vram import GpuPlan, estimate_vram, find_model, model_specs, plan_gpus
 from app.rules import RuleSet, load_rules
-from app.rules.loader import read_yaml
+from app.rules.loader import load_raw_rules
 
 PACK_DIR = Path(__file__).parent
 _CONCURRENCY_RE = re.compile(r"(\d+)\s*(?:人|个用户|路|个)?\s*并发|并发\s*(\d+)")
@@ -28,10 +28,19 @@ _BUDGET_RE = re.compile(r"预算\s*(?:在|约|为)?\s*(\d+(?:\.\d+)?)\s*(万|元
 class LlmDeployConfigurator:
     requirement_model: type[BaseModel] = LlmDeployRequirement
 
-    def __init__(self) -> None:
-        self.catalog = Catalog.from_file(PACK_DIR / "catalog.json")
-        self.rules: RuleSet = load_rules(PACK_DIR / "rules.yaml")
-        self.params: dict[str, Any] = read_yaml(PACK_DIR / "rules.yaml")["pack"]
+    # 每次读取：管理员在网页上改了价格 / 规则 / 参数后立即生效（configurator 本身被缓存）
+    @property
+    def catalog(self) -> Catalog:
+        return Catalog.from_file(PACK_DIR / "catalog.json", scope=PACK_DIR.name)
+
+    @property
+    def rules(self) -> RuleSet:
+        return load_rules(PACK_DIR / "rules.yaml", scope=PACK_DIR.name)
+
+    @property
+    def params(self) -> dict[str, Any]:
+        pack: dict[str, Any] = load_raw_rules(PACK_DIR / "rules.yaml", scope=PACK_DIR.name)["pack"]
+        return pack
 
     def draft_requirement(self, text: str) -> dict[str, Any]:
         draft: dict[str, Any] = {}

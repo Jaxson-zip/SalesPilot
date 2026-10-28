@@ -14,6 +14,11 @@ export interface PackCatalogItem {
   /** 分 */
   price: number
   specs: Record<string, unknown> | string | null
+  /** catalog.json 里的默认成本 / 售价（分）；管理员改过价格时与 cost / price 不同 */
+  default_cost?: number
+  default_price?: number
+  /** 是否在网页上改过 */
+  overridden?: boolean
 }
 
 export interface PackKnowledgeDoc {
@@ -25,6 +30,10 @@ export interface PackKnowledgeDoc {
   format?: string
   /** 是否进入知识库（RAG 支持的格式）；其他文件是行业包的配置数据 */
   indexed?: boolean
+  /** builtin：随代码发布（不能在网页删除）；uploaded：网页上传 */
+  source?: "builtin" | "uploaded"
+  /** 已入库的切块数 */
+  chunks?: number | null
 }
 
 export interface PackDetail {

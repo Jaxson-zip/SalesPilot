@@ -26,9 +26,11 @@ from app.crm.routers import (
     product_lines,
     quotes,
     rules,
+    settings,
     tasks,
 )
 from app.rag.autoload import start_auto_ingest
+from app.rules.overrides import refresh_on_startup as refresh_overrides
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("core")
@@ -45,6 +47,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     saver = await run_in_threadpool(init_checkpointer, db_ok)
     app.state.checkpointer_kind = type(saver).__name__
     if db_ok:
+        await run_in_threadpool(refresh_overrides)  # 网页上改过的规则 / 价格
         app.state.kb_autoload = await run_in_threadpool(start_auto_ingest)
     yield
     await run_in_threadpool(close_checkpointer)
@@ -65,6 +68,7 @@ def create_app() -> FastAPI:
         expenses.router,
         approvals.router,
         product_lines.router,
+        settings.router,
         tasks.router,
         notifications.router,
         agent_router,

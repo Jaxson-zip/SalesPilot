@@ -83,7 +83,7 @@ class CheckMarginArgs(BaseModel):
 
 
 def check_margin(ctx: ToolContext, args: CheckMarginArgs) -> ToolResult:
-    rules = load_rules(get_pack(args.pack_id).rules_file)
+    rules = load_rules(get_pack(args.pack_id).rules_file, scope=args.pack_id)
     results = [
         {"tier": t.tier, **rule_check_margin(t.total_cost, t.total_price, rules).model_dump()}
         for t in args.tiers

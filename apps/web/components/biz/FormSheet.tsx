@@ -5,6 +5,7 @@ import type { ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import { cn } from "@/lib/utils"
 
 /**
  * 右侧 Sheet（与原型一致）：四周留 8px、圆角浮层，≥640 宽 440px，<640 占满屏幕（仍留 8px）。
@@ -22,8 +23,11 @@ export function FormSheet({
   title,
   description,
   footer,
+  wide,
   children,
 }: {
+  /** 内容是表格时加宽到 640px */
+  wide?: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
@@ -33,7 +37,11 @@ export function FormSheet({
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" showCloseButton={false} className={PANEL_CLASS}>
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        className={cn(PANEL_CLASS, wide && "data-[side=right]:sm:w-[640px] data-[side=right]:sm:max-w-[640px]")}
+      >
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-zinc-100 pr-3 pl-5">
           <SheetTitle className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</SheetTitle>
           <SheetClose asChild>

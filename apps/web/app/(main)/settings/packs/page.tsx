@@ -73,7 +73,7 @@ function PacksContent() {
     <div className="flex-1 space-y-5 overflow-x-hidden overflow-y-auto p-4 sm:p-5">
       <Alert tone="info" title="行业包由管理员统一配置，销售不能切换">
         销售创建商机时选择「产品线」，系统按下方映射自动匹配行业包；AI
-        出方案时直接使用该行业包的产品目录、规则和知识库。
+        出方案时直接使用该行业包的产品目录、规则和知识库。产品价格、本行业参数和知识库文档都可以在卡片里直接修改，保存后立即生效。
       </Alert>
       <div>
         <div className="mb-2 font-medium">已安装的行业包</div>
@@ -97,8 +97,9 @@ function PacksContent() {
             <div className="flex flex-col justify-center rounded-lg bg-zinc-50 p-4 text-zinc-500">
               <span className="font-medium text-zinc-700">如何新增行业包</span>
               <span className="mt-1 text-xs leading-relaxed">
-                由开发在 <code className="rounded bg-white px-1">services/core/app/packs/</code>{" "}
-                下新建目录：产品目录、rules.yaml、知识库文档和配置器，注册后重启即出现在这里。
+                新行业需要编写配置器（把客户需求换算成物料清单），由开发在{" "}
+                <code className="rounded bg-white px-1">services/core/app/packs/</code>{" "}
+                下新建；已有行业包的价格、参数、文档在这里改即可。
               </span>
             </div>
           </div>

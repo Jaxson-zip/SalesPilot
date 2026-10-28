@@ -21,7 +21,7 @@ describe("导航按角色分组（契约 §0）", () => {
 
   it("管理员：业务总览（只读）+ 系统设置", () => {
     expect(labels("admin")).toEqual(["", "业务总览（只读）", "系统设置"])
-    expect(navGroupsFor("admin")[2].items.map((i) => i.href)).toEqual(["/settings/packs"])
+    expect(navGroupsFor("admin")[2].items.map((i) => i.href)).toEqual(["/settings/rules", "/settings/packs"])
     expect(hrefs("admin")).not.toContain("/approvals")
   })
 

@@ -6,6 +6,7 @@ import {
   FileText,
   LayoutDashboard,
   Receipt,
+  Scale,
   Sparkles,
   Stamp,
   Target,
@@ -36,6 +37,7 @@ const CONTRACTS: NavItem = { href: "/contracts", label: "合同与提成", icon:
 const EXPENSES: NavItem = { href: "/expenses", label: "报销", icon: Receipt }
 const APPROVALS: NavItem = { href: "/approvals", label: "审批", icon: Stamp, pendingBadge: true }
 const PACKS: NavItem = { href: "/settings/packs", label: "行业包配置", icon: Boxes }
+const RULES: NavItem = { href: "/settings/rules", label: "业务规则", icon: Scale }
 /** 使用说明：所有角色可见，放在侧栏底部（不属于任何业务分组） */
 export const HELP: NavItem = { href: "/help", label: "使用说明", icon: BookOpen }
 
@@ -55,7 +57,7 @@ export function navGroupsFor(role: Role): NavGroup[] {
     return [
       top,
       { label: "业务总览（只读）", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES] },
-      { label: "系统设置", items: [PACKS] },
+      { label: "系统设置", items: [RULES, PACKS] },
     ]
   if (role === "manager")
     return [
@@ -71,7 +73,7 @@ export function navItemsFor(role: Role): NavItem[] {
   return [...navGroupsFor(role).flatMap((g) => g.items), HELP]
 }
 
-const ALL_ITEMS: NavItem[] = [AI, DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, APPROVALS, PACKS]
+const ALL_ITEMS: NavItem[] = [AI, DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, APPROVALS, RULES, PACKS]
 
 export function isActivePath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`)

@@ -58,7 +58,7 @@ ACTION_LABELS = {"submit": "提交", "send": "发送客户", "accept": "客户�
 
 
 def rules_for(quote: Quote) -> RuleSet:
-    return load_rules(get_pack(quote.pack).rules_file)
+    return load_rules(get_pack(quote.pack).rules_file, scope=quote.pack)
 
 
 def _to_out(quote: Quote, items: list[QuoteItem]) -> QuoteOut:
@@ -104,7 +104,9 @@ def create_from_tier(
     if opp is None and customer_id is not None:
         ensure_owner(db.get(Customer, customer_id), user)  # 只能给自己负责的客户出报价
     total_cost = sum(i.unit_cost * i.qty for i in tier.items)
-    margin = check_margin(total_cost, tier.total_price, load_rules(get_pack(pack).rules_file))
+    margin = check_margin(
+        total_cost, tier.total_price, load_rules(get_pack(pack).rules_file, scope=pack)
+    )
     quote = Quote(
         code=next_code(db, Quote.code, "Q"),
         opportunity_id=opp.id if opp else None,

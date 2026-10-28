@@ -89,7 +89,10 @@ def test_pack_detail_all_roles(client: TestClient, pack_id: str) -> None:
         assert data["id"] == pack_id and data["catalog"] and data["knowledge"]
         assert data["rules"]["margin"]["floor_rate"] == 0.25
         item = data["catalog"][0]
-        assert set(item) == {"sku", "name", "category", "unit", "cost", "price", "specs"}
+        assert set(item) == {
+            *("sku", "name", "category", "unit", "cost", "price", "specs"),
+            *("default_cost", "default_price", "overridden"),
+        }
         assert isinstance(item["price"], int)
 
 

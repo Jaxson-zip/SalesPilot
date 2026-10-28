@@ -14,7 +14,7 @@ interface Opportunity {
 }
 
 async function newLeadOpportunity(api: Api): Promise<Opportunity> {
-  const customers = await api.call<{ items: Customer[] }>("GET", "/api/customers?view=mine")
+  const customers = await api.call<{ items: Customer[] }>("GET", "/api/customers?view=mine&q=深圳明理&page_size=50")
   const mingli = customers.items.find((c) => c.name === "深圳明理律师事务所")
   if (!mingli) throw new Error("演示数据缺少深圳明理律师事务所，请先运行 seed")
   return api.call<Opportunity>("POST", "/api/opportunities", {

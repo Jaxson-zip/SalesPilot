@@ -782,6 +782,94 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/settings/rules": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Rules */
+    get: operations["get_rules_api_settings_rules_get"]
+    /** Update Rules */
+    put: operations["update_rules_api_settings_rules_put"]
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/packs/{pack_id}/settings": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Pack Settings */
+    get: operations["get_pack_settings_api_packs__pack_id__settings_get"]
+    /** Update Pack Settings */
+    put: operations["update_pack_settings_api_packs__pack_id__settings_put"]
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/packs/{pack_id}/catalog/{sku}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Update Catalog Item */
+    put: operations["update_catalog_item_api_packs__pack_id__catalog__sku__put"]
+    post?: never
+    /** Reset Catalog Item */
+    delete: operations["reset_catalog_item_api_packs__pack_id__catalog__sku__delete"]
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/packs/{pack_id}/knowledge": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Upload Knowledge */
+    post: operations["upload_knowledge_api_packs__pack_id__knowledge_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/packs/{pack_id}/knowledge/{doc_name}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    /** Delete Knowledge */
+    delete: operations["delete_knowledge_api_packs__pack_id__knowledge__doc_name__delete"]
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/tasks": {
     parameters: {
       query?: never
@@ -1276,6 +1364,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[KnowledgeUploadOut] */
+    ApiResponse_KnowledgeUploadOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["KnowledgeUploadOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[LoginResult] */
     ApiResponse_LoginResult_: {
       /**
@@ -1695,6 +1802,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[SettingsOut] */
+    ApiResponse_SettingsOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["SettingsOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[TaskItem] */
     ApiResponse_TaskItem_: {
       /**
@@ -1822,6 +1948,26 @@ export interface components {
        */
       message: string
       data: components["schemas"]["UserOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[list[CatalogRow]] */
+    ApiResponse_list_CatalogRow__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: components["schemas"]["CatalogRow"][] | null
       /**
        * Request Id
        * @default
@@ -1986,8 +2132,24 @@ export interface components {
        */
       kind?: "invoice" | "receipt" | "other"
     }
-    /** CatalogItem */
-    CatalogItem: {
+    /** Body_upload_knowledge_api_packs__pack_id__knowledge_post */
+    Body_upload_knowledge_api_packs__pack_id__knowledge_post: {
+      /** File */
+      file: string
+    }
+    /** CatalogEdit */
+    CatalogEdit: {
+      /** Name */
+      name?: string | null
+      /** Unit */
+      unit?: string | null
+      /** Cost */
+      cost?: number | null
+      /** Price */
+      price?: number | null
+    }
+    /** CatalogRow */
+    CatalogRow: {
       /** Sku */
       sku: string
       /** Name */
@@ -2007,6 +2169,12 @@ export interface components {
       specs: {
         [key: string]: unknown
       }
+      /** Default Cost */
+      default_cost: number
+      /** Default Price */
+      default_price: number
+      /** Overridden */
+      overridden: boolean
     }
     /** ChatIn */
     ChatIn: {
@@ -2699,6 +2867,21 @@ export interface components {
       format: string
       /** Indexed */
       indexed: boolean
+      /**
+       * Source
+       * @default builtin
+       * @enum {string}
+       */
+      source: "builtin" | "uploaded"
+      /** Chunks */
+      chunks: number | null
+    }
+    /** KnowledgeUploadOut */
+    KnowledgeUploadOut: {
+      /** Doc Name */
+      doc_name: string
+      /** Chunks */
+      chunks: number
     }
     /** LoginResult */
     LoginResult: {
@@ -2943,7 +3126,7 @@ export interface components {
       /** Version */
       version: string
       /** Catalog */
-      catalog: components["schemas"]["CatalogItem"][]
+      catalog: components["schemas"]["CatalogRow"][]
       /** Rules */
       rules: {
         [key: string]: unknown
@@ -3375,6 +3558,61 @@ export interface components {
       commission: components["schemas"]["RuleNote"]
       quote: components["schemas"]["RuleNote"]
       expense: components["schemas"]["RuleNote"]
+    }
+    /** SettingValue */
+    SettingValue: {
+      /** Key */
+      key: string
+      /** Label */
+      label: string
+      /** Group */
+      group: string
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "percent" | "money" | "int" | "float" | "cities" | "percent_list" | "stages" | "megabytes"
+      /**
+       * Unit
+       * @default
+       */
+      unit: string
+      /** Min */
+      min: number | null
+      /** Max */
+      max: number | null
+      /**
+       * Help
+       * @default
+       */
+      help: string
+      /** Value */
+      value: unknown
+      /** Default */
+      default: unknown
+      /** Overridden */
+      overridden: boolean
+      /** Updated At */
+      updated_at: string | null
+      /** Updated By */
+      updated_by: string | null
+    }
+    /** SettingsOut */
+    SettingsOut: {
+      /** Groups */
+      groups: string[]
+      /** Fields */
+      fields: components["schemas"]["SettingValue"][]
+    }
+    /**
+     * SettingsUpdate
+     * @description key → 新值；null 表示恢复默认。
+     */
+    SettingsUpdate: {
+      /** Values */
+      values: {
+        [key: string]: unknown
+      }
     }
     /**
      * SimilarCustomer
@@ -5444,6 +5682,285 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_ProductLineItem_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  get_rules_api_settings_rules_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_SettingsOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  update_rules_api_settings_rules_put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SettingsUpdate"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_SettingsOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  get_pack_settings_api_packs__pack_id__settings_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        pack_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_SettingsOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  update_pack_settings_api_packs__pack_id__settings_put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        pack_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SettingsUpdate"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_SettingsOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  update_catalog_item_api_packs__pack_id__catalog__sku__put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        pack_id: string
+        sku: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CatalogEdit"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_CatalogRow__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  reset_catalog_item_api_packs__pack_id__catalog__sku__delete: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        pack_id: string
+        sku: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_CatalogRow__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  upload_knowledge_api_packs__pack_id__knowledge_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        pack_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_upload_knowledge_api_packs__pack_id__knowledge_post"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_KnowledgeUploadOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  delete_knowledge_api_packs__pack_id__knowledge__doc_name__delete: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        pack_id: string
+        doc_name: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_NoneType_"]
         }
       }
       /** @description Validation Error */

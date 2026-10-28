@@ -8,6 +8,8 @@ from typing import Any
 import yaml
 from pydantic import BaseModel
 
+from app.rules import overrides
+
 RULES_FILE = Path(__file__).with_name("rules.yaml")
 
 
@@ -124,17 +126,22 @@ def _base_rules() -> dict[str, Any]:
     return read_yaml(RULES_FILE)
 
 
-def load_raw_rules(override_file: Path | None = None) -> dict[str, Any]:
-    """合并后的原始规则字典（含行业包专属的 pack 段），只读展示用。"""
-    raw = copy.deepcopy(_base_rules())
+def load_raw_rules(override_file: Path | None = None, scope: str | None = None) -> dict[str, Any]:
+    """合并后的原始规则字典（含行业包专属的 pack 段）。
+
+    合并顺序：通用 rules.yaml → 网页上改过的通用规则 → 行业包 rules.yaml → 网页上改过的行业包参数。
+    scope 是行业包 id（取该行业包在网页上的改动）。
+    """
+    raw = deep_merge(copy.deepcopy(_base_rules()), overrides.nested(overrides.GLOBAL))
     if override_file is not None:
         raw = deep_merge(raw, read_yaml(override_file))
+    if scope:
+        pack = overrides.nested(scope)
+        pack.pop("catalog", None)  # 产品价格的改动由 Catalog 合并
+        raw = deep_merge(raw, pack)
     return raw
 
 
-def load_rules(override_file: Path | None = None) -> RuleSet:
-    """加载通用规则；传入行业包 rules.yaml 时用其覆盖同名项。"""
-    raw = _base_rules()
-    if override_file is not None:
-        raw = deep_merge(raw, read_yaml(override_file))
-    return RuleSet.model_validate(raw)
+def load_rules(override_file: Path | None = None, scope: str | None = None) -> RuleSet:
+    """加载规则；传入行业包 rules.yaml（及行业包 id）时用其覆盖同名项。"""
+    return RuleSet.model_validate(load_raw_rules(override_file, scope))

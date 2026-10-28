@@ -2171,6 +2171,305 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/settings/rules:
+    get:
+      tags:
+      - settings
+      summary: Get Rules
+      operationId: get_rules_api_settings_rules_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_SettingsOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - settings
+      summary: Update Rules
+      operationId: update_rules_api_settings_rules_put
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_SettingsOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/packs/{pack_id}/settings:
+    get:
+      tags:
+      - settings
+      summary: Get Pack Settings
+      operationId: get_pack_settings_api_packs__pack_id__settings_get
+      parameters:
+      - name: pack_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Pack Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_SettingsOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - settings
+      summary: Update Pack Settings
+      operationId: update_pack_settings_api_packs__pack_id__settings_put
+      parameters:
+      - name: pack_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Pack Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_SettingsOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/packs/{pack_id}/catalog/{sku}:
+    put:
+      tags:
+      - settings
+      summary: Update Catalog Item
+      operationId: update_catalog_item_api_packs__pack_id__catalog__sku__put
+      parameters:
+      - name: pack_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Pack Id
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Sku
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogEdit'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_CatalogRow__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - settings
+      summary: Reset Catalog Item
+      operationId: reset_catalog_item_api_packs__pack_id__catalog__sku__delete
+      parameters:
+      - name: pack_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Pack Id
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Sku
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_CatalogRow__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/packs/{pack_id}/knowledge:
+    post:
+      tags:
+      - settings
+      summary: Upload Knowledge
+      operationId: upload_knowledge_api_packs__pack_id__knowledge_post
+      parameters:
+      - name: pack_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Pack Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_knowledge_api_packs__pack_id__knowledge_post'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_KnowledgeUploadOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/packs/{pack_id}/knowledge/{doc_name}:
+    delete:
+      tags:
+      - settings
+      summary: Delete Knowledge
+      operationId: delete_knowledge_api_packs__pack_id__knowledge__doc_name__delete
+      parameters:
+      - name: pack_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Pack Id
+      - name: doc_name
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Doc Name
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_NoneType_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/tasks:
     get:
       tags:
@@ -3122,6 +3421,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_KnowledgeUploadOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/KnowledgeUploadOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[KnowledgeUploadOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_LoginResult_:
       properties:
         code:
@@ -3671,6 +3995,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_SettingsOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/SettingsOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[SettingsOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_TaskItem_:
       properties:
         code:
@@ -3841,6 +4190,34 @@ components:
           default: ''
       type: object
       title: ApiResponse[UserOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_list_CatalogRow__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/CatalogRow'
+            type: array
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[list[CatalogRow]]
       required:
       - code
       - message
@@ -4113,7 +4490,41 @@ components:
       required:
       - file
       title: Body_upload_attachment_api_expenses__expense_id__attachments_post
-    CatalogItem:
+    Body_upload_knowledge_api_packs__pack_id__knowledge_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_knowledge_api_packs__pack_id__knowledge_post
+    CatalogEdit:
+      properties:
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        unit:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Unit
+        cost:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Cost
+        price:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Price
+      type: object
+      title: CatalogEdit
+    CatalogRow:
       properties:
         sku:
           type: string
@@ -4141,6 +4552,15 @@ components:
           additionalProperties: true
           type: object
           title: Specs
+        default_cost:
+          type: integer
+          title: Default Cost
+        default_price:
+          type: integer
+          title: Default Price
+        overridden:
+          type: boolean
+          title: Overridden
       type: object
       required:
       - sku
@@ -4149,8 +4569,11 @@ components:
       - unit
       - cost
       - price
+      - default_cost
+      - default_price
+      - overridden
       - specs
-      title: CatalogItem
+      title: CatalogRow
     ChatIn:
       properties:
         thread_id:
@@ -5528,6 +5951,18 @@ components:
         indexed:
           type: boolean
           title: Indexed
+        source:
+          type: string
+          enum:
+          - builtin
+          - uploaded
+          title: Source
+          default: builtin
+        chunks:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Chunks
       type: object
       required:
       - doc_name
@@ -5535,7 +5970,22 @@ components:
       - size
       - format
       - indexed
+      - source
+      - chunks
       title: KnowledgeDoc
+    KnowledgeUploadOut:
+      properties:
+        doc_name:
+          type: string
+          title: Doc Name
+        chunks:
+          type: integer
+          title: Chunks
+      type: object
+      required:
+      - doc_name
+      - chunks
+      title: KnowledgeUploadOut
     LoginResult:
       properties:
         token:
@@ -5985,7 +6435,7 @@ components:
           title: Version
         catalog:
           items:
-            $ref: '#/components/schemas/CatalogItem'
+            $ref: '#/components/schemas/CatalogRow'
           type: array
           title: Catalog
         rules:
@@ -6819,6 +7269,109 @@ components:
       - expense
       title: RuleNotes
       description: 三类制度说明；固定这三个键，前端按键取用。
+    SettingValue:
+      properties:
+        key:
+          type: string
+          title: Key
+        label:
+          type: string
+          title: Label
+        group:
+          type: string
+          title: Group
+        kind:
+          type: string
+          enum:
+          - percent
+          - money
+          - int
+          - float
+          - cities
+          - percent_list
+          - stages
+          - megabytes
+          title: Kind
+        unit:
+          type: string
+          title: Unit
+          default: ''
+        min:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Min
+        max:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Max
+        help:
+          type: string
+          title: Help
+          default: ''
+        value:
+          title: Value
+        default:
+          title: Default
+        overridden:
+          type: boolean
+          title: Overridden
+        updated_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Updated At
+        updated_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated By
+      type: object
+      required:
+      - key
+      - label
+      - group
+      - kind
+      - value
+      - default
+      - overridden
+      - unit
+      - min
+      - max
+      - help
+      - updated_at
+      - updated_by
+      title: SettingValue
+    SettingsOut:
+      properties:
+        groups:
+          items:
+            type: string
+          type: array
+          title: Groups
+        fields:
+          items:
+            $ref: '#/components/schemas/SettingValue'
+          type: array
+          title: Fields
+      type: object
+      required:
+      - groups
+      - fields
+      title: SettingsOut
+    SettingsUpdate:
+      properties:
+        values:
+          additionalProperties: true
+          type: object
+          title: Values
+      type: object
+      required:
+      - values
+      title: SettingsUpdate
+      description: key → 新值；null 表示恢复默认。
     SimilarCustomer:
       properties:
         id:

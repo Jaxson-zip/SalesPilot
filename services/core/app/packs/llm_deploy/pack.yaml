@@ -2,3 +2,9 @@ id: llm_deploy
 name: 大模型部署
 description: 开源大模型私有化：显存估算、GPU 选型、部署实施报价
 version: 1.2.0
+
+# 管理员可以在「行业包配置 → 业务规则」里修改的参数（默认值在 rules.yaml 的 pack 段）
+settings:
+  - {key: pack.vram_headroom, label: 显存余量系数, group: 选型, kind: float, unit: 倍, min: 1, max: 3, help: 估算显存后乘以该系数，留出 KV Cache 与碎片余量}
+  - {key: pack.default_context_tokens, label: 默认单请求上下文长度, group: 选型, kind: int, unit: tokens, min: 512, max: 131072, help: 客户没有说明上下文长度时按此估算}
+  - {key: pack.economy_discount_ladder, label: 经济版折扣阶梯, group: 报价, kind: percent_list, min: 0, max: 0.5, help: 经济版的竞争性折扣；毛利不达标重新配置时按顺序逐级降低}

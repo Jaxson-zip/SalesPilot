@@ -2,7 +2,7 @@
 
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel
 from sqlalchemy import func, select
@@ -14,7 +14,8 @@ from app.crm.models import Opportunity, ProductLine
 from app.crm.schemas.common import Page
 from app.crm.schemas.dashboard import ProductLineItem, ProductLineUpdate
 from app.crm.schemas.opportunity import FINAL_STAGES
-from app.packs.base import Catalog, CatalogItem
+from app.crm.services import settings_service
+from app.crm.services.settings_service import CatalogRow
 from app.packs.registry import PackInfo, get_pack, list_packs
 from app.rag.loaders import LOADERS
 from app.rules.loader import load_raw_rules
@@ -40,10 +41,12 @@ class KnowledgeDoc(BaseModel):
     size: int  # 字节
     format: str  # 扩展名（不含点），如 md / pdf / xlsx / json
     indexed: bool  # 是否会进入知识库（RAG 支持的格式）；其他文件是行业包的配置数据
+    source: Literal["builtin", "uploaded"] = "builtin"  # 内置（随代码发布）/ 网页上传（可删除）
+    chunks: int | None = None  # 已入库的切块数；未查询时为 null
 
 
 class PackDetail(PackOut):
-    catalog: list[CatalogItem]
+    catalog: list[CatalogRow]
     rules: dict[str, Any]
     knowledge: list[KnowledgeDoc]
 
@@ -57,35 +60,46 @@ def _doc_title(path: Path) -> str:
     return path.stem
 
 
-def _knowledge(pack: PackInfo) -> list[KnowledgeDoc]:
-    if not pack.knowledge_dir.is_dir():
-        return []
-    files = sorted(p for p in pack.knowledge_dir.iterdir() if p.is_file())
-    return [
-        KnowledgeDoc(
-            doc_name=p.name,
-            title=_doc_title(p),
-            size=p.stat().st_size,
-            format=p.suffix.lower().lstrip("."),
-            indexed=p.suffix.lower() in LOADERS,
-        )
-        for p in files
-    ]
+def _knowledge(pack: PackInfo, counts: dict[str, int] | None) -> list[KnowledgeDoc]:
+    docs: list[KnowledgeDoc] = []
+    sources = (
+        (pack.knowledge_dir, "builtin"),
+        (settings_service.uploaded_dir(pack.id), "uploaded"),
+    )
+    for directory, source in sources:
+        if not directory.is_dir():
+            continue
+        for p in sorted(x for x in directory.iterdir() if x.is_file()):
+            indexed = p.suffix.lower() in LOADERS
+            docs.append(
+                KnowledgeDoc(
+                    doc_name=p.name,
+                    title=_doc_title(p),
+                    size=p.stat().st_size,
+                    format=p.suffix.lower().lstrip("."),
+                    indexed=indexed,
+                    source="uploaded" if source == "uploaded" else "builtin",
+                    chunks=counts.get(p.stem, 0) if counts is not None and indexed else None,
+                )
+            )
+    return docs
 
 
-def get_pack_detail(pack_id: str) -> PackDetail:
-    """行业包只读详情：产品目录（分）、合并后的规则、知识库文档。所有角色可读；未安装 40401。"""
+def get_pack_detail(pack_id: str, db: Session | None = None) -> PackDetail:
+    """行业包详情：产品目录（分，含网页上的改价）、合并后的规则、知识库文档（含入库切块数）。
+
+    所有角色可读；未安装 40401。修改走 settings_service（仅管理员）。
+    """
     pack = get_pack(pack_id)
-    catalog_file = pack.path / "catalog.json"
-    catalog = Catalog.from_file(catalog_file).all() if catalog_file.exists() else []
+    counts = settings_service.chunk_counts(db, pack_id) if db is not None else None
     return PackDetail(
         id=pack.id,
         name=pack.name,
         description=pack.description,
         version=pack.version,
-        catalog=catalog,
-        rules=load_raw_rules(pack.rules_file),
-        knowledge=_knowledge(pack),
+        catalog=settings_service.catalog_rows(pack),
+        rules=load_raw_rules(pack.rules_file, scope=pack.id),
+        knowledge=_knowledge(pack, counts),
     )
 
 

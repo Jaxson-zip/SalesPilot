@@ -13,6 +13,7 @@ const PAGES = [
   "/contracts",
   "/expenses",
   "/approvals",
+  "/settings/rules",
   "/settings/packs",
   "/ai",
   "/help",

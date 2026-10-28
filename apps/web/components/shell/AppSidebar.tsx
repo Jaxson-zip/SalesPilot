@@ -3,10 +3,8 @@
 import { Search } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Suspense } from "react"
 
 import { useSession } from "@/components/shell/SessionProvider"
-import { SidebarHistory } from "@/components/shell/SidebarHistory"
 import { UserMenu } from "@/components/shell/UserMenu"
 import { WorkspaceSwitcher } from "@/components/shell/WorkspaceSwitcher"
 import {
@@ -68,7 +66,6 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 /**
  * 左侧导航（shadcn Sidebar，collapsible="icon"）：
  * ≥1280 默认展开 220px · 1024–1279 默认 56px 图标栏 · <1024 抽屉（Sheet）
- * 在 /ai 时导航下面接着显示「新对话」和最近对话（SidebarHistory）
  */
 export function AppSidebar({ onSearch }: { onSearch: () => void }) {
   const pathname = usePathname()
@@ -108,12 +105,6 @@ export function AppSidebar({ onSearch }: { onSearch: () => void }) {
             </SidebarGroup>
           )
         })}
-        {/* AI 工作台：会话记录接在导航下面（不在页面里另开一栏） */}
-        {isActivePath(pathname, "/ai") ? (
-          <Suspense fallback={null}>
-            <SidebarHistory />
-          </Suspense>
-        ) : null}
       </SidebarContent>
       <SidebarFooter className="p-2">
         <SidebarMenu>

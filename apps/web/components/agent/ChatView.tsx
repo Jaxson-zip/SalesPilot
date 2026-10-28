@@ -11,7 +11,7 @@ import type { ResumeDecision } from "@/types/api"
 
 const ICON_BTN = "inline-flex size-7 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100"
 
-/** 会话标题栏：标题 + 新对话（会话记录在左侧导航里） */
+/** 会话标题栏：标题 + 新对话（会话记录在页面标题行的「历史记录」面板里） */
 function ChatHeader({ title, onNew }: { title: string; onNew: () => void }) {
   return (
     <div className="flex h-11 shrink-0 items-center gap-2 border-b border-zinc-100 px-3 sm:px-4">

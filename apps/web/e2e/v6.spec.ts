@@ -225,45 +225,44 @@ test.describe("B5 客户公海", () => {
   })
 })
 
-test.describe("AI 工作台会话记录（左侧导航里）", () => {
-  test("只在 /ai 显示；点一条打开会话并写进地址；新对话回到欢迎页；手机随导航抽屉打开", async ({ page, request }) => {
+test.describe("AI 工作台会话记录（右侧面板）", () => {
+  test("左侧导航不混入会话；标题行打开面板，搜索、点一条打开并写进地址、自动关闭；新对话回到欢迎页", async ({
+    page,
+    request,
+  }) => {
     const api = await Api.as(request, "sales")
     const thread = `pw-${Date.now().toString(36)}`
     await api.sse("/api/agent/chat", { thread_id: thread, message: "出差住宿的报销标准是多少？" })
     await loginAs(page, "sales")
-
-    await page.goto("/dashboard")
-    await expect(page.getByRole("navigation", { name: "会话记录" })).toHaveCount(0)
-
     await page.goto("/ai")
     const panel = page.getByRole("navigation", { name: "会话记录" })
+    await expect(panel).toHaveCount(0) // 默认不占位置
+
+    await page.getByRole("button", { name: "历史记录" }).click()
     await expect(panel).toBeVisible()
+    await page.getByRole("textbox", { name: "搜索会话" }).fill("出差住宿")
+    await expect(panel.getByRole("link", { name: /给明理律所/ })).toHaveCount(0)
     await panel
       .getByRole("link", { name: /出差住宿的报销标准/ })
       .first()
       .click()
+    await expect(panel).toBeHidden()
     await expect(page).toHaveURL(/\/ai\?t=/)
     await expect(page.getByText("出差住宿的报销标准是多少？").last()).toBeVisible()
 
     await page.reload() // 刷新后按地址恢复会话
     await expect(page.getByText("出差住宿的报销标准是多少？").last()).toBeVisible()
 
-    await page.getByRole("link", { name: "新对话" }).click()
+    await page.getByRole("button", { name: "历史记录" }).click()
+    await page.getByRole("dialog").getByRole("link", { name: "新对话" }).click()
     await expect(page).toHaveURL(/\/ai$/)
     await expect(page.getByText("今天要给哪位客户出方案？")).toBeVisible()
 
     await page.setViewportSize({ width: 390, height: 844 })
     await page.reload()
     await expect(page.getByText("今天要给哪位客户出方案？")).toBeInViewport() // 欢迎页顶部不被裁掉
-    await expect(panel).toBeHidden()
-    await page.getByRole("button", { name: "打开导航" }).click()
+    await page.getByRole("button", { name: "历史记录" }).click()
     await expect(panel).toBeVisible()
-    await panel
-      .getByRole("link", { name: /出差住宿的报销标准/ })
-      .first()
-      .click()
-    await expect(panel).toBeHidden() // 选中后抽屉关闭
-    await expect(page).toHaveURL(/\/ai\?t=/)
   })
 
   test("出方案：说明文字先逐字出来，方案卡片和确认框随后出现", async ({ page }) => {
@@ -291,6 +290,7 @@ test.describe("审查 v6 待定项", () => {
     await api.sse("/api/agent/chat", { thread_id: thread, message: "公司一年有几天年假？" })
     await loginAs(page, "sales")
     await page.goto("/ai")
+    await page.getByRole("button", { name: "历史记录" }).click()
     const panel = page.getByRole("navigation", { name: "会话记录" })
     const row = panel.getByRole("link", { name: /公司一年有几天年假/ }).first()
     await expect(row).toContainText(/\d{2}:\d{2}/)

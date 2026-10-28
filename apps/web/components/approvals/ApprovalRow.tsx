@@ -7,7 +7,7 @@ import { AttachmentPill } from "@/components/biz/Attachments"
 import { Chip } from "@/components/biz/Chip"
 import { Tag } from "@/components/biz/Tag"
 import { Button } from "@/components/ui/button"
-import { formatFen, formatRelative } from "@/lib/format"
+import { formatFen, formatRelative, ownerName } from "@/lib/format"
 import { APPROVAL_STATUS_META, APPROVAL_TARGET_LABEL, labelOf } from "@/lib/labels"
 import type { ApprovalItem } from "@/types/api"
 
@@ -49,7 +49,7 @@ export function ApprovalRow({
           <span className="shrink-0 text-zinc-500 tabular-nums">{formatFen(a.target.amount)}</span>
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-zinc-500">
-          <Chip name={a.target.owner.name} />
+          <Chip name={ownerName(a.target.owner)} />
           <span>{formatRelative(a.created_at)} 提交 ·</span>
           <TriangleAlert className="size-3.5 text-amber-500" />
           <span className="text-zinc-700">{a.reason}</span>

@@ -106,7 +106,10 @@ export function AiMessage({
         ) : null}
         {turn.status === "stopped" ? <div className="text-xs text-zinc-400">已停止生成</div> : null}
         {turn.status === "done" ? (
-          <MsgActions text={[turn.text, turn.afterText].filter(Boolean).join("\n\n")} onRegenerate={readonly || busy ? undefined : onRetry} />
+          <MsgActions
+            text={[turn.text, turn.afterText].filter(Boolean).join("\n\n")}
+            onRegenerate={readonly || busy ? undefined : onRetry}
+          />
         ) : null}
       </div>
     </div>

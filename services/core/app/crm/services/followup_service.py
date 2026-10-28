@@ -2,7 +2,6 @@
 
 import uuid
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -14,10 +13,8 @@ from app.common.permissions import ensure_owner
 from app.common.scope import can_see, ensure_visible
 from app.crm.models import Customer, Followup, Opportunity
 from app.crm.schemas.common import Page
-from app.crm.schemas.dashboard import FollowupIn, FollowupItem
+from app.crm.schemas.dashboard import FollowupIn, FollowupItem, FollowupType
 from app.crm.services import activity_service
-
-FollowupType = Literal["phone", "visit", "wechat", "email", "ai"]
 
 
 class FollowupCreate(BaseModel):

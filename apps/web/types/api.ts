@@ -64,9 +64,9 @@ export type CustomerView = "mine" | "team" | "all"
 export interface Customer {
   id: string
   name: string
-  industry: string
+  industry: string | null
   level: string
-  owner: UserBrief
+  owner: UserBrief | null
   website: string | null
   /** 单位：分 */
   opportunity_amount: number

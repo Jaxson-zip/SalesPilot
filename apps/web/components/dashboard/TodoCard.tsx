@@ -41,7 +41,7 @@ export function TodoCard({ view }: { view: DataView }) {
           t={t}
           showSubject
           href={taskSubjectHref(t)}
-          canComplete={canEdit(t.owner.id)}
+          canComplete={canEdit(t.owner?.id)}
           onComplete={complete}
           completing={pendingId === t.id}
         />

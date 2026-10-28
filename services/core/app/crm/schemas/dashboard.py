@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 
 from app.crm.schemas.opportunity import PipelineStage
 
+FollowupType = Literal["phone", "visit", "wechat", "email", "ai"]  # ai = Agent 记录
+
 
 class Dashboard(BaseModel):
     won_amount_month: int
@@ -45,7 +47,7 @@ class FollowupItem(BaseModel):
     id: uuid.UUID
     customer_id: uuid.UUID
     opportunity_id: uuid.UUID | None
-    type: str
+    type: FollowupType
     content: str
     source: Literal["manual", "agent"]
     occurred_at: datetime

@@ -48,7 +48,7 @@ export default function QuoteDetailPage() {
   }
 
   // 报价状态按钮只给负责人本人（契约 §0）
-  const actions = q && canEdit(q.owner.id) ? availableQuoteActions(q.status) : []
+  const actions = q && canEdit(q.owner?.id) ? availableQuoteActions(q.status) : []
   const primary = q ? primaryQuoteAction(q.status) : null
   const buttons = actions.map((a) => {
     const Icon = ACTION_ICON[a]
@@ -114,7 +114,7 @@ export default function QuoteDetailPage() {
                 icon: List,
                 // 草稿 + 负责人：可调数量和折扣（v3 §14）；其余只读
                 content:
-                  quote.status === "draft" && canEdit(quote.owner.id) ? (
+                  quote.status === "draft" && canEdit(quote.owner?.id) ? (
                     <QuoteAdjust key={adjustKey(quote)} q={quote} />
                   ) : (
                     <BomTable bom={quoteToBom(quote)} />

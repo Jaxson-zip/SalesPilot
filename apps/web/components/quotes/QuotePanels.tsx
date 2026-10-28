@@ -24,7 +24,7 @@ import { QueryError } from "@/components/biz/QueryStatus"
 import { Tag } from "@/components/biz/Tag"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useActivities } from "@/hooks/useDashboard"
-import { formatFen, formatPercent, formatRelative } from "@/lib/format"
+import { formatFen, formatPercent, formatRelative, ownerName } from "@/lib/format"
 import { activityActionLabel, APPROVAL_STATUS_META, labelOf, QUOTE_STATUS_META } from "@/lib/labels"
 import { defaultScope } from "@/lib/views"
 import type { QuoteDetail, Role } from "@/types/api"
@@ -121,7 +121,7 @@ export function QuoteFields({ q }: { q: QuoteDetail }) {
         </span>
       </FieldRow>
       <FieldRow icon={User} label="负责人">
-        <Chip name={q.owner.name} />
+        <Chip name={ownerName(q.owner)} />
       </FieldRow>
       <div className="mt-4">
         <RuleAlert q={q} />

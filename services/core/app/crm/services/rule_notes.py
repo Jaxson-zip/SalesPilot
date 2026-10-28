@@ -75,6 +75,14 @@ def expense_note(rules: RuleSet) -> RuleNote:
     )
 
 
+class RuleNotes(BaseModel):
+    """三类制度说明；固定这三个键，前端按键取用。"""
+
+    commission: RuleNote
+    quote: RuleNote
+    expense: RuleNote
+
+
 def rule_notes(rules: RuleSet) -> dict[str, RuleNote]:
     return {
         "commission": commission_note(rules),

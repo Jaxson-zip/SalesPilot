@@ -7,7 +7,7 @@ import { ProgressBar } from "@/components/biz/Progress"
 import { Tag } from "@/components/biz/Tag"
 import { Button } from "@/components/ui/button"
 import { paidPercent } from "@/lib/contract"
-import { formatFen } from "@/lib/format"
+import { formatFen, ownerName } from "@/lib/format"
 import { CONTRACT_STATUS_META, labelOf } from "@/lib/labels"
 import { fenToYuan, optionsFromRows, type CsvColumn, type FilterDef, type SortAccessors } from "@/lib/list-view"
 import type { ContractItem } from "@/types/api"
@@ -111,7 +111,12 @@ export function contractFilters(rows: ContractItem[]): FilterDef<ContractItem>[]
       options: optionsFromRows(rows, (c) => c.customer?.name),
       get: (c) => c.customer?.name ?? null,
     },
-    { id: "owner", label: "负责人", options: optionsFromRows(rows, (c) => c.owner.name), get: (c) => c.owner.name },
+    {
+      id: "owner",
+      label: "负责人",
+      options: optionsFromRows(rows, (c) => ownerName(c.owner)),
+      get: (c) => ownerName(c.owner),
+    },
   ]
 }
 
@@ -127,5 +132,5 @@ export const contractCsv: CsvColumn<ContractItem>[] = [
   { label: "预估提成（元）", value: (c) => fenToYuan(c.commission.estimated) },
   { label: "已确认提成（元）", value: (c) => fenToYuan(c.commission.confirmed) },
   { label: "状态", value: (c) => labelOf(CONTRACT_STATUS_META, c.status).label },
-  { label: "负责人", value: (c) => c.owner.name },
+  { label: "负责人", value: (c) => ownerName(c.owner) },
 ]

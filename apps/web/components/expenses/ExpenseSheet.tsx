@@ -84,7 +84,7 @@ export function ExpenseSheet({
   const { canCreate, canEdit } = usePermissions()
   const exp = detail.data
   // 新建：有新建权限；已有报销单：本人的草稿才能上传票据和提交（契约 §0）
-  const editable = !draftId ? canCreate : exp?.status === "draft" && canEdit(exp.owner.id)
+  const editable = !draftId ? canCreate : exp?.status === "draft" && canEdit(exp.owner?.id)
   const attachments = exp?.attachments ?? []
   const missing = exp ? missingAttachmentReason(exp.type, attachments) : "保存草稿后上传票据"
 
@@ -201,7 +201,7 @@ export function ExpenseSheet({
           checking={precheck.isFetching}
         />
       ) : exp ? (
-        <PolicyCheckAlert check={checkFromPolicy(exp.policy_check)} />
+        <PolicyCheckAlert check={exp.policy_check ? checkFromPolicy(exp.policy_check) : null} />
       ) : null}
       {!draftId && precheck.isError ? (
         <Alert tone="info" title="暂时无法实时校验报销制度">

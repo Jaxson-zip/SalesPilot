@@ -25,7 +25,56 @@ def build() -> dict[str, Any]:
         "SalesPilot 业务服务。统一响应 {code, message, data, request_id}；"
         "错误码见 docs/开发规范.md §8.2；字段说明见 docs/api/业务模块接口契约.md。"
     )
+    mark_response_fields_required(spec)
     return spec
+
+
+def _refs(node: Any) -> set[str]:
+    """node 里直接引用的 schema 名。"""
+    if isinstance(node, dict):
+        ref = node.get("$ref")
+        found = {ref.rsplit("/", 1)[-1]} if isinstance(ref, str) else set()
+        return found.union(*(_refs(v) for v in node.values()))
+    if isinstance(node, list):
+        return set().union(*(_refs(v) for v in node))
+    return set()
+
+
+def _closure(names: set[str], schemas: dict[str, Any]) -> set[str]:
+    seen: set[str] = set()
+    todo = list(names)
+    while todo:
+        name = todo.pop()
+        if name in seen or name not in schemas:
+            continue
+        seen.add(name)
+        todo.extend(_refs(schemas[name]))
+    return seen
+
+
+def mark_response_fields_required(spec: dict[str, Any]) -> None:
+    """只出现在响应里的 schema：所有字段标为 required。
+
+    后端返回时总会带上全部字段（响应不用 exclude_unset / exclude_none），值可能是 null 但不会缺；
+    FastAPI 默认把有默认值的字段写成可选，前端生成的类型就会多出 undefined。
+    请求里出现的 schema 保持原样（调用方可以不传有默认值的字段）。
+    """
+    schemas = spec.get("components", {}).get("schemas", {})
+    inputs: set[str] = set()
+    outputs: set[str] = set()
+    for item in spec.get("paths", {}).values():
+        for op in item.values():
+            if not isinstance(op, dict):
+                continue
+            inputs |= _refs(op.get("requestBody", {})) | _refs(op.get("parameters", []))
+            outputs |= _refs(op.get("responses", {}))
+    inputs = _closure(inputs, schemas)
+    for name in _closure(outputs, schemas) - inputs:
+        props = schemas[name].get("properties", {})
+        required = schemas[name].get("required", [])
+        extra = [k for k in props if k not in required]
+        if extra:
+            schemas[name]["required"] = required + extra
 
 
 def render(spec: dict[str, Any]) -> str:

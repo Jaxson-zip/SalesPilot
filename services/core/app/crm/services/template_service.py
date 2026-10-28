@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from app.crm.schemas.finance import EXPENSE_TYPE_LABELS, ExpenseType, TransportMode
 from app.crm.schemas.task import TaskType
-from app.crm.services.rule_notes import RuleNote, rule_notes
+from app.crm.services.rule_notes import RuleNotes, rule_notes
 from app.rules import RuleSet, load_rules
 from app.rules.loader import read_yaml
 
@@ -64,7 +64,7 @@ class Templates(BaseModel):
     quote_terms: list[str]
     ai_prompts: list[PromptTemplate]
     # 规则说明（悬浮提示）：commission / quote / expense，数字来自 rules.yaml
-    rule_notes: dict[str, RuleNote]
+    rule_notes: RuleNotes
 
 
 class _Values(dict[str, str]):
@@ -130,7 +130,7 @@ def get_templates(role: Role) -> Templates:
         task=[TaskTemplate.model_validate(t) for t in raw.get("task", [])],
         lost_reasons=[str(r) for r in raw.get("lost_reasons", [])],
         quote_terms=[str(t).format(**values) for t in raw.get("quote_terms", [])],
-        rule_notes=rule_notes(rules),
+        rule_notes=RuleNotes.model_validate(rule_notes(rules)),
         ai_prompts=[
             PromptTemplate.model_validate(p) for p in raw.get("ai_prompts", {}).get(role, [])
         ],

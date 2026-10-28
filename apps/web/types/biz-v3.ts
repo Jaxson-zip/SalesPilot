@@ -40,8 +40,8 @@ export interface TaskItem {
   note: string | null
   subject_type: TaskSubjectType
   subject_id: string
-  subject_name: string
-  owner: UserBrief
+  subject_name: string | null
+  owner: UserBrief | null
   overdue: boolean
 }
 

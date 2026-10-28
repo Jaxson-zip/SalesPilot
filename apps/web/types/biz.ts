@@ -88,7 +88,7 @@ export interface OpportunityItem {
   win_rate: number
   expected_close_date: string | null
   product_line: ProductLineBrief | null
-  owner: UserBrief
+  owner: UserBrief | null
   updated_at: string
   /** v3 §12：最早的未完成任务；undefined = 后端还没返回该字段 */
   next_task?: NextTask | null
@@ -150,7 +150,7 @@ export interface QuoteItem {
   margin_rate: number
   status: QuoteStatus
   source: ActivitySource
-  owner: UserBrief
+  owner: UserBrief | null
   created_at: string
 }
 
@@ -212,7 +212,7 @@ export interface ContractItem {
   paid_ratio: number
   status: ContractStatus
   commission: { estimated: number; confirmed: number }
-  owner: UserBrief
+  owner: UserBrief | null
   created_at: string
 }
 
@@ -252,11 +252,11 @@ export interface ExpenseItem {
   headcount: number
   occurred_on: string
   customer: CustomerBrief | null
-  reason: string
+  reason: string | null
   status: ExpenseStatus
   attachment_count: number
   over_limit: boolean
-  owner: UserBrief
+  owner: UserBrief | null
   created_at: string
 }
 
@@ -287,7 +287,7 @@ export interface ExpenseDetail extends ExpenseItem {
   participants: string | null
   opportunity: OppBrief | null
   attachments: AttachmentOut[]
-  policy_check: PolicyCheck
+  policy_check: PolicyCheck | null
   /** v3 §17 */
   contacts?: { id: string; name: string; title: string | null }[]
   colleagues?: UserBrief[]
@@ -339,7 +339,7 @@ export type ApprovalDecision = "approve" | "reject"
 export interface ApprovalItem {
   id: string
   target_type: ApprovalTargetType
-  target: { id: string; code: string; title: string; amount: number; owner: UserBrief }
+  target: { id: string; code: string; title: string; amount: number; owner: UserBrief | null }
   reason: string
   ai_suggestion: string | null
   status: ApprovalStatus

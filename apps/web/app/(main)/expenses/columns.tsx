@@ -39,7 +39,13 @@ export function expenseColumns(onOpen: (e: ExpenseItem) => void): GridColumn<Exp
       icon: Building2,
       cell: (e) => (e.customer ? <Chip name={e.customer.name} logo={e.customer.name.slice(0, 1)} /> : "—"),
     },
-    { id: "reason", label: "事由", icon: Text, secondary: true, cell: (e) => <span title={e.reason}>{e.reason}</span> },
+    {
+      id: "reason",
+      label: "事由",
+      icon: Text,
+      secondary: true,
+      cell: (e) => <span title={e.reason ?? undefined}>{e.reason || "—"}</span>,
+    },
     {
       id: "attachments",
       label: "票据",

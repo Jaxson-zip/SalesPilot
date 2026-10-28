@@ -6,7 +6,7 @@ import type { KeyboardEvent } from "react"
 
 import { Chip } from "@/components/biz/Chip"
 import { Tag } from "@/components/biz/Tag"
-import { formatFen } from "@/lib/format"
+import { formatFen, ownerName } from "@/lib/format"
 import { expectedCloseText, isFinalStage } from "@/lib/pipeline"
 import { nextStepView, staleText } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
@@ -100,7 +100,7 @@ export function OpportunityCardBody({
         {showOwner ? (
           <div className="flex min-w-0 items-center gap-2">
             <User className="size-3.5 shrink-0 text-zinc-400" />
-            <Chip name={opp.owner.name} />
+            <Chip name={ownerName(opp.owner)} />
           </div>
         ) : null}
       </div>

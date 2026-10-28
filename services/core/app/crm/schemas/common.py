@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.common.auth import Role
+
 
 class UserBrief(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -19,7 +21,7 @@ class UserOut(BaseModel):
 
     id: uuid.UUID
     name: str
-    role: str
+    role: Role
     team_id: uuid.UUID | None = None
 
 

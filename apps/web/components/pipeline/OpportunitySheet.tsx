@@ -26,7 +26,7 @@ import { SubjectTasks } from "@/components/tasks/TaskList"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOpportunity } from "@/hooks/useOpportunities"
-import { formatFen, formatRelative } from "@/lib/format"
+import { formatFen, formatRelative, ownerName } from "@/lib/format"
 import { activityActionLabel, labelOf, QUOTE_STATUS_META, STAGE_META, STAGE_ORDER } from "@/lib/labels"
 import { isFinalStage, stageBarState } from "@/lib/pipeline"
 import { staleText } from "@/lib/tasks"
@@ -122,7 +122,7 @@ function Fields({ o }: { o: OpportunityItem & Partial<Pick<OpportunityDetail, "q
         </span>
       </FieldRow>
       <FieldRow icon={User} label="负责人">
-        <Chip name={o.owner.name} />
+        <Chip name={ownerName(o.owner)} />
       </FieldRow>
       <FieldRow icon={FileText} label="关联报价">
         {o.quotes?.length ? (

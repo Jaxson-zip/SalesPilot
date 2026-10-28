@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.common.auth import Role
 from app.crm.schemas.common import UserBrief
 
 TaskType = Literal["call", "visit", "email", "meeting", "todo"]
@@ -58,7 +59,7 @@ class NextTask(BaseModel):
 class UserListItem(BaseModel):
     id: uuid.UUID
     name: str
-    role: str
+    role: Role
 
 
 class NotificationItem(BaseModel):

@@ -46,7 +46,7 @@ export function ExpenseSummary({ e }: { e: ExpenseDetail }) {
         </FieldRow>
       ) : null}
       <FieldRow icon={Text} label="事由">
-        <span title={e.reason}>{e.reason || "—"}</span>
+        <span title={e.reason ?? undefined}>{e.reason || "—"}</span>
       </FieldRow>
     </div>
   )

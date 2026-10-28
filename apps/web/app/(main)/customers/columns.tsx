@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Chip, LinkChip } from "@/components/biz/Chip"
 import type { GridColumn } from "@/components/biz/DataGrid"
 import { colorFor, Tag, type TagColor } from "@/components/biz/Tag"
-import { displayHost, formatFen, formatRelative } from "@/lib/format"
+import { displayHost, formatFen, formatRelative, ownerName } from "@/lib/format"
 import { fenToYuan, optionsFromRows, type CsvColumn, type FilterDef, type SortAccessors } from "@/lib/list-view"
 import type { Customer } from "@/types/api"
 
@@ -40,7 +40,7 @@ export const customerColumns: GridColumn<Customer>[] = [
     icon: Star,
     cell: (c) => (c.level ? <Tag color={levelColor(c.level)}>{c.level}</Tag> : "—"),
   },
-  { id: "owner", label: "负责人", icon: User, cell: (c) => <Chip name={c.owner.name} /> },
+  { id: "owner", label: "负责人", icon: User, cell: (c) => <Chip name={ownerName(c.owner)} /> },
   {
     id: "website",
     label: "网站",
@@ -70,8 +70,8 @@ export function customerFilters(rows: Customer[]): FilterDef<Customer>[] {
     {
       id: "owner",
       label: "负责人",
-      options: optionsFromRows(rows, (c) => c.owner.name),
-      get: (c) => c.owner.name,
+      options: optionsFromRows(rows, (c) => ownerName(c.owner)),
+      get: (c) => ownerName(c.owner),
     },
   ]
 }
@@ -85,7 +85,7 @@ export const customerCsv: CsvColumn<Customer>[] = [
   { label: "客户名称", value: (c) => c.name },
   { label: "行业", value: (c) => c.industry },
   { label: "等级", value: (c) => c.level },
-  { label: "负责人", value: (c) => c.owner.name },
+  { label: "负责人", value: (c) => ownerName(c.owner) },
   { label: "网站", value: (c) => c.website },
   { label: "商机金额（元）", value: (c) => fenToYuan(c.opportunity_amount) },
   { label: "最近跟进", value: (c) => c.last_followup_at },

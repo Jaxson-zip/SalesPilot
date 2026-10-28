@@ -4,7 +4,7 @@ import Link from "next/link"
 import { Chip } from "@/components/biz/Chip"
 import type { GridColumn } from "@/components/biz/DataGrid"
 import { Tag } from "@/components/biz/Tag"
-import { formatFen, formatPercent, formatRelative } from "@/lib/format"
+import { formatFen, formatPercent, formatRelative, ownerName } from "@/lib/format"
 import { labelOf, QUOTE_STATUS_META } from "@/lib/labels"
 import { fenToYuan, optionsFromRows, type CsvColumn, type FilterDef, type SortAccessors } from "@/lib/list-view"
 import type { QuoteItem } from "@/types/api"
@@ -69,7 +69,7 @@ export const quoteColumns: GridColumn<QuoteItem>[] = [
     label: "创建人",
     icon: User,
     secondary: true,
-    cell: (q) => (q.source === "agent" ? <Chip name="AI" icon={Sparkles} /> : <Chip name={q.owner.name} />),
+    cell: (q) => (q.source === "agent" ? <Chip name="AI" icon={Sparkles} /> : <Chip name={ownerName(q.owner)} />),
   },
   { id: "created", label: "创建时间", icon: Calendar, secondary: true, cell: (q) => formatRelative(q.created_at) },
 ]
@@ -119,6 +119,6 @@ export const quoteCsv: CsvColumn<QuoteItem>[] = [
   { label: "成本（元）", value: (q) => fenToYuan(q.total_cost) },
   { label: "毛利率", value: (q) => formatPercent(q.margin_rate) },
   { label: "状态", value: (q) => labelOf(QUOTE_STATUS_META, q.status).label },
-  { label: "创建人", value: (q) => (q.source === "agent" ? "AI" : q.owner.name) },
+  { label: "创建人", value: (q) => (q.source === "agent" ? "AI" : ownerName(q.owner)) },
   { label: "创建时间", value: (q) => q.created_at },
 ]

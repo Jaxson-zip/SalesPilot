@@ -2,6 +2,7 @@
 import { STAGE_META, STAGE_ORDER } from "@/lib/labels"
 import { fenToYuan, optionsFromRows, type CsvColumn, type FilterDef, type SortAccessors } from "@/lib/list-view"
 import type { FunnelStage, OpportunityItem, OpportunityStage, Paged } from "@/types/api"
+import { ownerName } from "@/lib/format"
 
 /** 看板五列（输单不占列，拖到底部「输单」区域） */
 export const KANBAN_STAGES: OpportunityStage[] = STAGE_ORDER
@@ -89,7 +90,12 @@ export function opportunityFilters(rows: OpportunityItem[]): FilterDef<Opportuni
       options: optionsFromRows(rows, (o) => o.product_line?.name),
       get: (o) => o.product_line?.name ?? null,
     },
-    { id: "owner", label: "负责人", options: optionsFromRows(rows, (o) => o.owner.name), get: (o) => o.owner.name },
+    {
+      id: "owner",
+      label: "负责人",
+      options: optionsFromRows(rows, (o) => ownerName(o.owner)),
+      get: (o) => ownerName(o.owner),
+    },
     STALE_FILTER,
   ]
 }
@@ -107,7 +113,7 @@ export const opportunityCsv: CsvColumn<OpportunityItem>[] = [
   { label: "赢率（%）", value: (o) => o.win_rate },
   { label: "预计成交", value: (o) => o.expected_close_date },
   { label: "产品线", value: (o) => o.product_line?.name },
-  { label: "负责人", value: (o) => o.owner.name },
+  { label: "负责人", value: (o) => ownerName(o.owner) },
   { label: "更新时间", value: (o) => o.updated_at },
 ]
 

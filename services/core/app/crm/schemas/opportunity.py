@@ -78,7 +78,7 @@ class StageChange(BaseModel):
 
 
 class PipelineStage(BaseModel):
-    stage: str
+    stage: Stage
     count: int
     amount: int
 

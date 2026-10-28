@@ -39,3 +39,8 @@ export function displayHost(url: string | null | undefined): string {
 export function localDate(d: Date = new Date()): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
+
+/** 负责人显示名；没有负责人（公海客户、负责人账号已删除）时显示「未分配」 */
+export function ownerName(owner: { name: string } | null | undefined): string {
+  return owner?.name ?? "未分配"
+}

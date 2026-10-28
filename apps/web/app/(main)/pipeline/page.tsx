@@ -90,7 +90,7 @@ export default function PipelinePage() {
     body = (
       <>
         <div className="hidden flex-1 overflow-x-hidden overflow-y-auto p-3 lg:block">
-          <KanbanBoard {...shared} onCreate={openCreate} canDrag={(o) => canEdit(o.owner.id)} onMove={move} />
+          <KanbanBoard {...shared} onCreate={openCreate} canDrag={(o) => canEdit(o.owner?.id)} onMove={move} />
         </div>
         <div className="flex-1 overflow-x-hidden overflow-y-auto lg:hidden">
           <StageList {...shared} stage={mobileStage} onStageChange={setMobileStage} onCreate={openCreate} />
@@ -117,7 +117,7 @@ export default function PipelinePage() {
       {body}
       <OpportunitySheet
         opp={opened}
-        editable={opened ? canEdit(opened.owner.id) : false}
+        editable={opened ? canEdit(opened.owner?.id) : false}
         onClose={() => setOpenId(null)}
         onStageChange={move}
         changing={changing}

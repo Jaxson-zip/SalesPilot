@@ -4,7 +4,7 @@
 需要已配置 Embedding 模型并完成入库（python -m app.rag.ingest --scope all）。
 
 每个问题只检索一次（阈值为 0，取 top_k 条原始结果），不同阈值在本地过滤后分别打分，
-这样调阈值不用反复调用 Embedding。
+这样调阈值不用反复调用 Embedding。另外对比「向量顺序」和「重排后」的 Top-1 命中率。
 """
 
 import argparse
@@ -17,7 +17,15 @@ from pydantic import BaseModel
 
 from app.common.db import session_scope
 from app.common.errors import BizError
-from app.rag.retriever import THRESHOLD, TOP_K, PolicySearchResult, filter_hits, scopes_for, search
+from app.rag.retriever import (
+    THRESHOLD,
+    TOP_K,
+    PolicySearchResult,
+    filter_hits,
+    rerank_hits,
+    scopes_for,
+    search,
+)
 
 CORE_ROOT = Path(__file__).resolve().parents[2]
 QA_FILE = CORE_ROOT / "tests" / "rag" / "qa.yaml"
@@ -73,19 +81,51 @@ def summarize(results: list[CaseResult]) -> dict[str, float | int]:
     }
 
 
-def run(cases: list[Case]) -> dict[float, list[CaseResult]]:
-    """每题检索一次（不过滤），再按各阈值过滤打分。"""
-    raw: list[PolicySearchResult] = []
+@dataclass
+class RerankComparison:
+    cases: int
+    top1_vector: float
+    top1_rerank: float
+
+
+def retrieve(cases: list[Case]) -> list[PolicySearchResult]:
+    """每题检索一次（不过滤、不重排）。"""
     with session_scope() as db:
-        for case in cases:
-            raw.append(search(db, case.q, scopes_for(case.pack), top_k=TOP_K, threshold=0.0))
+        return [
+            search(db, c.q, scopes_for(c.pack), top_k=TOP_K, threshold=0.0, rerank=False)
+            for c in cases
+        ]
+
+
+def score(cases: list[Case], raw: list[PolicySearchResult]) -> dict[float, list[CaseResult]]:
     return {
         t: [judge(c, filter_hits(r.sources, t)) for c, r in zip(cases, raw, strict=True)]
         for t in THRESHOLDS
     }
 
 
-def report(by_threshold: dict[float, list[CaseResult]]) -> str:
+def run(cases: list[Case]) -> dict[float, list[CaseResult]]:
+    """每题检索一次，再按各阈值过滤打分。"""
+    return score(cases, retrieve(cases))
+
+
+def compare_rerank(cases: list[Case], raw: list[PolicySearchResult]) -> RerankComparison:
+    """阈值 0.5 下，有答案的题第一条就是期望出处的比例：向量顺序 vs 重排后。"""
+    vector_hits = rerank_hits_count = 0
+    answer = [
+        (c, filter_hits(r.sources)) for c, r in zip(cases, raw, strict=True) if not c.no_answer
+    ]
+    for case, kept in answer:
+        vector_hits += judge(case, kept, top_n=1).hit
+        ranked = PolicySearchResult(found=kept.found, sources=rerank_hits(case.q, kept.sources))
+        rerank_hits_count += judge(case, ranked, top_n=1).hit
+    n = len(answer) or 1
+    return RerankComparison(len(answer), round(vector_hits / n, 3), round(rerank_hits_count / n, 3))
+
+
+def report(
+    by_threshold: dict[float, list[CaseResult]], rerank: RerankComparison | None = None
+) -> str:
     lines = ["# 知识库评测结果", "", "由 `python -m app.rag.evaluate` 生成。", ""]
     lines += ["| 阈值 | Top-4 命中率 | 拒答率 |", "|---|---|---|"]
     for t, results in by_threshold.items():
@@ -94,6 +134,16 @@ def report(by_threshold: dict[float, list[CaseResult]]) -> str:
             f"| {t} | {s['hit_rate']:.0%}（{s['answer_cases']} 题） | "
             f"{s['reject_rate']:.0%}（{s['no_answer_cases']} 题） |"
         )
+    if rerank is not None:
+        lines += [
+            "",
+            f"## 重排对比（阈值 {THRESHOLD}，{rerank.cases} 道有答案的题）",
+            "",
+            "| 排序 | Top-1 命中率 |",
+            "|---|---|",
+            f"| 向量相似度 | {rerank.top1_vector:.0%} |",
+            f"| 重排后 | {rerank.top1_rerank:.0%} |",
+        ]
     lines += [
         "",
         f"## 逐题结果（阈值 {THRESHOLD}）",
@@ -112,11 +162,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="知识库评测")
     parser.add_argument("--out", type=Path, help="把评测报告写入 Markdown 文件")
     args = parser.parse_args()
+    cases = load_cases()
     try:
-        by_threshold = run(load_cases())
+        raw = retrieve(cases)
     except BizError as exc:
         sys.exit(f"评测需要 Embedding 模型：{exc.message}。请先配置 Key 并执行入库。")
-    text = report(by_threshold)
+    text = report(score(cases, raw), compare_rerank(cases, raw))
     print(text)
     if args.out:
         args.out.write_text(text, encoding="utf-8")

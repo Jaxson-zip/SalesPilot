@@ -1,5 +1,7 @@
 """评测打分逻辑（不调用 Embedding）。"""
 
+import pytest
+
 from app.rag.evaluate import Case, judge, load_cases, report, summarize
 from app.rag.ingest import load_chunks
 from app.rag.retriever import PolicySearchResult, Source, filter_hits
@@ -68,3 +70,16 @@ def test_auto_ingest_decision() -> None:
     assert decide(lambda: False, lambda: True) == "skip_not_empty"
     assert decide(lambda: True, lambda: False) == "skip_no_embedding"
     assert decide(lambda: True, lambda: True) == "ingest"
+
+
+def test_rerank_comparison_top1(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Top-1：向量排第二的正确出处，重排到第一后算命中。"""
+    from app.rag import retriever
+    from app.rag.evaluate import RerankComparison, compare_rerank
+
+    monkeypatch.setattr(retriever, "rerank_texts", lambda *_a, **_k: [(1, 0.9), (0, 0.2)])
+    cases = [Case(q="招待标准", doc="费用报销管理制度"), Case(q="年假", no_answer=True)]
+    raw = [_result(("销售提成制度", None, 0.8), ("费用报销管理制度", None, 0.7)), _result()]
+    cmp = compare_rerank(cases, raw)
+    assert cmp == RerankComparison(cases=1, top1_vector=0.0, top1_rerank=1.0)
+    assert "| 重排后 | 100% |" in report({0.4: [], 0.5: [], 0.6: []}, cmp)

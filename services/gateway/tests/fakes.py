@@ -58,6 +58,9 @@ class FakeBackend:
             return item.iterate()
         return item
 
+    async def rerank(self, alias: str, params: dict[str, Any]) -> dict[str, Any]:
+        return await self.embed(alias, params)
+
     async def embed(self, alias: str, params: dict[str, Any]) -> dict[str, Any]:
         self.calls.append((alias, params))
         item = self._next(alias)
@@ -104,11 +107,26 @@ def make_registry() -> Registry:
                 "api_key": "${K_A}",
                 "capabilities": {"embeddings": True, "dims": 4},
             },
+            {
+                "alias": "m-rerank",
+                "model": "r",
+                "api_base": "${BASE}",
+                "api_key": "${K_A}",
+                "capabilities": {"rerank": True, "stream": False},
+            },
+            {
+                "alias": "m-rerank-b",
+                "model": "r2",
+                "api_base": "${BASE}",
+                "api_key": "${K_A}",
+                "capabilities": {"rerank": True, "stream": False},
+            },
         ],
         "groups": {
             "g-agent": ["m-nokey", "m-plain", "m-tools", "m-pseudo"],
             "g-chat": ["m-tools", "m-plain"],
             "embed": ["m-embed"],
+            "rerank": ["m-rerank", "m-rerank-b"],
         },
     }
     return parse_registry(raw, TEST_ENV)

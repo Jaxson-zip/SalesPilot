@@ -87,12 +87,22 @@ models:
       embeddings: true
       dims: 1024
 
+  - alias: rerank-qwen
+    link: native
+    model: dashscope/qwen3-rerank        # LiteLLM 的 dashscope 适配，兼容地址自动映射到 /compatible-api/v1/reranks
+    api_base: ${DASHSCOPE_API_BASE}
+    api_key: ${DASHSCOPE_API_KEY}
+    capabilities:
+      stream: false
+      rerank: true
+
 groups:                       # 分组 = 失败切换顺序；core 默认调用分组名
   chat-default: [hunyuan-turbo, deepseek-chat, qwen-plus]
   chat-agent: [deepseek-chat, qwen-plus, hunyuan-turbo]   # 只放 tools 能力为 true 的模型
   # Embedding 分组只放一个模型：不同模型的向量不能互相比较，失败切换会让检索结果错乱。
   # 换模型时改这里，然后清空知识库重新入库（python -m app.rag.ingest --scope all --reset）
   embed: [embed-qwen]
+  rerank: [rerank-qwen]      # 重排分数只用于本次排序，可以失败切换
 
 settings:
   timeout_seconds: 30         # 环境变量 GATEWAY_TIMEOUT_SECONDS 显式设置时以环境变量为准

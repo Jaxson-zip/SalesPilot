@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     llm_gateway_key: str = "change-me"
     llm_default_group: str = "chat-agent"
     llm_embed_group: str = "embed"
+    llm_rerank_group: str = "rerank"
+    rag_rerank: bool = True  # 检索后经网关重排；重排不可用时自动退回向量顺序
     llm_timeout_seconds: float = 30
     upload_dir: str = "./data/uploads"
     default_pack: str = "llm_deploy"

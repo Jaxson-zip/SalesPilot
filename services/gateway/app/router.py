@@ -22,7 +22,12 @@ from app.compat.errors import (
     should_failover,
 )
 from app.compat.request import normalize_request, wants_json
-from app.compat.response import ensure_json_content, normalize_embedding, normalize_response
+from app.compat.response import (
+    ensure_json_content,
+    normalize_embedding,
+    normalize_rerank,
+    normalize_response,
+)
 from app.compat.stream import (
     SSE_DONE,
     StreamState,
@@ -210,7 +215,7 @@ class GatewayRouter:
 
     async def embed(self, body: dict[str, Any], log: CallLog) -> dict[str, Any]:
         name = str(body.get("model") or "")
-        entries = self.registry.resolve(name, embedding=True)
+        entries = self.registry.resolve(name, kind="embedding")
         params = {k: v for k, v in body.items() if k in ("input", "dimensions", "encoding_format", "user")}
         attempts: list[tuple[str, GatewayError]] = []
         for entry in entries:
@@ -224,4 +229,26 @@ class GatewayRouter:
             resp = normalize_embedding(to_dict(raw), entry.alias)
             log.usage = resp["usage"]
             return resp
+        raise aggregate_errors(attempts, self.registry.is_group(name))
+
+    # ---------- 重排 ----------
+
+    async def rerank(self, body: dict[str, Any], log: CallLog) -> dict[str, Any]:
+        """分组内可以失败切换：重排分数只用于本次排序，不像向量那样要求前后一致。"""
+        name = str(body.get("model") or "")
+        entries = self.registry.resolve(name, kind="rerank")
+        documents = list(body.get("documents") or [])
+        params: dict[str, Any] = {"query": body["query"], "documents": documents}
+        if body.get("top_n"):
+            params["top_n"] = body["top_n"]
+        attempts: list[tuple[str, GatewayError]] = []
+        for entry in entries:
+            try:
+                raw = await self.backend.rerank(entry.alias, params)
+            except Exception as exc:  # noqa: BLE001
+                if not self._record_failure(entry, exc, attempts, log):
+                    break
+                continue
+            self._success(entry, attempts, log)
+            return normalize_rerank(to_dict(raw), entry.alias, len(documents))
         raise aggregate_errors(attempts, self.registry.is_group(name))

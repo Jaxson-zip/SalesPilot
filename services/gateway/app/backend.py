@@ -23,6 +23,8 @@ class Backend(Protocol):
 
     async def embed(self, alias: str, params: dict[str, Any]) -> dict[str, Any]: ...
 
+    async def rerank(self, alias: str, params: dict[str, Any]) -> dict[str, Any]: ...
+
 
 def to_dict(obj: Any) -> dict[str, Any]:
     """把 LiteLLM 的 ModelResponse / 分片对象转成普通 dict。"""
@@ -81,6 +83,9 @@ class LiteLLMBackend:
         if params.get("stream"):
             return _iter_dicts(resp)
         return to_dict(resp)
+
+    async def rerank(self, alias: str, params: dict[str, Any]) -> dict[str, Any]:
+        return to_dict(await self._get_router().arerank(model=alias, **params))
 
     async def embed(self, alias: str, params: dict[str, Any]) -> dict[str, Any]:
         resp = await self._get_router().aembedding(model=alias, **params)

@@ -46,7 +46,7 @@ def _yes(value: bool) -> str:
 
 
 def render(registry: Registry, results: dict[str, Any]) -> str:
-    chat = [a for a, m in registry.models.items() if not m.is_embedding]
+    chat = [a for a, m in registry.models.items() if m.is_chat]
     lines = [
         "# 模型兼容矩阵",
         "",

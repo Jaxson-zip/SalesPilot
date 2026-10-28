@@ -18,6 +18,9 @@ from app.compat.errors import GatewayError, capability_mismatch, model_not_found
 _ENV_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
 
+ModelKind = Literal["chat", "embedding", "rerank"]
+
+
 class Capabilities(BaseModel):
     """模型能力表。未声明的能力按保守值处理，兼容层据此降级。"""
 
@@ -40,6 +43,7 @@ class Capabilities(BaseModel):
     max_context: int | None = None
     embeddings: bool = False
     dims: int | None = None
+    rerank: bool = False  # 重排模型（/v1/rerank）
 
 
 class ModelEntry(BaseModel):
@@ -58,8 +62,18 @@ class ModelEntry(BaseModel):
         return f"openai/{self.model}" if self.link == "openai_compat" else self.model
 
     @property
+    def kind(self) -> ModelKind:
+        if self.capabilities.embeddings:
+            return "embedding"
+        return "rerank" if self.capabilities.rerank else "chat"
+
+    @property
     def is_embedding(self) -> bool:
-        return self.capabilities.embeddings
+        return self.kind == "embedding"
+
+    @property
+    def is_chat(self) -> bool:
+        return self.kind == "chat"
 
 
 class RegistrySettings(BaseModel):
@@ -78,18 +92,16 @@ class Registry(BaseModel):
     def groups_of(self, alias: str) -> list[str]:
         return [g for g, members in self.groups.items() if alias in members]
 
-    def resolve(self, name: str, *, needs_tools: bool = False, embedding: bool = False) -> list[ModelEntry]:
+    def resolve(self, name: str, *, needs_tools: bool = False, kind: ModelKind = "chat") -> list[ModelEntry]:
         """别名 → [该模型]；分组 → 按顺序的可用成员（跳过不可用、能力不匹配的，差异 #12）。"""
         if name in self.groups:
             members = [self.models[a] for a in self.groups[name] if a in self.models]
-            return [m for m in members if m.available and _fits(m, needs_tools, embedding)]
+            return [m for m in members if m.available and _fits(m, needs_tools, kind)]
         entry = self.models.get(name)
         if entry is None:
             raise model_not_found(name)
-        if embedding and not entry.is_embedding:
-            raise capability_mismatch(f"Model '{name}' does not support embeddings")
-        if not embedding and entry.is_embedding:
-            raise capability_mismatch(f"Model '{name}' is an embedding model")
+        if entry.kind != kind:
+            raise capability_mismatch(f"Model '{name}' is a {entry.kind} model, not {kind}")
         if needs_tools and not entry.capabilities.tools:
             raise capability_mismatch(f"Model '{name}' does not support tool calls")
         if not entry.available:
@@ -103,8 +115,8 @@ class Registry(BaseModel):
         return [entry]
 
 
-def _fits(entry: ModelEntry, needs_tools: bool, embedding: bool) -> bool:
-    if embedding != entry.is_embedding:
+def _fits(entry: ModelEntry, needs_tools: bool, kind: ModelKind) -> bool:
+    if entry.kind != kind:
         return False
     return entry.capabilities.tools or not needs_tools
 

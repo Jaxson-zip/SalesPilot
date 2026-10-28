@@ -33,7 +33,7 @@ def chat_aliases() -> list[str]:
         reg = project_registry()
     except FileNotFoundError:
         return []
-    return [a for a, m in reg.models.items() if not m.is_embedding]
+    return [a for a, m in reg.models.items() if m.is_chat]
 
 
 class RecordingBackend:

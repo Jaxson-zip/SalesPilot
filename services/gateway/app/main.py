@@ -1,6 +1,6 @@
 """网关 HTTP 入口：对外完全是 OpenAI 格式。
 
-POST /v1/chat/completions · POST /v1/embeddings · GET /v1/models · GET /health
+POST /v1/chat/completions · POST /v1/embeddings · POST /v1/rerank · GET /v1/models · GET /health
 """
 
 from __future__ import annotations
@@ -42,6 +42,15 @@ class EmbeddingRequest(BaseModel):
 
     model: str = Field(min_length=1)
     input: str | list[str] | list[int] | list[list[int]]
+
+
+class RerankRequest(BaseModel):
+    """Cohere / Jina 风格的重排请求：按 query 给 documents 打分排序。"""
+
+    model: str = Field(min_length=1)
+    query: str = Field(min_length=1)
+    documents: list[str] = Field(min_length=1, max_length=100)
+    top_n: int | None = Field(default=None, ge=1)
 
 
 def _effective_timeout(settings: Settings, registry: Registry, env: dict[str, str]) -> float:
@@ -116,7 +125,7 @@ def _model_card(registry: Registry, router: GatewayRouter, alias: str) -> dict[s
 
 def _group_card(registry: Registry, name: str) -> dict[str, Any]:
     members = [registry.models[a] for a in registry.groups[name]]
-    bool_caps = ("stream", "tools", "stream_tools", "json_mode", "embeddings")
+    bool_caps = ("stream", "tools", "stream_tools", "json_mode", "embeddings", "rerank")
     caps = {c: bool(members) and all(getattr(m.capabilities, c) for m in members) for c in bool_caps}
     return {
         "id": name,
@@ -160,6 +169,19 @@ def _install_routes(
                     _logged(stream, log), media_type="text/event-stream", headers=headers
                 )
             resp = await router.complete(payload, log)
+        except Exception as exc:
+            err = classify_exception(exc)
+            log.status, log.error_code = "error", err.code
+            log.emit()
+            raise err from exc
+        log.emit()
+        return resp
+
+    @app.post("/v1/rerank", dependencies=[Depends(auth)])
+    async def rerank(body: RerankRequest, request: Request) -> dict[str, Any]:
+        log = CallLog(request.state.request_id, "rerank", body.model)
+        try:
+            resp = await router.rerank(body.model_dump(exclude_none=True), log)
         except Exception as exc:
             err = classify_exception(exc)
             log.status, log.error_code = "error", err.code

@@ -96,6 +96,31 @@ def embed_texts(
     return [item["embedding"] for item in items]
 
 
+def rerank_texts(
+    query: str,
+    documents: list[str],
+    *,
+    top_n: int | None = None,
+    model: str | None = None,
+    request_id: str | None = None,
+) -> list[tuple[int, float]]:
+    """调用网关 /rerank，返回 [(原下标, 相关度)]，按相关度从高到低。"""
+    payload: dict[str, Any] = {
+        "model": model or get_settings().llm_rerank_group,
+        "query": query,
+        "documents": documents,
+    }
+    if top_n:
+        payload["top_n"] = top_n
+    try:
+        with _client(request_id) as client:
+            resp = client.post("/rerank", json=payload)
+            resp.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise _map_http_error(exc) from exc
+    return [(int(r["index"]), float(r["relevance_score"])) for r in resp.json()["results"]]
+
+
 def list_models(request_id: str | None = None) -> list[dict[str, Any]]:
     """读取网关 /models（别名、分组、能力表）。"""
     try:

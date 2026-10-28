@@ -187,6 +187,24 @@ def ensure_json_content(resp: dict[str, Any]) -> tuple[dict[str, Any], Fixes]:
     return resp, fixes
 
 
+def normalize_rerank(resp: dict[str, Any], model: str, n_docs: int) -> dict[str, Any]:
+    """重排响应整理为 Cohere 风格：results 按相关度从高到低，index 指向原 documents。
+
+    各家字段不同（relevance_score / score，有的嵌在 output 里），丢掉越界的 index。
+    """
+    raw = resp.get("results")
+    if raw is None:
+        raw = (resp.get("output") or {}).get("results") or []
+    results = []
+    for item in raw:
+        index = item.get("index")
+        score = item.get("relevance_score", item.get("score"))
+        if isinstance(index, int) and 0 <= index < n_docs and score is not None:
+            results.append({"index": index, "relevance_score": float(score)})
+    results.sort(key=lambda r: -r["relevance_score"])
+    return {"object": "list", "model": model, "results": results}
+
+
 def normalize_embedding(resp: dict[str, Any], model: str) -> dict[str, Any]:
     """Embedding 响应整理为 OpenAI list 结构。"""
     data = []

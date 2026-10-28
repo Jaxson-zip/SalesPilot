@@ -46,9 +46,9 @@ def test_unknown_and_unavailable_and_embedding_checks() -> None:
         reg.resolve("m-nokey")
     assert info.value.code == "model_unavailable"
     with pytest.raises(GatewayError) as info:
-        reg.resolve("m-tools", embedding=True)
+        reg.resolve("m-tools", kind="embedding")
     assert info.value.gateway_code == 40002
-    assert [m.alias for m in reg.resolve("embed", embedding=True)] == ["m-embed"]
+    assert [m.alias for m in reg.resolve("embed", kind="embedding")] == ["m-embed"]
 
 
 def test_project_models_yaml_loads_without_keys() -> None:

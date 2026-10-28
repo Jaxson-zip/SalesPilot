@@ -4,6 +4,7 @@ import { History, Loader2, Sparkles } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useRef, useState } from "react"
 
+import { useAiSession, type AiSession } from "@/components/agent/AiSessionProvider"
 import { ChatView } from "@/components/agent/ChatView"
 import { Composer } from "@/components/agent/Composer"
 import { HistorySheet } from "@/components/agent/HistorySheet"
@@ -13,28 +14,28 @@ import { usePermissions } from "@/hooks/usePermissions"
 import { DEFAULT_PACK_LABEL } from "@/lib/agent-labels"
 import { aiThreadHref } from "@/lib/thread-history"
 
-import { useAiWorkbench } from "./useAiWorkbench"
-
-type Workbench = ReturnType<typeof useAiWorkbench>
-
 /**
  * 当前会话与地址 `/ai?t=<id>` 同步（会话记录面板里的链接靠地址通信）：
  * - 地址变了（点会话记录某条 / 点「新对话」/ 刷新）→ 打开对应会话或清空
+ * - 从别的页面回到 `/ai`（地址没有 t）而会话还在 → 保留会话，把 id 补回地址
  * - 发出第一条消息生成了新会话 → 把 id 写进地址（replace，不多一条历史记录）
  */
-function useThreadUrl(w: Workbench): () => void {
+function useThreadUrl(w: AiSession): () => void {
   const t = useSearchParams().get("t")
   const router = useRouter()
   const latest = useRef({ w, t })
+  const mounted = useRef(false)
   useEffect(() => {
     latest.current = { w, t }
   })
 
   useEffect(() => {
     const { w } = latest.current
+    const first = !mounted.current
+    mounted.current = true
     if (t) {
       if (t !== w.stream.threadId) void w.openThread(t)
-    } else if (w.stream.threadId) {
+    } else if (w.stream.threadId && !first) {
       w.newChat()
     }
   }, [t])
@@ -49,7 +50,7 @@ function useThreadUrl(w: Workbench): () => void {
 
 /** AI 方案工作台：居中会话 + 底部大输入框；会话记录在标题行「历史记录」打开的右侧面板里 */
 function AiWorkbench() {
-  const w = useAiWorkbench()
+  const w = useAiSession()
   const { stream, input, setInput, model, setModel, title, send } = w
   const { canAiWrite } = usePermissions()
   const goNew = useThreadUrl(w)

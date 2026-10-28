@@ -1,7 +1,9 @@
 """会话列表 / 会话历史、行业包详情接口（需要数据库）。"""
 
+import threading
 import uuid
 from collections.abc import Iterator
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -39,7 +41,8 @@ def test_list_only_own_threads(client: TestClient, threads: list[str]) -> None:
     assert ids.index(threads[1]) < ids.index(threads[0])  # updated_at 倒序
     first = next(t for t in data["items"] if t["thread_id"] == threads[0])
     assert first["title"].startswith("第一条会话") and len(first["title"]) == 30
-    assert set(first) == {"thread_id", "title", "updated_at", "opportunity_id"}
+    assert set(first) == {"thread_id", "title", "updated_at", "opportunity_id", "running"}
+    assert first["running"] is False
     assert data["total"] >= 2
 
 
@@ -77,7 +80,12 @@ def test_messages_cross_user_404(client: TestClient, threads: list[str]) -> None
 def test_messages_empty_thread(client: TestClient, threads: list[str]) -> None:
     body = client.get(f"/api/agent/threads/{threads[0]}/messages", headers=SALES_H).json()
     assert body["code"] == 0
-    assert body["data"] == {"thread_id": threads[0], "messages": [], "pending": None}
+    assert body["data"] == {
+        "thread_id": threads[0],
+        "messages": [],
+        "pending": None,
+        "running": None,
+    }
 
 
 @pytest.mark.parametrize("pack_id", ["llm_deploy", "it_office"])
@@ -124,3 +132,44 @@ def test_rename_and_delete_thread(client: TestClient, threads: list[str]) -> Non
     listed = client.get("/api/agent/threads", headers=SALES_H).json()["data"]["items"]
     assert threads[0] not in {t["thread_id"] for t in listed}
     assert client.delete(url, headers=SALES_H).status_code == 404
+
+
+def test_running_thread_messages_stream_and_stop(
+    client: TestClient, threads: list[str], sse_parser: Any
+) -> None:
+    """切走再回来：messages 返回本轮开始前的内容 + running，/stream 从头重放本轮。"""
+    from app.agent.history import HistoryMessage, ThreadMessages
+    from app.agent.runs import Run, registry
+
+    tid, gate = threads[0], threading.Event()
+
+    def events() -> Iterator[dict[str, Any]]:
+        yield {"event": "message.delta", "data": {"text": "正在出方案"}}
+        gate.wait(5)
+        yield {"event": "done", "data": {"thread_id": tid}}
+
+    base = ThreadMessages(
+        thread_id=tid, messages=[HistoryMessage(role="user", text="上一轮的问题")]
+    )
+    run = registry.start(Run(tid, str(SALES.id), "chat", "这一轮的问题", base), events())
+    try:
+        body = client.get(f"/api/agent/threads/{tid}/messages", headers=SALES_H).json()["data"]
+        assert body["running"] == {"kind": "chat", "input": "这一轮的问题"}
+        assert [m["text"] for m in body["messages"]] == ["上一轮的问题"]
+        items = client.get("/api/agent/threads?limit=100", headers=SALES_H).json()["data"]["items"]
+        assert next(t for t in items if t["thread_id"] == tid)["running"] is True
+        # 别人不能订阅 / 停止
+        other = client.get(f"/api/agent/threads/{tid}/stream", headers=SALES2_H)
+        assert other.json()["code"] == 40401
+        again = {"thread_id": tid, "message": "并发再发一条"}
+        assert client.post("/api/agent/chat", json=again, headers=SALES_H).json()["code"] == 40901
+        assert client.post(f"/api/agent/threads/{tid}/stop", headers=SALES_H).json()["code"] == 0
+    finally:
+        gate.set()
+    events_seen = sse_parser(client.get(f"/api/agent/threads/{tid}/stream", headers=SALES_H).text)
+    assert events_seen[0] == ("message.delta", {"text": "正在出方案"})
+    assert events_seen[-1][0] == "done" and run.done
+    body = client.get(f"/api/agent/threads/{tid}/messages", headers=SALES_H).json()["data"]
+    assert body["running"] is None
+    missing = client.post(f"/api/agent/threads/{threads[1]}/stop", headers=SALES_H)
+    assert missing.json()["code"] == 40401

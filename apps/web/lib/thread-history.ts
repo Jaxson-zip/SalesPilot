@@ -10,6 +10,8 @@ export interface ThreadSummary {
   title: string
   updated_at: string
   opportunity_id: string | null
+  /** 还在后台生成 */
+  running?: boolean
 }
 
 export interface ThreadPage {
@@ -29,6 +31,14 @@ export interface ThreadMessages {
   messages: ThreadMessage[]
   /** 会话停在写操作确认时的 interrupt 值（{action, preview}）；没有为 null */
   pending?: { action?: unknown; preview?: unknown } | null
+  /** 这一轮还在后台生成：messages 是本轮开始前的内容，接着订阅 /stream 重放本轮 */
+  running?: ThreadRunning | null
+}
+
+export interface ThreadRunning {
+  kind: "chat" | "resume"
+  /** chat：用户这一轮的消息；resume：approve / reject */
+  input: string
 }
 
 /** 左侧会话历史的一项 */
@@ -37,12 +47,18 @@ export interface HistoryItem {
   title: string
   /** 毫秒时间戳，用于「今天 / 7 天内」分组 */
   updatedAt: number
+  running: boolean
 }
 
 export function toHistoryItems(items: ThreadSummary[]): HistoryItem[] {
   return items.map((t) => {
     const ts = Date.parse(t.updated_at)
-    return { id: t.thread_id, title: t.title || "新对话", updatedAt: Number.isNaN(ts) ? 0 : ts }
+    return {
+      id: t.thread_id,
+      title: t.title || "新对话",
+      updatedAt: Number.isNaN(ts) ? 0 : ts,
+      running: Boolean(t.running),
+    }
   })
 }
 

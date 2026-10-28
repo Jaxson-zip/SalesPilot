@@ -8,7 +8,12 @@ describe("toHistoryItems", () => {
       { thread_id: "t1", title: "", updated_at: "2026-10-26T08:00:00Z", opportunity_id: null },
       { thread_id: "t2", title: "出方案", updated_at: "bad", opportunity_id: null },
     ])
-    expect(items[0]).toEqual({ id: "t1", title: "新对话", updatedAt: Date.parse("2026-10-26T08:00:00Z") })
+    expect(items[0]).toEqual({
+      id: "t1",
+      title: "新对话",
+      updatedAt: Date.parse("2026-10-26T08:00:00Z"),
+      running: false,
+    })
     expect(items[1].updatedAt).toBe(0)
   })
 })

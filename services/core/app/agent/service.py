@@ -14,7 +14,10 @@ from langgraph.types import Command
 from app.agent.checkpoint import get_checkpointer
 from app.agent.deps import AgentDeps
 from app.agent.graph import build_graph
+from app.agent.history import build_messages
 from app.agent.nodes.common import now_iso
+from app.agent.runs import Run, RunKind, registry
+from app.agent.sse import iter_graph_events
 from app.agent.threads import touch_thread
 from app.agent.tools.base import ToolContext
 from app.common.auth import CurrentUser
@@ -34,6 +37,9 @@ class PreparedRun:
     payload: Any
     config: RunnableConfig
     thread_id: str
+    kind: RunKind = "chat"
+    input: str = ""
+    base: Any = None  # 这一轮开始前的会话（ThreadMessages）
 
 
 def make_pack_resolver(user: CurrentUser) -> Any:
@@ -97,7 +103,8 @@ def prepare_chat(
     thread_id = deps.ctx.thread_id
     graph = build_graph(deps, checkpointer or get_checkpointer())
     config = _config(thread_id)
-    _check_owner(graph, config, deps.ctx.user)
+    snapshot = _check_owner(graph, config, deps.ctx.user)
+    _ensure_idle(thread_id)
     payload = {
         "messages": [HumanMessage(content=message, additional_kwargs={"created_at": now_iso()})],
         "user_id": str(deps.ctx.user.id),
@@ -105,7 +112,9 @@ def prepare_chat(
         "opportunity_id": str(opportunity_id) if opportunity_id else None,
     }
     touch_thread(deps.ctx.session, deps.ctx.user, thread_id, message, opportunity_id)
-    return PreparedRun(graph, payload, config, thread_id)
+    return PreparedRun(
+        graph, payload, config, thread_id, "chat", message, build_messages(thread_id, snapshot)
+    )
 
 
 def prepare_resume(
@@ -117,4 +126,20 @@ def prepare_resume(
     snapshot = _check_owner(graph, config, deps.ctx.user)
     if not snapshot.values or not snapshot.next:
         raise BizError(ErrorCode.NOT_FOUND, "没有待确认的操作")
-    return PreparedRun(graph, Command(resume=decision), config, thread_id)
+    _ensure_idle(thread_id)
+    base = build_messages(thread_id, snapshot)
+    return PreparedRun(graph, Command(resume=decision), config, thread_id, "resume", decision, base)
+
+
+def _ensure_idle(thread_id: str) -> None:
+    if registry.active(thread_id) is not None:
+        raise BizError(ErrorCode.DUPLICATE, "上一条回复还在生成，请等它完成或先停止")
+
+
+def start_run(run: PreparedRun, user: CurrentUser) -> Run:
+    """在后台跑完这一轮（浏览器断开也不中断），返回可订阅的 Run。"""
+    events = iter_graph_events(run.graph, run.payload, run.config, run.thread_id)
+    info = Run(
+        thread_id=run.thread_id, user_id=str(user.id), kind=run.kind, input=run.input, base=run.base
+    )
+    return registry.start(info, events)

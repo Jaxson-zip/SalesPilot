@@ -50,12 +50,26 @@ export function postSSE(path: string, body: unknown, opts: StreamOptions): Promi
   return withReauth(() => streamOnce(path, body, opts))
 }
 
+/** GET 一个 SSE 接口（回到正在生成的会话时订阅 /api/agent/threads/{id}/stream） */
+export function getSSE(path: string, opts: StreamOptions): Promise<void> {
+  return withReauth(() => streamOnce(path, undefined, opts))
+}
+
 async function streamOnce(path: string, body: unknown, opts: StreamOptions): Promise<void> {
   const requestId = newRequestId()
-  const headers = buildHeaders({ Accept: "text/event-stream", "Content-Type": "application/json" }, requestId)
+  const post = body !== undefined
+  const headers = buildHeaders(
+    post ? { Accept: "text/event-stream", "Content-Type": "application/json" } : { Accept: "text/event-stream" },
+    requestId,
+  )
   let res: Response
   try {
-    res = await fetch(path, { method: "POST", headers, body: JSON.stringify(body), signal: opts.signal })
+    res = await fetch(path, {
+      method: post ? "POST" : "GET",
+      headers,
+      body: post ? JSON.stringify(body) : undefined,
+      signal: opts.signal,
+    })
   } catch (err) {
     if (isAbortError(err)) throw err
     throw new ApiError({ code: ErrorCode.NETWORK, message: "网络连接失败，请确认 core 已启动", status: 0, requestId })

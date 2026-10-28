@@ -9,13 +9,16 @@ interrupt 从 updates 流里的 __interrupt__ 识别；
 import json
 import logging
 from collections.abc import AsyncIterator, Iterator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
 from starlette.concurrency import iterate_in_threadpool
 
 from app.llm.client import map_llm_error
+
+if TYPE_CHECKING:
+    from app.agent.runs import Run
 
 logger = logging.getLogger("core.agent")
 Event = dict[str, Any]
@@ -50,6 +53,13 @@ def to_sse(event: Event) -> dict[str, str]:
         "event": event["event"],
         "data": json.dumps(event["data"], ensure_ascii=False, default=str),
     }
+
+
+async def follow_run(run: "Run", start: int = 0) -> AsyncIterator[dict[str, str]]:
+    """订阅后台运行的一轮：先重放已有事件，再实时推送；浏览器断开不影响后台继续跑。"""
+    async for event in iterate_in_threadpool(run.follow(start)):
+        if event["event"] != "__wait__":
+            yield to_sse(event)
 
 
 async def sse_stream(

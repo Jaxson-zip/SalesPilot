@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.agent.runs import registry
 from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.crm.models import AgentThread, Opportunity
@@ -27,6 +28,7 @@ class ThreadItem(BaseModel):
     title: str
     updated_at: datetime
     opportunity_id: uuid.UUID | None = None
+    running: bool = False  # 还在后台生成
 
 
 class ThreadPage(BaseModel):
@@ -109,12 +111,14 @@ def list_threads(db: Session, user: CurrentUser, limit: int) -> ThreadPage:
         .order_by(AgentThread.updated_at.desc(), AgentThread.created_at.desc())
         .limit(limit)
     )
+    running = registry.active_threads(str(user.id))
     items = [
         ThreadItem(
             thread_id=r.thread_id,
             title=r.title,
             updated_at=r.updated_at,
             opportunity_id=r.opportunity_id,
+            running=r.thread_id in running,
         )
         for r in db.scalars(stmt).all()
     ]

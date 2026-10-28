@@ -1,9 +1,10 @@
 "use client"
 
-import { Search } from "lucide-react"
+import { Loader2, Search } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
+import { useAiStreaming } from "@/components/agent/AiSessionProvider"
 import { useSession } from "@/components/shell/SessionProvider"
 import { UserMenu } from "@/components/shell/UserMenu"
 import { WorkspaceSwitcher } from "@/components/shell/WorkspaceSwitcher"
@@ -44,6 +45,8 @@ function usePendingCount(enabled: boolean): number {
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   const { isMobile, setOpenMobile } = useSidebar()
   const badge = usePendingCount(Boolean(item.pendingBadge))
+  // AI 在后台生成（用户切到了别的页面）时，「AI 方案工作台」旁边转圈
+  const generating = useAiStreaming() && item.href === "/ai" && !active
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={active} tooltip={item.label} className={itemClass}>
@@ -52,6 +55,11 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
           <span>{item.label}</span>
         </Link>
       </SidebarMenuButton>
+      {generating ? (
+        <SidebarMenuBadge aria-label="AI 正在生成" title="AI 正在生成，点开查看" className="top-1">
+          <Loader2 className="size-3.5 animate-spin text-zinc-500" />
+        </SidebarMenuBadge>
+      ) : null}
       {badge ? (
         <>
           <SidebarMenuBadge className="top-1 text-[11px] font-normal text-zinc-500">{badge}</SidebarMenuBadge>

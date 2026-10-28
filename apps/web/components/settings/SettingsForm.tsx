@@ -27,7 +27,10 @@ function StagesEditor({ value, onChange }: { value: PaymentStageValue[]; onChang
   return (
     <div className="space-y-2">
       {value.map((s, i) => (
-        <div key={i} className="flex flex-wrap items-center gap-2 rounded-md border border-zinc-100 p-2 sm:border-0 sm:p-0">
+        <div
+          key={i}
+          className="flex flex-wrap items-center gap-2 rounded-md border border-zinc-100 p-2 sm:border-0 sm:p-0"
+        >
           <Input
             aria-label={`第 ${i + 1} 期名称`}
             value={s.name}
@@ -101,7 +104,7 @@ function FieldInput({
   const suffix =
     field.kind === "percent" || field.kind === "percent_list" ? "%" : field.kind === "money" ? "元" : field.unit
   return (
-    <div className="flex items-center gap-1.5">
+    <div className={cn("flex items-center gap-1.5", wide ? "" : "justify-end")}>
       <Input
         aria-label={field.label}
         value={text}
@@ -167,56 +170,81 @@ function SettingsGroup({ packId, name, fields }: { packId: string | null; name: 
 
   return (
     <section aria-label={name} className="rounded-lg border border-zinc-200">
-      <div className="flex h-11 items-center justify-between border-b border-zinc-100 pr-2 pl-4">
-        <h3 className="font-medium">{name}</h3>
+      <div className="flex min-h-12 items-center justify-between gap-3 border-b border-zinc-100 py-2 pr-2 pl-4">
+        <div className="min-w-0">
+          <h3 className="font-medium">{name}</h3>
+          {GROUP_HELP[name] ? <p className="mt-0.5 text-xs text-zinc-400">{GROUP_HELP[name]}</p> : null}
+        </div>
         {editing ? null : (
-          <Button variant="ghost" size="xs" onClick={start} aria-label={`编辑${name}`}>
+          <Button variant="outline" size="xs" onClick={start} aria-label={`编辑${name}`} className="shrink-0">
             <Pencil />
             编辑
           </Button>
         )}
       </div>
       <dl className="divide-y divide-zinc-100">
-        {fields.map((f) => (
-          <div key={f.key} className="grid gap-x-4 gap-y-1 px-4 py-3 sm:grid-cols-[200px_minmax(0,1fr)]">
-            <dt className="min-w-0 text-zinc-600">
-              <div className="break-words">{f.label}</div>
-              {f.help ? <div className="mt-0.5 text-xs break-words text-zinc-400">{f.help}</div> : null}
-            </dt>
-            <dd className="min-w-0">
-              {editing ? (
-                <FieldInput
-                  field={f}
-                  text={texts[f.key] ?? ""}
-                  stages={stages[f.key] ?? []}
-                  onText={(t) => setTexts((s) => ({ ...s, [f.key]: t }))}
-                  onStages={(v) => setStages((s) => ({ ...s, [f.key]: v }))}
-                />
-              ) : (
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <span className="font-medium break-words tabular-nums">{formatSetting(f.kind, f.value, f.unit)}</span>
+        {fields.map((f) => {
+          // 回款计划、城市列表这类长内容放到标签下面整行显示；数字类靠右对齐成一列
+          const wide = f.kind === "stages" || (editing && (f.kind === "cities" || f.kind === "percent_list"))
+          return (
+            <div
+              key={f.key}
+              className={cn("px-4 py-3", wide ? "space-y-2" : "flex items-start justify-between gap-x-6 gap-y-1")}
+            >
+              <dt className="min-w-0">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="break-words text-zinc-800">{f.label}</span>
                   {f.overridden ? (
-                    <span className="text-xs text-zinc-400">
+                    <span
+                      className="rounded bg-amber-50 px-1.5 text-[11px] leading-5 text-amber-700"
+                      title={[f.updated_by, f.updated_at ? formatRelative(f.updated_at) : null]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    >
                       已修改
-                      {f.updated_by ? ` · ${f.updated_by}` : ""}
-                      {f.updated_at ? ` · ${formatRelative(f.updated_at)}` : ""} · 默认{" "}
-                      {formatSetting(f.kind, f.default, f.unit)}
-                      <button
-                        type="button"
-                        className="ml-2 inline-flex items-center gap-0.5 text-zinc-600 hover:text-zinc-900 hover:underline"
-                        onClick={() => reset(f)}
-                        disabled={update.isPending}
-                      >
-                        <RotateCcw className="size-3" />
-                        恢复默认
-                      </button>
                     </span>
                   ) : null}
                 </div>
-              )}
-            </dd>
-          </div>
-        ))}
+                {f.help ? <div className="mt-0.5 text-xs break-words text-zinc-400">{f.help}</div> : null}
+              </dt>
+              <dd className={cn("min-w-0", wide ? "" : "max-w-[55%] shrink-0 text-right")}>
+                {editing ? (
+                  <FieldInput
+                    field={f}
+                    text={texts[f.key] ?? ""}
+                    stages={stages[f.key] ?? []}
+                    onText={(t) => setTexts((s) => ({ ...s, [f.key]: t }))}
+                    onStages={(v) => setStages((s) => ({ ...s, [f.key]: v }))}
+                  />
+                ) : (
+                  <>
+                    {f.kind === "stages" && Array.isArray(f.value) ? (
+                      <StagesView value={f.value as PaymentStageValue[]} />
+                    ) : (
+                      <div className="font-medium break-words tabular-nums">
+                        {formatSetting(f.kind, f.value, f.unit)}
+                      </div>
+                    )}
+                    {f.overridden ? (
+                      <div className={cn("mt-0.5 text-xs text-zinc-400", wide ? "" : "text-right")}>
+                        默认 {formatSetting(f.kind, f.default, f.unit)}
+                        <button
+                          type="button"
+                          className="ml-2 inline-flex items-center gap-0.5 text-zinc-600 hover:text-zinc-900 hover:underline"
+                          onClick={() => reset(f)}
+                          disabled={update.isPending}
+                        >
+                          <RotateCcw className="size-3" />
+                          恢复默认
+                        </button>
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </dd>
+            </div>
+          )
+        })}
       </dl>
       {editing ? (
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-zinc-100 px-4 py-3">
@@ -235,6 +263,52 @@ function SettingsGroup({ packId, name, fields }: { packId: string | null; name: 
       ) : null}
       {dialog}
     </section>
+  )
+}
+
+/** 回款计划只读：每期一行 */
+function StagesView({ value }: { value: PaymentStageValue[] }) {
+  return (
+    <ol className="divide-y divide-zinc-100 rounded-md border border-zinc-100 bg-zinc-50/50">
+      {value.map((s, i) => (
+        <li key={i} className="flex items-center gap-3 px-3 py-1.5">
+          <span className="w-5 shrink-0 text-xs text-zinc-400 tabular-nums">{i + 1}</span>
+          <span className="min-w-0 flex-1 truncate">{s.name}</span>
+          <span className="w-12 text-right font-medium tabular-nums">{Math.round(s.ratio * 10000) / 100}%</span>
+          <span className="w-24 text-right text-xs text-zinc-500">
+            {s.due_days === 0 ? "签订当天" : `签订后 ${s.due_days} 天`}
+          </span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/** 分组的一句话说明（通用规则页、行业包参数共用） */
+const GROUP_HELP: Record<string, string> = {
+  报价与审批: "报价在什么情况下需要主管审批",
+  提成: "合同签订后提成怎么算",
+  报销: "报销标准，超出标准需要审批",
+  商机: "各阶段默认赢率和停滞提醒",
+  回款: "合同生成时怎么拆回款期次，逾期怎么处理",
+  票据: "报销票据的上传限制",
+  "AI 助手": "AI 出方案时的重新配置次数与工具调用上限",
+  报价: "本行业单独的毛利底线和经济版折扣",
+  选型: "AI 估算硬件配置时用到的参数",
+}
+
+/** 某一组的配置卡片（业务规则页按组切换显示） */
+export function SettingsGroupCard({
+  packId,
+  data,
+  group,
+}: {
+  packId: string | null
+  data: SettingsOut
+  group: string
+}) {
+  return (
+    <SettingsGroup key={group} packId={packId} name={group} fields={data.fields.filter((f) => f.group === group)} />
   )
 }
 

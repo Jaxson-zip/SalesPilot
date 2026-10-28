@@ -1063,6 +1063,46 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/agent/threads/{thread_id}/stream": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Follow Thread
+     * @description 回到正在生成的会话：从本轮第一条事件重放，接着实时推送（SSE，与 chat 相同的事件）。
+     */
+    get: operations["follow_thread_api_agent_threads__thread_id__stream_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/agent/threads/{thread_id}/stop": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Stop Thread
+     * @description 停止正在生成的回复（后台在当前步骤结束后停下）；已经结束的不报错。
+     */
+    post: operations["stop_thread_api_agent_threads__thread_id__stop_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/health": {
     parameters: {
       query?: never
@@ -3559,6 +3599,16 @@ export interface components {
       quote: components["schemas"]["RuleNote"]
       expense: components["schemas"]["RuleNote"]
     }
+    /** RunningInfo */
+    RunningInfo: {
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "chat" | "resume"
+      /** Input */
+      input: string
+    }
     /** SettingValue */
     SettingValue: {
       /** Key */
@@ -3766,6 +3816,11 @@ export interface components {
       updated_at: string
       /** Opportunity Id */
       opportunity_id: string | null
+      /**
+       * Running
+       * @default false
+       */
+      running: boolean
     }
     /** ThreadMessages */
     ThreadMessages: {
@@ -3777,6 +3832,7 @@ export interface components {
       pending: {
         [key: string]: unknown
       } | null
+      running: components["schemas"]["RunningInfo"] | null
     }
     /** ThreadPage */
     ThreadPage: {
@@ -6444,6 +6500,72 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_ThreadMessages_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  follow_thread_api_agent_threads__thread_id__stream_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        thread_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": unknown
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  stop_thread_api_agent_threads__thread_id__stop_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        thread_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_NoneType_"]
         }
       }
       /** @description Validation Error */

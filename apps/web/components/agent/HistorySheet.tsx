@@ -1,9 +1,9 @@
 "use client"
 
-import { MoreHorizontal, Pencil, Search, SquarePen, Trash2 } from "lucide-react"
+import { Loader2, MoreHorizontal, Pencil, Search, SquarePen, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { Button } from "@/components/ui/button"
@@ -83,7 +83,14 @@ function HistoryRow({
         <span className="flex-1 truncate" title={it.title}>
           {it.title}
         </span>
-        <span className="shrink-0 text-xs font-normal text-zinc-400 tabular-nums">{historyTime(it.updatedAt)}</span>
+        {it.running ? (
+          <span className="inline-flex shrink-0 items-center gap-1 text-xs font-normal text-zinc-500">
+            <Loader2 className="size-3 animate-spin" />
+            生成中
+          </span>
+        ) : (
+          <span className="shrink-0 text-xs font-normal text-zinc-400 tabular-nums">{historyTime(it.updatedAt)}</span>
+        )}
       </Link>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -135,6 +142,11 @@ export function HistorySheet({
   const { ask, dialog } = useConfirmAction()
   const [q, setQ] = useState("")
   const close = () => onOpenChange(false)
+  // 打开时刷新：哪些会话还在后台生成、刚生成完的排到最前
+  const { refetch } = threads
+  useEffect(() => {
+    if (open) void refetch()
+  }, [open, refetch])
 
   const groups = useMemo(() => {
     const kw = q.trim().toLowerCase()

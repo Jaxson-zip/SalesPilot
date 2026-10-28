@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from app.agent.deps import AgentDeps
 from app.agent.graph import build_graph
 from app.agent.nodes.respond import turn_artifacts
+from app.agent.runs import registry
 from app.agent.threads import ensure_owner, find_thread
 from app.agent.tools.base import ToolContext
 from app.common.auth import CurrentUser
@@ -46,6 +47,13 @@ class ThreadMessages(BaseModel):
     thread_id: str
     messages: list[HistoryMessage]
     pending: dict[str, Any] | None = None  # 待确认操作（interrupt 的 value），没有为 null
+    # 这一轮还在后台生成：messages 是本轮开始前的内容，页面接着订阅 /stream 重放本轮
+    running: "RunningInfo | None" = None
+
+
+class RunningInfo(BaseModel):
+    kind: Literal["chat", "resume"]
+    input: str  # chat：用户这一轮的消息；resume：approve / reject
 
 
 def _text(msg: BaseMessage) -> str:
@@ -127,4 +135,7 @@ def read_thread_messages(
     owner = (snapshot.values or {}).get("user_id")
     if owner is not None and owner != str(user.id):
         raise BizError(ErrorCode.NOT_FOUND, "会话不存在")
+    run = registry.active(thread_id)
+    if run is not None and run.user_id == str(user.id) and run.base is not None:
+        return run.base.model_copy(update={"running": RunningInfo(kind=run.kind, input=run.input)})
     return build_messages(thread_id, snapshot)

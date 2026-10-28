@@ -3034,6 +3034,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/agent/threads/{thread_id}/stream:
+    get:
+      tags:
+      - agent
+      summary: Follow Thread
+      description: 回到正在生成的会话：从本轮第一条事件重放，接着实时推送（SSE，与 chat 相同的事件）。
+      operationId: follow_thread_api_agent_threads__thread_id__stream_get
+      parameters:
+      - name: thread_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 100
+          title: Thread Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/agent/threads/{thread_id}/stop:
+    post:
+      tags:
+      - agent
+      summary: Stop Thread
+      description: 停止正在生成的回复（后台在当前步骤结束后停下）；已经结束的不报错。
+      operationId: stop_thread_api_agent_threads__thread_id__stop_post
+      parameters:
+      - name: thread_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 100
+          title: Thread Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_NoneType_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /health:
     get:
       tags:
@@ -7269,6 +7340,22 @@ components:
       - expense
       title: RuleNotes
       description: 三类制度说明；固定这三个键，前端按键取用。
+    RunningInfo:
+      properties:
+        kind:
+          type: string
+          enum:
+          - chat
+          - resume
+          title: Kind
+        input:
+          type: string
+          title: Input
+      type: object
+      required:
+      - kind
+      - input
+      title: RunningInfo
     SettingValue:
       properties:
         key:
@@ -7669,12 +7756,17 @@ components:
             format: uuid
           - type: 'null'
           title: Opportunity Id
+        running:
+          type: boolean
+          title: Running
+          default: false
       type: object
       required:
       - thread_id
       - title
       - updated_at
       - opportunity_id
+      - running
       title: ThreadItem
     ThreadMessages:
       properties:
@@ -7692,11 +7784,16 @@ components:
             type: object
           - type: 'null'
           title: Pending
+        running:
+          anyOf:
+          - $ref: '#/components/schemas/RunningInfo'
+          - type: 'null'
       type: object
       required:
       - thread_id
       - messages
       - pending
+      - running
       title: ThreadMessages
     ThreadPage:
       properties:

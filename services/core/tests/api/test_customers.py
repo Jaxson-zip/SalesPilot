@@ -76,7 +76,7 @@ def temp_name() -> Iterator[str]:
     name = f"测试客户-{uuid.uuid4().hex[:6]}"
     yield name
     with session_scope() as db:
-        ids = [c.id for c in db.query(Customer).filter(Customer.name == name)]
+        ids = [c.id for c in db.query(Customer).filter(Customer.name.startswith(name))]
         db.execute(delete(Activity).where(Activity.subject_id.in_(ids)))
         db.execute(delete(Customer).where(Customer.id.in_(ids)))
 
@@ -94,3 +94,25 @@ def test_create_validation(client: TestClient) -> None:
         "/api/customers", json={"name": "", "level": "Z"}, headers=auth_header(Role.SALES)
     )
     assert r.json()["code"] == 40001
+
+
+def test_similar_customers_across_company_hides_invisible_ids(client: TestClient) -> None:
+    """查重是全公司范围：销售看不到的客户也会提示，但只给名称和负责人。"""
+    r = client.get("/api/customers/similar?name=明理律师事务所", headers=auth_header(Role.SALES))
+    first = r.json()["data"][0]
+    assert first["name"] == "深圳明理律师事务所" and first["visible"] and first["id"]
+    r = client.get("/api/customers/similar?name=鹏城第三人民医院", headers=auth_header(Role.SALES))
+    hidden = r.json()["data"][0]
+    assert hidden["name"] == "鹏城第三人民医院" and hidden["exact"]
+    assert hidden["visible"] is False and hidden["id"] is None and hidden["owner_name"]
+
+
+def test_create_rejects_same_core_name(client: TestClient, temp_name: str) -> None:
+    """「X 有限公司」和「X（深圳）」算同一个客户。"""
+    body = {"name": f"{temp_name}有限公司", "level": "B"}
+    assert (
+        client.post("/api/customers", json=body, headers=auth_header(Role.SALES)).status_code == 200
+    )
+    dup = {"name": f"{temp_name}（深圳）", "level": "B"}
+    r = client.post("/api/customers", json=dup, headers=auth_header(Role.SALES))
+    assert r.status_code == 409 and temp_name in r.json()["message"]

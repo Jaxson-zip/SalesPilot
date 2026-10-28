@@ -195,3 +195,45 @@ def test_list_quotes_filter_by_customer(client: TestClient) -> None:
     )
     other = client.get("/api/quotes", params={"customer_id": str(C_PC3H)}, headers=SALES_H).json()
     assert other["code"] == 0 and other["data"]["items"] == []
+
+
+def test_payment_plan_default_overdue_and_replace(client: TestClient, tracker: Tracker) -> None:
+    """B9：合同生成时按 30% / 60% / 10% 拆期；实收按顺序分摊。
+
+    负责人可调整计划，各期合计必须等于合同金额。
+    """
+    contract = _accepted_contract(client, tracker)
+    url = f"/api/contracts/{contract['id']}/payment-plan"
+    plan = client.get(url, headers=SALES_H).json()["data"]
+    assert [(i["name"], i["amount"]) for i in plan["items"]] == [
+        ("预付款", 4_500_000),
+        ("到货验收款", 9_000_000),
+        ("质保金", 1_500_000),
+    ]
+    assert plan["items"][0]["status"] == "pending"  # 签订当天到期，还没过期
+    assert contract["next_payment"]["name"] == "预付款"
+
+    # 改成两期，第一期已经过期 → 逾期
+    items = [
+        {"name": "首付款", "amount": 6_000_000, "due_date": "2026-01-01"},
+        {"name": "尾款", "amount": 9_000_000, "due_date": "2099-01-01"},
+    ]
+    assert client.put(url, json={"items": items}, headers=MANAGER_H).status_code == 403
+    plan = client.put(url, json={"items": items}, headers=SALES_H).json()["data"]
+    assert [i["status"] for i in plan["items"]] == ["overdue", "pending"]
+    assert plan["overdue_amount"] == 6_000_000 and plan["items"][0]["overdue_days"] > 0
+
+    # 回款 ¥40,000 先冲第一期：仍逾期，还差 ¥20,000
+    client.post(
+        f"/api/contracts/{contract['id']}/payments", json={"amount": 4_000_000}, headers=MANAGER_H
+    )
+    listed = client.get(f"/api/contracts/{contract['id']}", headers=SALES_H).json()["data"]
+    assert listed["overdue_amount"] == 2_000_000
+    assert listed["next_payment"] == {
+        "name": "首付款", "amount": 2_000_000, "due_date": "2026-01-01",
+        "status": "overdue", "overdue_days": listed["next_payment"]["overdue_days"],
+    }  # fmt: skip
+
+    bad = [{**items[0], "amount": 1}, items[1]]
+    r = client.put(url, json={"items": bad}, headers=SALES_H).json()
+    assert r["code"] == 42201 and r["data"]["rule"] == "plan_total_mismatch"

@@ -140,13 +140,13 @@ EXPENSES: list[dict[str, Any]] = [
 
 CONTACTS: list[dict[str, Any]] = [
     {"key": "mingli:wang", "customer_id": C_MINGLI, "name": "王律师", "title": "管理合伙人",
-     "phone": "138****1024", "is_decision_maker": True},
+     "phone": "138****1024", "is_decision_maker": True, "role": "decision_maker"},
     {"key": "mingli:chen", "customer_id": C_MINGLI, "name": "陈工", "title": "IT 负责人",
-     "phone": "139****2048", "is_decision_maker": False},
+     "phone": "139****2048", "is_decision_maker": False, "role": "technical"},
     {"key": "hnzz:liu", "customer_id": C_HNZZ, "name": "刘经理", "title": "质量部经理",
-     "phone": "137****3072", "is_decision_maker": True},
+     "phone": "137****3072", "is_decision_maker": True, "role": "decision_maker"},
     {"key": "xinghe:zhou", "customer_id": C_XINGHE, "name": "周总", "title": "创始人",
-     "phone": "136****4096", "is_decision_maker": True},
+     "phone": "136****4096", "is_decision_maker": True, "role": "decision_maker"},
 ]  # fmt: skip
 
 # 动态：hours_ago 用于排序展示；actor=None 表示 AI 写入

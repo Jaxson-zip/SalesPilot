@@ -82,3 +82,12 @@ export function transferConfirm(count: number, toName: string | null): ConfirmCo
     confirmLabel: "确认转移",
   }
 }
+
+export function deleteContactConfirm(name: string): ConfirmCopy {
+  return {
+    title: `删除联系人「${name}」？`,
+    description: "删除后，历史报销单里的参与人记录不受影响；客户动态会记录这次删除。",
+    confirmLabel: "确认删除",
+    destructive: true,
+  }
+}

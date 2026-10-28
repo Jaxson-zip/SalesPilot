@@ -7,11 +7,13 @@ import type {
   ApprovalStatus,
   ApprovalTargetType,
   AttachmentKind,
+  ContactRole,
   ContractStatus,
   ExpenseStatus,
   ExpenseType,
   FollowupItem,
   OpportunityStage,
+  PlanStatus,
   QuoteStatus,
 } from "@/types/api"
 
@@ -129,6 +131,10 @@ const ACTIVITY_LABEL_BY_ACTION: Record<string, string> = {
   payment: "登记了回款",
   task_done: "完成了任务",
   transfer: "转移了负责人",
+  payment_plan: "调整了回款计划",
+  contact_added: "添加了联系人",
+  contact_updated: "更新了联系人",
+  contact_removed: "删除了联系人",
   "followup.phone": "记录了电话跟进",
   "followup.visit": "记录了上门拜访",
   "followup.wechat": "记录了微信沟通",
@@ -146,4 +152,24 @@ export function activityActionLabel(action: string, subjectType?: string): strin
 
 export function labelOf<K extends string>(map: LabelMap<K>, key: K | string): LabelMeta {
   return (map as Record<string, LabelMeta | undefined>)[key] ?? { label: key, color: "gray" }
+}
+
+/** 联系人角色（B7）：顺序即列表排序和下拉顺序 */
+export const CONTACT_ROLE_META: LabelMap<ContactRole> = {
+  decision_maker: { label: "决策人", color: "red" },
+  influencer: { label: "影响者", color: "orange" },
+  technical: { label: "技术把关", color: "blue" },
+  finance: { label: "采购 / 财务", color: "purple" },
+  user: { label: "使用者", color: "gray" },
+}
+
+/** 商机侧栏「关键人」显示的角色 */
+export const KEY_CONTACT_ROLES: ContactRole[] = ["decision_maker", "influencer", "technical"]
+
+/** 回款计划每期状态（B9） */
+export const PLAN_STATUS_META: LabelMap<PlanStatus> = {
+  paid: { label: "已收齐", color: "green" },
+  partial: { label: "部分到账", color: "blue" },
+  overdue: { label: "逾期", color: "red" },
+  pending: { label: "待收", color: "gray" },
 }

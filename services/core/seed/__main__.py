@@ -27,6 +27,7 @@ RESET_TABLES = (
     "approvals",
     "attachments",
     "commissions",
+    "payment_plans",
     "contracts",
     "quote_items",
     "quotes",

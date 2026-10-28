@@ -1,4 +1,4 @@
-import { Banknote, Building2, ChartNoAxesColumn, CircleDot, Coins, Hash, Wallet } from "lucide-react"
+import { Banknote, Building2, CalendarClock, ChartNoAxesColumn, CircleDot, Coins, Hash, Wallet } from "lucide-react"
 import Link from "next/link"
 
 import { Chip } from "@/components/biz/Chip"
@@ -12,15 +12,43 @@ import { CONTRACT_STATUS_META, labelOf } from "@/lib/labels"
 import { fenToYuan, optionsFromRows, type CsvColumn, type FilterDef, type SortAccessors } from "@/lib/list-view"
 import type { ContractItem } from "@/types/api"
 
-/** 合同网格列（与原型 ContractGrid 一致）；canPay 时追加「登记回款」操作列 */
-export function contractColumns(onPay?: (c: ContractItem) => void): GridColumn<ContractItem>[] {
+/** 下期回款（B9）：期次 + 还差金额 + 到期日；逾期标红 */
+function NextPaymentCell({ c }: { c: ContractItem }) {
+  const n = c.next_payment
+  if (!n) return <span className="text-zinc-400">已收齐</span>
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span>
+        {n.name} {formatFen(n.amount)}
+      </span>
+      {n.status === "overdue" ? (
+        <Tag color="red">逾期 {n.overdue_days} 天</Tag>
+      ) : (
+        <span className="text-xs text-zinc-500">{n.due_date.slice(5)} 到期</span>
+      )}
+    </span>
+  )
+}
+
+/** 合同网格列（与原型 ContractGrid 一致）；canPay 时追加「登记回款」操作列；点合同编号看回款计划 */
+export function contractColumns(
+  onPay?: (c: ContractItem) => void,
+  onOpenPlan?: (c: ContractItem) => void,
+): GridColumn<ContractItem>[] {
   const cols: GridColumn<ContractItem>[] = [
     {
       id: "code",
       label: "合同编号",
       icon: Hash,
       width: "w-[130px]",
-      cell: (c) => <span className="font-medium">{c.code}</span>,
+      cell: (c) =>
+        onOpenPlan ? (
+          <button type="button" className="font-medium hover:underline" onClick={() => onOpenPlan(c)}>
+            {c.code}
+          </button>
+        ) : (
+          <span className="font-medium">{c.code}</span>
+        ),
     },
     {
       id: "customer",
@@ -34,6 +62,12 @@ export function contractColumns(onPay?: (c: ContractItem) => void): GridColumn<C
       label: "回款进度",
       icon: ChartNoAxesColumn,
       cell: (c) => <ProgressBar percent={paidPercent(c.paid_ratio)} />,
+    },
+    {
+      id: "next_payment",
+      label: "下期回款",
+      icon: CalendarClock,
+      cell: (c) => <NextPaymentCell c={c} />,
     },
     {
       id: "quote",
@@ -106,6 +140,15 @@ export function contractFilters(rows: ContractItem[]): FilterDef<ContractItem>[]
       get: (c) => c.status,
     },
     {
+      id: "overdue",
+      label: "回款",
+      options: [
+        { value: "overdue", label: "有逾期" },
+        { value: "ok", label: "无逾期" },
+      ],
+      get: (c) => (c.overdue_amount > 0 ? "overdue" : "ok"),
+    },
+    {
       id: "customer",
       label: "客户",
       options: optionsFromRows(rows, (c) => c.customer?.name),
@@ -129,6 +172,11 @@ export const contractCsv: CsvColumn<ContractItem>[] = [
   { label: "合同金额（元）", value: (c) => fenToYuan(c.amount) },
   { label: "已回款（元）", value: (c) => fenToYuan(c.paid_amount) },
   { label: "回款比例", value: (c) => `${paidPercent(c.paid_ratio)}%` },
+  {
+    label: "下期回款",
+    value: (c) => (c.next_payment ? `${c.next_payment.name} ${c.next_payment.due_date}` : "已收齐"),
+  },
+  { label: "逾期未收（元）", value: (c) => fenToYuan(c.overdue_amount) },
   { label: "预估提成（元）", value: (c) => fenToYuan(c.commission.estimated) },
   { label: "已确认提成（元）", value: (c) => fenToYuan(c.commission.confirmed) },
   { label: "状态", value: (c) => labelOf(CONTRACT_STATUS_META, c.status).label },

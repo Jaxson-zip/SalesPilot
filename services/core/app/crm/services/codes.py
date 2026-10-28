@@ -3,7 +3,7 @@
 序号取当年已有单号的最大值 + 1（不按行数计数，删除记录后也不会撞号）。
 """
 
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -32,6 +32,11 @@ def next_code(db: Session, column: InstrumentedAttribute[Any], prefix: str) -> s
 
 
 LOCAL_TZ = timezone(timedelta(hours=8), "Asia/Shanghai")
+
+
+def local_today(now: datetime | None = None) -> date:
+    """北京时间的今天（回款计划判断逾期用）。"""
+    return (now or datetime.now(UTC)).astimezone(LOCAL_TZ).date()
 
 
 def month_start(now: datetime | None = None) -> datetime:

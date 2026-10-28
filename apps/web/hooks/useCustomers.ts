@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { toast } from "sonner"
 
 import { notifyError } from "@/hooks/notify"
+import { useDebounced } from "@/hooks/useDebounced"
 import { activityKeys } from "@/hooks/useDashboard"
 import { api } from "@/lib/api"
 import type {
@@ -13,12 +14,14 @@ import type {
   CustomerListParams,
   CustomerTransferIn,
   Paged,
+  SimilarCustomer,
 } from "@/types/api"
 
 export const customerKeys = {
   all: ["customers"] as const,
   list: (p: CustomerListParams) => ["customers", "list", p] as const,
   detail: (id: string) => ["customers", "detail", id] as const,
+  similar: (name: string) => ["customers", "similar", name] as const,
 }
 
 /** GET /api/customers?view=&page=&page_size= */
@@ -42,6 +45,17 @@ export function useCustomer(id: string) {
     queryKey: customerKeys.detail(id),
     queryFn: ({ signal }) => api.get<CustomerDetail>(`/api/customers/${id}`, undefined, signal),
     enabled: Boolean(id),
+  })
+}
+
+/** GET /api/customers/similar：输入客户名称时查重（停顿 400ms 后再查，至少 2 个字） */
+export function useSimilarCustomers(name: string) {
+  const q = useDebounced(name.trim())
+  return useQuery({
+    queryKey: customerKeys.similar(q),
+    queryFn: ({ signal }) => api.get<SimilarCustomer[]>("/api/customers/similar", { name: q }, signal),
+    enabled: q.length >= 2,
+    staleTime: 30_000,
   })
 }
 

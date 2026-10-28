@@ -1,6 +1,6 @@
 "use client"
 
-import { Building2, Clock, FileText, PencilLine, Sparkles } from "lucide-react"
+import { Building2, Clock, Contact, FileText, PencilLine, Sparkles, Target } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useRef, useState } from "react"
 
@@ -9,7 +9,8 @@ import { EmptyState } from "@/components/biz/EmptyState"
 import { Crumb, FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { RecordTabs } from "@/components/biz/RecordTabs"
-import { CustomerFields } from "@/components/customers/CustomerFields"
+import { ContactsPanel } from "@/components/customers/ContactsPanel"
+import { CustomerFields, CustomerOpportunities } from "@/components/customers/CustomerFields"
 import { CustomerTimeline, FollowupComposer } from "@/components/customers/CustomerTimeline"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -40,7 +41,7 @@ function CustomerQuotes({ customerId, role }: { customerId: string; role: Role }
   )
 }
 
-/** 客户记录页：左字段面板（字段 / 联系人 / 商机）+ 右标签页（时间线 + 写跟进 / 报价单） */
+/** 客户记录页：左字段面板（字段 / 下一步）+ 右标签页（时间线 + 写跟进 / 商机 / 联系人 / 报价单） */
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const customerId = decodeURIComponent(id)
@@ -82,7 +83,7 @@ export default function CustomerDetailPage() {
     body = (
       <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto lg:flex-row lg:overflow-hidden">
         <div className="shrink-0 border-b border-zinc-200 p-4 lg:w-[340px] lg:overflow-y-auto lg:border-r lg:border-b-0">
-          <CustomerFields c={cust} role={role} editable={canEdit(cust.owner?.id)} />
+          <CustomerFields c={cust} editable={canEdit(cust.owner?.id)} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col lg:min-h-0">
           <RecordTabs
@@ -104,6 +105,18 @@ export default function CustomerDetailPage() {
                     />
                   </>
                 ),
+              },
+              {
+                value: "opportunities",
+                label: "商机",
+                icon: Target,
+                content: <CustomerOpportunities customerId={cust.id} role={role} />,
+              },
+              {
+                value: "contacts",
+                label: "联系人",
+                icon: Contact,
+                content: <ContactsPanel customerId={cust.id} editable={canEdit(cust.owner?.id)} />,
               },
               {
                 value: "quotes",

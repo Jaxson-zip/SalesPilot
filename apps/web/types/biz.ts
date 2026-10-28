@@ -214,6 +214,47 @@ export interface ContractItem {
   commission: { estimated: number; confirmed: number }
   owner: UserBrief | null
   created_at: string
+  /** 下一期待收款（B9）：第一期没有收齐的；amount 为该期还差的金额。全部收齐时为 null */
+  next_payment: NextPayment | null
+  /** 已到期未收齐的金额合计 */
+  overdue_amount: number
+}
+
+/** 回款计划一期的状态：已收齐 / 部分到账（未到期） / 逾期 / 待收 */
+export type PlanStatus = "paid" | "partial" | "overdue" | "pending"
+
+export interface NextPayment {
+  name: string
+  amount: number
+  due_date: string
+  status: PlanStatus
+  overdue_days: number
+}
+
+/** GET /api/contracts/{id}/payment-plan（实收按期次顺序分摊到各期） */
+export interface PaymentPlanItem {
+  seq: number
+  name: string
+  amount: number
+  due_date: string
+  paid: number
+  status: PlanStatus
+  overdue_days: number
+}
+
+export interface PaymentPlanView {
+  contract_id: string
+  code: string
+  amount: number
+  paid_amount: number
+  overdue_amount: number
+  items: PaymentPlanItem[]
+  rule_ref: string
+}
+
+/** PUT /api/contracts/{id}/payment-plan：各期合计必须等于合同金额 */
+export interface PaymentPlanUpdate {
+  items: { name: string; amount: number; due_date: string }[]
 }
 
 export interface ContractSummary {

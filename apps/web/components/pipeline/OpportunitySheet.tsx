@@ -13,6 +13,7 @@ import {
   Sparkles,
   Target,
   User,
+  UserRoundCheck,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -25,9 +26,18 @@ import { Tag } from "@/components/biz/Tag"
 import { SubjectTasks } from "@/components/tasks/TaskList"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useContacts } from "@/hooks/useFollowups"
 import { useOpportunity } from "@/hooks/useOpportunities"
 import { formatFen, formatRelative, ownerName } from "@/lib/format"
-import { activityActionLabel, labelOf, QUOTE_STATUS_META, STAGE_META, STAGE_ORDER } from "@/lib/labels"
+import {
+  activityActionLabel,
+  CONTACT_ROLE_META,
+  KEY_CONTACT_ROLES,
+  labelOf,
+  QUOTE_STATUS_META,
+  STAGE_META,
+  STAGE_ORDER,
+} from "@/lib/labels"
 import { isFinalStage, stageBarState } from "@/lib/pipeline"
 import { staleText } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
@@ -99,6 +109,29 @@ function StageBar({
   )
 }
 
+/** 关键人（B7）：客户联系人里的决策人、影响者、技术把关 */
+function KeyContacts({ customerId }: { customerId: string }) {
+  const q = useContacts(customerId)
+  if (q.isPending) return <Skeleton className="h-5 w-32" />
+  const key = (q.data ?? []).filter((c) => c.role && KEY_CONTACT_ROLES.includes(c.role))
+  if (key.length === 0)
+    return (
+      <Link href={`/customers/${encodeURIComponent(customerId)}`} className="text-zinc-400 hover:underline">
+        未标注，去客户详情添加
+      </Link>
+    )
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+      {key.map((c) => (
+        <span key={c.id} className="inline-flex items-center gap-1" title={c.title ?? undefined}>
+          {c.name}
+          <span className="text-xs text-zinc-500">{CONTACT_ROLE_META[c.role!].label}</span>
+        </span>
+      ))}
+    </span>
+  )
+}
+
 function Fields({ o }: { o: OpportunityItem & Partial<Pick<OpportunityDetail, "quotes">> }) {
   return (
     <div>
@@ -123,6 +156,9 @@ function Fields({ o }: { o: OpportunityItem & Partial<Pick<OpportunityDetail, "q
       </FieldRow>
       <FieldRow icon={User} label="负责人">
         <Chip name={ownerName(o.owner)} />
+      </FieldRow>
+      <FieldRow icon={UserRoundCheck} label="关键人">
+        <KeyContacts customerId={o.customer.id} />
       </FieldRow>
       <FieldRow icon={FileText} label="关联报价">
         {o.quotes?.length ? (

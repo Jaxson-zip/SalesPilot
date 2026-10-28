@@ -30,7 +30,9 @@ class Contact(OwnedMixin, Base):
     name: Mapped[str] = mapped_column(String(50))
     title: Mapped[str | None] = mapped_column(String(50))
     phone: Mapped[str | None] = mapped_column(String(30))
+    # is_decision_maker 由 role 派生（role == decision_maker），保留给旧接口
     is_decision_maker: Mapped[bool] = mapped_column(Boolean, default=False)
+    role: Mapped[str | None] = mapped_column(String(20), nullable=True)  # 见 schemas ContactRole
 
 
 class Followup(OwnedMixin, Base):

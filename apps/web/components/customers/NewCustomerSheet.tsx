@@ -7,7 +7,8 @@ import { FormField, MoneyInput, SimpleSelect } from "@/components/biz/FormContro
 import { FormSheet } from "@/components/biz/FormSheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useCreateCustomer } from "@/hooks/useCustomers"
+import { SimilarCustomersHint } from "@/components/customers/SimilarCustomersHint"
+import { useCreateCustomer, useSimilarCustomers } from "@/hooks/useCustomers"
 import {
   EMPTY_CUSTOMER_FORM,
   INDUSTRY_OPTIONS,
@@ -35,6 +36,8 @@ export function NewCustomerSheet({ open, onOpenChange }: { open: boolean; onOpen
   const [v, setV] = useState<CustomerFormValues>(EMPTY_CUSTOMER_FORM)
   const [errors, setErrors] = useState<CustomerFormErrors>({})
   const create = useCreateCustomer()
+  const similar = useSimilarCustomers(open ? v.name : "")
+  const duplicated = similar.data?.some((c) => c.exact) ?? false
   const set = <K extends keyof CustomerFormValues>(k: K, val: CustomerFormValues[K]) =>
     setV((prev) => ({ ...prev, [k]: val }))
 
@@ -77,13 +80,14 @@ export function NewCustomerSheet({ open, onOpenChange }: { open: boolean; onOpen
           <Button variant="outline" onClick={close}>
             取消
           </Button>
-          <Button onClick={submit} disabled={create.isPending}>
+          <Button onClick={submit} disabled={create.isPending || duplicated}>
             {create.isPending ? "创建中…" : "创建客户"}
           </Button>
         </>
       }
     >
       {text("name", "客户名称", "例如：深圳明理律师事务所", true)}
+      <SimilarCustomersHint items={similar.data ?? []} />
       <div className="grid grid-cols-2 gap-3">
         <FormField label="行业" error={errors.industry} htmlFor="cust-industry">
           <SimpleSelect

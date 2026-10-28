@@ -54,9 +54,35 @@ class FollowupItem(BaseModel):
     created_at: datetime
 
 
+# 联系人在采购决策中的角色（Salesforce 的 Contact Role）
+ContactRole = Literal["decision_maker", "influencer", "technical", "finance", "user"]
+CONTACT_ROLE_LABELS: dict[str, str] = {
+    "decision_maker": "决策人",
+    "influencer": "影响者",
+    "technical": "技术把关",
+    "finance": "采购 / 财务",
+    "user": "使用者",
+}
+
+
 class ContactItem(BaseModel):
     id: uuid.UUID
     name: str
     title: str | None
     phone: str | None
     is_decision_maker: bool
+    role: ContactRole | None
+
+
+class ContactIn(BaseModel):
+    name: str = Field(min_length=1, max_length=50)
+    title: str | None = Field(default=None, max_length=50)
+    phone: str | None = Field(default=None, max_length=30)
+    role: ContactRole | None = None
+
+
+class ContactUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=50)
+    title: str | None = Field(default=None, max_length=50)
+    phone: str | None = Field(default=None, max_length=30)
+    role: ContactRole | None = None

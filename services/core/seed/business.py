@@ -7,7 +7,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.orm import InstrumentedAttribute, Session
 
 from app.common import storage
@@ -20,16 +20,19 @@ from app.crm.models import (
     Contract,
     Expense,
     Opportunity,
+    PaymentPlan,
     Quote,
     QuoteItem,
 )
-from app.crm.services.codes import month_start, next_code
+from app.crm.services import contract_service
+from app.crm.services.codes import local_today, month_start, next_code
 from app.crm.services.demo import demo_id
 from app.crm.services.expense_service import policy_check
 from app.crm.services.quote_service import approval_reasons, commission_lines
 from app.packs.registry import get_pack
 from app.rules import calc_commission, check_expense_policy, check_margin, load_rules
 from app.rules.crm_calc import headcount_of
+from app.rules.loader import RuleSet
 from seed import business_data as bd
 from seed.data import SALES
 from seed.files import invoice_pdf, receipt_png
@@ -119,6 +122,7 @@ def _seed_contract(
     )
     db.flush()
     rules = load_rules(get_pack(quote.pack).rules_file)
+    _seed_payment_plan(db, db.get(Contract, contract_id), rules, key)
     result = calc_commission(
         commission_lines(items, quote.total_price), quote.margin_rate, ratio, rules
     )
@@ -132,6 +136,25 @@ def _seed_contract(
             **OWNER,
         )
     )
+
+
+# 演示逾期回款：悦海合同的到货验收款改为 5 天前到期（已回款 40%，这一期只收了一部分）
+OVERDUE_DEMO = {"yuehai": (2, 5)}
+
+
+def _seed_payment_plan(db: Session, contract: Contract | None, rules: RuleSet, key: str) -> None:
+    assert contract is not None
+    db.execute(delete(PaymentPlan).where(PaymentPlan.contract_id == contract.id))
+    contract_service.create_default_plan(db, contract, rules)
+    if key in OVERDUE_DEMO:
+        seq, days_ago = OVERDUE_DEMO[key]
+        plan = db.scalar(
+            select(PaymentPlan).where(
+                PaymentPlan.contract_id == contract.id, PaymentPlan.seq == seq
+            )
+        )
+        assert plan is not None
+        plan.due_date = local_today() - timedelta(days=days_ago)
 
 
 def _seed_approval(

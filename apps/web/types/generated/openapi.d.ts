@@ -73,6 +73,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/customers/similar": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Similar Customers
+     * @description 新建客户时的查重提示：全公司范围，去掉「有限公司」等后缀后比较。
+     */
+    get: operations["similar_customers_api_customers_similar_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/customers/{customer_id}": {
     parameters: {
       query?: never
@@ -118,11 +138,30 @@ export interface paths {
     /** List Contacts */
     get: operations["list_contacts_api_customers__customer_id__contacts_get"]
     put?: never
-    post?: never
+    /** Create Contact */
+    post: operations["create_contact_api_customers__customer_id__contacts_post"]
     delete?: never
     options?: never
     head?: never
     patch?: never
+    trace?: never
+  }
+  "/api/customers/{customer_id}/contacts/{contact_id}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    /** Delete Contact */
+    delete: operations["delete_contact_api_customers__customer_id__contacts__contact_id__delete"]
+    options?: never
+    head?: never
+    /** Update Contact */
+    patch: operations["update_contact_api_customers__customer_id__contacts__contact_id__patch"]
     trace?: never
   }
   "/api/packs": {
@@ -478,6 +517,30 @@ export interface paths {
     put?: never
     /** Add Payment */
     post: operations["add_payment_api_contracts__contract_id__payments_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/contracts/{contract_id}/payment-plan": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Payment Plan
+     * @description 回款计划（B9）：每期金额、到期日、按顺序分摊的实收、是否逾期。
+     */
+    get: operations["get_payment_plan_api_contracts__contract_id__payment_plan_get"]
+    /**
+     * Replace Payment Plan
+     * @description 负责人整体替换回款计划；各期合计必须等于合同金额（42201 plan_total_mismatch）。
+     */
+    put: operations["replace_payment_plan_api_contracts__contract_id__payment_plan_put"]
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -954,6 +1017,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["CommissionResult"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[ContactItem] */
+    ApiResponse_ContactItem_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["ContactItem"] | null
       /**
        * Request Id
        * @default
@@ -1455,6 +1537,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[PaymentPlanView] */
+    ApiResponse_PaymentPlanView_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["PaymentPlanView"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[PipelineSummary] */
     ApiResponse_PipelineSummary_: {
       /**
@@ -1640,6 +1741,26 @@ export interface components {
       message: string
       /** Data */
       data: components["schemas"]["PackOut"][] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[list[SimilarCustomer]] */
+    ApiResponse_list_SimilarCustomer__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: components["schemas"]["SimilarCustomer"][] | null
       /**
        * Request Id
        * @default
@@ -1889,6 +2010,17 @@ export interface components {
       /** Title */
       title: string | null
     }
+    /** ContactIn */
+    ContactIn: {
+      /** Name */
+      name: string
+      /** Title */
+      title?: string | null
+      /** Phone */
+      phone?: string | null
+      /** Role */
+      role?: ("decision_maker" | "influencer" | "technical" | "finance" | "user") | null
+    }
     /** ContactItem */
     ContactItem: {
       /**
@@ -1904,6 +2036,19 @@ export interface components {
       phone: string | null
       /** Is Decision Maker */
       is_decision_maker: boolean
+      /** Role */
+      role: ("decision_maker" | "influencer" | "technical" | "finance" | "user") | null
+    }
+    /** ContactUpdate */
+    ContactUpdate: {
+      /** Name */
+      name?: string | null
+      /** Title */
+      title?: string | null
+      /** Phone */
+      phone?: string | null
+      /** Role */
+      role?: ("decision_maker" | "influencer" | "technical" | "finance" | "user") | null
     }
     /** ContractItem */
     ContractItem: {
@@ -1934,6 +2079,12 @@ export interface components {
        * Format: date-time
        */
       created_at: string
+      next_payment: components["schemas"]["NextPayment"] | null
+      /**
+       * Overdue Amount
+       * @default 0
+       */
+      overdue_amount: number
     }
     /** ContractList */
     ContractList: {
@@ -2438,6 +2589,28 @@ export interface components {
     MockLoginIn: {
       role: components["schemas"]["Role"]
     }
+    /**
+     * NextPayment
+     * @description 下一期待收款（合同列表用）：第一期没有收齐的。amount 为该期还差的金额。
+     */
+    NextPayment: {
+      /** Name */
+      name: string
+      /** Amount */
+      amount: number
+      /**
+       * Due Date
+       * Format: date
+       */
+      due_date: string
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "paid" | "partial" | "overdue" | "pending"
+      /** Overdue Days */
+      overdue_days: number
+    }
     /** NextTask */
     NextTask: {
       /**
@@ -2750,6 +2923,66 @@ export interface components {
       /** Amount */
       amount: number
     }
+    /** PaymentPlanItem */
+    PaymentPlanItem: {
+      /** Seq */
+      seq: number
+      /** Name */
+      name: string
+      /** Amount */
+      amount: number
+      /**
+       * Due Date
+       * Format: date
+       */
+      due_date: string
+      /** Paid */
+      paid: number
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "paid" | "partial" | "overdue" | "pending"
+      /** Overdue Days */
+      overdue_days: number
+    }
+    /** PaymentPlanLineIn */
+    PaymentPlanLineIn: {
+      /** Name */
+      name: string
+      /** Amount */
+      amount: number
+      /**
+       * Due Date
+       * Format: date
+       */
+      due_date: string
+    }
+    /** PaymentPlanUpdate */
+    PaymentPlanUpdate: {
+      /** Items */
+      items: components["schemas"]["PaymentPlanLineIn"][]
+    }
+    /** PaymentPlanView */
+    PaymentPlanView: {
+      /**
+       * Contract Id
+       * Format: uuid
+       */
+      contract_id: string
+      /** Code */
+      code: string
+      /** Amount */
+      amount: number
+      /** Paid Amount */
+      paid_amount: number
+      /** Overdue Amount */
+      overdue_amount: number
+      /** Items */
+      items: components["schemas"]["PaymentPlanItem"][]
+      /** Rule Ref */
+      rule_ref: string
+    }
     /** PipelineStage */
     PipelineStage: {
       /**
@@ -3014,6 +3247,22 @@ export interface components {
       commission: components["schemas"]["RuleNote"]
       quote: components["schemas"]["RuleNote"]
       expense: components["schemas"]["RuleNote"]
+    }
+    /**
+     * SimilarCustomer
+     * @description 新建客户时的查重提示。看不到的客户只给名称和负责人，不给 id。
+     */
+    SimilarCustomer: {
+      /** Id */
+      id: string | null
+      /** Name */
+      name: string
+      /** Owner Name */
+      owner_name: string | null
+      /** Exact */
+      exact: boolean
+      /** Visible */
+      visible: boolean
     }
     /** StageChange */
     StageChange: {
@@ -3412,6 +3661,39 @@ export interface operations {
       }
     }
   }
+  similar_customers_api_customers_similar_get: {
+    parameters: {
+      query: {
+        name: string
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_SimilarCustomer__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
   get_customer_api_customers__customer_id__get: {
     parameters: {
       query?: never
@@ -3537,6 +3819,115 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_Page_ContactItem__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  create_contact_api_customers__customer_id__contacts_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        customer_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ContactIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ContactItem_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  delete_contact_api_customers__customer_id__contacts__contact_id__delete: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        customer_id: string
+        contact_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_NoneType_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  update_contact_api_customers__customer_id__contacts__contact_id__patch: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        customer_id: string
+        contact_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ContactUpdate"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ContactItem_"]
         }
       }
       /** @description Validation Error */
@@ -4331,6 +4722,76 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_ContractItem_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  get_payment_plan_api_contracts__contract_id__payment_plan_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        contract_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_PaymentPlanView_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  replace_payment_plan_api_contracts__contract_id__payment_plan_put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        contract_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PaymentPlanUpdate"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_PaymentPlanView_"]
         }
       }
       /** @description Validation Error */

@@ -1,6 +1,8 @@
-"""合同与提成 service（接口契约 §4）：列表（含汇总）、详情、登记回款并按回款比例确认提成。"""
+"""合同与提成 service（接口契约 §4）：列表（含汇总）、详情、登记回款并按回款比例确认提成、
+回款计划（B9）。"""
 
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import Select, func, select
@@ -8,21 +10,34 @@ from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser, Role
 from app.common.errors import BizError, ErrorCode
-from app.common.permissions import ensure_role, ensure_same_team
+from app.common.permissions import ensure_owner, ensure_role, ensure_same_team
 from app.common.scope import View, apply_scope, ensure_visible
-from app.crm.models import Commission, Contract, Quote
+from app.crm.models import Commission, Contract, PaymentPlan, Quote
 from app.crm.schemas.common import CodeRef, PageParams
 from app.crm.schemas.finance import (
     CommissionBrief,
     ContractItem,
     ContractList,
     ContractSummary,
+    NextPayment,
+    PaymentPlanItem,
+    PaymentPlanUpdate,
+    PaymentPlanView,
 )
 from app.crm.services import activity_service, lookup, quote_query
-from app.crm.services.codes import month_start
+from app.crm.services.codes import LOCAL_TZ, local_today, month_start
+from app.crm.services.payment_plan import (
+    PlanInput,
+    PlanState,
+    allocate,
+    default_plan,
+    next_due,
+)
 from app.rules import confirm_commission, paid_ratio_of
+from app.rules.loader import RuleSet, load_rules
 
 RULE_EXCEEDS_BALANCE = "payment_exceeds_balance"
+RULE_PLAN_TOTAL = "plan_total_mismatch"
 
 
 def _commissions(db: Session, ids: list[uuid.UUID]) -> dict[uuid.UUID, CommissionBrief]:
@@ -49,7 +64,126 @@ def _quote_refs(db: Session, ids: list[uuid.UUID | None]) -> dict[uuid.UUID, Cod
     return {r.id: CodeRef(id=r.id, code=r.code) for r in rows}
 
 
+# ---------- 回款计划（B9） ----------
+
+
+def _plans(db: Session, ids: list[uuid.UUID]) -> dict[uuid.UUID, list[PaymentPlan]]:
+    out: dict[uuid.UUID, list[PaymentPlan]] = {i: [] for i in ids}
+    if ids:
+        stmt = select(PaymentPlan).where(PaymentPlan.contract_id.in_(ids))
+        for p in db.scalars(stmt.order_by(PaymentPlan.seq)):
+            out[p.contract_id].append(p)
+    return out
+
+
+def _states(contract: Contract, plans: list[PaymentPlan]) -> list[PlanState]:
+    inputs = [PlanInput(p.name, p.amount, p.due_date) for p in plans]
+    return allocate(inputs, contract.paid_amount, local_today())
+
+
+def _overdue_amount(states: list[PlanState]) -> int:
+    return sum(s.amount - s.paid for s in states if s.status == "overdue")
+
+
+def _next_payment(states: list[PlanState]) -> NextPayment | None:
+    s = next_due(states)
+    if s is None:
+        return None
+    return NextPayment(
+        name=s.name,
+        amount=s.amount - s.paid,
+        due_date=s.due_date,
+        status=s.status,
+        overdue_days=s.overdue_days,
+    )
+
+
+def create_default_plan(db: Session, contract: Contract, rules: RuleSet) -> None:
+    """合同生成时按 rules.yaml 的标准比例拆期（签订日 = 合同创建日）。"""
+    signed_on = (contract.created_at or datetime.now(UTC)).astimezone(LOCAL_TZ).date()
+    for seq, p in enumerate(default_plan(contract.amount, signed_on, rules.payment), start=1):
+        db.add(
+            PaymentPlan(
+                contract_id=contract.id,
+                seq=seq,
+                name=p.name,
+                amount=p.amount,
+                due_date=p.due_date,
+                owner_id=contract.owner_id,
+                team_id=contract.team_id,
+            )
+        )
+    db.flush()
+
+
+def get_payment_plan(db: Session, user: CurrentUser, contract_id: uuid.UUID) -> PaymentPlanView:
+    contract = db.get(Contract, contract_id)
+    ensure_visible(contract, user)
+    assert contract is not None
+    plans = _plans(db, [contract.id])[contract.id]
+    states = _states(contract, plans)
+    return PaymentPlanView(
+        contract_id=contract.id,
+        code=contract.code,
+        amount=contract.amount,
+        paid_amount=contract.paid_amount,
+        overdue_amount=_overdue_amount(states),
+        items=[
+            PaymentPlanItem(
+                seq=p.seq,
+                name=s.name,
+                amount=s.amount,
+                due_date=s.due_date,
+                paid=s.paid,
+                status=s.status,
+                overdue_days=s.overdue_days,
+            )
+            for p, s in zip(plans, states, strict=True)
+        ],
+        rule_ref=load_rules().payment.rule_ref,
+    )
+
+
+def replace_payment_plan(
+    db: Session, user: CurrentUser, contract_id: uuid.UUID, data: PaymentPlanUpdate
+) -> PaymentPlanView:
+    """负责人调整回款计划（期次、金额、到期日）；各期合计必须等于合同金额。"""
+    contract = db.get(Contract, contract_id, with_for_update=True)
+    ensure_owner(contract, user)
+    assert contract is not None
+    total = sum(i.amount for i in data.items)
+    if total != contract.amount:
+        raise BizError(
+            ErrorCode.RULE_VIOLATION,
+            f"各期合计 ¥{total / 100:,.2f}，与合同金额 ¥{contract.amount / 100:,.2f} 不一致",
+            {"rule": RULE_PLAN_TOTAL, "expected": contract.amount, "actual": total},
+        )
+    for old in _plans(db, [contract.id])[contract.id]:
+        db.delete(old)
+    db.flush()
+    for seq, item in enumerate(data.items, start=1):
+        db.add(
+            PaymentPlan(
+                contract_id=contract.id,
+                seq=seq,
+                name=item.name.strip(),
+                amount=item.amount,
+                due_date=item.due_date,
+                owner_id=contract.owner_id,
+                team_id=contract.team_id,
+            )
+        )
+    db.flush()
+    summary = "；".join(f"{i.name} ¥{i.amount / 100:,.0f}（{i.due_date}）" for i in data.items)
+    activity_service.record(
+        db, user, "contract", contract.id, "payment_plan", summary, subject=contract
+    )
+    return get_payment_plan(db, user, contract.id)
+
+
 def to_items(db: Session, contracts: list[Contract]) -> list[ContractItem]:
+    plans = _plans(db, [c.id for c in contracts])
+    states = {c.id: _states(c, plans[c.id]) for c in contracts}
     commissions = _commissions(db, [c.id for c in contracts])
     quotes = _quote_refs(db, [c.quote_id for c in contracts])
     customers = lookup.customers(db, (c.customer_id for c in contracts))
@@ -67,6 +201,8 @@ def to_items(db: Session, contracts: list[Contract]) -> list[ContractItem]:
             commission=commissions.get(c.id, CommissionBrief(estimated=0, confirmed=0)),
             owner=lookup.pick(owners, c.owner_id),
             created_at=c.created_at,
+            next_payment=_next_payment(states[c.id]),
+            overdue_amount=_overdue_amount(states[c.id]),
         )
         for c in contracts
     ]

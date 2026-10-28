@@ -11,6 +11,7 @@ import { RuleHint } from "@/components/biz/RuleHint"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { ViewBar, type ViewOption } from "@/components/biz/ViewBar"
 import { PaymentDialog } from "@/components/contracts/PaymentDialog"
+import { PaymentPlanSheet } from "@/components/contracts/PaymentPlanSheet"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useContracts } from "@/hooks/useContracts"
@@ -48,7 +49,7 @@ function StatStrip({ s, loading }: { s: ContractSummary | undefined; loading: bo
       v: formatFen(s?.estimated_commission),
       sub: s ? `已确认 ${formatFen(s.confirmed_commission)}` : "",
     },
-    { k: "待回款", v: formatFen(s?.unpaid_amount) },
+    { k: "待回款", v: formatFen(s?.unpaid_amount), sub: "点合同编号查看回款计划" },
   ]
   return (
     <div className="grid shrink-0 grid-cols-1 divide-y divide-zinc-200 border-b border-zinc-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
@@ -71,13 +72,14 @@ const contractId = (r: ContractItem) => r.id
 
 export default function ContractsPage() {
   const { role } = useSession()
-  const { canPay } = usePermissions()
+  const { canPay, canEdit } = usePermissions()
   const payable = canPay()
   const [view, setView] = useState("all")
   const [paying, setPaying] = useState<ContractItem | null>(null)
+  const [planOf, setPlanOf] = useState<ContractItem | null>(null)
   const query = useContracts({ view: defaultScope(role), status: toStatus(view), page: 1, page_size: 100 })
   // 登记回款只给主管（契约 §0）；列内再按合同状态判断
-  const allColumns = useMemo(() => contractColumns(payable ? setPaying : undefined), [payable])
+  const allColumns = useMemo(() => contractColumns(payable ? setPaying : undefined, setPlanOf), [payable])
   const all = useMemo(() => query.data?.items ?? [], [query.data])
   const filters = useMemo(() => contractFilters(all), [all])
   const lv = useListView({
@@ -139,6 +141,7 @@ export default function ContractsPage() {
         </>
       )}
       <PaymentDialog contract={paying} onClose={() => setPaying(null)} />
+      <PaymentPlanSheet contract={planOf} editable={canEdit(planOf?.owner?.id)} onClose={() => setPlanOf(null)} />
     </PageFrame>
   )
 }

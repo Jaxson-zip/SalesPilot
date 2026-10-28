@@ -187,6 +187,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/similar:
+    get:
+      tags:
+      - customers
+      summary: Similar Customers
+      description: 新建客户时的查重提示：全公司范围，去掉「有限公司」等后缀后比较。
+      operationId: similar_customers_api_customers_similar_get
+      parameters:
+      - name: name
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 200
+          title: Name
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_SimilarCustomer__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/customers/{customer_id}:
     get:
       tags:
@@ -335,6 +372,135 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_Page_ContactItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - customers
+      summary: Create Contact
+      operationId: create_contact_api_customers__customer_id__contacts_post
+      parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Customer Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ContactItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/{customer_id}/contacts/{contact_id}:
+    patch:
+      tags:
+      - customers
+      summary: Update Contact
+      operationId: update_contact_api_customers__customer_id__contacts__contact_id__patch
+      parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Customer Id
+      - name: contact_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Contact Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ContactItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - customers
+      summary: Delete Contact
+      operationId: delete_contact_api_customers__customer_id__contacts__contact_id__delete
+      parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Customer Id
+      - name: contact_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Contact Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_NoneType_'
         '422':
           description: Validation Error
           content:
@@ -1314,6 +1480,83 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_ContractItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/contracts/{contract_id}/payment-plan:
+    get:
+      tags:
+      - contracts
+      summary: Get Payment Plan
+      description: 回款计划（B9）：每期金额、到期日、按顺序分摊的实收、是否逾期。
+      operationId: get_payment_plan_api_contracts__contract_id__payment_plan_get
+      parameters:
+      - name: contract_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Contract Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PaymentPlanView_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - contracts
+      summary: Replace Payment Plan
+      description: 负责人整体替换回款计划；各期合计必须等于合同金额（42201 plan_total_mismatch）。
+      operationId: replace_payment_plan_api_contracts__contract_id__payment_plan_put
+      parameters:
+      - name: contract_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Contract Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentPlanUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PaymentPlanView_'
         '422':
           description: Validation Error
           content:
@@ -2414,6 +2657,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_ContactItem_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ContactItem'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ContactItem]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_ContractItem_:
       properties:
         code:
@@ -3063,6 +3331,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_PaymentPlanView_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/PaymentPlanView'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[PaymentPlanView]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_PipelineSummary_:
       properties:
         code:
@@ -3311,6 +3604,34 @@ components:
           default: ''
       type: object
       title: ApiResponse[list[PackOut]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_list_SimilarCustomer__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/SimilarCustomer'
+            type: array
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[list[SimilarCustomer]]
       required:
       - code
       - message
@@ -3755,6 +4076,40 @@ components:
       - name
       - title
       title: ContactBrief
+    ContactIn:
+      properties:
+        name:
+          type: string
+          maxLength: 50
+          minLength: 1
+          title: Name
+        title:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Title
+        phone:
+          anyOf:
+          - type: string
+            maxLength: 30
+          - type: 'null'
+          title: Phone
+        role:
+          anyOf:
+          - type: string
+            enum:
+            - decision_maker
+            - influencer
+            - technical
+            - finance
+            - user
+          - type: 'null'
+          title: Role
+      type: object
+      required:
+      - name
+      title: ContactIn
     ContactItem:
       properties:
         id:
@@ -3777,6 +4132,17 @@ components:
         is_decision_maker:
           type: boolean
           title: Is Decision Maker
+        role:
+          anyOf:
+          - type: string
+            enum:
+            - decision_maker
+            - influencer
+            - technical
+            - finance
+            - user
+          - type: 'null'
+          title: Role
       type: object
       required:
       - id
@@ -3784,7 +4150,42 @@ components:
       - title
       - phone
       - is_decision_maker
+      - role
       title: ContactItem
+    ContactUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 50
+            minLength: 1
+          - type: 'null'
+          title: Name
+        title:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Title
+        phone:
+          anyOf:
+          - type: string
+            maxLength: 30
+          - type: 'null'
+          title: Phone
+        role:
+          anyOf:
+          - type: string
+            enum:
+            - decision_maker
+            - influencer
+            - technical
+            - finance
+            - user
+          - type: 'null'
+          title: Role
+      type: object
+      title: ContactUpdate
     ContractItem:
       properties:
         id:
@@ -3827,6 +4228,14 @@ components:
           type: string
           format: date-time
           title: Created At
+        next_payment:
+          anyOf:
+          - $ref: '#/components/schemas/NextPayment'
+          - type: 'null'
+        overdue_amount:
+          type: integer
+          title: Overdue Amount
+          default: 0
       type: object
       required:
       - id
@@ -3840,6 +4249,8 @@ components:
       - commission
       - owner
       - created_at
+      - next_payment
+      - overdue_amount
       title: ContractItem
     ContractList:
       properties:
@@ -4829,6 +5240,38 @@ components:
       required:
       - role
       title: MockLoginIn
+    NextPayment:
+      properties:
+        name:
+          type: string
+          title: Name
+        amount:
+          type: integer
+          title: Amount
+        due_date:
+          type: string
+          format: date
+          title: Due Date
+        status:
+          type: string
+          enum:
+          - paid
+          - partial
+          - overdue
+          - pending
+          title: Status
+        overdue_days:
+          type: integer
+          title: Overdue Days
+      type: object
+      required:
+      - name
+      - amount
+      - due_date
+      - status
+      - overdue_days
+      title: NextPayment
+      description: 下一期待收款（合同列表用）：第一期没有收齐的。amount 为该期还差的金额。
     NextTask:
       properties:
         id:
@@ -5444,6 +5887,115 @@ components:
       required:
       - amount
       title: PaymentIn
+    PaymentPlanItem:
+      properties:
+        seq:
+          type: integer
+          title: Seq
+        name:
+          type: string
+          title: Name
+        amount:
+          type: integer
+          title: Amount
+        due_date:
+          type: string
+          format: date
+          title: Due Date
+        paid:
+          type: integer
+          title: Paid
+        status:
+          type: string
+          enum:
+          - paid
+          - partial
+          - overdue
+          - pending
+          title: Status
+        overdue_days:
+          type: integer
+          title: Overdue Days
+      type: object
+      required:
+      - seq
+      - name
+      - amount
+      - due_date
+      - paid
+      - status
+      - overdue_days
+      title: PaymentPlanItem
+    PaymentPlanLineIn:
+      properties:
+        name:
+          type: string
+          maxLength: 30
+          minLength: 1
+          title: Name
+        amount:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: Amount
+        due_date:
+          type: string
+          format: date
+          title: Due Date
+      type: object
+      required:
+      - name
+      - amount
+      - due_date
+      title: PaymentPlanLineIn
+    PaymentPlanUpdate:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/PaymentPlanLineIn'
+          type: array
+          maxItems: 12
+          minItems: 1
+          title: Items
+      type: object
+      required:
+      - items
+      title: PaymentPlanUpdate
+    PaymentPlanView:
+      properties:
+        contract_id:
+          type: string
+          format: uuid
+          title: Contract Id
+        code:
+          type: string
+          title: Code
+        amount:
+          type: integer
+          title: Amount
+        paid_amount:
+          type: integer
+          title: Paid Amount
+        overdue_amount:
+          type: integer
+          title: Overdue Amount
+        items:
+          items:
+            $ref: '#/components/schemas/PaymentPlanItem'
+          type: array
+          title: Items
+        rule_ref:
+          type: string
+          title: Rule Ref
+      type: object
+      required:
+      - contract_id
+      - code
+      - amount
+      - paid_amount
+      - overdue_amount
+      - items
+      - rule_ref
+      title: PaymentPlanView
     PipelineStage:
       properties:
         stage:
@@ -5936,6 +6488,37 @@ components:
       - expense
       title: RuleNotes
       description: 三类制度说明；固定这三个键，前端按键取用。
+    SimilarCustomer:
+      properties:
+        id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Id
+        name:
+          type: string
+          title: Name
+        owner_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Owner Name
+        exact:
+          type: boolean
+          title: Exact
+        visible:
+          type: boolean
+          title: Visible
+      type: object
+      required:
+      - id
+      - name
+      - owner_name
+      - exact
+      - visible
+      title: SimilarCustomer
+      description: 新建客户时的查重提示。看不到的客户只给名称和负责人，不给 id。
     StageChange:
       properties:
         stage:

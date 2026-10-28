@@ -69,6 +69,23 @@ class PipelineRules(BaseModel):
     stale_days: int = 14
 
 
+class PaymentStage(BaseModel):
+    name: str
+    ratio: float
+    due_days: int
+
+
+class PaymentRules(BaseModel):
+    schedule: list[PaymentStage] = [
+        PaymentStage(name="预付款", ratio=0.3, due_days=0),
+        PaymentStage(name="到货验收款", ratio=0.6, due_days=60),
+        PaymentStage(name="质保金", ratio=0.1, due_days=425),
+    ]
+    followup_days: int = 30
+    block_days: int = 90
+    rule_ref: str = ""
+
+
 class QuoteRules(BaseModel):
     valid_days: int = 30
 
@@ -82,6 +99,7 @@ class RuleSet(BaseModel):
     agent: AgentRules
     pipeline: PipelineRules = PipelineRules()
     quote: QuoteRules = QuoteRules()
+    payment: PaymentRules = PaymentRules()
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

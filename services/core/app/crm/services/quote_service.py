@@ -23,7 +23,7 @@ from app.crm.schemas.quote import (
     QuoteListItem,
     QuoteOut,
 )
-from app.crm.services import activity_service, approval_service, quote_query
+from app.crm.services import activity_service, approval_service, contract_service, quote_query
 from app.crm.services.codes import next_code
 from app.crm.services.opportunity_service import apply_stage, get_owned
 from app.packs.base import SolutionTier
@@ -245,6 +245,7 @@ def _accept(db: Session, user: CurrentUser, quote: Quote, source: str) -> str:
             team_id=quote.team_id,
         )
     )
+    contract_service.create_default_plan(db, contract, rules_for(quote))
     _mark_won(db, user, quote.opportunity_id, source)
     return f"客户接受报价，生成合同 {contract.code}"
 

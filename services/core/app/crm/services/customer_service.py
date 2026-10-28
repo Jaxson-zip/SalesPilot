@@ -1,5 +1,6 @@
 """客户 service（参考实现）：业务逻辑、数据范围过滤都在这里，router 只做参数和响应。"""
 
+import re
 import uuid
 from typing import Any
 
@@ -9,16 +10,16 @@ from sqlalchemy.orm import Session
 from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_business_writer
-from app.common.scope import View, apply_scope, ensure_visible
-from app.crm.models import Contact, Customer, Followup, Opportunity, User
+from app.common.scope import View, apply_scope, can_see, ensure_visible
+from app.crm.models import Customer, Followup, Opportunity, User
 from app.crm.schemas.common import Page, PageParams, UserBrief
 from app.crm.schemas.customer import (
     CustomerCreate,
     CustomerDetail,
     CustomerListItem,
     CustomerSearchItem,
+    SimilarCustomer,
 )
-from app.crm.schemas.dashboard import ContactItem
 from app.crm.services import activity_service
 
 
@@ -113,9 +114,10 @@ def get_customer(db: Session, user: CurrentUser, customer_id: uuid.UUID) -> Cust
 
 def create_customer(db: Session, user: CurrentUser, data: CustomerCreate) -> CustomerDetail:
     ensure_business_writer(user)
-    exists = db.scalar(select(func.count()).where(Customer.name == data.name.strip()))
-    if exists:
-        raise BizError(ErrorCode.DUPLICATE, "客户名称已存在")
+    names = list(db.scalars(select(Customer.name)))
+    same = [n for n, exact in similar_names(data.name, names) if exact]
+    if same:
+        raise BizError(ErrorCode.DUPLICATE, f"客户已存在：{same[0]}")
     customer = Customer(**data.model_dump(), owner_id=user.id, team_id=user.team_id)
     customer.name = data.name.strip()
     db.add(customer)
@@ -124,6 +126,68 @@ def create_customer(db: Session, user: CurrentUser, data: CustomerCreate) -> Cus
         db, user, "customer", customer.id, "create", f"创建了客户 {customer.name}"
     )
     return get_customer(db, user, customer.id)
+
+
+# 查重时忽略的公司后缀、地名括号和空白（「明理科技（深圳）有限公司」≈「明理科技」）
+_NAME_SUFFIXES = ("股份有限公司", "有限责任公司", "有限公司", "集团", "公司")
+_BRACKETS = re.compile(r"[（(][^）)]*[）)]")
+
+
+def core_name(name: str) -> str:
+    text = _BRACKETS.sub("", "".join(name.split()))
+    for suffix in _NAME_SUFFIXES:  # 从长到短，只剥最长的一个
+        if text.endswith(suffix):
+            return text[: -len(suffix)] if len(text) > len(suffix) + 1 else text
+    return text
+
+
+def similar_names(name: str, candidates: list[str], limit: int = 5) -> list[tuple[str, bool]]:
+    """[(候选名, 是否同名)]：核心名相同为同名；一方包含另一方，或二元字组重合 ≥ 2
+    且占较短一方的一半以上，为相似。"""
+    target = core_name(name)
+    grams = _bigrams(target)
+    scored: list[tuple[float, str, bool]] = []
+    for cand in candidates:
+        core = core_name(cand)
+        if core == target:
+            scored.append((2.0, cand, True))
+            continue
+        if len(target) >= 2 and (target in core or core in target):
+            scored.append((1.5, cand, False))
+            continue
+        other = _bigrams(core)
+        overlap = len(grams & other)
+        shorter = min(len(grams), len(other)) or 1
+        if overlap >= 2 and overlap / shorter >= 0.5:
+            scored.append((overlap / shorter, cand, False))
+    scored.sort(key=lambda x: -x[0])
+    return [(n, exact) for _, n, exact in scored[:limit]]
+
+
+def find_similar(db: Session, user: CurrentUser, name: str) -> list[SimilarCustomer]:
+    """全公司范围查重（重复客户不分团队）；看不到的客户只返回名称和负责人。"""
+    if len(core_name(name)) < 2:
+        return []
+    rows = db.execute(
+        select(Customer, User.name.label("owner_name")).outerjoin(
+            User, User.id == Customer.owner_id
+        )
+    ).all()
+    by_name = {r.Customer.name: r for r in rows}
+    out = []
+    for cand, exact in similar_names(name, list(by_name)):
+        row = by_name[cand]
+        visible = can_see(row.Customer, user)
+        out.append(
+            SimilarCustomer(
+                id=row.Customer.id if visible else None,
+                name=cand,
+                owner_name=row.owner_name,
+                exact=exact,
+                visible=visible,
+            )
+        )
+    return out
 
 
 def _bigrams(text: str) -> set[str]:
@@ -155,24 +219,3 @@ def search_customers(
     by_name = {r.Customer.name: r for r in candidates}
     ranked = rank_by_similarity(keyword, list(by_name))[:limit]
     return [_brief(by_name[name]) for name in ranked]
-
-
-def list_contacts(db: Session, user: CurrentUser, customer_id: uuid.UUID) -> Page[ContactItem]:
-    """客户联系人：先校验客户可见（看不到 → 40401），决策人排在前面。"""
-    ensure_visible(db.get(Customer, customer_id), user)
-    stmt = (
-        select(Contact)
-        .where(Contact.customer_id == customer_id)
-        .order_by(Contact.is_decision_maker.desc(), Contact.created_at, Contact.id)
-    )
-    items = [
-        ContactItem(
-            id=c.id,
-            name=c.name,
-            title=c.title,
-            phone=c.phone,
-            is_decision_maker=c.is_decision_maker,
-        )
-        for c in db.scalars(stmt)
-    ]
-    return Page[ContactItem](items=items, total=len(items))

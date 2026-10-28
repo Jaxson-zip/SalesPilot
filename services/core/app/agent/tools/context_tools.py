@@ -10,8 +10,9 @@ from pydantic import BaseModel, Field
 
 from app.agent.tools.base import ToolContext, ToolResult, ToolSpec
 from app.crm.schemas.common import PageParams
+from app.crm.schemas.dashboard import CONTACT_ROLE_LABELS
 from app.crm.schemas.opportunity import STAGE_LABELS
-from app.crm.services import approval_service, customer_service
+from app.crm.services import approval_service, contact_service
 from app.crm.services import opportunity_service as opp_service
 
 
@@ -22,7 +23,7 @@ class CustomerContextArgs(BaseModel):
 def get_customer_context(ctx: ToolContext, args: CustomerContextArgs) -> ToolResult:
     """客户的商机（含阶段、金额、下一步）和联系人；权限与接口一致（看不到的客户返回 40401）。"""
     with ctx.session() as db:
-        contacts = customer_service.list_contacts(db, ctx.user, args.customer_id).items
+        contacts = contact_service.list_contacts(db, ctx.user, args.customer_id).items
         opps = opp_service.list_opportunities(
             db, ctx.user, None, PageParams(page=1, page_size=20), customer_id=args.customer_id
         ).items
@@ -45,6 +46,7 @@ def get_customer_context(ctx: ToolContext, args: CustomerContextArgs) -> ToolRes
                 "name": c.name,
                 "title": c.title,
                 "decision_maker": c.is_decision_maker,
+                "role": CONTACT_ROLE_LABELS.get(c.role or ""),
             }
             for c in contacts
         ],

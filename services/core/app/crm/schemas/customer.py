@@ -41,6 +41,16 @@ class CustomerCreate(BaseModel):
     tags: list[str] = Field(default_factory=list, max_length=20)
 
 
+class SimilarCustomer(BaseModel):
+    """新建客户时的查重提示。看不到的客户只给名称和负责人，不给 id。"""
+
+    id: uuid.UUID | None
+    name: str
+    owner_name: str | None
+    exact: bool  # 去掉「有限公司」等后缀后名称相同
+    visible: bool
+
+
 class CustomerSearchItem(BaseModel):
     """Agent search_customer 的返回项。"""
 

@@ -25,14 +25,28 @@ export interface FollowupCreate {
   opportunity_id?: string
 }
 
-/** 契约未给出返回结构，按 contacts 表字段约定（见汇报） */
+/** 联系人在采购决策中的角色（B7，对应 Salesforce 的 Contact Role） */
+export type ContactRole = "decision_maker" | "influencer" | "technical" | "finance" | "user"
+
+/** GET /api/customers/{id}/contacts（按角色重要程度排序） */
 export interface ContactItem {
   id: string
   name: string
   title: string | null
   phone: string | null
+  /** 由 role 派生：role === "decision_maker" */
   is_decision_maker: boolean
+  role: ContactRole | null
 }
+
+/** POST /api/customers/{id}/contacts；PATCH 时全部字段可选 */
+export interface ContactIn {
+  name: string
+  title?: string | null
+  phone?: string | null
+  role?: ContactRole | null
+}
+export type ContactUpdate = Partial<ContactIn>
 
 /** POST /api/customers（core schemas/customer.py CustomerCreate；annual_budget 单位：分） */
 export type CustomerLevel = "A" | "B" | "C"
@@ -63,4 +77,14 @@ export interface CustomerDetail {
   annual_budget: number | null
   tags: string[]
   created_at: string
+}
+
+/** GET /api/customers/similar：新建客户查重。看不到的客户 id 为 null，只给名称和负责人 */
+export interface SimilarCustomer {
+  id: string | null
+  name: string
+  owner_name: string | null
+  /** 去掉「有限公司」「（深圳）」等后名称相同：后端会拒绝创建 */
+  exact: boolean
+  visible: boolean
 }

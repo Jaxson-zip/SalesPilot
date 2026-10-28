@@ -3,12 +3,11 @@
 import { Hash, Link as LinkIcon, MapPin, Star, Tag as TagIcon, User, Users, Wallet } from "lucide-react"
 import Link from "next/link"
 
-import { Chip, LetterAvatar, LinkChip } from "@/components/biz/Chip"
+import { Chip, LinkChip } from "@/components/biz/Chip"
 import { FieldRow } from "@/components/biz/FieldRow"
 import { colorFor, Tag } from "@/components/biz/Tag"
 import { SubjectTasks } from "@/components/tasks/TaskList"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useContacts } from "@/hooks/useFollowups"
 import { useOpportunities } from "@/hooks/useOpportunities"
 import { displayHost, formatFen } from "@/lib/format"
 import { STAGE_META } from "@/lib/labels"
@@ -21,32 +20,8 @@ function levelColor(level: string) {
   return head === "A" ? "red" : head === "B" ? "blue" : "gray"
 }
 
-function SectionTitle({ children }: { children: string }) {
-  return <div className="mt-5 mb-1.5 text-zinc-500">{children}</div>
-}
-
-function Contacts({ customerId }: { customerId: string }) {
-  const q = useContacts(customerId)
-  if (q.isPending) return <Skeleton className="h-9 w-full" />
-  if (q.isError)
-    return <div className="text-zinc-400">{isNotImplemented(q.error) ? "联系人接口开发中" : "联系人加载失败"}</div>
-  if (q.data.length === 0) return <div className="text-zinc-400">还没有联系人</div>
-  return (
-    <>
-      {q.data.map((c) => (
-        <div key={c.id} className="flex h-9 min-w-0 items-center gap-2">
-          <LetterAvatar name={c.name} className="size-6 text-[11px]" />
-          <span className="shrink-0 font-medium">{c.name}</span>
-          <span className="min-w-0 truncate text-zinc-500">
-            {[c.title, c.is_decision_maker ? "决策人" : null].filter(Boolean).join(" · ")}
-          </span>
-        </div>
-      ))}
-    </>
-  )
-}
-
-function Opportunities({ customerId, role }: { customerId: string; role: Role }) {
+/** 客户的商机（客户详情「商机」标签页） */
+export function CustomerOpportunities({ customerId, role }: { customerId: string; role: Role }) {
   const q = useOpportunities({ view: defaultScope(role), customer_id: customerId, page_size: 20 })
   if (q.isPending) return <Skeleton className="h-16 w-full" />
   if (q.isError)
@@ -77,8 +52,8 @@ function Opportunities({ customerId, role }: { customerId: string; role: Role })
   )
 }
 
-/** RecordFields：客户字段 + 下一步 + 联系人 + 关联商机 */
-export function CustomerFields({ c, role, editable }: { c: CustomerDetail; role: Role; editable: boolean }) {
+/** RecordFields：客户字段 + 下一步（联系人、商机在右侧标签页） */
+export function CustomerFields({ c, editable }: { c: CustomerDetail; editable: boolean }) {
   return (
     <>
       <div className="mb-4 flex items-center gap-3">
@@ -127,10 +102,6 @@ export function CustomerFields({ c, role, editable }: { c: CustomerDetail; role:
       <div className="mt-5">
         <SubjectTasks subjectType="customer" subjectId={c.id} subjectName={c.name} editable={editable} />
       </div>
-      <SectionTitle>联系人</SectionTitle>
-      <Contacts customerId={c.id} />
-      <SectionTitle>商机</SectionTitle>
-      <Opportunities customerId={c.id} role={role} />
     </>
   )
 }

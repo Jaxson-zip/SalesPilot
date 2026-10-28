@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { notifyError } from "@/hooks/notify"
 import { activityKeys, dashboardKeys } from "@/hooks/useDashboard"
 import { api } from "@/lib/api"
-import type { ContactItem, FollowupCreate, FollowupItem, Paged } from "@/types/api"
+import type { ContactIn, ContactItem, ContactUpdate, FollowupCreate, FollowupItem, Paged } from "@/types/api"
 
 export const followupKeys = {
   list: (customerId: string) => ["customers", customerId, "followups"] as const,
@@ -42,6 +42,44 @@ export function useContacts(customerId: string) {
         await api.get<Paged<ContactItem> | ContactItem[]>(`/api/customers/${customerId}/contacts`, undefined, signal),
       ),
     enabled: Boolean(customerId),
+  })
+}
+
+function useContactInvalidate(customerId: string) {
+  const qc = useQueryClient()
+  return () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: followupKeys.contacts(customerId) }),
+      qc.invalidateQueries({ queryKey: activityKeys.all }),
+    ])
+}
+
+/** 新建（id 为空）或修改联系人：POST / PATCH /api/customers/{id}/contacts[/{contactId}] */
+export function useSaveContact(customerId: string) {
+  const invalidate = useContactInvalidate(customerId)
+  return useMutation({
+    mutationFn: ({ id, body }: { id?: string; body: ContactIn | ContactUpdate }) =>
+      id
+        ? api.patch<ContactItem>(`/api/customers/${customerId}/contacts/${id}`, body)
+        : api.post<ContactItem>(`/api/customers/${customerId}/contacts`, body),
+    onSuccess: (c, { id }) => {
+      toast.success(id ? "联系人已更新" : "联系人已添加", { description: c.name })
+      void invalidate()
+    },
+    onError: notifyError,
+  })
+}
+
+/** DELETE /api/customers/{id}/contacts/{contactId} */
+export function useDeleteContact(customerId: string) {
+  const invalidate = useContactInvalidate(customerId)
+  return useMutation({
+    mutationFn: (contact: ContactItem) => api.delete<null>(`/api/customers/${customerId}/contacts/${contact.id}`),
+    onSuccess: (_, contact) => {
+      toast.success("联系人已删除", { description: contact.name })
+      void invalidate()
+    },
+    onError: notifyError,
   })
 }
 

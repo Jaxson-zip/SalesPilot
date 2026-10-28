@@ -71,6 +71,18 @@ class Contract(OwnedMixin, Base):
     status: Mapped[str] = mapped_column(String(20), default="active")
 
 
+class PaymentPlan(OwnedMixin, Base):
+    """合同回款计划的一期（B9）。实收按期次顺序分摊，状态由 payment_plan.allocate 计算，不落库。"""
+
+    __tablename__ = "payment_plans"
+
+    contract_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("contracts.id"), index=True)
+    seq: Mapped[int] = mapped_column(Integer)
+    name: Mapped[str] = mapped_column(String(30))
+    amount: Mapped[int] = mapped_column(BigInteger)
+    due_date: Mapped[date] = mapped_column(Date)
+
+
 class Commission(OwnedMixin, Base):
     __tablename__ = "commissions"
 

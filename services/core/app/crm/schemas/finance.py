@@ -18,6 +18,19 @@ class CommissionBrief(BaseModel):
     confirmed: int
 
 
+PlanStatus = Literal["paid", "partial", "overdue", "pending"]
+
+
+class NextPayment(BaseModel):
+    """下一期待收款（合同列表用）：第一期没有收齐的。amount 为该期还差的金额。"""
+
+    name: str
+    amount: int
+    due_date: date
+    status: PlanStatus
+    overdue_days: int
+
+
 class ContractItem(BaseModel):
     id: uuid.UUID
     code: str
@@ -30,6 +43,38 @@ class ContractItem(BaseModel):
     commission: CommissionBrief
     owner: UserBrief | None
     created_at: datetime
+    next_payment: NextPayment | None = None
+    overdue_amount: int = 0  # 已到期未收齐的金额合计
+
+
+class PaymentPlanItem(BaseModel):
+    seq: int
+    name: str
+    amount: int
+    due_date: date
+    paid: int  # 实收按期次顺序分摊到这一期的金额
+    status: PlanStatus
+    overdue_days: int
+
+
+class PaymentPlanView(BaseModel):
+    contract_id: uuid.UUID
+    code: str
+    amount: int
+    paid_amount: int
+    overdue_amount: int
+    items: list[PaymentPlanItem]
+    rule_ref: str
+
+
+class PaymentPlanLineIn(BaseModel):
+    name: str = Field(min_length=1, max_length=30)
+    amount: int = Field(gt=0)
+    due_date: date
+
+
+class PaymentPlanUpdate(BaseModel):
+    items: list[PaymentPlanLineIn] = Field(min_length=1, max_length=12)
 
 
 class ContractSummary(BaseModel):

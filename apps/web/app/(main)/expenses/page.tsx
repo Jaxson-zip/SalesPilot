@@ -52,6 +52,7 @@ export default function ExpensesPage() {
   const allColumns = useMemo(() => expenseColumns((e) => setSheet({ open: true, id: e.id })), [])
   const all = useMemo(() => query.data?.items ?? [], [query.data])
   const lv = useListView({
+    entity: "expenses",
     page: "expenses",
     rows: all,
     filters: expenseFilters,

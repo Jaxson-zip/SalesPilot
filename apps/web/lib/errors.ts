@@ -46,6 +46,7 @@ export function errorMessage(err: unknown): string {
     }
     case ErrorCode.FORBIDDEN: {
       const rule = ruleOf(err.data)
+      if (rule === "privacy") return err.message // 数据安全限制：服务端给出具体原因（如「当前角色不能导出客户」）
       return (rule && FORBIDDEN_MESSAGES[rule]) || "当前角色无权执行该操作"
     }
     case ErrorCode.DUPLICATE:

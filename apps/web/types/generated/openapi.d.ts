@@ -38,6 +38,46 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/audit-logs": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Audit Logs
+     * @description 管理员看全公司，主管看本团队，销售 40301。
+     */
+    get: operations["list_audit_logs_api_audit_logs_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/exports": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Register Export
+     * @description 前端导出 CSV 之前登记：按角色授权、限制条数，并记入操作日志。
+     */
+    post: operations["register_export_api_exports_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/customers": {
     parameters: {
       query?: never
@@ -226,6 +266,26 @@ export interface paths {
     head?: never
     /** Update Contact */
     patch: operations["update_contact_api_customers__customer_id__contacts__contact_id__patch"]
+    trace?: never
+  }
+  "/api/customers/{customer_id}/contacts/{contact_id}/phone": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Reveal Phone
+     * @description 查看完整电话：记入操作日志，每人每天限次（超出 42901）。
+     */
+    post: operations["reveal_phone_api_customers__customer_id__contacts__contact_id__phone_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
     trace?: never
   }
   "/api/packs": {
@@ -1386,6 +1446,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[ExportOut] */
+    ApiResponse_ExportOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["ExportOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[FollowupItem] */
     ApiResponse_FollowupItem_: {
       /**
@@ -1634,6 +1713,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[Page[AuditItem]] */
+    ApiResponse_Page_AuditItem__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["Page_AuditItem_"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[Page[ContactItem]] */
     ApiResponse_Page_ContactItem__: {
       /**
@@ -1818,6 +1916,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["PaymentPlanView"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[PhoneOut] */
+    ApiResponse_PhoneOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["PhoneOut"] | null
       /**
        * Request Id
        * @default
@@ -2206,6 +2323,41 @@ export interface components {
       /** Url */
       url: string
     }
+    /** AuditItem */
+    AuditItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /** User Name */
+      user_name: string | null
+      /** Role */
+      role: string | null
+      /** Action */
+      action: string
+      /** Label */
+      label: string
+      /** Source */
+      source: string
+      /** Target Id */
+      target_id: string | null
+      /** Status */
+      status: number
+      /** Ok */
+      ok: boolean
+      /** Detail */
+      detail: string | null
+      /** Ip */
+      ip: string | null
+      /** Target Name */
+      target_name: string | null
+    }
     /** Body_extract_material_api_agent_materials_post */
     Body_extract_material_api_agent_materials_post: {
       /** File */
@@ -2394,6 +2546,11 @@ export interface components {
       title: string | null
       /** Phone */
       phone: string | null
+      /**
+       * Has Phone
+       * @default false
+       */
+      has_phone: boolean
       /** Is Decision Maker */
       is_decision_maker: boolean
       /** Role */
@@ -2853,6 +3010,23 @@ export interface components {
        */
       example: string
     }
+    /** ExportIn */
+    ExportIn: {
+      /**
+       * Entity
+       * @enum {string}
+       */
+      entity: "customers" | "opportunities" | "quotes" | "contracts" | "expenses"
+      /** Rows */
+      rows: number
+    }
+    /** ExportOut */
+    ExportOut: {
+      /** Allowed */
+      allowed: boolean
+      /** Max Rows */
+      max_rows: number
+    }
     /** FollowupIn */
     FollowupIn: {
       /**
@@ -3284,6 +3458,13 @@ export interface components {
       /** Total */
       total: number
     }
+    /** Page[AuditItem] */
+    Page_AuditItem_: {
+      /** Items */
+      items: components["schemas"]["AuditItem"][]
+      /** Total */
+      total: number
+    }
     /** Page[ContactItem] */
     Page_ContactItem_: {
       /** Items */
@@ -3411,6 +3592,13 @@ export interface components {
       items: components["schemas"]["PaymentPlanItem"][]
       /** Rule Ref */
       rule_ref: string
+    }
+    /** PhoneOut */
+    PhoneOut: {
+      /** Phone */
+      phone: string
+      /** Remaining */
+      remaining: number
     }
     /** PipelineStage */
     PipelineStage: {
@@ -4067,6 +4255,82 @@ export interface operations {
       }
     }
   }
+  list_audit_logs_api_audit_logs_get: {
+    parameters: {
+      query?: {
+        q?: string | null
+        action?: string | null
+        user_id?: string | null
+        result?: ("ok" | "failed") | null
+        source?: ("web" | "agent") | null
+        date_from?: string | null
+        date_to?: string | null
+        page?: number
+        page_size?: number
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_Page_AuditItem__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  register_export_api_exports_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ExportIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ExportOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
   list_customers_api_customers_get: {
     parameters: {
       query?: {
@@ -4581,6 +4845,40 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_ContactItem_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  reveal_phone_api_customers__customer_id__contacts__contact_id__phone_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        customer_id: string
+        contact_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_PhoneOut_"]
         }
       }
       /** @description Validation Error */

@@ -69,9 +69,15 @@ class ContactItem(BaseModel):
     id: uuid.UUID
     name: str
     title: str | None
-    phone: str | None
+    phone: str | None  # 脱敏后的号码（139****2222）；完整号码走 POST .../phone，记入操作日志
+    has_phone: bool = False
     is_decision_maker: bool
     role: ContactRole | None
+
+
+class PhoneOut(BaseModel):
+    phone: str
+    remaining: int  # 今天还能查看的次数
 
 
 class ContactIn(BaseModel):

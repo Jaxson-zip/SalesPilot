@@ -1,7 +1,9 @@
 "use client"
 
-import { Pencil, Phone, Plus, Trash2, UserRound } from "lucide-react"
+import { useMutation } from "@tanstack/react-query"
+import { Eye, Pencil, Phone, Plus, Trash2, UserRound } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import { LetterAvatar } from "@/components/biz/Chip"
 import { useConfirmAction } from "@/components/biz/ConfirmAction"
@@ -13,7 +15,9 @@ import { Tag } from "@/components/biz/Tag"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { notifyError } from "@/hooks/notify"
 import { useContacts, useDeleteContact, useSaveContact } from "@/hooks/useFollowups"
+import { api } from "@/lib/api"
 import { deleteContactConfirm } from "@/lib/confirm-texts"
 import { CONTACT_ROLE_META } from "@/lib/labels"
 import type { ContactItem, ContactRole } from "@/types/api"
@@ -32,7 +36,8 @@ interface FormValues {
 }
 
 function toForm(c: ContactItem | null): FormValues {
-  return { name: c?.name ?? "", title: c?.title ?? "", phone: c?.phone ?? "", role: c?.role ?? NO_ROLE }
+  // 已有电话是脱敏的：编辑时留空表示不修改
+  return { name: c?.name ?? "", title: c?.title ?? "", phone: "", role: c?.role ?? NO_ROLE }
 }
 
 /** 新建 / 编辑联系人（target：null = 关闭；"new" = 新建；ContactItem = 编辑） */
@@ -60,10 +65,11 @@ function ContactSheet({
 
   const submit = () => {
     if (!v.name.trim()) return setNameError("请填写姓名")
+    const keepPhone = Boolean(editing?.phone) && !v.phone.trim()
     const body = {
       name: v.name.trim(),
       title: v.title.trim() || null,
-      phone: v.phone.trim() || null,
+      ...(keepPhone ? {} : { phone: v.phone.trim() || null }),
       role: v.role === NO_ROLE ? null : v.role,
     }
     save.mutate({ id: editing?.id, body }, { onSuccess: onClose })
@@ -115,7 +121,7 @@ function ContactSheet({
         <Input
           id="contact-phone"
           value={v.phone}
-          placeholder="例如：138 0000 0000"
+          placeholder={editing?.phone ? `已保存 ${editing.phone}，不修改请留空` : "例如：138 0000 0000"}
           onChange={(e) => set("phone", e.target.value)}
         />
       </FormField>
@@ -128,6 +134,45 @@ export function ContactRoleTag({ role }: { role: ContactRole | null }) {
 }
 
 /** 客户详情「联系人」标签页：列表 + 增删改（只有客户负责人能改） */
+/** 电话默认脱敏；点「查看」显示完整号码（每次记入操作日志，每人每天限次） */
+function PhoneReveal({ customerId, contact }: { customerId: string; contact: ContactItem }) {
+  const [full, setFull] = useState<string | null>(null)
+  const reveal = useMutation({
+    mutationFn: () =>
+      api.post<{ phone: string; remaining: number }>(`/api/customers/${customerId}/contacts/${contact.id}/phone`),
+    onSuccess: (r) => {
+      setFull(r.phone)
+      if (r.remaining <= 5) toast(`今天还能查看 ${r.remaining} 次完整电话`)
+    },
+    onError: notifyError,
+  })
+  return (
+    <span className="inline-flex items-center gap-1">
+      <Phone className="size-3" />
+      {full ? (
+        <a href={`tel:${full}`} className="text-zinc-800 tabular-nums hover:underline">
+          {full}
+        </a>
+      ) : (
+        <>
+          <span className="tabular-nums">{contact.phone}</span>
+          <button
+            type="button"
+            aria-label={`查看 ${contact.name} 的完整电话`}
+            title="查看完整号码（会记入操作日志）"
+            disabled={reveal.isPending}
+            onClick={() => reveal.mutate()}
+            className="ml-0.5 inline-flex items-center gap-0.5 rounded px-1 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+          >
+            <Eye className="size-3" />
+            查看
+          </button>
+        </>
+      )}
+    </span>
+  )
+}
+
 export function ContactsPanel({ customerId, editable }: { customerId: string; editable: boolean }) {
   const q = useContacts(customerId)
   const del = useDeleteContact(customerId)
@@ -168,12 +213,7 @@ export function ContactsPanel({ customerId, editable }: { customerId: string; ed
                   </div>
                   <div className="mt-0.5 flex gap-3 text-xs text-zinc-500">
                     {c.title ? <span>{c.title}</span> : null}
-                    {c.phone ? (
-                      <span className="inline-flex items-center gap-1">
-                        <Phone className="size-3" />
-                        {c.phone}
-                      </span>
-                    ) : null}
+                    {c.phone ? <PhoneReveal customerId={customerId} contact={c} /> : null}
                   </div>
                 </div>
                 {editable ? (

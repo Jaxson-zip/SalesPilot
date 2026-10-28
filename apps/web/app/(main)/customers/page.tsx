@@ -63,6 +63,7 @@ export default function CustomersPage() {
   const all = useMemo(() => query.data?.items ?? [], [query.data])
   const filters = useMemo(() => customerFilters(all), [all])
   const lv = useListView({
+    entity: "customers",
     page: "customers",
     rows: all,
     filters,

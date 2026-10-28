@@ -58,6 +58,154 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/audit-logs:
+    get:
+      tags:
+      - audit
+      summary: List Audit Logs
+      description: 管理员看全公司，主管看本团队，销售 40301。
+      operationId: list_audit_logs_api_audit_logs_get
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Q
+      - name: action
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 60
+          - type: 'null'
+          title: Action
+      - name: user_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: User Id
+      - name: result
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - ok
+            - failed
+            type: string
+          - type: 'null'
+          title: Result
+      - name: source
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - web
+            - agent
+            type: string
+          - type: 'null'
+          title: Source
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            pattern: ^\d{4}-\d{2}-\d{2}$
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            pattern: ^\d{4}-\d{2}-\d{2}$
+          - type: 'null'
+          title: Date To
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Page Size
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Page_AuditItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/exports:
+    post:
+      tags:
+      - audit
+      summary: Register Export
+      description: 前端导出 CSV 之前登记：按角色授权、限制条数，并记入操作日志。
+      operationId: register_export_api_exports_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ExportOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/customers:
     get:
       tags:
@@ -666,6 +814,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_NoneType_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/{customer_id}/contacts/{contact_id}/phone:
+    post:
+      tags:
+      - customers
+      summary: Reveal Phone
+      description: 查看完整电话：记入操作日志，每人每天限次（超出 42901）。
+      operationId: reveal_phone_api_customers__customer_id__contacts__contact_id__phone_post
+      parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Customer Id
+      - name: contact_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Contact Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PhoneOut_'
         '422':
           description: Validation Error
           content:
@@ -3477,6 +3668,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_ExportOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ExportOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ExportOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_FollowupItem_:
       properties:
         code:
@@ -3801,6 +4017,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_Page_AuditItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/Page_AuditItem_'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Page[AuditItem]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_Page_ContactItem__:
       properties:
         code:
@@ -4046,6 +4287,31 @@ components:
           default: ''
       type: object
       title: ApiResponse[PaymentPlanView]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_PhoneOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/PhoneOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[PhoneOut]
       required:
       - code
       - message
@@ -4622,6 +4888,77 @@ components:
       - size
       - url
       title: AttachmentOut
+    AuditItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        user_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: User Name
+        role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Role
+        action:
+          type: string
+          title: Action
+        label:
+          type: string
+          title: Label
+        source:
+          type: string
+          title: Source
+        target_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Id
+        status:
+          type: integer
+          title: Status
+        ok:
+          type: boolean
+          title: Ok
+        detail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Detail
+        ip:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ip
+        target_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Name
+      type: object
+      required:
+      - id
+      - created_at
+      - user_name
+      - role
+      - action
+      - label
+      - source
+      - target_id
+      - status
+      - ok
+      - detail
+      - ip
+      - target_name
+      title: AuditItem
     Body_extract_material_api_agent_materials_post:
       properties:
         file:
@@ -4981,6 +5318,10 @@ components:
           - type: string
           - type: 'null'
           title: Phone
+        has_phone:
+          type: boolean
+          title: Has Phone
+          default: false
         is_decision_maker:
           type: boolean
           title: Is Decision Maker
@@ -5003,6 +5344,7 @@ components:
       - phone
       - is_decision_maker
       - role
+      - has_phone
       title: ContactItem
     ContactUpdate:
       properties:
@@ -5931,6 +6273,38 @@ components:
       - reason
       - example
       title: ExpenseTemplate
+    ExportIn:
+      properties:
+        entity:
+          type: string
+          enum:
+          - customers
+          - opportunities
+          - quotes
+          - contracts
+          - expenses
+          title: Entity
+        rows:
+          type: integer
+          title: Rows
+      type: object
+      required:
+      - entity
+      - rows
+      title: ExportIn
+    ExportOut:
+      properties:
+        allowed:
+          type: boolean
+          title: Allowed
+        max_rows:
+          type: integer
+          title: Max Rows
+      type: object
+      required:
+      - allowed
+      - max_rows
+      title: ExportOut
     FollowupIn:
       properties:
         type:
@@ -6738,6 +7112,21 @@ components:
       - items
       - total
       title: Page[ApprovalItem]
+    Page_AuditItem_:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AuditItem'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: Page[AuditItem]
     Page_ContactItem_:
       properties:
         items:
@@ -6992,6 +7381,19 @@ components:
       - items
       - rule_ref
       title: PaymentPlanView
+    PhoneOut:
+      properties:
+        phone:
+          type: string
+          title: Phone
+        remaining:
+          type: integer
+          title: Remaining
+      type: object
+      required:
+      - phone
+      - remaining
+      title: PhoneOut
     PipelineStage:
       properties:
         stage:

@@ -3,11 +3,12 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
 from app.common.auth import CurrentUserDep
 from app.common.response import ApiResponse, ok
 from app.common.scope import View
+from app.crm.routers.audit import client_ip
 from app.crm.routers.deps import DbDep
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.customer import (
@@ -24,6 +25,7 @@ from app.crm.schemas.dashboard import (
     ContactUpdate,
     FollowupIn,
     FollowupItem,
+    PhoneOut,
 )
 from app.crm.schemas.task import CustomerTransfer, TransferResult
 from app.crm.services import (
@@ -162,3 +164,15 @@ def delete_contact(
 ) -> ApiResponse[None]:
     contact_service.delete_contact(db, user, customer_id, contact_id)
     return ok(None)
+
+
+@router.post("/{customer_id}/contacts/{contact_id}/phone", response_model=ApiResponse[PhoneOut])
+def reveal_phone(
+    customer_id: uuid.UUID,
+    contact_id: uuid.UUID,
+    user: CurrentUserDep,
+    db: DbDep,
+    request: Request,
+) -> ApiResponse[PhoneOut]:
+    """查看完整电话：记入操作日志，每人每天限次（超出 42901）。"""
+    return ok(contact_service.reveal_phone(db, user, customer_id, contact_id, client_ip(request)))

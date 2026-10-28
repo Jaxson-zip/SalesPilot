@@ -34,6 +34,7 @@ export default function PipelinePage() {
   const all = useMemo(() => query.data?.items ?? [], [query.data])
   const filters = useMemo(() => opportunityFilters(all), [all])
   const lv = useListView({
+    entity: "opportunities",
     page: "pipeline",
     rows: all,
     filters,

@@ -83,6 +83,7 @@ export default function ContractsPage() {
   const all = useMemo(() => query.data?.items ?? [], [query.data])
   const filters = useMemo(() => contractFilters(all), [all])
   const lv = useListView({
+    entity: "contracts",
     page: "contracts",
     rows: all,
     filters,

@@ -92,6 +92,20 @@ class QuoteRules(BaseModel):
     valid_days: int = 30
 
 
+class PrivacyRules(BaseModel):
+    """客户数据防泄漏：电话默认脱敏、查看留痕并限次；导出按角色授权、限条数。"""
+
+    phone_reveal_daily_limit: int = 30
+    export_max_rows: int = 200
+    export_roles: dict[str, list[str]] = {
+        "customers": ["manager", "admin"],
+        "opportunities": ["manager", "admin"],
+        "quotes": ["sales", "manager", "admin"],
+        "contracts": ["manager", "admin"],
+        "expenses": ["sales", "manager", "admin"],
+    }
+
+
 class RuleSet(BaseModel):
     margin: MarginRules
     discount: DiscountRules
@@ -102,6 +116,7 @@ class RuleSet(BaseModel):
     pipeline: PipelineRules = PipelineRules()
     quote: QuoteRules = QuoteRules()
     payment: PaymentRules = PaymentRules()
+    privacy: PrivacyRules = PrivacyRules()
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

@@ -60,3 +60,14 @@ payment:
   followup_days: 30           # 逾期超过 30 天：每周跟进（3.3）
   block_days: 90              # 逾期超过 90 天：暂停该客户新报价审批（3.3）
   rule_ref: "《合同审批与回款流程》3.1 标准付款方式、3.3 逾期回款"
+
+privacy:
+  # 客户数据防泄漏：联系人电话默认显示为 139****2222，点「查看」才显示完整号码并记入操作日志
+  phone_reveal_daily_limit: 30   # 每人每天最多查看完整电话次数
+  export_max_rows: 200           # 列表单次最多导出条数
+  export_roles:                  # 各类数据允许导出的角色（销售不能导出客户 / 商机名单）
+    customers: [manager, admin]
+    opportunities: [manager, admin]
+    quotes: [sales, manager, admin]
+    contracts: [manager, admin]
+    expenses: [sales, manager, admin]

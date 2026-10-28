@@ -33,7 +33,9 @@ export interface ContactItem {
   id: string
   name: string
   title: string | null
+  /** 脱敏后的号码（139****2222）；完整号码点「查看」获取，会记入操作日志 */
   phone: string | null
+  has_phone?: boolean
   /** 由 role 派生：role === "decision_maker" */
   is_decision_maker: boolean
   role: ContactRole | null

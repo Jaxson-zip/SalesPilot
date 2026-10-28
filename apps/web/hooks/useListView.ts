@@ -15,11 +15,15 @@ import {
   type SortAccessors,
   type SortKey,
 } from "@/lib/list-view"
+import { notifyError } from "@/hooks/notify"
+import { api } from "@/lib/api"
 import { downloadText } from "@/lib/download"
 import { localDate } from "@/lib/format"
 import { readStorage, writeStorage } from "@/lib/storage"
 
 const today = () => localDate()
+
+export type ExportEntity = "customers" | "opportunities" | "quotes" | "contracts" | "expenses"
 
 /**
  * 列表视图状态：筛选 / 排序 / 导出 CSV / 显示字段（隐藏列记在 localStorage `sp.cols.<page>`）。
@@ -34,8 +38,10 @@ export function useListView<T>(opts: {
   /** 可在「显示字段」里隐藏的列 */
   columns?: { id: string; label: string }[]
   exportName: string
-}): { rows: T[]; hidden: string[]; bar: ViewBarListProps; exportRows: (rows: T[]) => void } {
-  const { page, rows, filters, sort, csv, columns, exportName } = opts
+  /** 导出前向服务端登记（按角色授权、限制条数、记入操作日志） */
+  entity: ExportEntity
+}): { rows: T[]; hidden: string[]; bar: ViewBarListProps; exportRows: (rows: T[]) => Promise<void> } {
+  const { page, rows, filters, sort, csv, columns, exportName, entity } = opts
   const [active, setActive] = useState<ActiveFilters>({})
   const [sortKey, setSortKey] = useState<SortKey>("default")
   const [hidden, setHidden] = useState<string[]>([])
@@ -50,10 +56,15 @@ export function useListView<T>(opts: {
   )
 
   /** 导出 CSV（ViewBar「导出 CSV」导出当前列表；批量栏「导出所选」导出勾选的行） */
-  const exportRows = (list: T[]) => {
+  const exportRows = async (list: T[]) => {
     if (list.length === 0) return void toast("当前列表没有数据可导出")
+    try {
+      await api.post("/api/exports", { entity, rows: list.length })
+    } catch (err) {
+      return notifyError(err) // 无权导出或超过条数上限：服务端说明原因，并已记入操作日志
+    }
     downloadText(toCsv(csv, list), `${exportName}-${today()}.csv`)
-    toast.success(`已导出 ${list.length} 条`)
+    toast.success(`已导出 ${list.length} 条（已记入操作日志）`)
   }
 
   const bar: ViewBarListProps = {
@@ -62,7 +73,7 @@ export function useListView<T>(opts: {
     onFiltersChange: setActive,
     sort: sortKey,
     onSortChange: setSortKey,
-    onExport: () => exportRows(out),
+    onExport: () => void exportRows(out),
     columns,
     hiddenColumns: hidden,
     onHiddenColumnsChange: (next) => {

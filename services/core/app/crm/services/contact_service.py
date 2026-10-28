@@ -15,11 +15,32 @@ from app.common.permissions import ensure_owner
 from app.common.scope import ensure_visible
 from app.crm.models import Contact, Customer
 from app.crm.schemas.common import Page
-from app.crm.schemas.dashboard import CONTACT_ROLE_LABELS, ContactIn, ContactItem, ContactUpdate
-from app.crm.services import activity_service
+from app.crm.schemas.dashboard import (
+    CONTACT_ROLE_LABELS,
+    ContactIn,
+    ContactItem,
+    ContactUpdate,
+    PhoneOut,
+)
+from app.crm.services import activity_service, audit_service
+from app.rules import load_rules
 
 # 列表排序：决策人、影响者、技术把关、采购财务、使用者、未标注
 _ROLE_ORDER = {role: i for i, role in enumerate(CONTACT_ROLE_LABELS)}
+
+
+def mask_phone(phone: str | None) -> str | None:
+    """139****2222：保留前 3 位和后 4 位；太短的号码只留最后 2 位。"""
+    if not phone:
+        return phone
+    digits = phone.strip()
+    if len(digits) >= 8:
+        return f"{digits[:3]}****{digits[-4:]}"
+    return "*" * max(len(digits) - 2, 1) + digits[-2:]
+
+
+def is_masked(phone: str | None) -> bool:
+    return bool(phone) and "*" in str(phone)
 
 
 def to_item(c: Contact) -> ContactItem:
@@ -27,7 +48,8 @@ def to_item(c: Contact) -> ContactItem:
         id=c.id,
         name=c.name,
         title=c.title,
-        phone=c.phone,
+        phone=mask_phone(c.phone),
+        has_phone=bool(c.phone),
         is_decision_maker=c.is_decision_maker,
         role=c.role,  # type: ignore[arg-type]
     )
@@ -98,6 +120,8 @@ def update_contact(
 ) -> ContactItem:
     customer, contact = _owned_contact(db, user, customer_id, contact_id)
     changes = data.model_dump(exclude_unset=True)
+    if is_masked(changes.get("phone")):
+        changes.pop("phone")  # 表单原样提交了脱敏号码：不修改电话
     for key, value in changes.items():
         setattr(contact, key, value.strip() if key == "name" and value else value)
     if "role" in changes:
@@ -121,3 +145,27 @@ def delete_contact(
         db, user, "customer", customer.id, "contact_removed", name,
         subject=customer,
     )  # fmt: skip
+
+
+def reveal_phone(
+    db: Session, user: CurrentUser, customer_id: uuid.UUID, contact_id: uuid.UUID, ip: str | None
+) -> PhoneOut:
+    """查看完整电话：能看到客户的人都可以查看，每次记操作日志，每人每天限次（rules.privacy）。"""
+    ensure_visible(db.get(Customer, customer_id), user)
+    contact = db.get(Contact, contact_id)
+    if contact is None or contact.customer_id != customer_id or not contact.phone:
+        raise BizError(ErrorCode.NOT_FOUND)
+    action, label = audit_service.PHONE_REVEAL
+    limit = load_rules().privacy.phone_reveal_daily_limit
+    used = audit_service.count_today(db, user, action)
+    entry = audit_service.AuditEntry(
+        action=action, label=label, target_id=str(contact.id), detail=contact.name, ip=ip
+    )
+    if used >= limit:
+        msg = f"今天查看电话已达上限（{limit} 次），如需更多请联系管理员"
+        audit_service.record(
+            user, entry.model_copy(update={"ok": False, "status": 429, "detail": msg})
+        )
+        raise BizError(ErrorCode.RATE_LIMITED, msg)
+    audit_service.write(db, user, entry)
+    return PhoneOut(phone=contact.phone, remaining=limit - used - 1)

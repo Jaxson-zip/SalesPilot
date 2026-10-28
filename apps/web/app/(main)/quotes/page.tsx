@@ -49,6 +49,7 @@ export default function QuotesPage() {
     return quoteFilters(all, name)
   }, [all, packs.data])
   const lv = useListView({
+    entity: "quotes",
     page: "quotes",
     rows: all,
     filters,

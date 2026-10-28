@@ -116,6 +116,8 @@ def run_tool(spec: ToolSpec, ctx: ToolContext, raw_args: dict[str, Any], emit: E
     started = time.perf_counter()
     result = _execute(spec, ctx, raw_args)
     elapsed_ms = int((time.perf_counter() - started) * 1000)
+    if spec.write:
+        _audit(spec, ctx, result)
     if result.ok:
         payload = {"call_id": call_id, "summary": result.summary, "result": result.data}
         emit("tool.end", {**payload, "elapsed_ms": elapsed_ms})
@@ -123,3 +125,24 @@ def run_tool(spec: ToolSpec, ctx: ToolContext, raw_args: dict[str, Any], emit: E
         err = result.error or {}
         emit("tool.error", {"call_id": call_id, **err})
     return result
+
+
+def _audit(spec: ToolSpec, ctx: ToolContext, result: ToolResult) -> None:
+    """AI 写操作记入操作日志（source=agent），成功和失败都记。"""
+    from app.crm.services import audit_service  # 避免 tools ↔ services 循环导入
+
+    action, label = audit_service.TOOL_ACTIONS.get(spec.name, (f"agent.{spec.name}", spec.name))
+    err = result.error or {}
+    audit_service.record(
+        ctx.user,
+        audit_service.AuditEntry(
+            action=action,
+            label=label,
+            source="agent",
+            status=200 if result.ok else int(err.get("code") or 500),
+            ok=result.ok,
+            detail=result.summary[:500],
+            request_id=ctx.request_id or None,
+            extra={"thread_id": ctx.thread_id} if ctx.thread_id else None,
+        ),
+    )

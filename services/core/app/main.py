@@ -14,8 +14,10 @@ from app.common.config import get_settings
 from app.common.db import check_db
 from app.common.request_id import RequestIdMiddleware
 from app.common.response import ApiResponse, ok, register_exception_handlers
+from app.crm.audit_middleware import AuditMiddleware
 from app.crm.routers import (
     approvals,
+    audit,
     auth,
     contracts,
     customers,
@@ -55,10 +57,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="SalesPilot Core", version="0.1.0", lifespan=lifespan)
+    app.add_middleware(AuditMiddleware)
     app.add_middleware(RequestIdMiddleware)
     register_exception_handlers(app)
     routers = (
         auth.router,
+        audit.router,
         customers.router,
         rules.router,
         dashboard.router,

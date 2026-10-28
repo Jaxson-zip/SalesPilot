@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Receipt,
   Scale,
+  ScrollText,
   Sparkles,
   Stamp,
   Target,
@@ -38,6 +39,7 @@ const EXPENSES: NavItem = { href: "/expenses", label: "报销", icon: Receipt }
 const APPROVALS: NavItem = { href: "/approvals", label: "审批", icon: Stamp, pendingBadge: true }
 const PACKS: NavItem = { href: "/settings/packs", label: "行业包配置", icon: Boxes }
 const RULES: NavItem = { href: "/settings/rules", label: "业务规则", icon: Scale }
+const AUDIT: NavItem = { href: "/settings/audit", label: "操作日志", icon: ScrollText }
 /** 使用说明：所有角色可见，放在侧栏底部（不属于任何业务分组） */
 export const HELP: NavItem = { href: "/help", label: "使用说明", icon: BookOpen }
 
@@ -57,13 +59,13 @@ export function navGroupsFor(role: Role): NavGroup[] {
     return [
       top,
       { label: "业务总览（只读）", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES] },
-      { label: "系统设置", items: [RULES, PACKS] },
+      { label: "系统设置", items: [RULES, PACKS, AUDIT] },
     ]
   if (role === "manager")
     return [
       top,
       { label: "工作区", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, EXPENSES] },
-      { label: "团队管理", items: [APPROVALS, { ...CONTRACTS, label: contractsLabel(role) }] },
+      { label: "团队管理", items: [APPROVALS, { ...CONTRACTS, label: contractsLabel(role) }, AUDIT] },
     ]
   return [top, { label: "工作区", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES] }]
 }
@@ -73,7 +75,19 @@ export function navItemsFor(role: Role): NavItem[] {
   return [...navGroupsFor(role).flatMap((g) => g.items), HELP]
 }
 
-const ALL_ITEMS: NavItem[] = [AI, DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, APPROVALS, RULES, PACKS]
+const ALL_ITEMS: NavItem[] = [
+  AI,
+  DASHBOARD,
+  CUSTOMERS,
+  PIPELINE,
+  QUOTES,
+  CONTRACTS,
+  EXPENSES,
+  APPROVALS,
+  RULES,
+  PACKS,
+  AUDIT,
+]
 
 export function isActivePath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`)

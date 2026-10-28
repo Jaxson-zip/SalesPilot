@@ -6,6 +6,7 @@ import Link from "next/link"
 import { AttachmentPill } from "@/components/biz/Attachments"
 import { Tag } from "@/components/biz/Tag"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { formatFen, formatPercent, formatRelative, ownerName } from "@/lib/format"
 import { APPROVAL_STATUS_META, APPROVAL_TARGET_LABEL, labelOf } from "@/lib/labels"
 import type { ApprovalItem } from "@/types/api"
@@ -29,11 +30,16 @@ export function ApprovalRow({
   busy,
   onApprove,
   onReject,
+  selected,
+  onSelectedChange,
 }: {
   a: ApprovalItem
   busy?: boolean
   onApprove: () => void
   onReject: () => void
+  /** 传了就显示勾选框（待处理列表批量操作） */
+  selected?: boolean
+  onSelectedChange?: (v: boolean) => void
 }) {
   const Icon = a.target_type === "quote" ? FileText : Receipt
   const status = labelOf(APPROVAL_STATUS_META, a.status)
@@ -54,7 +60,21 @@ export function ApprovalRow({
       <Tag color={status.color}>{status.label}</Tag>
     )
   return (
-    <div className="flex gap-3 border-b border-zinc-100 px-4 py-4 hover:bg-zinc-50/60 sm:px-5">
+    <div
+      className={
+        selected
+          ? "flex gap-3 border-b border-zinc-100 bg-zinc-50 px-4 py-4 sm:px-5"
+          : "flex gap-3 border-b border-zinc-100 px-4 py-4 hover:bg-zinc-50/60 sm:px-5"
+      }
+    >
+      {onSelectedChange ? (
+        <Checkbox
+          aria-label={`选择 ${t.code}`}
+          checked={Boolean(selected)}
+          onCheckedChange={(v) => onSelectedChange(v === true)}
+          className="mt-1 shrink-0"
+        />
+      ) : null}
       <span className="hidden size-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 sm:inline-flex">
         <Icon className="size-4 text-zinc-600" />
       </span>

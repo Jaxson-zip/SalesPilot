@@ -1,6 +1,7 @@
 "use client"
 
 import { Clock, LayoutDashboard, Plus, Sparkles, Target, Trophy, Wallet } from "lucide-react"
+import { useEffect, useState } from "react"
 
 import { QueryError } from "@/components/biz/QueryStatus"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
@@ -24,9 +25,17 @@ function greeting(now: Date = new Date()): string {
   return "晚上好"
 }
 
+/** 问候语按浏览器本地时间算；服务端（容器是 UTC）先渲染「你好」，避免两边文字不一致报 hydration 错误 */
+function useGreeting(): string {
+  const [g, setG] = useState("你好")
+  useEffect(() => setG(greeting()), [])
+  return g
+}
+
 /** 工作台：StatCard ×4、FunnelChart、待办（TodoCard）、ActivityFeed、PipelineOverview */
 export default function DashboardPage() {
   const { role, user, isLead } = useSession()
+  const hello = useGreeting()
   const { canAiWrite } = usePermissions()
   const view = defaultScope(role)
   const query = useDashboard(view)
@@ -79,7 +88,7 @@ export default function DashboardPage() {
       <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-5">
         <div className="mb-4">
           <div className="text-lg font-semibold">
-            {greeting()}，{user.name}
+            {hello}，{user.name}
           </div>
           <div className="mt-0.5 text-zinc-500">
             {isLead ? `${user.scope} · 本月销售概况` : "本月销售概况"}

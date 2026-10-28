@@ -17,11 +17,14 @@ import type { ApprovalItem } from "@/types/api"
 /** 驳回审批：可填写意见（报价驳回后退回草稿，报销驳回后为已驳回） */
 export function RejectDialog({
   approval,
+  batch = 0,
   pending,
   onCancel,
   onConfirm,
 }: {
   approval: ApprovalItem | null
+  /** 批量驳回的条数（>0 时忽略 approval，所有选中的单子用同一条意见） */
+  batch?: number
   pending?: boolean
   onCancel: () => void
   onConfirm: (comment: string) => void
@@ -32,14 +35,16 @@ export function RejectDialog({
     onCancel()
   }
   return (
-    <Dialog open={approval !== null} onOpenChange={(o) => !o && close()}>
+    <Dialog open={approval !== null || batch > 0} onOpenChange={(o) => !o && close()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>驳回审批</DialogTitle>
+          <DialogTitle>{batch ? `批量驳回 ${batch} 条` : "驳回审批"}</DialogTitle>
           <DialogDescription>
-            {approval?.target_type === "quote"
-              ? `报价单 ${approval.target.code} 驳回后退回草稿，销售修改后可重新提交。`
-              : `报销 ${approval?.target.code ?? ""} 驳回后状态为「已驳回」。`}
+            {batch
+              ? "选中的单子使用同一条意见：报价单退回草稿，报销变为「已驳回」。"
+              : approval?.target_type === "quote"
+                ? `报价单 ${approval.target.code} 驳回后退回草稿，销售修改后可重新提交。`
+                : `报销 ${approval?.target.code ?? ""} 驳回后状态为「已驳回」。`}
           </DialogDescription>
         </DialogHeader>
         <Textarea

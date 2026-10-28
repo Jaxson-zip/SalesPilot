@@ -10,7 +10,7 @@ import { fenToYuan, optionsFromRows, type CsvColumn, type FilterDef, type SortAc
 import type { QuoteItem } from "@/types/api"
 import { PackName } from "@/components/biz/PackName"
 
-/** 报价单网格列（与原型 QuoteGrid 一致；方案 / 创建人 / 创建时间是次要列） */
+/** 报价单网格列（与原型 QuoteGrid 一致；方案 / 负责人 / 创建时间是次要列） */
 export const quoteColumns: GridColumn<QuoteItem>[] = [
   {
     id: "code",
@@ -66,10 +66,21 @@ export const quoteColumns: GridColumn<QuoteItem>[] = [
   },
   {
     id: "owner",
-    label: "创建人",
+    label: "负责人",
     icon: User,
     secondary: true,
-    cell: (q) => (q.source === "agent" ? <Chip name="AI" icon={Sparkles} /> : <Chip name={ownerName(q.owner)} />),
+    // 负责人是谁就写谁；AI 生成的单子另加小标记（原来只显示「AI」，主管分不清是谁的单）
+    cell: (q) => (
+      <span className="inline-flex items-center gap-1.5">
+        <Chip name={ownerName(q.owner)} />
+        {q.source === "agent" ? (
+          <span className="text-ai inline-flex items-center gap-0.5 text-xs" title="由 AI 方案工作台生成">
+            <Sparkles className="size-3" />
+            AI
+          </span>
+        ) : null}
+      </span>
+    ),
   },
   { id: "created", label: "创建时间", icon: Calendar, secondary: true, cell: (q) => formatRelative(q.created_at) },
 ]

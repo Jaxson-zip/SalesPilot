@@ -108,3 +108,16 @@ def test_pack_knowledge_marks_indexed_formats(client: TestClient) -> None:
     }
     assert by_name["显存估算参考表.md"]["indexed"] is True
     assert by_name["models.json"]["indexed"] is False
+
+
+def test_rename_and_delete_thread(client: TestClient, threads: list[str]) -> None:
+    """会话改名、删除（审查 v6 #14）；别人的会话 404。"""
+    url = f"/api/agent/threads/{threads[0]}"
+    r = client.patch(url, json={"title": "  明理律所 · 标准版  "}, headers=SALES_H)
+    assert r.json()["data"]["title"] == "明理律所 · 标准版"
+    assert client.patch(url, json={"title": "x"}, headers=SALES2_H).status_code == 404
+    assert client.delete(url, headers=SALES2_H).status_code == 404
+    assert client.delete(url, headers=SALES_H).json()["code"] == 0
+    listed = client.get("/api/agent/threads", headers=SALES_H).json()["data"]["items"]
+    assert threads[0] not in {t["thread_id"] for t in listed}
+    assert client.delete(url, headers=SALES_H).status_code == 404

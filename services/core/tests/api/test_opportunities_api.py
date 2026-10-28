@@ -143,12 +143,19 @@ def test_pipeline_summary(client: TestClient) -> None:
         "lost",
     ]
     assert 0 <= data["weighted_amount"] <= data["total_amount"]
+    # 管道只算进行中的商机（审查 v6 #12）：合计 = 漏斗里前四个阶段之和
+    open_stages = [s for s in data["stages"] if s["stage"] not in ("won", "lost")]
+    assert data["total_amount"] == sum(s["amount"] for s in open_stages)
+    assert data["open_count"] == sum(s["count"] for s in open_stages)
     team = client.get("/api/pipeline/summary?view=team", headers=MANAGER_H).json()["data"]
     assert team["total_amount"] > data["total_amount"]  # 团队包含王磊的商机
 
 
 def test_dashboard(client: TestClient) -> None:
     sales = client.get("/api/dashboard", headers=SALES_H).json()["data"]
+    # 「本月成交」与合同页同一口径（审查 v6 #11）
+    contracts = client.get("/api/contracts?page_size=1", headers=SALES_H).json()["data"]
+    assert sales["won_amount_month"] == contracts["summary"]["month_amount"]
     assert sales["won_amount_month"] >= 81_000_000 + 28_600_000  # 演示数据：粤海 + 南山本月赢单
     assert sales["open_opportunities"] >= 4 and sales["pending_approvals"] >= 2
     assert sales["estimated_commission_month"] >= sales["confirmed_commission_month"] > 0

@@ -1,6 +1,6 @@
 "use client"
 
-import { FileText, Receipt, Sparkles, TriangleAlert } from "lucide-react"
+import { FileText, Receipt, Lightbulb, TriangleAlert } from "lucide-react"
 import Link from "next/link"
 
 import { AttachmentPill } from "@/components/biz/Attachments"
@@ -11,7 +11,7 @@ import { formatFen, formatRelative, ownerName } from "@/lib/format"
 import { APPROVAL_STATUS_META, APPROVAL_TARGET_LABEL, labelOf } from "@/lib/labels"
 import type { ApprovalItem } from "@/types/api"
 
-/** ApprovalItem：类型、单据、金额、触发原因、附件、AI 建议、通过 / 驳回 */
+/** ApprovalItem：类型、单据、金额、触发原因、附件、审批建议、通过 / 驳回 */
 export function ApprovalRow({
   a,
   busy,
@@ -62,9 +62,9 @@ export function ApprovalRow({
           </div>
         ) : null}
         {a.ai_suggestion ? (
-          <div className="mt-2 inline-flex items-start gap-1.5 text-violet-700">
-            <Sparkles className="mt-0.5 size-3.5 shrink-0" />
-            <span>AI 建议：{a.ai_suggestion}</span>
+          <div className="mt-2 inline-flex items-start gap-1.5 text-zinc-600">
+            <Lightbulb className="mt-0.5 size-3.5 shrink-0 text-amber-500" />
+            <span>审批建议：{a.ai_suggestion}</span>
           </div>
         ) : null}
       </div>

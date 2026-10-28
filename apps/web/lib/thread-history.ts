@@ -46,6 +46,15 @@ export function toHistoryItems(items: ThreadSummary[]): HistoryItem[] {
   })
 }
 
+/** 会话记录里的时间：今天显示「14:32」，更早显示「10-26」（标题相同的会话靠它区分） */
+export function historyTime(ts: number, now: Date = new Date()): string {
+  if (!ts) return ""
+  const d = new Date(ts)
+  const pad = (n: number) => String(n).padStart(2, "0")
+  const sameDay = d.toDateString() === now.toDateString()
+  return sameDay ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v)
 
 function assistantTurn(m: ThreadMessage): AssistantTurn {

@@ -255,3 +255,60 @@ test.describe("AI 工作台会话记录栏", () => {
     await expect(panel).toBeHidden()
   })
 })
+
+test.describe("审查 v6 待定项", () => {
+  test("会话记录：显示时间，可以改名和删除", async ({ page, request }) => {
+    const api = await Api.as(request, "sales")
+    const thread = `pw-${Date.now().toString(36)}`
+    await api.sse("/api/agent/chat", { thread_id: thread, message: "公司一年有几天年假？" })
+    await loginAs(page, "sales")
+    await page.goto("/ai")
+    const panel = page.getByRole("navigation", { name: "会话记录" })
+    const row = panel.getByRole("button", { name: /公司一年有几天年假/ }).first()
+    await expect(row).toContainText(/\d{2}:\d{2}/)
+
+    await row.hover()
+    await panel
+      .getByRole("button", { name: /更多操作：公司一年有几天年假/ })
+      .first()
+      .click()
+    await page.getByRole("menuitem", { name: "重命名" }).click()
+    const name = uniq("年假问答")
+    await panel.getByRole("textbox", { name: "会话名称" }).fill(name)
+    await page.keyboard.press("Enter")
+    const renamed = panel.getByRole("button", { name: new RegExp(name) })
+    await expect(renamed).toBeVisible()
+
+    await renamed.hover()
+    await panel.getByRole("button", { name: `更多操作：${name}` }).click()
+    await page.getByRole("menuitem", { name: "删除" }).click()
+    await page.getByRole("alertdialog", { name: "删除会话" }).getByRole("button", { name: "确认删除" }).click()
+    await expect(renamed).toHaveCount(0)
+  })
+
+  test("有进行中商机的客户：退回公海弹窗直接说明原因，不能确认（不改演示数据）", async ({ page }) => {
+    await loginAs(page, "sales")
+    await page.goto("/customers")
+    await page.getByRole("link").filter({ hasText: "深圳明理律师事务所" }).first().click()
+    await page.getByRole("button", { name: "退回公海" }).click()
+    const dialog = page.getByRole("dialog", { name: "退回公海" })
+    await expect(dialog).toContainText(/还有 \d+ 个进行中的商机，不能退回/)
+    await dialog.getByRole("button", { name: "长期联系不上" }).click()
+    await expect(dialog.getByRole("button", { name: "确认退回" })).toBeDisabled()
+    await dialog.getByRole("button", { name: "取消" }).click()
+  })
+
+  test("口径与命名：本月成交、进行中金额、我的报价单、报价负责人、审批建议", async ({ page }) => {
+    await loginAs(page, "sales")
+    await page.goto("/dashboard")
+    await expect(page.getByText("本月成交", { exact: true })).toBeVisible()
+    await expect(page.getByText("进行中金额")).toBeVisible()
+    await page.goto("/quotes")
+    await expect(page.getByRole("button", { name: /我的报价单/ })).toBeVisible()
+    await expect(page.getByRole("columnheader", { name: "负责人" })).toBeVisible()
+    await loginAs(page, "manager")
+    await page.goto("/approvals")
+    await expect(page.getByText(/审批建议：/).first()).toBeVisible()
+    await expect(page.getByText(/AI 建议/)).toHaveCount(0)
+  })
+})

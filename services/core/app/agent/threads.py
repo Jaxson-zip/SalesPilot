@@ -8,7 +8,7 @@ from contextlib import AbstractContextManager
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -119,3 +119,40 @@ def list_threads(db: Session, user: CurrentUser, limit: int) -> ThreadPage:
         for r in db.scalars(stmt).all()
     ]
     return ThreadPage(items=items, total=int(total))
+
+
+def _owned(db: Session, user: CurrentUser, thread_id: str) -> AgentThread:
+    row = find_thread(db, thread_id)
+    ensure_owner(row, user)
+    if row is None:
+        raise BizError(ErrorCode.NOT_FOUND, "会话不存在")
+    return row
+
+
+def rename_thread(db: Session, user: CurrentUser, thread_id: str, title: str) -> ThreadItem:
+    row = _owned(db, user, thread_id)
+    row.title = make_title(title)
+    db.flush()
+    return ThreadItem(
+        thread_id=row.thread_id,
+        title=row.title,
+        updated_at=row.updated_at,
+        opportunity_id=row.opportunity_id,
+    )
+
+
+def delete_thread(db: Session, user: CurrentUser, thread_id: str, saver: Any) -> None:
+    """删除会话记录和对话检查点（检查点删除失败只记日志，列表里已经看不到）。"""
+    row = _owned(db, user, thread_id)
+    db.delete(row)
+    db.flush()
+    try:
+        saver.delete_thread(thread_id)
+    except Exception:
+        logger.warning(
+            "agent_threads: checkpoint delete failed thread_id=%s", thread_id, exc_info=True
+        )
+
+
+class ThreadRename(BaseModel):
+    title: str = Field(min_length=1, max_length=TITLE_MAX_CHARS)

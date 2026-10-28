@@ -61,6 +61,24 @@ def list_threads(
     return ok(threads.list_threads(db, user, limit))
 
 
+@router.patch("/threads/{thread_id}", response_model=ApiResponse[threads.ThreadItem])
+def rename_thread(
+    user: CurrentUserDep,
+    db: DbDep,
+    thread_id: Annotated[str, Path(max_length=100)],
+    body: threads.ThreadRename,
+) -> ApiResponse[threads.ThreadItem]:
+    return ok(threads.rename_thread(db, user, thread_id, body.title))
+
+
+@router.delete("/threads/{thread_id}", response_model=ApiResponse[None])
+def delete_thread(
+    user: CurrentUserDep, db: DbDep, thread_id: Annotated[str, Path(max_length=100)]
+) -> ApiResponse[None]:
+    threads.delete_thread(db, user, thread_id, get_checkpointer())
+    return ok(None)
+
+
 @router.get("/threads/{thread_id}/messages", response_model=ApiResponse[ThreadMessages])
 def thread_messages(
     user: CurrentUserDep, db: DbDep, thread_id: Annotated[str, Path(max_length=100)]

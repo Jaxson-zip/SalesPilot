@@ -1,6 +1,6 @@
 "use client"
 
-import { BookOpen, Boxes, Package, Plus, Scale } from "lucide-react"
+import { BookOpen, Boxes, Package, Scale } from "lucide-react"
 import { useState } from "react"
 
 import { Alert } from "@/components/biz/Alert"
@@ -93,10 +93,13 @@ function PacksContent() {
                     onOpen={(section) => setDetail({ pack: p, section })}
                   />
                 ))}
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 p-4 text-zinc-400">
-              <Plus className="size-5" />
-              <span className="mt-1">新增行业包</span>
-              <span className="mt-0.5 text-xs">按 packs/ 目录规范添加</span>
+            {/* 原来是带加号的虚线卡片，看起来能点；新增行业包需要开发，这里只说明怎么做 */}
+            <div className="flex flex-col justify-center rounded-lg bg-zinc-50 p-4 text-zinc-500">
+              <span className="font-medium text-zinc-700">如何新增行业包</span>
+              <span className="mt-1 text-xs leading-relaxed">
+                由开发在 <code className="rounded bg-white px-1">services/core/app/packs/</code>{" "}
+                下新建目录：产品目录、rules.yaml、知识库文档和配置器，注册后重启即出现在这里。
+              </span>
             </div>
           </div>
         )}

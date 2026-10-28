@@ -21,9 +21,12 @@ def _sum_count(db: Session, stmt: Any) -> tuple[int, int]:
 
 def _opportunity_kpis(db: Session, user: CurrentUser, view: View | None) -> dict[str, int]:
     agg = select(func.count(), func.coalesce(func.sum(Opportunity.amount), 0))
-    won = agg.where(Opportunity.stage == "won", Opportunity.closed_at >= month_start())
     opened = agg.where(Opportunity.stage.not_in(FINAL_STAGES))
-    _, won_amount = _sum_count(db, apply_scope(won, Opportunity, user, view))
+    # 「本月成交」按本月新签合同金额算，与合同页同一口径（不走商机直接成交的报价也算进来）
+    signed = select(func.count(), func.coalesce(func.sum(Contract.amount), 0)).where(
+        Contract.created_at >= month_start()
+    )
+    _, won_amount = _sum_count(db, apply_scope(signed, Contract, user, view))
     open_count, open_amount = _sum_count(db, apply_scope(opened, Opportunity, user, view))
     return {
         "won_amount_month": won_amount,

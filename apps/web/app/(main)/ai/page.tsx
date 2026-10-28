@@ -7,6 +7,7 @@ import { ChatView } from "@/components/agent/ChatView"
 import { Composer } from "@/components/agent/Composer"
 import { Welcome } from "@/components/agent/Welcome"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
+import { useDeleteThread, useRenameThread } from "@/hooks/useAgentThreads"
 import { usePermissions } from "@/hooks/usePermissions"
 import { DEFAULT_PACK_LABEL } from "@/lib/agent-labels"
 
@@ -19,6 +20,8 @@ export default function AiPage() {
   const w = useAiWorkbench(panel.closeOverlay)
   const { stream, input, setInput, model, setModel, history, title, send, newChat } = w
   const { canAiWrite } = usePermissions()
+  const rename = useRenameThread()
+  const remove = useDeleteThread()
 
   const composer = (welcome: boolean) => (
     <Composer
@@ -60,6 +63,13 @@ export default function AiPage() {
           onClose={panel.toggle}
           onNew={newChat}
           onSelect={(id) => void w.openThread(id)}
+          onRename={(id, title) => rename.mutate({ id, title })}
+          onDelete={(id) =>
+            remove.mutate(id, {
+              // 删的是正在看的会话：回到新对话
+              onSuccess: () => id === stream.threadId && newChat(),
+            })
+          }
         />
         {stream.turns.length === 0 ? (
           <Welcome composer={composer(true)} onPick={send} readOnly={!canAiWrite} />

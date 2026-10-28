@@ -21,13 +21,12 @@ import { useRowSelection } from "@/hooks/useRowSelection"
 import { formatFen } from "@/lib/format"
 import { CONTRACT_STATUS_META } from "@/lib/labels"
 import { contractsLabel } from "@/lib/nav"
-import { defaultScope } from "@/lib/views"
+import { defaultScope, scopeLabel } from "@/lib/views"
 import type { ContractItem, ContractStatus, ContractSummary } from "@/types/api"
 
 import { contractColumns, contractCsv, contractFilters, contractSort } from "./columns"
 
-const VIEWS: ViewOption[] = [
-  { value: "all", label: "所有合同" },
+const STATUS_OPTIONS: ViewOption[] = [
   { value: "active", label: CONTRACT_STATUS_META.active.label },
   { value: "paid", label: CONTRACT_STATUS_META.paid.label },
 ]
@@ -72,6 +71,7 @@ const contractId = (r: ContractItem) => r.id
 
 export default function ContractsPage() {
   const { role } = useSession()
+  const views: ViewOption[] = [{ value: "all", label: scopeLabel(role, "合同") }, ...STATUS_OPTIONS]
   const { canPay, canEdit } = usePermissions()
   const payable = canPay()
   const [view, setView] = useState("all")
@@ -115,7 +115,7 @@ export default function ContractsPage() {
             <BulkBar count={sel.count} onExport={() => lv.exportRows(sel.selected)} onClear={sel.clear} />
           ) : (
             <ViewBar
-              views={VIEWS}
+              views={views}
               value={view}
               onValueChange={setView}
               count={filtered ? lv.rows.length : query.data?.total}

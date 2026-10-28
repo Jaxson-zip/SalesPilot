@@ -96,7 +96,10 @@ def test_low_margin_goes_to_approval_and_reject_returns_draft(
 
     pending = client.get("/api/approvals?status=pending&page_size=100", headers=MANAGER_H).json()
     approval = next(a for a in pending["data"]["items"] if a["target"]["id"] == qid)
-    assert approval["target_type"] == "quote" and approval["ai_suggestion"]
+    assert approval["target_type"] == "quote"
+    # 审批建议按实际情况生成（审查 v6 #15）：毛利差额 + 客户等级
+    assert "毛利比底线低 15.0 个百分点" in approval["ai_suggestion"]
+    assert "级" in approval["ai_suggestion"]
     r = client.post(
         f"/api/approvals/{approval['id']}/decide",
         json={"decision": "reject", "comment": "请调整配置"},

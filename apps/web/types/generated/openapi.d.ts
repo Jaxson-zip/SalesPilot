@@ -940,6 +940,24 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/agent/threads/{thread_id}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    /** Delete Thread */
+    delete: operations["delete_thread_api_agent_threads__thread_id__delete"]
+    options?: never
+    head?: never
+    /** Rename Thread */
+    patch: operations["rename_thread_api_agent_threads__thread_id__patch"]
+    trace?: never
+  }
   "/api/agent/threads/{thread_id}/messages": {
     parameters: {
       query?: never
@@ -1709,6 +1727,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["Templates"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[ThreadItem] */
+    ApiResponse_ThreadItem_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["ThreadItem"] | null
       /**
        * Request Id
        * @default
@@ -3087,6 +3124,8 @@ export interface components {
       total_amount: number
       /** Weighted Amount */
       weighted_amount: number
+      /** Open Count */
+      open_count: number
     }
     /** PolicyCheck */
     PolicyCheck: {
@@ -3507,6 +3546,11 @@ export interface components {
       items: components["schemas"]["ThreadItem"][]
       /** Total */
       total: number
+    }
+    /** ThreadRename */
+    ThreadRename: {
+      /** Title */
+      title: string
     }
     /** TransferResult */
     TransferResult: {
@@ -5780,6 +5824,76 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_ThreadPage_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  delete_thread_api_agent_threads__thread_id__delete: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        thread_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_NoneType_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  rename_thread_api_agent_threads__thread_id__patch: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        thread_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ThreadRename"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ThreadItem_"]
         }
       }
       /** @description Validation Error */

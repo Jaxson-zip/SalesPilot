@@ -7,16 +7,16 @@ import { formatFen } from "@/lib/format"
 import type { DataView } from "@/types/api"
 
 /**
- * 管道概览：总金额与加权金额（GET /api/pipeline/summary）。
- * 原型此处是 TaskList，但契约没有任务接口，先用管道数据代替（见汇报）。
+ * 管道概览（GET /api/pipeline/summary）：只算进行中的商机，赢单、输单不计入，
+ * 与左边指标卡「进行中商机 · 预计」口径一致。
  */
 export function PipelineOverview({ view }: { view: DataView }) {
   const query = usePipelineSummary(view)
   const s = query.data
   const rows = [
-    { label: "管道总金额", value: s ? formatFen(s.total_amount) : "—" },
+    { label: "进行中金额", value: s ? formatFen(s.total_amount) : "—" },
     { label: "加权金额", value: s ? formatFen(s.weighted_amount) : "—", hint: "Σ 金额 × 赢率" },
-    { label: "商机数", value: s ? String(s.stages.reduce((n, x) => n + x.count, 0)) : "—" },
+    { label: "进行中商机", value: s ? String(s.open_count) : "—" },
   ]
   return (
     <div className="min-w-0 rounded-lg border border-zinc-200">

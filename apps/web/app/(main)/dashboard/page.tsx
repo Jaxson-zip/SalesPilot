@@ -38,7 +38,8 @@ export default function DashboardPage() {
   const todo = summary && prefix ? `${prefix}${summary}` : summary
 
   const cards = [
-    { label: `${prefix}本月赢单`, value: formatFen(d?.won_amount_month), icon: Trophy },
+    // 与合同页「本月成交」同一口径：本月新签合同金额
+    { label: `${prefix}本月成交`, value: formatFen(d?.won_amount_month), hint: "按本月新签合同", icon: Trophy },
     {
       label: `${prefix}进行中商机`,
       value: String(d?.open_opportunities ?? "—"),

@@ -18,16 +18,13 @@ import { useRowSelection } from "@/hooks/useRowSelection"
 import { usePacks } from "@/hooks/useProductLines"
 import { useQuotes } from "@/hooks/useQuotes"
 import { QUOTE_STATUS_META } from "@/lib/labels"
-import { defaultScope } from "@/lib/views"
+import { defaultScope, scopeLabel } from "@/lib/views"
 import type { QuoteItem, QuoteStatus } from "@/types/api"
 
 import { quoteColumns, quoteCsv, quoteFilters, quoteSort } from "./columns"
 
 const STATUS_VIEWS: QuoteStatus[] = ["draft", "pending_approval", "approved", "sent", "accepted", "rejected"]
-const VIEWS: ViewOption[] = [
-  { value: "all", label: "所有报价单" },
-  ...STATUS_VIEWS.map((s) => ({ value: s, label: QUOTE_STATUS_META[s].label })),
-]
+const STATUS_OPTIONS: ViewOption[] = STATUS_VIEWS.map((s) => ({ value: s, label: QUOTE_STATUS_META[s].label }))
 
 function toStatus(v: string): QuoteStatus | undefined {
   return STATUS_VIEWS.find((s) => s === v)
@@ -41,6 +38,7 @@ const quoteId = (r: QuoteItem) => r.id
 export default function QuotesPage() {
   const { role } = useSession()
   const { canAiWrite } = usePermissions()
+  const VIEWS: ViewOption[] = [{ value: "all", label: scopeLabel(role, "报价单") }, ...STATUS_OPTIONS]
   const [view, setView] = useState("all")
   // 视图里的状态走接口参数；其余筛选 / 排序在前端对已加载数据处理
   const query = useQuotes({ view: defaultScope(role), status: toStatus(view), page: 1, page_size: 100 })

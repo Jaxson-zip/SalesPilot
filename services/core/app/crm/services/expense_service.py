@@ -27,6 +27,7 @@ from app.crm.schemas.finance import (
 )
 from app.crm.services import (
     activity_service,
+    approval_hints,
     approval_service,
     attachment_query,
     expense_participants,
@@ -203,13 +204,6 @@ def missing_kinds(db: Session, expense: Expense, rules: RuleSet) -> list[str]:
     return [k for k in rules.expense.kinds_for(expense.type) if k not in have]
 
 
-def _suggestion(check: PolicyCheck) -> str:
-    return (
-        f"超出标准 ¥{check.over_amount / 100:,.0f}。建议核实参与人数与招待事由；"
-        "属于重点客户关键节点可通过，否则超出部分由个人承担。"
-    )
-
-
 def submit_expense(
     db: Session, user: CurrentUser, expense_id: uuid.UUID, source: str = "manual"
 ) -> ExpenseDetail:
@@ -237,7 +231,10 @@ def submit_expense(
         content = f"提交报销单，制度校验通过：{reason}"
     else:
         expense.status = "pending_approval"
-        approval_service.create_approval(db, "expense", expense, reason, _suggestion(check))
+        hint = approval_hints.expense_hint(
+            db, expense.customer_id, expense.owner_id, check.over_amount
+        )
+        approval_service.create_approval(db, "expense", expense, reason, hint)
         content = f"提交报销单，超标进入主管审批：{reason}"
     db.flush()
     activity_service.record(db, user, "expense", expense.id, "submit", content, source, expense)

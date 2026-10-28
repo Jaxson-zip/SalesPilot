@@ -1,7 +1,9 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
+import { notifyError } from "@/hooks/notify"
 import { api } from "@/lib/api"
 import type { ThreadMessages, ThreadPage } from "@/lib/thread-history"
 
@@ -22,4 +24,28 @@ export function useAgentThreads(limit = 30) {
 /** GET /api/agent/threads/{id}/messages */
 export function fetchThreadMessages(id: string, signal?: AbortSignal): Promise<ThreadMessages> {
   return api.get<ThreadMessages>(`/api/agent/threads/${encodeURIComponent(id)}/messages`, undefined, signal)
+}
+
+/** PATCH /api/agent/threads/{id}：会话改名 */
+export function useRenameThread() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) =>
+      api.patch(`/api/agent/threads/${encodeURIComponent(id)}`, { title }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: threadKeys.list }),
+    onError: notifyError,
+  })
+}
+
+/** DELETE /api/agent/threads/{id}：删除会话（含对话记录） */
+export function useDeleteThread() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/api/agent/threads/${encodeURIComponent(id)}`),
+    onSuccess: () => {
+      toast.success("会话已删除")
+      void qc.invalidateQueries({ queryKey: threadKeys.list })
+    },
+    onError: notifyError,
+  })
 }

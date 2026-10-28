@@ -85,5 +85,6 @@ class PipelineStage(BaseModel):
 
 class PipelineSummary(BaseModel):
     stages: list[PipelineStage]
-    total_amount: int
+    total_amount: int  # 进行中商机金额合计（不含赢单、输单）
     weighted_amount: int
+    open_count: int

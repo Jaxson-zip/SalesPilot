@@ -22,6 +22,11 @@ export function scopeOptions(role: Role, noun: string): ScopeOption[] {
 }
 
 /** 角色的默认数据范围（工作台、审批等不提供切换的页面） */
+/** 「全部状态」视图的名称随数据范围：销售「我的报价单」、主管「团队报价单」、管理员「全部报价单」 */
+export function scopeLabel(role: Role, noun: string): string {
+  return `${role === "admin" ? "全部" : role === "manager" ? "团队" : "我的"}${noun}`
+}
+
 export function defaultScope(role: Role): DataView {
   return scopeOptions(role, "")[0].value
 }

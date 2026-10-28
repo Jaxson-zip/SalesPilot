@@ -2625,6 +2625,81 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/agent/threads/{thread_id}:
+    patch:
+      tags:
+      - agent
+      summary: Rename Thread
+      operationId: rename_thread_api_agent_threads__thread_id__patch
+      parameters:
+      - name: thread_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 100
+          title: Thread Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThreadRename'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ThreadItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - agent
+      summary: Delete Thread
+      operationId: delete_thread_api_agent_threads__thread_id__delete
+      parameters:
+      - name: thread_id
+        in: path
+        required: true
+        schema:
+          type: string
+          maxLength: 100
+          title: Thread Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_NoneType_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/agent/threads/{thread_id}/messages:
     get:
       tags:
@@ -3641,6 +3716,31 @@ components:
           default: ''
       type: object
       title: ApiResponse[Templates]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_ThreadItem_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ThreadItem'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ThreadItem]
       required:
       - code
       - message
@@ -6249,11 +6349,15 @@ components:
         weighted_amount:
           type: integer
           title: Weighted Amount
+        open_count:
+          type: integer
+          title: Open Count
       type: object
       required:
       - stages
       - total_amount
       - weighted_amount
+      - open_count
       title: PipelineSummary
     PolicyCheck:
       properties:
@@ -7056,6 +7160,17 @@ components:
       - items
       - total
       title: ThreadPage
+    ThreadRename:
+      properties:
+        title:
+          type: string
+          maxLength: 30
+          minLength: 1
+          title: Title
+      type: object
+      required:
+      - title
+      title: ThreadRename
     TransferResult:
       properties:
         transferred:

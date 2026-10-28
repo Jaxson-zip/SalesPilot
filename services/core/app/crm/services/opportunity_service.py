@@ -235,10 +235,12 @@ def funnel(db: Session, user: CurrentUser, view: View | None = None) -> list[Pip
 
 
 def pipeline_summary(db: Session, user: CurrentUser, view: View | None = None) -> PipelineSummary:
-    """漏斗 + 合计：total / weighted 不含输单（lost）。"""
+    """漏斗 + 合计：total / weighted / open_count 只算进行中的商机（不含赢单、输单）。"""
     stages = funnel(db, user, view)
     stmt = apply_scope(
-        select(Opportunity.amount, Opportunity.win_rate).where(Opportunity.stage != "lost"),
+        select(Opportunity.amount, Opportunity.win_rate).where(
+            Opportunity.stage.not_in(FINAL_STAGES)
+        ),
         Opportunity,
         user,
         view,
@@ -248,6 +250,7 @@ def pipeline_summary(db: Session, user: CurrentUser, view: View | None = None) -
         stages=stages,
         total_amount=sum(a for a, _ in pairs),
         weighted_amount=weighted_amount(pairs),
+        open_count=len(pairs),
     )
 
 

@@ -153,13 +153,18 @@ export default function CustomerDetailPage() {
             <FrameAction icon={Hand} label="领取客户" primary onClick={() => !claim.isPending && claim.mutate()} />
           ) : null}
           {canRelease ? <FrameAction icon={Undo2} label="退回公海" onClick={() => setReleasing(true)} /> : null}
-          {canFollowup ? <FrameAction icon={PencilLine} label="写跟进" onClick={writeFollowup} /> : null}
+          {/* 宽屏时间线顶部已有写跟进框，按钮只在窄屏（框在首屏之外）显示 */}
+          {canFollowup ? (
+            <span className="lg:hidden">
+              <FrameAction icon={PencilLine} label="写跟进" onClick={writeFollowup} />
+            </span>
+          ) : null}
           {canAiWrite ? <FrameAction icon={Sparkles} label="为该客户出方案" href="/ai" primary /> : null}
         </>
       }
     >
       {body}
-      {c && canRelease ? <ReleaseDialog customer={c} open={releasing} onOpenChange={setReleasing} /> : null}
+      {c && canRelease ? <ReleaseDialog customer={c} role={role} open={releasing} onOpenChange={setReleasing} /> : null}
     </PageFrame>
   )
 }

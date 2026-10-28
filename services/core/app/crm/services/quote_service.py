@@ -23,7 +23,13 @@ from app.crm.schemas.quote import (
     QuoteListItem,
     QuoteOut,
 )
-from app.crm.services import activity_service, approval_service, contract_service, quote_query
+from app.crm.services import (
+    activity_service,
+    approval_hints,
+    approval_service,
+    contract_service,
+    quote_query,
+)
 from app.crm.services.codes import next_code
 from app.crm.services.opportunity_service import apply_stage, get_owned
 from app.packs.base import SolutionTier
@@ -208,10 +214,6 @@ def approval_reasons(quote: Quote, items: list[QuoteItem], rules: RuleSet) -> li
     return reasons
 
 
-def _suggestion(reasons: list[str]) -> str:
-    return "；".join(reasons) + "。建议核对配置与成本，确认客户战略价值后再决定是否通过。"
-
-
 def _submit(db: Session, user: CurrentUser, quote: Quote) -> str:
     items = quote_query.items_of(db, quote.id)
     reasons = approval_reasons(quote, items, rules_for(quote))
@@ -219,7 +221,11 @@ def _submit(db: Session, user: CurrentUser, quote: Quote) -> str:
         quote.status = "approved"
         return "提交报价单，规则校验通过，自动审批"
     quote.status = "pending_approval"
-    approval_service.create_approval(db, "quote", quote, "；".join(reasons), _suggestion(reasons))
+    rules = rules_for(quote)
+    margin = check_margin(quote.total_cost, quote.total_price, rules)
+    gap = None if margin.passed else rules.margin.floor_rate - margin.margin_rate
+    hint = approval_hints.quote_hint(db, quote.customer_id, quote.owner_id, reasons, gap)
+    approval_service.create_approval(db, "quote", quote, "；".join(reasons), hint)
     return "提交报价单，进入主管审批：" + "；".join(reasons)
 
 

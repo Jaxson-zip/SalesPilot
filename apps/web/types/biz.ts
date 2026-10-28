@@ -137,8 +137,10 @@ export interface OpportunityListParams {
 
 export interface PipelineSummary {
   stages: FunnelStage[]
+  /** 进行中商机（不含赢单、输单）的金额合计 */
   total_amount: number
   weighted_amount: number
+  open_count: number
 }
 
 /* ---------- 报价单（§3） ---------- */

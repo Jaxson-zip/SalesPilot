@@ -101,7 +101,7 @@ function ApprovalCenter() {
   )
 }
 
-/** 审批中心（仅销售主管）：待处理 / 已处理，报销显示附件，带 AI 建议 */
+/** 审批中心（仅销售主管）：待处理 / 已处理，报销显示附件，带审批建议（按客户等级、超标次数生成） */
 export default function ApprovalsPage() {
   const { role } = useSession()
   return (

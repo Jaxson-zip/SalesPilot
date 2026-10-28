@@ -49,3 +49,67 @@ cases:
     no_answer: true
   - q: 办公室停车位怎么申请？
     no_answer: true
+
+  # ---- 第二批（较难）：口语 / 间接说法、跨文档易混、答案在表格或段落里、近似但无答案 ----
+  - q: 跟客户吃饭，我们自己去的同事算不算在人头里？
+    doc: 费用报销管理制度
+    section: "4.2"
+  - q: 去成都出差，酒店一晚能报多少？        # 原文没有「成都」，要理解「其他城市」
+    doc: 费用报销管理制度
+    section: "3.2"
+  - q: 合同里想把质保从一年改成三年，需要谁批？   # 易混：办公设备的「保修政策」
+    pack: it_office
+    doc: 合同审批与回款流程
+    section: "2.2"
+  - q: 客户欠款三个多月了，还能给他报新价吗？
+    doc: 合同审批与回款流程
+    section: "3.3"
+  - q: 客户的钱到账以后，由谁在系统里登记？
+    doc: 合同审批与回款流程
+    section: "3.2"
+  - q: 设备到货验收以后，客户应该付多少比例？
+    doc: 合同审批与回款流程
+    section: "3.1"
+  - q: 卖软件和卖服务器，提成比例一样吗？
+    doc: 销售提成制度
+    section: 提成比例
+  - q: 提成是合同一签下来就全部发吗？           # 易混：合同审批流程第四章也讲提成
+    doc: 销售提成制度
+    section: 确认方式
+  - q: 给客户打 85 折，报价单能直接发出去吗？
+    doc: 合同审批与回款流程
+    section: "2.1"
+  - q: 部署时 tensor-parallel-size 应该填多少？
+    pack: llm_deploy
+    doc: vLLM部署规范
+    section: 部署参数
+  - q: 显存很紧张的时候，GPU 利用率参数最多能调到多少？  # 易混：显存估算参考表
+    pack: llm_deploy
+    doc: vLLM部署规范
+    section: 部署参数
+  - q: 用 INT4 量化有什么代价？
+    pack: llm_deploy
+    doc: 显存估算参考表
+    section: 精度选择
+  - q: 70B 的模型应该选哪种显卡？
+    pack: llm_deploy
+    doc: GPU与整机参数表
+  - q: 服务器的显卡驱动和 CUDA 要装什么版本？
+    pack: llm_deploy
+    doc: vLLM部署规范
+    section: 环境要求
+  - q: 给设计师配电脑，推荐什么配置？
+    pack: it_office
+    doc: 办公设备选型指南
+    section: 岗位配置
+  - q: 高配的办公电脑保修几年？
+    pack: it_office
+    doc: 办公设备选型指南
+    section: 保修政策
+  - q: 公司五险一金按什么基数缴纳？
+    no_answer: true
+  - q: 新员工试用期是多长时间？
+    no_answer: true
+  - q: 公司配的笔记本电脑丢了要怎么赔偿？          # 近似：办公设备选型指南
+    pack: it_office
+    no_answer: true

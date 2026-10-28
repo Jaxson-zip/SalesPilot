@@ -4,7 +4,7 @@ import pytest
 
 from app.rag.evaluate import Case, judge, load_cases, report, summarize
 from app.rag.ingest import load_chunks
-from app.rag.retriever import PolicySearchResult, Source, filter_hits
+from app.rag.retriever import PolicySearchResult, Source, filter_hits, scopes_for
 
 
 def _result(*hits: tuple[str, str | None, float]) -> PolicySearchResult:
@@ -54,13 +54,14 @@ def test_qa_set_points_to_existing_documents() -> None:
     这道题永远判错，评测把标注错误算成了检索错误。
     """
     cases = load_cases()
-    assert len(cases) >= 15 and sum(c.no_answer for c in cases) >= 3
-    chunks = [c for scope in ("company", "pack:llm_deploy") for c in load_chunks(scope)]
+    assert len(cases) >= 30 and sum(c.no_answer for c in cases) >= 6
     for case in cases:
         if case.no_answer:
             continue
+        # 期望文档必须在这道题的检索范围（公司制度 + 该题的行业包）里，否则永远命中不了
+        chunks = [c for scope in scopes_for(case.pack) for c in load_chunks(scope)]
         sections = [c.section or "" for c in chunks if c.doc_name == case.doc]
-        assert sections, f"文档不存在：{case.q}"
+        assert sections, f"检索范围里没有该文档：{case.q}"
         assert case.section is None or any(case.section in s for s in sections), case.q
 
 

@@ -218,3 +218,20 @@ test.describe("审查 v9：企业微信推送", () => {
     expect(Object.values(flags).every((v) => v === false)).toBe(true)
   })
 })
+
+test.describe("审查 v9：外部情报", () => {
+  test("客户详情有外部情报页签，明确标注演示数据并提示相关招标", async ({ page, request }) => {
+    const api = await Api.as(request, "sales")
+    const name = uniq("E2E情报客户")
+    const customer = await api.call<{ id: string }>("POST", "/api/customers", { name, level: "B", industry: "律所" })
+    await loginAs(page, "sales")
+    await page.goto(`/customers/${customer.id}`)
+    await page.getByRole("tab", { name: "外部情报" }).click()
+    await expect(page.getByText("演示数据", { exact: true })).toBeVisible()
+    await expect(page.getByText(/不是真实的工商、舆情或招投标信息/)).toBeVisible()
+    const tenders = page.getByRole("region", { name: "招投标" })
+    await expect(tenders.getByRole("listitem")).toHaveCount(3)
+    await expect(tenders).toContainText(name)
+    await expect(page.getByRole("region", { name: "工商信息" })).toContainText("统一社会信用代码")
+  })
+})

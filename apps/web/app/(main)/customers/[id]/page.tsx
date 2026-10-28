@@ -1,6 +1,6 @@
 "use client"
 
-import { Building2, Clock, Contact, FileText, Hand, PencilLine, Sparkles, Target, Undo2 } from "lucide-react"
+import { Building2, Clock, Contact, FileText, Globe, Hand, PencilLine, Sparkles, Target, Undo2 } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useRef, useState } from "react"
 
@@ -12,6 +12,7 @@ import { QueryError } from "@/components/biz/QueryStatus"
 import { RecordTabs } from "@/components/biz/RecordTabs"
 import { ContactsPanel } from "@/components/customers/ContactsPanel"
 import { CustomerFields, CustomerOpportunities } from "@/components/customers/CustomerFields"
+import { CustomerIntel } from "@/components/customers/CustomerIntel"
 import { CustomerTimeline, FollowupComposer } from "@/components/customers/CustomerTimeline"
 import { ReleaseDialog } from "@/components/customers/ReleaseDialog"
 import { useSession } from "@/components/shell/SessionProvider"
@@ -136,6 +137,12 @@ export default function CustomerDetailPage() {
                 label: "报价单",
                 icon: FileText,
                 content: <CustomerQuotes customerId={cust.id} role={role} />,
+              },
+              {
+                value: "intel",
+                label: "外部情报",
+                icon: Globe,
+                content: <CustomerIntel customerId={cust.id} />,
               },
             ]}
           />

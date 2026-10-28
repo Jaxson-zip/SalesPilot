@@ -32,9 +32,11 @@ from app.crm.services import (
     contact_service,
     customer_service,
     followup_service,
+    intel_service,
     pool_service,
     transfer_service,
 )
+from app.crm.services.intel_service import CompanyIntel
 
 router = APIRouter(prefix="/api/customers", tags=["customers"])
 
@@ -176,3 +178,11 @@ def reveal_phone(
 ) -> ApiResponse[PhoneOut]:
     """查看完整电话：记入操作日志，每人每天限次（超出 42901）。"""
     return ok(contact_service.reveal_phone(db, user, customer_id, contact_id, client_ip(request)))
+
+
+@router.get("/{customer_id}/intel", response_model=ApiResponse[CompanyIntel])
+def customer_intel(
+    customer_id: uuid.UUID, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[CompanyIntel]:
+    """外部情报：工商信息、新闻舆情、招投标（demo=true 时为演示数据）。"""
+    return ok(intel_service.company_intel(db, user, customer_id))

@@ -49,6 +49,7 @@ class TestTools:
             "digest_material",
             "get_meddic",
             "get_battlecard",
+            "get_company_intel",
             "update_opportunity_stage",
             "pipeline_summary",
             "parse_requirement",

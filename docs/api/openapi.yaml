@@ -1451,6 +1451,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/{customer_id}/intel:
+    get:
+      tags:
+      - customers
+      summary: Customer Intel
+      description: 外部情报：工商信息、新闻舆情、招投标（demo=true 时为演示数据）。
+      operationId: customer_intel_api_customers__customer_id__intel_get
+      parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Customer Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_CompanyIntel_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/packs:
     get:
       tags:
@@ -4219,6 +4255,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_CompanyIntel_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/CompanyIntel'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[CompanyIntel]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_CompetitorOut_:
       properties:
         code:
@@ -6249,6 +6310,101 @@ components:
       - halved
       - detail
       title: CommissionResult
+    CompanyIntel:
+      properties:
+        customer_id:
+          type: string
+          format: uuid
+          title: Customer Id
+        provider:
+          type: string
+          title: Provider
+        demo:
+          type: boolean
+          title: Demo
+        notice:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notice
+        profile:
+          $ref: '#/components/schemas/CompanyProfile'
+        news:
+          items:
+            $ref: '#/components/schemas/NewsItem'
+          type: array
+          title: News
+        tenders:
+          items:
+            $ref: '#/components/schemas/TenderItem'
+          type: array
+          title: Tenders
+        risks:
+          items:
+            $ref: '#/components/schemas/RiskItem'
+          type: array
+          title: Risks
+        signals:
+          items:
+            type: string
+          type: array
+          title: Signals
+      type: object
+      required:
+      - customer_id
+      - provider
+      - demo
+      - profile
+      - notice
+      - news
+      - tenders
+      - risks
+      - signals
+      title: CompanyIntel
+    CompanyProfile:
+      properties:
+        full_name:
+          type: string
+          title: Full Name
+        credit_code:
+          type: string
+          title: Credit Code
+        legal_rep:
+          type: string
+          title: Legal Rep
+        registered_capital:
+          type: string
+          title: Registered Capital
+        founded:
+          type: string
+          format: date
+          title: Founded
+        status:
+          type: string
+          title: Status
+        industry:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Industry
+        staff_size:
+          type: string
+          title: Staff Size
+        address:
+          type: string
+          title: Address
+      type: object
+      required:
+      - full_name
+      - credit_code
+      - legal_rep
+      - registered_capital
+      - founded
+      - status
+      - staff_size
+      - address
+      - industry
+      title: CompanyProfile
     CompetitorIn:
       properties:
         name:
@@ -8048,6 +8204,32 @@ components:
       required:
       - role
       title: MockLoginIn
+    NewsItem:
+      properties:
+        date:
+          type: string
+          format: date
+          title: Date
+        title:
+          type: string
+          title: Title
+        source:
+          type: string
+          title: Source
+        sentiment:
+          type: string
+          enum:
+          - positive
+          - neutral
+          - negative
+          title: Sentiment
+      type: object
+      required:
+      - date
+      - title
+      - source
+      - sentiment
+      title: NewsItem
     NextPayment:
       properties:
         name:
@@ -9344,6 +9526,23 @@ components:
       - thread_id
       - decision
       title: ResumeIn
+    RiskItem:
+      properties:
+        level:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          title: Level
+        text:
+          type: string
+          title: Text
+      type: object
+      required:
+      - level
+      - text
+      title: RiskItem
     Role:
       type: string
       enum:
@@ -9930,6 +10129,45 @@ components:
       - ai_prompts
       - rule_notes
       title: Templates
+    TenderItem:
+      properties:
+        date:
+          type: string
+          format: date
+          title: Date
+        title:
+          type: string
+          title: Title
+        kind:
+          type: string
+          enum:
+          - 招标
+          - 中标
+          - 采购意向
+          title: Kind
+        amount:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Amount
+        winner:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Winner
+        opportunity:
+          type: boolean
+          title: Opportunity
+          default: false
+      type: object
+      required:
+      - date
+      - title
+      - kind
+      - amount
+      - winner
+      - opportunity
+      title: TenderItem
     ThreadItem:
       properties:
         thread_id:

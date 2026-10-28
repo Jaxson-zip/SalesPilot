@@ -59,6 +59,7 @@ TOOL_RULES = """
   需要时再用 create_task 安排；不要泛泛而谈。
 - 用户提到竞品或转述客户的异议（「客户说某某更便宜」「他们自己搭」）时调用 get_battlecard，
   给出可以直接说的应对话术和打法，引用战卡内容，不要编造竞品的数据。
+- get_company_intel 返回 demo=true 时，回答里必须说明「以下为演示数据，不是真实工商 / 招投标信息」。
 - search_policy 返回 kb_available=false 时，按其中 rules 的数字回答，
   说明「以系统规则为准，暂无制度条款出处」，不要提网关、接口报错等技术细节。
 """.strip()

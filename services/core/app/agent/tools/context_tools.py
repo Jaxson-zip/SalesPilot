@@ -16,6 +16,7 @@ from app.crm.services import (
     approval_service,
     competitor_service,
     contact_service,
+    intel_service,
     meddic_service,
 )
 from app.crm.services import opportunity_service as opp_service
@@ -125,7 +126,29 @@ def get_battlecard(ctx: ToolContext, args: BattlecardArgs) -> ToolResult:
     return ToolResult(ok=True, summary=f"找到 {len(cards)} 张战卡：{cards[0].name}", data=data)
 
 
+class IntelArgs(BaseModel):
+    customer_id: uuid.UUID = Field(description="search_customer 返回的客户 id")
+
+
+def get_company_intel(ctx: ToolContext, args: IntelArgs) -> ToolResult:
+    """客户的外部情报（工商、舆情、招投标）和给销售的提示。"""
+    with ctx.session() as db:
+        intel = intel_service.company_intel(db, ctx.user, args.customer_id)
+    data = intel.model_dump(mode="json", exclude={"customer_id"})
+    data["news"] = data["news"][:5]
+    tag = "（演示数据，不是真实信息，回答时必须说明）" if intel.demo else ""
+    summary = f"外部情报{tag}：{len(intel.tenders)} 条招投标，{len(intel.signals)} 条提示"
+    return ToolResult(ok=True, summary=summary, data=data)
+
+
 CONTEXT_TOOLS: list[ToolSpec] = [
+    ToolSpec(
+        "get_company_intel",
+        "查客户的外部情报：工商信息、近期新闻舆情、招投标记录，以及与我们业务相关的招标提示。"
+        "用户问客户最近有什么动向、有没有招标、拜访前要了解什么时使用",
+        IntelArgs,
+        get_company_intel,
+    ),
     ToolSpec(
         "get_battlecard",
         "查竞品战卡（竞品优势、弱点、我们怎么赢、常见说法与应对话术、输赢战绩）。"

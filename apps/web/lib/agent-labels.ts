@@ -15,6 +15,7 @@ export const TOOL_TITLES: Record<string, string> = {
   get_customer_context: "查询客户的商机和联系人",
   get_meddic: "查看赢单要素",
   get_battlecard: "查竞品战卡",
+  get_company_intel: "查外部情报",
   create_task: "安排下一步",
   decide_approval: "处理审批",
   digest_material: "整理材料并写入",

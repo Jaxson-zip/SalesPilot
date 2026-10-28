@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     wecom_webhook_url: str | None = None
     # 推送消息里的链接前缀（部署后改成对外访问的网页地址）
     web_base_url: str = "http://127.0.0.1:3005"
+    # 外部情报数据源：目前只内置 demo（演示数据），接入真实数据源后改成对应的 provider 名
+    intel_provider: str = "demo"
 
 
 @lru_cache

@@ -521,6 +521,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/customers/{customer_id}/intel": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Customer Intel
+     * @description 外部情报：工商信息、新闻舆情、招投标（demo=true 时为演示数据）。
+     */
+    get: operations["customer_intel_api_customers__customer_id__intel_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/packs": {
     parameters: {
       query?: never
@@ -1603,6 +1623,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["CommissionResult"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[CompanyIntel] */
+    ApiResponse_CompanyIntel_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["CompanyIntel"] | null
       /**
        * Request Id
        * @default
@@ -3012,6 +3051,53 @@ export interface components {
         [key: string]: number
       }
     }
+    /** CompanyIntel */
+    CompanyIntel: {
+      /**
+       * Customer Id
+       * Format: uuid
+       */
+      customer_id: string
+      /** Provider */
+      provider: string
+      /** Demo */
+      demo: boolean
+      /** Notice */
+      notice: string | null
+      profile: components["schemas"]["CompanyProfile"]
+      /** News */
+      news: components["schemas"]["NewsItem"][]
+      /** Tenders */
+      tenders: components["schemas"]["TenderItem"][]
+      /** Risks */
+      risks: components["schemas"]["RiskItem"][]
+      /** Signals */
+      signals: string[]
+    }
+    /** CompanyProfile */
+    CompanyProfile: {
+      /** Full Name */
+      full_name: string
+      /** Credit Code */
+      credit_code: string
+      /** Legal Rep */
+      legal_rep: string
+      /** Registered Capital */
+      registered_capital: string
+      /**
+       * Founded
+       * Format: date
+       */
+      founded: string
+      /** Status */
+      status: string
+      /** Industry */
+      industry: string | null
+      /** Staff Size */
+      staff_size: string
+      /** Address */
+      address: string
+    }
     /** CompetitorIn */
     CompetitorIn: {
       /** Name */
@@ -3931,6 +4017,23 @@ export interface components {
     MockLoginIn: {
       role: components["schemas"]["Role"]
     }
+    /** NewsItem */
+    NewsItem: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string
+      /** Title */
+      title: string
+      /** Source */
+      source: string
+      /**
+       * Sentiment
+       * @enum {string}
+       */
+      sentiment: "positive" | "neutral" | "negative"
+    }
     /**
      * NextPayment
      * @description 下一期待收款（合同列表用）：第一期没有收齐的。amount 为该期还差的金额。
@@ -4605,6 +4708,16 @@ export interface components {
        */
       decision: "approve" | "reject"
     }
+    /** RiskItem */
+    RiskItem: {
+      /**
+       * Level
+       * @enum {string}
+       */
+      level: "low" | "medium" | "high"
+      /** Text */
+      text: string
+    }
     /**
      * Role
      * @enum {string}
@@ -4920,6 +5033,30 @@ export interface components {
       /** Ai Prompts */
       ai_prompts: components["schemas"]["PromptTemplate"][]
       rule_notes: components["schemas"]["RuleNotes"]
+    }
+    /** TenderItem */
+    TenderItem: {
+      /**
+       * Date
+       * Format: date
+       */
+      date: string
+      /** Title */
+      title: string
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "招标" | "中标" | "采购意向"
+      /** Amount */
+      amount: number | null
+      /** Winner */
+      winner: string | null
+      /**
+       * Opportunity
+       * @default false
+       */
+      opportunity: boolean
     }
     /** ThreadItem */
     ThreadItem: {
@@ -6358,6 +6495,39 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_PhoneOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  customer_intel_api_customers__customer_id__intel_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        customer_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_CompanyIntel_"]
         }
       }
       /** @description Validation Error */

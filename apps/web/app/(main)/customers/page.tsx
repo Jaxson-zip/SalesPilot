@@ -14,12 +14,15 @@ import { TransferDialog } from "@/components/customers/TransferDialog"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { useCustomers, usePoolCustomers } from "@/hooks/useCustomers"
+import { useFacets } from "@/hooks/useFacets"
 import { useListView } from "@/hooks/useListView"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useRowSelection } from "@/hooks/useRowSelection"
+import { serverQuery } from "@/lib/list-view"
+import { fetchAllPages, PAGE_SIZE } from "@/lib/paging"
 import type { Customer, CustomerView } from "@/types/api"
 
-import { customerColumns, customerCsv, customerFilters, customerSort } from "./columns"
+import { customerColumns, customerCsv, customerFilters } from "./columns"
 
 /** 「公海」（B5）不是数据范围，单独走 /api/customers/pool */
 type ListView = CustomerView | "pool"
@@ -67,26 +70,35 @@ export default function CustomersPage() {
   const view: ListView = selected && views.some((v) => v.value === selected) ? selected : isView(first) ? first : "mine"
   const pool = view === "pool"
 
-  // 筛选 / 排序在前端处理，一次取满一页（接口上限 100）
-  const scoped = useCustomers({ view: pool ? "mine" : view, page: 1, page_size: 100 }, !pool)
-  const poolQuery = usePoolCustomers(pool)
-  const query = pool ? poolQuery : scoped
-  const all = useMemo(() => query.data?.items ?? [], [query.data])
-  const filters = useMemo(() => customerFilters(all), [all])
-  const lv = useListView({
+  // 筛选 / 排序 / 分页都在服务端；筛选项取整个范围（公海只有行业）
+  const facets = useFacets("customers", pool ? { pool: true } : { view })
+  const filters = useMemo(() => customerFilters(facets.data), [facets.data])
+  const path = pool ? "/api/customers/pool" : "/api/customers"
+  const lv = useListView<Customer>({
     entity: "customers",
     page: "customers",
-    rows: all,
+    rows: [],
     filters,
-    sort: customerSort,
     csv: customerCsv,
     columns: TOGGLEABLE,
     exportName: "客户",
+    server: {
+      total: () => query.data?.total,
+      fetchAll: (p) => fetchAllPages<Customer>(path, { ...(pool ? {} : { view }), ...serverQuery(p) }),
+    },
   })
+  const scoped = useCustomers({ view: pool ? "mine" : view, page: lv.pageNo, page_size: PAGE_SIZE }, !pool, lv.params)
+  const poolQuery = usePoolCustomers(pool, lv.pageNo, PAGE_SIZE, lv.params)
+  const query = pool ? poolQuery : scoped
+  const rows = useMemo(() => query.data?.items ?? [], [query.data])
   const columns = useMemo(() => customerColumns.filter((c) => !lv.hidden.includes(c.id)), [lv.hidden])
   const filtered = Object.keys(lv.bar.activeFilters).length > 0
   const openNew = canCreate ? () => setCreating(true) : undefined
-  const sel = useRowSelection(lv.rows, customerId)
+  const sel = useRowSelection(rows, customerId)
+  const toPage = (n: number) => {
+    sel.clear()
+    lv.setPageNo(n)
+  }
 
   return (
     <PageFrame
@@ -121,8 +133,12 @@ export default function CustomersPage() {
         <ViewBar
           views={views}
           value={view}
-          onValueChange={(v) => isView(v) && setView(v)}
-          count={filtered ? lv.rows.length : query.data?.total}
+          onValueChange={(v) => {
+            if (!isView(v)) return
+            setView(v)
+            toPage(1)
+          }}
+          count={query.data?.total}
           list={lv.bar}
         />
       )}
@@ -131,12 +147,13 @@ export default function CustomersPage() {
       ) : (
         <DataGrid
           columns={columns}
-          data={lv.rows}
+          data={rows}
           getRowId={customerId}
           selection={sel.selection}
           onSelectionChange={sel.setSelection}
           loading={query.isPending}
-          total={filtered ? lv.rows.length : query.data?.total}
+          total={query.data?.total}
+          pagination={{ page: lv.pageNo, pageSize: PAGE_SIZE, onPageChange: toPage }}
           onAddRow={openNew}
           empty={
             filtered ? (

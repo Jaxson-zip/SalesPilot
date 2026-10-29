@@ -4,18 +4,28 @@ import uuid
 from typing import Annotated
 from urllib.parse import quote
 
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from fastapi.responses import FileResponse
 
 from app.common.auth import CurrentUserDep
 from app.common.response import ApiResponse, ok
 from app.common.scope import View
-from app.crm.routers.deps import DbDep, PageDep
+from app.crm.routers.deps import DbDep, Multi, PageDep
 from app.crm.schemas.common import AttachmentKind, AttachmentOut, Page
 from app.crm.schemas.finance import ExpenseCreate, ExpenseDetail, ExpenseItem, ExpenseStatus
 from app.crm.services import attachment_service, expense_service
+from app.crm.services.expense_service import ExpenseFilter
+from app.crm.services.listing import SortKey, clean
 
 router = APIRouter(prefix="/api", tags=["expenses"])
+
+
+def _filter(
+    type: Multi = None, status_in: Multi = None, over: Multi = None, sort: SortKey | None = None
+) -> ExpenseFilter:
+    return ExpenseFilter(clean(type), clean(status_in), clean(over), sort)
+
+
 Detail = ApiResponse[ExpenseDetail]
 
 
@@ -24,10 +34,12 @@ def list_expenses(
     user: CurrentUserDep,
     db: DbDep,
     page: PageDep,
+    f: Annotated[ExpenseFilter, Depends(_filter)],
     view: View | None = None,
     status: ExpenseStatus | None = None,
 ) -> ApiResponse[Page[ExpenseItem]]:
-    return ok(expense_service.list_expenses(db, user, view, page, status))
+    """status 是页签；type / status_in / over（yes | no）是筛选（多选）。"""
+    return ok(expense_service.list_expenses(db, user, view, page, status, f))
 
 
 @router.get("/expenses/{expense_id}", response_model=Detail)

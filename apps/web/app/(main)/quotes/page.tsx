@@ -12,16 +12,19 @@ import { QueryError } from "@/components/biz/QueryStatus"
 import { ViewBar, type ViewOption } from "@/components/biz/ViewBar"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
+import { useFacets } from "@/hooks/useFacets"
 import { useListView } from "@/hooks/useListView"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useRowSelection } from "@/hooks/useRowSelection"
 import { usePacks } from "@/hooks/useProductLines"
 import { useQuotes } from "@/hooks/useQuotes"
 import { QUOTE_STATUS_META } from "@/lib/labels"
+import { serverQuery } from "@/lib/list-view"
+import { fetchAllPages, PAGE_SIZE } from "@/lib/paging"
 import { defaultScope, scopeLabel } from "@/lib/views"
 import type { QuoteItem, QuoteStatus } from "@/types/api"
 
-import { quoteColumns, quoteCsv, quoteFilters, quoteSort } from "./columns"
+import { quoteColumns, quoteCsv, quoteFilters } from "./columns"
 
 const STATUS_VIEWS: QuoteStatus[] = ["draft", "pending_approval", "approved", "sent", "accepted", "rejected"]
 const STATUS_OPTIONS: ViewOption[] = STATUS_VIEWS.map((s) => ({ value: s, label: QUOTE_STATUS_META[s].label }))
@@ -40,27 +43,37 @@ export default function QuotesPage() {
   const { canAiWrite } = usePermissions()
   const VIEWS: ViewOption[] = [{ value: "all", label: scopeLabel(role, "报价单") }, ...STATUS_OPTIONS]
   const [view, setView] = useState("all")
-  // 视图里的状态走接口参数；其余筛选 / 排序在前端对已加载数据处理
-  const query = useQuotes({ view: defaultScope(role), status: toStatus(view), page: 1, page_size: 100 })
+  // 页签里的状态、筛选、排序、分页都走接口参数
+  const scope = defaultScope(role)
+  const status = toStatus(view)
+  const facets = useFacets("quotes", { view: scope })
   const packs = usePacks()
-  const all = useMemo(() => query.data?.items ?? [], [query.data])
   const filters = useMemo(() => {
     const name = (id: string) => packs.data?.find((p) => p.id === id)?.name ?? id
-    return quoteFilters(all, name)
-  }, [all, packs.data])
-  const lv = useListView({
+    return quoteFilters(facets.data, name)
+  }, [facets.data, packs.data])
+  const lv = useListView<QuoteItem>({
     entity: "quotes",
     page: "quotes",
-    rows: all,
+    rows: [],
     filters,
-    sort: quoteSort,
     csv: quoteCsv,
     columns: TOGGLEABLE,
     exportName: "报价单",
+    server: {
+      total: () => query.data?.total,
+      fetchAll: (p) => fetchAllPages<QuoteItem>("/api/quotes", { view: scope, status, ...serverQuery(p) }),
+    },
   })
+  const query = useQuotes({ view: scope, status, page: lv.pageNo, page_size: PAGE_SIZE }, true, lv.params)
+  const rows = useMemo(() => query.data?.items ?? [], [query.data])
   const columns = useMemo(() => quoteColumns.filter((c) => !lv.hidden.includes(c.id)), [lv.hidden])
   const filtered = Object.keys(lv.bar.activeFilters).length > 0
-  const sel = useRowSelection(lv.rows, quoteId)
+  const sel = useRowSelection(rows, quoteId)
+  const toPage = (n: number) => {
+    sel.clear()
+    lv.setPageNo(n)
+  }
 
   return (
     <PageFrame
@@ -74,8 +87,11 @@ export default function QuotesPage() {
         <ViewBar
           views={VIEWS}
           value={view}
-          onValueChange={setView}
-          count={filtered ? lv.rows.length : query.data?.total}
+          onValueChange={(v) => {
+            setView(v)
+            toPage(1)
+          }}
+          count={query.data?.total}
           list={lv.bar}
         />
       )}
@@ -89,12 +105,13 @@ export default function QuotesPage() {
       ) : (
         <DataGrid
           columns={columns}
-          data={lv.rows}
+          data={rows}
           getRowId={quoteId}
           selection={sel.selection}
           onSelectionChange={sel.setSelection}
           loading={query.isPending}
-          total={filtered ? lv.rows.length : query.data?.total}
+          total={query.data?.total}
+          pagination={{ page: lv.pageNo, pageSize: PAGE_SIZE, onPageChange: toPage }}
           empty={
             filtered ? (
               <EmptyState icon={FileText} title="没有符合筛选条件的报价单" description="可以在上方清除筛选。" />

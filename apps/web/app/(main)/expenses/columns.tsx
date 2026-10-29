@@ -5,7 +5,7 @@ import type { GridColumn } from "@/components/biz/DataGrid"
 import { Tag } from "@/components/biz/Tag"
 import { formatFen } from "@/lib/format"
 import { EXPENSE_STATUS_META, EXPENSE_TYPE_META, labelOf } from "@/lib/labels"
-import { fenToYuan, type CsvColumn, type FilterDef, type SortAccessors } from "@/lib/list-view"
+import { fenToYuan, type CsvColumn, type FilterDef } from "@/lib/list-view"
 import type { ExpenseItem } from "@/types/api"
 
 /** 报销网格列（与原型 ExpenseGrid 一致；发生日期、事由是次要列） */
@@ -90,6 +90,7 @@ export function expenseColumns(onOpen: (e: ExpenseItem) => void): GridColumn<Exp
 }
 
 /* ---------- ViewBar：筛选 / 排序 / 导出 ---------- */
+/** 服务端筛选（类型 / 状态 / 是否超标都是固定选项） */
 export const expenseFilters: FilterDef<ExpenseItem>[] = [
   {
     id: "type",
@@ -98,16 +99,15 @@ export const expenseFilters: FilterDef<ExpenseItem>[] = [
       value: t,
       label: EXPENSE_TYPE_META[t].label,
     })),
-    get: (e) => e.type,
   },
   {
     id: "status",
     label: "状态",
+    param: "status_in",
     options: (Object.keys(EXPENSE_STATUS_META) as ExpenseItem["status"][]).map((s) => ({
       value: s,
       label: EXPENSE_STATUS_META[s].label,
     })),
-    get: (e) => e.status,
   },
   {
     id: "over",
@@ -116,11 +116,8 @@ export const expenseFilters: FilterDef<ExpenseItem>[] = [
       { value: "yes", label: "超标" },
       { value: "no", label: "未超标" },
     ],
-    get: (e) => (e.over_limit ? "yes" : "no"),
   },
 ]
-
-export const expenseSort: SortAccessors<ExpenseItem> = { updated: (e) => e.created_at, amount: (e) => e.amount }
 
 export const expenseCsv: CsvColumn<ExpenseItem>[] = [
   { label: "单号", value: (e) => e.code },

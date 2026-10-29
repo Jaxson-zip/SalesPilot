@@ -3,13 +3,13 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.common.auth import CurrentUserDep
 from app.common.response import ApiResponse, ok
 from app.common.scope import View
 from app.crm.routers.audit import client_ip
-from app.crm.routers.deps import DbDep
+from app.crm.routers.deps import DbDep, Ids, Multi
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.customer import (
     CustomerCreate,
@@ -36,22 +36,48 @@ from app.crm.services import (
     pool_service,
     transfer_service,
 )
+from app.crm.services.customer_service import CustomerFilter
 from app.crm.services.intel_service import CompanyIntel
+from app.crm.services.listing import FacetOption, SortKey, clean, uuids
 
 router = APIRouter(prefix="/api/customers", tags=["customers"])
+
+
+def _filter(
+    level: Multi = None,
+    industry: Multi = None,
+    owner_id: Ids = None,
+    sort: SortKey | None = None,
+) -> CustomerFilter:
+    return CustomerFilter(clean(level), clean(industry), uuids(owner_id), sort)
+
+
+FilterDep = Annotated[CustomerFilter, Depends(_filter)]
 
 
 @router.get("", response_model=ApiResponse[Page[CustomerListItem]])
 def list_customers(
     user: CurrentUserDep,
     db: DbDep,
+    f: FilterDep,
     view: View | None = None,
     q: Annotated[str | None, Query(max_length=100)] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> ApiResponse[Page[CustomerListItem]]:
+    """筛选（level / industry / owner_id 可多选）、排序、分页都在服务端。"""
     params = PageParams(page=page, page_size=page_size)
-    return ok(customer_service.list_customers(db, user, view, q, params))
+    return ok(customer_service.list_customers(db, user, view, q, params, f))
+
+
+@router.get("/facets", response_model=ApiResponse[dict[str, list[FacetOption]]])
+def customer_facets(
+    user: CurrentUserDep, db: DbDep, view: View | None = None, pool: bool = False
+) -> ApiResponse[dict[str, list[FacetOption]]]:
+    """列表筛选项：当前范围内出现过的行业、负责人（公海只有行业）。"""
+    if pool:
+        return ok({"industry": pool_service.pool_industries(db, user)})
+    return ok(customer_service.facets(db, user, view))
 
 
 @router.post("/transfer", response_model=ApiResponse[TransferResult])
@@ -77,11 +103,14 @@ def handover(body: HandoverIn, user: CurrentUserDep, db: DbDep) -> ApiResponse[H
 def list_pool(
     user: CurrentUserDep,
     db: DbDep,
+    f: FilterDep,
+    q: Annotated[str | None, Query(max_length=100)] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> ApiResponse[Page[CustomerListItem]]:
     """客户公海（B5）：本团队负责人为空的客户。"""
-    return ok(pool_service.list_pool(db, user, PageParams(page=page, page_size=page_size)))
+    params = PageParams(page=page, page_size=page_size)
+    return ok(pool_service.list_pool(db, user, params, q, f))
 
 
 @router.post("/{customer_id}/release", response_model=ApiResponse[CustomerDetail])

@@ -1,5 +1,6 @@
-"""路由公共依赖：数据库会话、分页参数。"""
+"""路由公共依赖：数据库会话、分页参数、列表多选筛选参数。"""
 
+import uuid
 from typing import Annotated
 
 from fastapi import Depends, Query
@@ -22,3 +23,7 @@ def page_params(
 
 
 PageDep = Annotated[PageParams, Depends(page_params)]
+
+# 列表多选筛选：重复参数 ?level=A&level=B
+Multi = Annotated[list[str] | None, Query(max_length=50)]
+Ids = Annotated[list[uuid.UUID] | None, Query(max_length=50)]

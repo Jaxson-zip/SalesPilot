@@ -7,6 +7,7 @@ import { notifyError } from "@/hooks/notify"
 import { useDebounced } from "@/hooks/useDebounced"
 import { activityKeys } from "@/hooks/useDashboard"
 import { api } from "@/lib/api"
+import { serverQuery, type ServerListParams } from "@/lib/list-view"
 import type {
   Customer,
   CustomerCreate,
@@ -23,20 +24,27 @@ import type {
 
 export const customerKeys = {
   all: ["customers"] as const,
-  list: (p: CustomerListParams) => ["customers", "list", p] as const,
+  list: (p: CustomerListParams & { q?: string }, l?: ServerListParams) => ["customers", "list", p, l] as const,
   detail: (id: string) => ["customers", "detail", id] as const,
   similar: (name: string) => ["customers", "similar", name] as const,
   pool: ["customers", "pool"] as const,
+  poolPage: (page: number, l?: ServerListParams) => ["customers", "pool", page, l] as const,
 }
 
-/** GET /api/customers?view=&page=&page_size= */
-export function useCustomers(params: CustomerListParams, enabled = true) {
+/** GET /api/customers?view=&q=&page=&page_size=（list：服务端筛选 / 排序） */
+export function useCustomers(params: CustomerListParams & { q?: string }, enabled = true, list?: ServerListParams) {
   return useQuery({
-    queryKey: customerKeys.list(params),
+    queryKey: customerKeys.list(params, list),
     queryFn: ({ signal }) =>
       api.get<Paged<Customer>>(
         "/api/customers",
-        { view: params.view, page: params.page, page_size: params.page_size },
+        {
+          view: params.view,
+          q: params.q || undefined,
+          page: params.page,
+          page_size: params.page_size,
+          ...serverQuery(list ?? {}),
+        },
         signal,
       ),
     placeholderData: keepPreviousData,
@@ -44,11 +52,17 @@ export function useCustomers(params: CustomerListParams, enabled = true) {
   })
 }
 
-/** GET /api/customers/pool：本团队公海（B5），一次取满一页 */
-export function usePoolCustomers(enabled = true) {
+/** GET /api/customers/pool：本团队公海（B5），服务端分页 */
+export function usePoolCustomers(enabled = true, page = 1, pageSize = 100, list?: ServerListParams) {
   return useQuery({
-    queryKey: customerKeys.pool,
-    queryFn: ({ signal }) => api.get<Paged<Customer>>("/api/customers/pool", { page: 1, page_size: 100 }, signal),
+    queryKey: customerKeys.poolPage(page, list),
+    queryFn: ({ signal }) =>
+      api.get<Paged<Customer>>(
+        "/api/customers/pool",
+        { page, page_size: pageSize, ...serverQuery(list ?? {}) },
+        signal,
+      ),
+    placeholderData: keepPreviousData,
     enabled,
   })
 }

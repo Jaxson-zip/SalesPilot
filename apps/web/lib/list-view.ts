@@ -1,6 +1,7 @@
 /**
  * 列表页 ViewBar 的纯函数：筛选、排序、筛选标签、CSV 导出、显示字段偏好。
- * 列表接口没有对应参数的字段都在前端对已加载的数据处理。
+ * 客户 / 报价 / 合同 / 报销在服务端筛选、排序、分页（FilterDef.param）；
+ * 商机看板要全部卡片，取全后在前端筛选（FilterDef.get）。
  */
 
 export interface FilterOption {
@@ -12,19 +13,42 @@ export interface FilterDef<T> {
   id: string
   label: string
   options: FilterOption[]
-  /** 行 → 该字段的值（与 options.value 对应）；null 表示空 */
-  get: (row: T) => string | null
+  /** 前端筛选：行 → 该字段的值（与 options.value 对应）；null 表示空 */
+  get?: (row: T) => string | null
+  /** 服务端筛选：查询参数名（默认同 id），选中的值作为重复参数发送 */
+  param?: string
+}
+
+/** 服务端列表的筛选 / 排序参数（拼进列表接口的查询参数） */
+export interface ServerListParams {
+  sort?: SortKey
+  filters?: Record<string, string[]>
+}
+
+/** 生效筛选 → 查询参数 { 参数名: 选中值[] } */
+export function filterParams<T>(defs: FilterDef<T>[], active: ActiveFilters): Record<string, string[]> {
+  const out: Record<string, string[]> = {}
+  for (const d of defs) {
+    const values = active[d.id]
+    if (values?.length) out[d.param ?? d.id] = values
+  }
+  return out
+}
+
+/** 列表接口的查询参数：排序 + 筛选（默认排序不发送） */
+export function serverQuery(p: ServerListParams): Record<string, string | string[] | undefined> {
+  return { sort: p.sort && p.sort !== "default" ? p.sort : undefined, ...p.filters }
 }
 
 /** 生效的筛选：字段 id → 选中的值（同一字段内为「或」，不同字段之间为「且」） */
 export type ActiveFilters = Record<string, string[]>
 
 export function applyFilters<T>(rows: T[], defs: FilterDef<T>[], active: ActiveFilters): T[] {
-  const live = defs.filter((d) => (active[d.id]?.length ?? 0) > 0)
+  const live = defs.filter((d) => d.get && (active[d.id]?.length ?? 0) > 0)
   if (live.length === 0) return rows
   return rows.filter((r) =>
     live.every((d) => {
-      const v = d.get(r)
+      const v = d.get?.(r) ?? null
       return v !== null && active[d.id].includes(v)
     }),
   )

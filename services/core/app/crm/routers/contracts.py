@@ -3,12 +3,12 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Path
+from fastapi import APIRouter, Depends, Path
 
 from app.common.auth import CurrentUserDep
 from app.common.response import ApiResponse, ok
 from app.common.scope import View
-from app.crm.routers.deps import DbDep, PageDep
+from app.crm.routers.deps import DbDep, Ids, Multi, PageDep
 from app.crm.schemas.finance import (
     ContractItem,
     ContractList,
@@ -19,8 +19,22 @@ from app.crm.schemas.finance import (
     PaymentPlanView,
 )
 from app.crm.services import contract_service, invoice_service
+from app.crm.services.contract_service import ContractFilter
+from app.crm.services.listing import FacetOption, SortKey, clean, uuids
 
 router = APIRouter(prefix="/api/contracts", tags=["contracts"])
+
+
+def _filter(
+    status_in: Multi = None,
+    overdue: Multi = None,
+    customer_in: Ids = None,
+    owner_in: Ids = None,
+    sort: SortKey | None = None,
+) -> ContractFilter:
+    return ContractFilter(
+        clean(status_in), clean(overdue), uuids(customer_in), uuids(owner_in), sort
+    )
 
 
 @router.get("", response_model=ApiResponse[ContractList])
@@ -28,10 +42,20 @@ def list_contracts(
     user: CurrentUserDep,
     db: DbDep,
     page: PageDep,
+    f: Annotated[ContractFilter, Depends(_filter)],
     view: View | None = None,
     status: ContractStatus | None = None,
 ) -> ApiResponse[ContractList]:
-    return ok(contract_service.list_contracts(db, user, view, page, status))
+    """status 是页签；status_in / overdue / customer_in / owner_in 是筛选（多选）。"""
+    return ok(contract_service.list_contracts(db, user, view, page, status, f))
+
+
+@router.get("/facets", response_model=ApiResponse[dict[str, list[FacetOption]]])
+def contract_facets(
+    user: CurrentUserDep, db: DbDep, view: View | None = None
+) -> ApiResponse[dict[str, list[FacetOption]]]:
+    """列表筛选项：当前范围内出现过的客户、负责人。"""
+    return ok(contract_service.facets(db, user, view))
 
 
 @router.get("/{contract_id}", response_model=ApiResponse[ContractItem])

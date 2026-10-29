@@ -14,17 +14,20 @@ import { PaymentDialog } from "@/components/contracts/PaymentDialog"
 import { PaymentPlanSheet } from "@/components/contracts/PaymentPlanSheet"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useContracts } from "@/hooks/useContracts"
+import { useContract, useContracts } from "@/hooks/useContracts"
+import { useFacets } from "@/hooks/useFacets"
 import { useListView } from "@/hooks/useListView"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useRowSelection } from "@/hooks/useRowSelection"
 import { formatFen } from "@/lib/format"
 import { CONTRACT_STATUS_META } from "@/lib/labels"
+import { serverQuery } from "@/lib/list-view"
 import { contractsLabel } from "@/lib/nav"
+import { fetchAllPages, PAGE_SIZE } from "@/lib/paging"
 import { defaultScope, scopeLabel } from "@/lib/views"
 import type { ContractItem, ContractStatus, ContractSummary } from "@/types/api"
 
-import { contractColumns, contractCsv, contractFilters, contractSort } from "./columns"
+import { contractColumns, contractCsv, contractFilters } from "./columns"
 
 const STATUS_OPTIONS: ViewOption[] = [
   { value: "active", label: CONTRACT_STATUS_META.active.label },
@@ -77,36 +80,46 @@ export default function ContractsPage() {
   const [view, setView] = useState("all")
   const [paying, setPaying] = useState<ContractItem | null>(null)
   const [planOf, setPlanOf] = useState<ContractItem | null>(null)
-  const query = useContracts({ view: defaultScope(role), status: toStatus(view), page: 1, page_size: 100 })
+  const scope = defaultScope(role)
+  const status = toStatus(view)
   // 登记回款只给主管（契约 §0）；列内再按合同状态判断
   const allColumns = useMemo(() => contractColumns(payable ? setPaying : undefined, setPlanOf), [payable])
-  const all = useMemo(() => query.data?.items ?? [], [query.data])
   // 从开票通知跳转过来：/contracts?plan=<合同 id> 直接打开回款计划（不用 useSearchParams，避免整页需要 Suspense）
   const [linked, setLinked] = useState<string | null>(null)
   useEffect(() => {
     setLinked(new URLSearchParams(window.location.search).get("plan"))
   }, [])
+  const linkedContract = useContract(linked)
   useEffect(() => {
-    const hit = linked ? all.find((c) => c.id === linked) : undefined
-    if (hit) {
-      setPlanOf(hit)
+    if (linkedContract.data) {
+      setPlanOf(linkedContract.data)
       setLinked(null)
     }
-  }, [linked, all])
-  const filters = useMemo(() => contractFilters(all), [all])
-  const lv = useListView({
+  }, [linkedContract.data])
+  const facets = useFacets("contracts", { view: scope })
+  const filters = useMemo(() => contractFilters(facets.data), [facets.data])
+  const lv = useListView<ContractItem>({
     entity: "contracts",
     page: "contracts",
-    rows: all,
+    rows: [],
     filters,
-    sort: contractSort,
     csv: contractCsv,
     columns: TOGGLEABLE,
     exportName: "合同",
+    server: {
+      total: () => query.data?.total,
+      fetchAll: (p) => fetchAllPages<ContractItem>("/api/contracts", { view: scope, status, ...serverQuery(p) }),
+    },
   })
+  const query = useContracts({ view: scope, status, page: lv.pageNo, page_size: PAGE_SIZE }, lv.params)
+  const rows = useMemo(() => query.data?.items ?? [], [query.data])
   const columns = useMemo(() => allColumns.filter((c) => !lv.hidden.includes(c.id)), [allColumns, lv.hidden])
   const filtered = Object.keys(lv.bar.activeFilters).length > 0
-  const sel = useRowSelection(lv.rows, contractId)
+  const sel = useRowSelection(rows, contractId)
+  const toPage = (n: number) => {
+    sel.clear()
+    lv.setPageNo(n)
+  }
 
   return (
     <PageFrame
@@ -130,19 +143,23 @@ export default function ContractsPage() {
             <ViewBar
               views={views}
               value={view}
-              onValueChange={setView}
-              count={filtered ? lv.rows.length : query.data?.total}
+              onValueChange={(v) => {
+                setView(v)
+                toPage(1)
+              }}
+              count={query.data?.total}
               list={lv.bar}
             />
           )}
           <DataGrid
             columns={columns}
-            data={lv.rows}
+            data={rows}
             getRowId={contractId}
             selection={sel.selection}
             onSelectionChange={sel.setSelection}
             loading={query.isPending}
-            total={filtered ? lv.rows.length : query.data?.total}
+            total={query.data?.total}
+            pagination={{ page: lv.pageNo, pageSize: PAGE_SIZE, onPageChange: toPage }}
             empty={
               <EmptyState
                 icon={FileSignature}

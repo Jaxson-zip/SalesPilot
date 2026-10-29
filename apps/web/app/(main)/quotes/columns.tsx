@@ -6,7 +6,7 @@ import type { GridColumn } from "@/components/biz/DataGrid"
 import { Tag } from "@/components/biz/Tag"
 import { formatFen, formatPercent, formatRelative, ownerName } from "@/lib/format"
 import { labelOf, QUOTE_STATUS_META } from "@/lib/labels"
-import { fenToYuan, optionsFromRows, type CsvColumn, type FilterDef, type SortAccessors } from "@/lib/list-view"
+import { fenToYuan, type CsvColumn, type FilterDef, type FilterOption } from "@/lib/list-view"
 import type { QuoteItem } from "@/types/api"
 import { PackName } from "@/components/biz/PackName"
 
@@ -105,26 +105,24 @@ export const quoteColumns: GridColumn<QuoteItem>[] = [
 /* ---------- ViewBar：筛选 / 排序 / 导出 ---------- */
 const QUOTE_STATUSES = Object.keys(QUOTE_STATUS_META) as QuoteItem["status"][]
 
-export function quoteFilters(rows: QuoteItem[], packName: (id: string) => string): FilterDef<QuoteItem>[] {
+/** 服务端筛选：行业包、客户的选项来自 /api/quotes/facets（整个范围） */
+export function quoteFilters(
+  facets: Record<string, FilterOption[]> | undefined,
+  packName: (id: string) => string,
+): FilterDef<QuoteItem>[] {
   return [
     {
       id: "status",
       label: "状态",
+      param: "status_in",
       options: QUOTE_STATUSES.map((s) => ({ value: s, label: QUOTE_STATUS_META[s].label })),
-      get: (q) => q.status,
     },
     {
       id: "pack",
       label: "行业包",
-      options: optionsFromRows(rows, (q) => q.pack).map((o) => ({ ...o, label: packName(o.value) })),
-      get: (q) => q.pack || null,
+      options: (facets?.pack ?? []).map((o) => ({ ...o, label: packName(o.value) })),
     },
-    {
-      id: "customer",
-      label: "客户",
-      options: optionsFromRows(rows, (q) => q.customer?.name),
-      get: (q) => q.customer?.name ?? null,
-    },
+    { id: "customer", label: "客户", param: "customer_in", options: facets?.customer ?? [] },
     {
       id: "source",
       label: "创建方式",
@@ -132,12 +130,9 @@ export function quoteFilters(rows: QuoteItem[], packName: (id: string) => string
         { value: "agent", label: "AI 生成" },
         { value: "manual", label: "手工创建" },
       ],
-      get: (q) => q.source,
     },
   ]
 }
-
-export const quoteSort: SortAccessors<QuoteItem> = { updated: (q) => q.created_at, amount: (q) => q.total_price }
 
 export const quoteCsv: CsvColumn<QuoteItem>[] = [
   { label: "编号", value: (q) => q.code },

@@ -18,9 +18,11 @@ import { useListView } from "@/hooks/useListView"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useRowSelection } from "@/hooks/useRowSelection"
 import { EXPENSE_STATUS_META } from "@/lib/labels"
+import { serverQuery } from "@/lib/list-view"
+import { fetchAllPages, PAGE_SIZE } from "@/lib/paging"
 import type { ExpenseItem, ExpenseStatus } from "@/types/api"
 
-import { expenseColumns, expenseCsv, expenseFilters, expenseSort } from "./columns"
+import { expenseColumns, expenseCsv, expenseFilters } from "./columns"
 
 const STATUS_VIEWS: ExpenseStatus[] = ["draft", "pending_approval", "approved", "rejected", "paid"]
 /** 第一个视图：销售 / 主管看自己的报销（团队报销在审批中心处理），管理员只读查看全部 */
@@ -48,22 +50,31 @@ export default function ExpensesPage() {
   const admin = role === "admin"
   const [view, setView] = useState("all")
   const [sheet, setSheet] = useState<{ open: boolean; id: string | null }>({ open: false, id: null })
-  const query = useExpenses({ view: admin ? "all" : "mine", status: toStatus(view), page: 1, page_size: 100 })
+  const scope = admin ? "all" : "mine"
+  const status = toStatus(view)
   const allColumns = useMemo(() => expenseColumns((e) => setSheet({ open: true, id: e.id })), [])
-  const all = useMemo(() => query.data?.items ?? [], [query.data])
-  const lv = useListView({
+  const lv = useListView<ExpenseItem>({
     entity: "expenses",
     page: "expenses",
-    rows: all,
+    rows: [],
     filters: expenseFilters,
-    sort: expenseSort,
     csv: expenseCsv,
     columns: TOGGLEABLE,
     exportName: "报销",
+    server: {
+      total: () => query.data?.total,
+      fetchAll: (p) => fetchAllPages<ExpenseItem>("/api/expenses", { view: scope, status, ...serverQuery(p) }),
+    },
   })
+  const query = useExpenses({ view: scope, status, page: lv.pageNo, page_size: PAGE_SIZE }, lv.params)
+  const rows = useMemo(() => query.data?.items ?? [], [query.data])
   const columns = useMemo(() => allColumns.filter((c) => !lv.hidden.includes(c.id)), [allColumns, lv.hidden])
   const filtered = Object.keys(lv.bar.activeFilters).length > 0
-  const sel = useRowSelection(lv.rows, expenseId)
+  const sel = useRowSelection(rows, expenseId)
+  const toPage = (n: number) => {
+    sel.clear()
+    lv.setPageNo(n)
+  }
   const openNew = () => setSheet({ open: true, id: null })
 
   return (
@@ -83,8 +94,11 @@ export default function ExpensesPage() {
         <ViewBar
           views={viewsFor(admin)}
           value={view}
-          onValueChange={setView}
-          count={filtered ? lv.rows.length : query.data?.total}
+          onValueChange={(v) => {
+            setView(v)
+            toPage(1)
+          }}
+          count={query.data?.total}
           list={lv.bar}
         />
       )}
@@ -98,12 +112,13 @@ export default function ExpensesPage() {
       ) : (
         <DataGrid
           columns={columns}
-          data={lv.rows}
+          data={rows}
           getRowId={expenseId}
           selection={sel.selection}
           onSelectionChange={sel.setSelection}
           loading={query.isPending}
-          total={filtered ? lv.rows.length : query.data?.total}
+          total={query.data?.total}
+          pagination={{ page: lv.pageNo, pageSize: PAGE_SIZE, onPageChange: toPage }}
           onAddRow={canCreate ? openNew : undefined}
           empty={
             filtered ? (

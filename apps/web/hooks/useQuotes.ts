@@ -7,6 +7,7 @@ import { notifyError } from "@/hooks/notify"
 import { activityKeys, dashboardKeys } from "@/hooks/useDashboard"
 import { opportunityKeys } from "@/hooks/useOpportunities"
 import { api } from "@/lib/api"
+import { serverQuery, type ServerListParams } from "@/lib/list-view"
 import { QUOTE_ACTIONS, submitResultText } from "@/lib/quote-actions"
 import type { Paged, QuoteAction, QuoteDetail, QuoteItem, QuoteItemsPatch, QuoteListParams } from "@/types/api"
 
@@ -17,9 +18,9 @@ export const quoteKeys = {
 }
 
 /** GET /api/quotes?view=&status=&opportunity_id=&q= */
-export function useQuotes(params: QuoteListParams, enabled = true) {
+export function useQuotes(params: QuoteListParams, enabled = true, list?: ServerListParams) {
   return useQuery({
-    queryKey: quoteKeys.list(params),
+    queryKey: [...quoteKeys.list(params), list],
     queryFn: ({ signal }) =>
       api.get<Paged<QuoteItem>>(
         "/api/quotes",
@@ -31,6 +32,7 @@ export function useQuotes(params: QuoteListParams, enabled = true) {
           q: params.q,
           page: params.page ?? 1,
           page_size: params.page_size ?? 20,
+          ...serverQuery(list ?? {}),
         },
         signal,
       ),

@@ -2,11 +2,12 @@
 回款计划（B9）。"""
 
 import uuid
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import Select, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import ColumnElement, Select, and_, exists, func, select
+from sqlalchemy.orm import Session, aliased
 
 from app.common.auth import CurrentUser, Role
 from app.common.errors import BizError, ErrorCode
@@ -26,6 +27,7 @@ from app.crm.schemas.finance import (
 )
 from app.crm.services import activity_service, lookup, quote_query
 from app.crm.services.codes import LOCAL_TZ, local_today, month_start
+from app.crm.services.listing import FacetOption, SortKey, customer_facet, order, user_facet
 from app.crm.services.payment_plan import (
     PlanInput,
     PlanState,
@@ -279,14 +281,78 @@ def _summary(db: Session, scoped: Select[Any]) -> ContractSummary:
     )
 
 
+@dataclass(frozen=True)
+class ContractFilter:
+    """列表筛选（多选）：状态、回款是否逾期（overdue / ok）、客户、负责人。"""
+
+    status: list[str] = field(default_factory=list)
+    overdue: list[str] = field(default_factory=list)
+    customer_id: list[uuid.UUID] = field(default_factory=list)
+    owner_id: list[uuid.UUID] = field(default_factory=list)
+    sort: SortKey | None = None
+
+
+def overdue_condition() -> ColumnElement[bool]:
+    """有逾期：存在已过到期日的一期，按期次累计的应收超过已回款（与 payment_plan.allocate 一致：
+    回款按期次顺序冲抵）。"""
+    later = aliased(PaymentPlan)
+    cumulative = (
+        select(func.sum(later.amount))
+        .where(later.contract_id == PaymentPlan.contract_id, later.seq <= PaymentPlan.seq)
+        .scalar_subquery()
+    )
+    return exists().where(
+        and_(
+            PaymentPlan.contract_id == Contract.id,
+            PaymentPlan.due_date < local_today(),
+            cumulative > Contract.paid_amount,
+        )
+    )
+
+
+def _apply_filter(stmt: Select[Any], f: ContractFilter | None) -> Select[Any]:
+    if f is None:
+        return stmt
+    if f.status:
+        stmt = stmt.where(Contract.status.in_(f.status))
+    if f.customer_id:
+        stmt = stmt.where(Contract.customer_id.in_(f.customer_id))
+    if f.owner_id:
+        stmt = stmt.where(Contract.owner_id.in_(f.owner_id))
+    if len(set(f.overdue) & {"overdue", "ok"}) == 1:
+        cond = overdue_condition()
+        stmt = stmt.where(cond if "overdue" in f.overdue else ~cond)
+    return stmt
+
+
+def facets(db: Session, user: CurrentUser, view: View | None) -> dict[str, list[FacetOption]]:
+    scoped = apply_scope(select(Contract), Contract, user, view)
+    return {
+        "customer": customer_facet(db, scoped, Contract.customer_id),
+        "owner": user_facet(db, scoped, Contract.owner_id),
+    }
+
+
 def list_contracts(
-    db: Session, user: CurrentUser, view: View | None, page: PageParams, status: str | None = None
+    db: Session,
+    user: CurrentUser,
+    view: View | None,
+    page: PageParams,
+    status: str | None = None,
+    f: ContractFilter | None = None,
 ) -> ContractList:
-    """summary 按数据范围统计全部合同（不受 status 筛选影响）。"""
+    """summary 按数据范围统计全部合同（不受页签和筛选影响）。"""
     scoped = apply_scope(select(Contract), Contract, user, view)
     stmt = scoped.where(Contract.status == status) if status else scoped
+    stmt = _apply_filter(stmt, f)
     total = quote_query.count(db, stmt)
-    stmt = stmt.order_by(Contract.created_at.desc(), Contract.id)
+    stmt = order(
+        stmt,
+        f.sort if f else None,
+        updated=Contract.created_at,
+        amount=Contract.amount,
+        default=(Contract.created_at.desc(), Contract.id),
+    )
     rows = list(db.scalars(stmt.offset(page.offset).limit(page.page_size)).all())
     return ContractList(items=to_items(db, rows), total=total, summary=_summary(db, scoped))
 

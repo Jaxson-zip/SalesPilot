@@ -5,6 +5,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { notifyError } from "@/hooks/notify"
 import { dashboardKeys } from "@/hooks/useDashboard"
 import { api } from "@/lib/api"
+import { serverQuery, type ServerListParams } from "@/lib/list-view"
 import type {
   AttachmentKind,
   AttachmentOut,
@@ -24,13 +25,19 @@ export const expenseKeys = {
 }
 
 /** GET /api/expenses?view=&status= */
-export function useExpenses(params: ExpenseListParams) {
+export function useExpenses(params: ExpenseListParams, list?: ServerListParams) {
   return useQuery({
-    queryKey: expenseKeys.list(params),
+    queryKey: [...expenseKeys.list(params), list],
     queryFn: ({ signal }) =>
       api.get<Paged<ExpenseItem>>(
         "/api/expenses",
-        { view: params.view, status: params.status, page: params.page ?? 1, page_size: params.page_size ?? 20 },
+        {
+          view: params.view,
+          status: params.status,
+          page: params.page ?? 1,
+          page_size: params.page_size ?? 20,
+          ...serverQuery(list ?? {}),
+        },
         signal,
       ),
     placeholderData: keepPreviousData,

@@ -143,10 +143,12 @@ def list_quotes(
     opportunity_id: uuid.UUID | None = None,
     q: str | None = None,
     customer_id: uuid.UUID | None = None,
+    f: quote_query.QuoteFilter | None = None,
 ) -> Page[QuoteListItem]:
     base = quote_query.build_query(user, view, status, opportunity_id, q, customer_id)
+    base = quote_query.apply_filter(base, f)
     total = quote_query.count(db, base)
-    stmt = base.order_by(Quote.created_at.desc(), Quote.id).offset(page.offset)
+    stmt = quote_query.ordered(base, f).offset(page.offset)
     quotes = list(db.scalars(stmt.limit(page.page_size)).all())
     return Page[QuoteListItem](items=quote_query.to_items(db, quotes), total=total)
 

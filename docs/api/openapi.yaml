@@ -1167,6 +1167,7 @@ paths:
       tags:
       - customers
       summary: List Customers
+      description: 筛选（level / industry / owner_id 可多选）、排序、分页都在服务端。
       operationId: list_customers_api_customers_get
       parameters:
       - name: view
@@ -1203,6 +1204,48 @@ paths:
           minimum: 1
           default: 20
           title: Page Size
+      - name: level
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+            maxItems: 50
+          - type: 'null'
+          title: Level
+      - name: industry
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+            maxItems: 50
+          - type: 'null'
+          title: Industry
+      - name: owner_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+              format: uuid
+            maxItems: 50
+          - type: 'null'
+          title: Owner Id
+      - name: sort
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/SortKey'
+          - type: 'null'
+          title: Sort
       - name: authorization
         in: header
         required: false
@@ -1251,6 +1294,50 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_CustomerDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/facets:
+    get:
+      tags:
+      - customers
+      summary: Customer Facets
+      description: 列表筛选项：当前范围内出现过的行业、负责人（公海只有行业）。
+      operationId: customer_facets_api_customers_facets_get
+      parameters:
+      - name: view
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/View'
+          - type: 'null'
+          title: View
+      - name: pool
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Pool
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_dict_str__list_FacetOption___'
         '422':
           description: Validation Error
           content:
@@ -1368,6 +1455,15 @@ paths:
       description: 客户公海（B5）：本团队负责人为空的客户。
       operationId: list_pool_api_customers_pool_get
       parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Q
       - name: page
         in: query
         required: false
@@ -1385,6 +1481,48 @@ paths:
           minimum: 1
           default: 20
           title: Page Size
+      - name: level
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+            maxItems: 50
+          - type: 'null'
+          title: Level
+      - name: industry
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+            maxItems: 50
+          - type: 'null'
+          title: Industry
+      - name: owner_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+              format: uuid
+            maxItems: 50
+          - type: 'null'
+          title: Owner Id
+      - name: sort
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/SortKey'
+          - type: 'null'
+          title: Sort
       - name: authorization
         in: header
         required: false
@@ -2606,6 +2744,7 @@ paths:
       tags:
       - quotes
       summary: List Quotes
+      description: status 是页签（单选）；status_in / pack / customer_in / source 是筛选（多选），同时生效。
       operationId: list_quotes_api_quotes_get
       parameters:
       - name: view
@@ -2675,6 +2814,59 @@ paths:
           minimum: 1
           default: 20
           title: Page Size
+      - name: status_in
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+            maxItems: 50
+          - type: 'null'
+          title: Status In
+      - name: pack
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+            maxItems: 50
+          - type: 'null'
+          title: Pack
+      - name: customer_in
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+              format: uuid
+            maxItems: 50
+          - type: 'null'
+          title: Customer In
+      - name: source
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+            maxItems: 50
+          - type: 'null'
+          title: Source
+      - name: sort
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/SortKey'
+          - type: 'null'
+          title: Sort
       - name: authorization
         in: header
         required: false
@@ -2690,6 +2882,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_Page_QuoteListItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/quotes/facets:
+    get:
+      tags:
+      - quotes
+      summary: Quote Facets
+      description: 列表筛选项：当前范围内出现过的行业包、客户。
+      operationId: quote_facets_api_quotes_facets_get
+      parameters:
+      - name: view
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/View'
+          - type: 'null'
+          title: View
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_dict_str__list_FacetOption___'
         '422':
           description: Validation Error
           content:
@@ -2917,6 +3146,7 @@ paths:
       tags:
       - contracts
       summary: List Contracts
+      description: status 是页签；status_in / overdue / customer_in / owner_in 是筛选（多选）。
       operationId: list_contracts_api_contracts_get
       parameters:
       - name: view
@@ -2955,6 +3185,60 @@ paths:
           minimum: 1
           default: 20
           title: Page Size
+      - name: status_in
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+            maxItems: 50
+          - type: 'null'
+          title: Status In
+      - name: overdue
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+            maxItems: 50
+          - type: 'null'
+          title: Overdue
+      - name: customer_in
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+              format: uuid
+            maxItems: 50
+          - type: 'null'
+          title: Customer In
+      - name: owner_in
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+              format: uuid
+            maxItems: 50
+          - type: 'null'
+          title: Owner In
+      - name: sort
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/SortKey'
+          - type: 'null'
+          title: Sort
       - name: authorization
         in: header
         required: false
@@ -2970,6 +3254,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_ContractList_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/contracts/facets:
+    get:
+      tags:
+      - contracts
+      summary: Contract Facets
+      description: 列表筛选项：当前范围内出现过的客户、负责人。
+      operationId: contract_facets_api_contracts_facets_get
+      parameters:
+      - name: view
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/View'
+          - type: 'null'
+          title: View
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_dict_str__list_FacetOption___'
         '422':
           description: Validation Error
           content:
@@ -3184,6 +3505,7 @@ paths:
       tags:
       - expenses
       summary: List Expenses
+      description: status 是页签；type / status_in / over（yes | no）是筛选（多选）。
       operationId: list_expenses_api_expenses_get
       parameters:
       - name: view
@@ -3225,6 +3547,47 @@ paths:
           minimum: 1
           default: 20
           title: Page Size
+      - name: type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+            maxItems: 50
+          - type: 'null'
+          title: Type
+      - name: status_in
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+            maxItems: 50
+          - type: 'null'
+          title: Status In
+      - name: over
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: array
+            items:
+              type: string
+            maxItems: 50
+          - type: 'null'
+          title: Over
+      - name: sort
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/SortKey'
+          - type: 'null'
+          title: Sort
       - name: authorization
         in: header
         required: false
@@ -6538,6 +6901,36 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_dict_str__list_FacetOption___:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - additionalProperties:
+              items:
+                $ref: '#/components/schemas/FacetOption'
+              type: array
+            type: object
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[dict[str, list[FacetOption]]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_list_AccountItem__:
       properties:
         code:
@@ -8787,6 +9180,19 @@ components:
       - allowed
       - max_rows
       title: ExportOut
+    FacetOption:
+      properties:
+        value:
+          type: string
+          title: Value
+        label:
+          type: string
+          title: Label
+      type: object
+      required:
+      - value
+      - label
+      title: FacetOption
     FollowupIn:
       properties:
         type:
@@ -11088,6 +11494,14 @@ components:
       - visible
       title: SimilarCustomer
       description: 新建客户时的查重提示。看不到的客户只给名称和负责人，不给 id。
+    SortKey:
+      type: string
+      enum:
+      - default
+      - updated
+      - amount_desc
+      - amount_asc
+      title: SortKey
     StageChange:
       properties:
         stage:

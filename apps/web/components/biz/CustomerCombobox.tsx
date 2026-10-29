@@ -8,11 +8,14 @@ import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useCustomers } from "@/hooks/useCustomers"
+import { useDebounced } from "@/hooks/useDebounced"
 import { defaultScope } from "@/lib/views"
 import { cn } from "@/lib/utils"
 import type { CustomerBrief } from "@/types/api"
 
-/** 关联客户 Combobox（Popover + Command，选项多、需要搜索）；只列出当前角色可见的客户 */
+const LIMIT = 30
+
+/** 关联客户 Combobox（Popover + Command）：在服务端按名称 / 行业搜索，只列出当前角色可见的客户 */
 export function CustomerCombobox({
   value,
   onChange,
@@ -28,8 +31,11 @@ export function CustomerCombobox({
 }) {
   const { role } = useSession()
   const [open, setOpen] = useState(false)
-  const query = useCustomers({ view: defaultScope(role), page: 1, page_size: 100 }, open || Boolean(value))
+  const [search, setSearch] = useState("")
+  const q = useDebounced(search.trim(), 250)
+  const query = useCustomers({ view: defaultScope(role), q, page: 1, page_size: LIMIT }, open)
   const items = query.data?.items ?? []
+  const more = (query.data?.total ?? 0) - items.length
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -47,8 +53,8 @@ export function CustomerCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
-        <Command>
-          <CommandInput placeholder="输入客户名称…" />
+        <Command shouldFilter={false}>
+          <CommandInput placeholder="输入客户名称…" value={search} onValueChange={setSearch} />
           <CommandList>
             <CommandEmpty>
               {query.isPending ? "加载中…" : query.isError ? "客户列表加载失败" : "没有匹配的客户"}
@@ -68,6 +74,9 @@ export function CustomerCombobox({
                 </CommandItem>
               ))}
             </CommandGroup>
+            {more > 0 ? (
+              <p className="text-muted-foreground px-3 py-2 text-xs">还有 {more} 个客户，输入名称缩小范围</p>
+            ) : null}
           </CommandList>
         </Command>
       </PopoverContent>

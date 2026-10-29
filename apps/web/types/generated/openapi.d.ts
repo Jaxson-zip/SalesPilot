@@ -473,11 +473,34 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** List Customers */
+    /**
+     * List Customers
+     * @description 筛选（level / industry / owner_id 可多选）、排序、分页都在服务端。
+     */
     get: operations["list_customers_api_customers_get"]
     put?: never
     /** Create Customer */
     post: operations["create_customer_api_customers_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/customers/facets": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Customer Facets
+     * @description 列表筛选项：当前范围内出现过的行业、负责人（公海只有行业）。
+     */
+    get: operations["customer_facets_api_customers_facets_get"]
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -990,8 +1013,31 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** List Quotes */
+    /**
+     * List Quotes
+     * @description status 是页签（单选）；status_in / pack / customer_in / source 是筛选（多选），同时生效。
+     */
     get: operations["list_quotes_api_quotes_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/quotes/facets": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Quote Facets
+     * @description 列表筛选项：当前范围内出现过的行业包、客户。
+     */
+    get: operations["quote_facets_api_quotes_facets_get"]
     put?: never
     post?: never
     delete?: never
@@ -1109,8 +1155,31 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** List Contracts */
+    /**
+     * List Contracts
+     * @description status 是页签；status_in / overdue / customer_in / owner_in 是筛选（多选）。
+     */
     get: operations["list_contracts_api_contracts_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/contracts/facets": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Contract Facets
+     * @description 列表筛选项：当前范围内出现过的客户、负责人。
+     */
+    get: operations["contract_facets_api_contracts_facets_get"]
     put?: never
     post?: never
     delete?: never
@@ -1204,7 +1273,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** List Expenses */
+    /**
+     * List Expenses
+     * @description status 是页签；type / status_in / over（yes | no）是筛选（多选）。
+     */
     get: operations["list_expenses_api_expenses_get"]
     put?: never
     /** Create Expense */
@@ -3144,6 +3216,28 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[dict[str, list[FacetOption]]] */
+    ApiResponse_dict_str__list_FacetOption___: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: {
+        [key: string]: components["schemas"]["FacetOption"][]
+      } | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[list[AccountItem]] */
     ApiResponse_list_AccountItem__: {
       /**
@@ -4332,6 +4426,13 @@ export interface components {
       allowed: boolean
       /** Max Rows */
       max_rows: number
+    }
+    /** FacetOption */
+    FacetOption: {
+      /** Value */
+      value: string
+      /** Label */
+      label: string
     }
     /** FollowupIn */
     FollowupIn: {
@@ -5546,6 +5647,11 @@ export interface components {
       /** Visible */
       visible: boolean
     }
+    /**
+     * SortKey
+     * @enum {string}
+     */
+    SortKey: "default" | "updated" | "amount_desc" | "amount_asc"
     /** StageChange */
     StageChange: {
       /**
@@ -7150,6 +7256,10 @@ export interface operations {
         q?: string | null
         page?: number
         page_size?: number
+        level?: string[] | null
+        industry?: string[] | null
+        owner_id?: string[] | null
+        sort?: components["schemas"]["SortKey"] | null
       }
       header?: {
         authorization?: string | null
@@ -7201,6 +7311,40 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_CustomerDetail_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  customer_facets_api_customers_facets_get: {
+    parameters: {
+      query?: {
+        view?: components["schemas"]["View"] | null
+        pool?: boolean
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_dict_str__list_FacetOption___"]
         }
       }
       /** @description Validation Error */
@@ -7320,8 +7464,13 @@ export interface operations {
   list_pool_api_customers_pool_get: {
     parameters: {
       query?: {
+        q?: string | null
         page?: number
         page_size?: number
+        level?: string[] | null
+        industry?: string[] | null
+        owner_id?: string[] | null
+        sort?: components["schemas"]["SortKey"] | null
       }
       header?: {
         authorization?: string | null
@@ -8398,6 +8547,11 @@ export interface operations {
         customer_id?: string | null
         page?: number
         page_size?: number
+        status_in?: string[] | null
+        pack?: string[] | null
+        customer_in?: string[] | null
+        source?: string[] | null
+        sort?: components["schemas"]["SortKey"] | null
       }
       header?: {
         authorization?: string | null
@@ -8414,6 +8568,39 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_Page_QuoteListItem__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  quote_facets_api_quotes_facets_get: {
+    parameters: {
+      query?: {
+        view?: components["schemas"]["View"] | null
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_dict_str__list_FacetOption___"]
         }
       }
       /** @description Validation Error */
@@ -8636,6 +8823,11 @@ export interface operations {
         status?: ("active" | "paid") | null
         page?: number
         page_size?: number
+        status_in?: string[] | null
+        overdue?: string[] | null
+        customer_in?: string[] | null
+        owner_in?: string[] | null
+        sort?: components["schemas"]["SortKey"] | null
       }
       header?: {
         authorization?: string | null
@@ -8652,6 +8844,39 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_ContractList_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  contract_facets_api_contracts_facets_get: {
+    parameters: {
+      query?: {
+        view?: components["schemas"]["View"] | null
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_dict_str__list_FacetOption___"]
         }
       }
       /** @description Validation Error */
@@ -8850,6 +9075,10 @@ export interface operations {
         status?: ("draft" | "pending_approval" | "approved" | "rejected" | "paid") | null
         page?: number
         page_size?: number
+        type?: string[] | null
+        status_in?: string[] | null
+        over?: string[] | null
+        sort?: components["schemas"]["SortKey"] | null
       }
       header?: {
         authorization?: string | null

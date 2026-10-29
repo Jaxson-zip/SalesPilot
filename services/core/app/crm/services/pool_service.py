@@ -22,6 +22,7 @@ from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.customer import CustomerDetail, CustomerListItem
 from app.crm.schemas.opportunity import FINAL_STAGES
 from app.crm.services import activity_service, customer_service
+from app.crm.services.listing import FacetOption, value_facet
 from app.crm.services.transfer_service import move_customer
 
 RULE_OPEN_OPPORTUNITIES = "has_open_opportunities"
@@ -35,17 +36,27 @@ def pool_condition(user: CurrentUser) -> ColumnElement[bool]:
     return cond
 
 
-def list_pool(db: Session, user: CurrentUser, page: PageParams) -> Page[CustomerListItem]:
-    base = customer_service.build_list_query(user, None, None, scoped=False).where(
+def list_pool(
+    db: Session,
+    user: CurrentUser,
+    page: PageParams,
+    q: str | None = None,
+    f: customer_service.CustomerFilter | None = None,
+) -> Page[CustomerListItem]:
+    base = customer_service.build_list_query(user, None, q, scoped=False).where(
         pool_condition(user)
     )
+    base = customer_service.apply_filter(base, f)
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
-    rows = db.execute(
-        base.order_by(Customer.updated_at.desc()).offset(page.offset).limit(page.page_size)
-    ).all()
+    stmt = customer_service.ordered(base, f, Customer.updated_at.desc())
+    rows = db.execute(stmt.offset(page.offset).limit(page.page_size)).all()
     return Page[CustomerListItem](
         items=[customer_service.to_list_item(r) for r in rows], total=int(total)
     )
+
+
+def pool_industries(db: Session, user: CurrentUser) -> list[FacetOption]:
+    return value_facet(db, select(Customer).where(pool_condition(user)), Customer.industry)
 
 
 def release(db: Session, user: CurrentUser, customer_id: uuid.UUID, reason: str) -> CustomerDetail:

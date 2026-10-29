@@ -14,7 +14,7 @@ import { StageList } from "@/components/pipeline/StageList"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { useListView } from "@/hooks/useListView"
-import { useOpportunities } from "@/hooks/useOpportunities"
+import { BOARD_MAX, useBoardOpportunities } from "@/hooks/useOpportunities"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useStageMove } from "@/hooks/useStageMove"
 import { groupByStage, opportunityCsv, opportunityFilters, opportunitySort } from "@/lib/pipeline"
@@ -30,7 +30,7 @@ export default function PipelinePage() {
   const view = resolveScope(role, selected)
   const views = scopeOptions(role, "商机")
 
-  const query = useOpportunities({ view, page: 1, page_size: 100 })
+  const query = useBoardOpportunities(view)
   const all = useMemo(() => query.data?.items ?? [], [query.data])
   const filters = useMemo(() => opportunityFilters(all), [all])
   const lv = useListView({
@@ -115,6 +115,11 @@ export default function PipelinePage() {
         count={filtered ? lv.rows.length : query.data?.total}
         list={lv.bar}
       />
+      {query.data && query.data.total > query.data.items.length ? (
+        <p role="status" className="border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
+          共 {query.data.total} 个商机，看板只显示最近更新的 {BOARD_MAX} 个。
+        </p>
+      ) : null}
       {body}
       <OpportunitySheet
         opp={opened}

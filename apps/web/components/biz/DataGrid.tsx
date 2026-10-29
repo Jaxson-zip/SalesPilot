@@ -1,9 +1,10 @@
 "use client"
 
 import { getCoreRowModel, useReactTable, type ColumnDef, type Table } from "@tanstack/react-table"
-import { Plus, type LucideIcon } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, type LucideIcon } from "lucide-react"
 import { useMemo, type ReactNode } from "react"
 
+import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { SelectionState } from "@/lib/selection"
@@ -36,6 +37,14 @@ interface DataGridProps<T> {
   /** 多选（批量操作）：不传则不显示勾选列；手机卡片列表不支持多选 */
   selection?: SelectionState
   onSelectionChange?: (next: SelectionState) => void
+  /** 服务端分页：底栏显示页码和翻页按钮 */
+  pagination?: Pagination
+}
+
+export interface Pagination {
+  page: number
+  pageSize: number
+  onPageChange: (page: number) => void
 }
 
 const hideSecondary = (c: { secondary?: boolean | "wide" }) =>
@@ -58,6 +67,7 @@ export function DataGrid<T>({
   onAddRow,
   empty,
   selection,
+  pagination,
   onSelectionChange,
 }: DataGridProps<T>) {
   const selectable = Boolean(onSelectionChange)
@@ -94,6 +104,7 @@ export function DataGrid<T>({
       )}
       <div className="flex h-8 shrink-0 items-center border-t border-zinc-200 px-3 text-xs text-zinc-500">
         <span>{loading ? "加载中…" : `共 ${total ?? data.length} 条`}</span>
+        {pagination && total !== undefined ? <Pager {...pagination} total={total} /> : null}
       </div>
     </>
   )
@@ -255,5 +266,36 @@ function GridCards<T>({
             </div>
           ))}
     </div>
+  )
+}
+
+/** 底栏翻页：只有一页时不显示 */
+function Pager({ page, pageSize, total, onPageChange }: Pagination & { total: number }) {
+  const pages = Math.max(1, Math.ceil(total / pageSize))
+  if (pages <= 1) return null
+  return (
+    <nav aria-label="翻页" className="ml-auto flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        aria-label="上一页"
+        disabled={page <= 1}
+        onClick={() => onPageChange(page - 1)}
+      >
+        <ChevronLeft />
+      </Button>
+      <span className="tabular-nums" aria-live="polite">
+        第 {page} / {pages} 页
+      </span>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        aria-label="下一页"
+        disabled={page >= pages}
+        onClick={() => onPageChange(page + 1)}
+      >
+        <ChevronRight />
+      </Button>
+    </nav>
   )
 }

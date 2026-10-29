@@ -20,6 +20,7 @@ import type * as D from "@/hooks/useMeddic"
 import type * as R from "@/hooks/useReports"
 import type * as W from "@/hooks/useWecom"
 import type * as Acc from "@/hooks/useAccounts"
+import type * as LV from "@/lib/list-view"
 
 type S = components["schemas"]
 /** A 能赋给 B 时为 true；不能时类型为 false，下面的 `= true` 就会报错 */
@@ -39,6 +40,7 @@ export const responses = {
   NextTask: true as Fits<S["NextTask"], T.NextTask>,
   UserItem: true as Fits<S["UserListItem"], T.UserItem>,
   AccountItem: true as Fits<S["AccountItem"], Acc.AccountItem>,
+  FacetOption: true as Fits<S["FacetOption"], LV.FilterOption>,
   TempPassword: true as Fits<S["TempPassword"], Acc.TempPassword>,
   TeamItem: true as Fits<S["TeamItem"], Acc.TeamItem>,
   TaskItem: true as Fits<S["TaskItem"], T.TaskItem>,

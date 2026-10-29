@@ -80,7 +80,8 @@ export async function parseEnvelope<T>(res: Response, requestId: string): Promis
   return body.data as T
 }
 
-type Query = Record<string, string | number | boolean | undefined>
+/** 数组参数按重复键发送：{ level: ["A", "B"] } → ?level=A&level=B */
+export type Query = Record<string, string | number | boolean | string[] | undefined>
 
 export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
@@ -93,7 +94,10 @@ export interface RequestOptions {
 function withQuery(path: string, query?: Query): string {
   if (!query) return path
   const qs = new URLSearchParams()
-  for (const [k, v] of Object.entries(query)) if (v !== undefined) qs.set(k, String(v))
+  for (const [k, v] of Object.entries(query)) {
+    if (Array.isArray(v)) for (const item of v) qs.append(k, item)
+    else if (v !== undefined) qs.set(k, String(v))
+  }
   const s = qs.toString()
   return s ? `${path}?${s}` : path
 }

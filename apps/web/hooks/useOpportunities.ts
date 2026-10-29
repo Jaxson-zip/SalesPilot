@@ -7,6 +7,7 @@ import { notifyError } from "@/hooks/notify"
 import { activityKeys, dashboardKeys } from "@/hooks/useDashboard"
 import { api } from "@/lib/api"
 import { STAGE_META } from "@/lib/labels"
+import { fetchAllPaged } from "@/lib/paging"
 import { applyStageChange } from "@/lib/pipeline"
 import type {
   DataView,
@@ -28,7 +29,22 @@ export const opportunityKeys = {
   summary: (view: DataView) => ["pipeline", "summary", view] as const,
 }
 
-/** GET /api/opportunities（看板一次取 100 条，按阶段在前端分组） */
+/** 看板最多显示的商机数（超过时提示用列表筛选） */
+export const BOARD_MAX = 1000
+
+/**
+ * 看板：逐页取全部商机（每页 100 条，最多 BOARD_MAX 条），在前端按阶段分组、筛选。
+ * 缓存键在 opportunityKeys.lists 下，拖拽改阶段的乐观更新同样生效。
+ */
+export function useBoardOpportunities(view: DataView) {
+  return useQuery({
+    queryKey: [...opportunityKeys.lists, "board", view] as const,
+    queryFn: ({ signal }) => fetchAllPaged<OpportunityItem>("/api/opportunities", { view }, BOARD_MAX, signal),
+    placeholderData: keepPreviousData,
+  })
+}
+
+/** GET /api/opportunities（客户详情、报销关联等按客户取少量） */
 export function useOpportunities(params: OpportunityListParams, enabled = true) {
   return useQuery({
     queryKey: opportunityKeys.list(params),

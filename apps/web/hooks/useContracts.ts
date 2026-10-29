@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { notifyError } from "@/hooks/notify"
 import { dashboardKeys } from "@/hooks/useDashboard"
 import { api } from "@/lib/api"
+import { serverQuery, type ServerListParams } from "@/lib/list-view"
 import { formatFen } from "@/lib/format"
 import type {
   ContractItem,
@@ -25,16 +26,31 @@ export const contractKeys = {
 }
 
 /** GET /api/contracts?view=&status=（data 额外带 summary） */
-export function useContracts(params: ContractListParams) {
+export function useContracts(params: ContractListParams, list?: ServerListParams) {
   return useQuery({
-    queryKey: contractKeys.list(params),
+    queryKey: [...contractKeys.list(params), list],
     queryFn: ({ signal }) =>
       api.get<ContractList>(
         "/api/contracts",
-        { view: params.view, status: params.status, page: params.page ?? 1, page_size: params.page_size ?? 20 },
+        {
+          view: params.view,
+          status: params.status,
+          page: params.page ?? 1,
+          page_size: params.page_size ?? 20,
+          ...serverQuery(list ?? {}),
+        },
         signal,
       ),
     placeholderData: keepPreviousData,
+  })
+}
+
+/** GET /api/contracts/{id}：通知链接打开某个合同（不一定在列表当前页） */
+export function useContract(id: string | null) {
+  return useQuery({
+    queryKey: contractKeys.detail(id ?? ""),
+    queryFn: ({ signal }) => api.get<ContractItem>(`/api/contracts/${id}`, undefined, signal),
+    enabled: Boolean(id),
   })
 }
 

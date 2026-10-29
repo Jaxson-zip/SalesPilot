@@ -4,6 +4,7 @@
 """
 
 import uuid
+from dataclasses import dataclass, field
 from typing import Any
 
 from sqlalchemy import Select, func, or_, select
@@ -14,6 +15,7 @@ from app.common.scope import View, apply_scope
 from app.crm.models import Approval, Customer, Quote, QuoteItem
 from app.crm.schemas.quote import ApprovalBrief, QuoteLine, QuoteListItem
 from app.crm.services import lookup
+from app.crm.services.listing import FacetOption, SortKey, customer_facet, order, value_facet
 from app.packs.base import TIER_NAMES
 
 
@@ -36,6 +38,53 @@ def build_query(
         pattern = f"%{q.strip()}%"
         stmt = stmt.where(or_(Quote.code.ilike(pattern), Customer.name.ilike(pattern)))
     return apply_scope(stmt, Quote, user, view)
+
+
+@dataclass(frozen=True)
+class QuoteFilter:
+    """列表筛选（多选）：状态、行业包、客户、创建方式。"""
+
+    status: list[str] = field(default_factory=list)
+    pack: list[str] = field(default_factory=list)
+    customer_id: list[uuid.UUID] = field(default_factory=list)
+    source: list[str] = field(default_factory=list)
+    sort: SortKey | None = None
+
+
+def apply_filter(stmt: Select[Any], f: QuoteFilter | None) -> Select[Any]:
+    if f is None:
+        return stmt
+    if f.status:
+        stmt = stmt.where(Quote.status.in_(f.status))
+    if f.pack:
+        stmt = stmt.where(Quote.pack.in_(f.pack))
+    if f.customer_id:
+        stmt = stmt.where(Quote.customer_id.in_(f.customer_id))
+    if f.source:
+        # 只有 agent 生成的记为 agent，其余都算手工
+        agent = "agent" in f.source
+        manual = "manual" in f.source
+        if agent != manual:
+            stmt = stmt.where(Quote.source == "agent" if agent else Quote.source != "agent")
+    return stmt
+
+
+def ordered(stmt: Select[Any], f: QuoteFilter | None) -> Select[Any]:
+    return order(
+        stmt,
+        f.sort if f else None,
+        updated=Quote.created_at,
+        amount=Quote.total_price,
+        default=(Quote.created_at.desc(), Quote.id),
+    )
+
+
+def facets(db: Session, user: CurrentUser, view: View | None) -> dict[str, list[FacetOption]]:
+    scoped = apply_scope(select(Quote), Quote, user, view)
+    return {
+        "pack": value_facet(db, scoped, Quote.pack),
+        "customer": customer_facet(db, scoped, Quote.customer_id),
+    }
 
 
 def count(db: Session, stmt: Select[Any]) -> int:

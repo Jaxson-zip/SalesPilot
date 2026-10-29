@@ -2,9 +2,10 @@
 
 import re
 import uuid
+from dataclasses import dataclass, field
 from typing import Any
 
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, func, literal_column, or_, select
 from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
@@ -22,6 +23,41 @@ from app.crm.schemas.customer import (
     SimilarCustomer,
 )
 from app.crm.services import activity_service
+from app.crm.services.listing import FacetOption, SortKey, order, user_facet, value_facet
+
+
+@dataclass(frozen=True)
+class CustomerFilter:
+    """列表筛选：同一字段多选为「或」，不同字段为「且」；level 按首字母（A / B / C）比较。"""
+
+    level: list[str] = field(default_factory=list)
+    industry: list[str] = field(default_factory=list)
+    owner_id: list[uuid.UUID] = field(default_factory=list)
+    sort: SortKey | None = None
+
+
+def apply_filter(stmt: Select[Any], f: CustomerFilter | None) -> Select[Any]:
+    if f is None:
+        return stmt
+    if f.level:
+        grade = func.upper(func.left(func.trim(Customer.level), 1))
+        stmt = stmt.where(grade.in_([v[:1].upper() for v in f.level]))
+    if f.industry:
+        stmt = stmt.where(Customer.industry.in_(f.industry))
+    if f.owner_id:
+        stmt = stmt.where(Customer.owner_id.in_(f.owner_id))
+    return stmt
+
+
+def ordered(stmt: Select[Any], f: CustomerFilter | None, *default: Any) -> Select[Any]:
+    """最近更新 = 最近跟进时间；金额 = 商机金额合计（都是 build_list_query 里的列）。"""
+    return order(
+        stmt,
+        f.sort if f else None,
+        updated=literal_column("last_followup_at"),
+        amount=literal_column("opportunity_amount"),
+        default=(*default, Customer.id),
+    )
 
 
 def _opportunity_amount_subq() -> Any:
@@ -97,13 +133,27 @@ def _to_detail(row: Any) -> CustomerDetail:
 
 
 def list_customers(
-    db: Session, user: CurrentUser, view: View | None, q: str | None, page: PageParams
+    db: Session,
+    user: CurrentUser,
+    view: View | None,
+    q: str | None,
+    page: PageParams,
+    f: CustomerFilter | None = None,
 ) -> Page[CustomerListItem]:
-    base = build_list_query(user, view, q)
+    base = apply_filter(build_list_query(user, view, q), f)
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
-    stmt = base.order_by(Customer.created_at.desc()).offset(page.offset).limit(page.page_size)
-    rows = db.execute(stmt).all()
+    stmt = ordered(base, f, Customer.created_at.desc())
+    rows = db.execute(stmt.offset(page.offset).limit(page.page_size)).all()
     return Page[CustomerListItem](items=[to_list_item(r) for r in rows], total=total)
+
+
+def facets(db: Session, user: CurrentUser, view: View | None) -> dict[str, list[FacetOption]]:
+    """筛选项：当前范围内的行业、负责人。"""
+    scoped = apply_scope(select(Customer), Customer, user, view)
+    return {
+        "industry": value_facet(db, scoped, Customer.industry),
+        "owner": user_facet(db, scoped, Customer.owner_id),
+    }
 
 
 def get_customer(db: Session, user: CurrentUser, customer_id: uuid.UUID) -> CustomerDetail:

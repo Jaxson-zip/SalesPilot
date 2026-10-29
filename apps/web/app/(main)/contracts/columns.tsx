@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { paidPercent } from "@/lib/contract"
 import { formatFen, ownerName } from "@/lib/format"
 import { CONTRACT_STATUS_META, labelOf } from "@/lib/labels"
-import { fenToYuan, optionsFromRows, type CsvColumn, type FilterDef, type SortAccessors } from "@/lib/list-view"
+import { fenToYuan, type CsvColumn, type FilterDef, type FilterOption } from "@/lib/list-view"
 import type { ContractItem } from "@/types/api"
 
 /** 下期回款（B9）：期次 + 还差金额 + 到期日；逾期标红 */
@@ -140,16 +140,17 @@ export function contractColumns(
 }
 
 /* ---------- ViewBar：筛选 / 排序 / 导出 ---------- */
-export function contractFilters(rows: ContractItem[]): FilterDef<ContractItem>[] {
+/** 服务端筛选：客户、负责人的选项来自 /api/contracts/facets（整个范围） */
+export function contractFilters(facets: Record<string, FilterOption[]> | undefined): FilterDef<ContractItem>[] {
   return [
     {
       id: "status",
       label: "状态",
+      param: "status_in",
       options: (Object.keys(CONTRACT_STATUS_META) as ContractItem["status"][]).map((s) => ({
         value: s,
         label: CONTRACT_STATUS_META[s].label,
       })),
-      get: (c) => c.status,
     },
     {
       id: "overdue",
@@ -158,24 +159,11 @@ export function contractFilters(rows: ContractItem[]): FilterDef<ContractItem>[]
         { value: "overdue", label: "有逾期" },
         { value: "ok", label: "无逾期" },
       ],
-      get: (c) => (c.overdue_amount > 0 ? "overdue" : "ok"),
     },
-    {
-      id: "customer",
-      label: "客户",
-      options: optionsFromRows(rows, (c) => c.customer?.name),
-      get: (c) => c.customer?.name ?? null,
-    },
-    {
-      id: "owner",
-      label: "负责人",
-      options: optionsFromRows(rows, (c) => ownerName(c.owner)),
-      get: (c) => ownerName(c.owner),
-    },
+    { id: "customer", label: "客户", param: "customer_in", options: facets?.customer ?? [] },
+    { id: "owner", label: "负责人", param: "owner_in", options: facets?.owner ?? [] },
   ]
 }
-
-export const contractSort: SortAccessors<ContractItem> = { updated: (c) => c.created_at, amount: (c) => c.amount }
 
 export const contractCsv: CsvColumn<ContractItem>[] = [
   { label: "合同编号", value: (c) => c.code },

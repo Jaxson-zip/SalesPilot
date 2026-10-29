@@ -19,9 +19,11 @@ import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 50
 
-/** 操作类别 → action 前缀（服务端按前缀筛选） */
+/** 操作类别 → action 前缀（服务端按前缀筛选）；默认不看登录（登录记录多，会把业务操作挤到后面） */
+const NO_LOGIN = "business"
 const CATEGORIES = [
-  { value: "all", label: "全部操作" },
+  { value: NO_LOGIN, label: "业务操作（不含登录）" },
+  { value: "all", label: "全部操作（含登录）" },
   { value: "contact.phone_view", label: "查看电话" },
   { value: "export.", label: "导出数据" },
   { value: "settings.", label: "修改业务规则" },
@@ -77,13 +79,14 @@ function Row({ item }: { item: AuditItem }) {
 function AuditContent() {
   const [text, setText] = useState("")
   const q = useDebounced(text.trim(), 300)
-  const [category, setCategory] = useState<string>("all")
+  const [category, setCategory] = useState<string>(NO_LOGIN)
   const [result, setResult] = useState<"all" | "ok" | "failed">("all")
   const [source, setSource] = useState<"all" | "web" | "agent">("all")
   const [page, setPage] = useState(1)
   const query = useAuditLogs({
     q,
-    action: category === "all" ? undefined : category,
+    action: category === "all" || category === NO_LOGIN ? undefined : category,
+    exclude: category === NO_LOGIN ? "auth." : undefined,
     result: result === "all" ? undefined : result,
     source: source === "all" ? undefined : source,
     page,
@@ -116,7 +119,7 @@ function AuditContent() {
           onChange={reset(setCategory)}
           size="sm"
           ariaLabel="操作类别"
-          className="w-36"
+          className="w-44"
           options={CATEGORIES.map((c) => ({ value: c.value, label: c.label }))}
         />
         <SimpleSelect

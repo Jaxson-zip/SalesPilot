@@ -74,3 +74,19 @@ export function useDecideApproval() {
     onError: notifyError,
   })
 }
+
+export interface RemindIn {
+  target_type: "quote" | "expense"
+  target_id: string
+}
+
+/** POST /api/approvals/remind：负责人催办（站内通知本团队主管，30 分钟一次） */
+export function useRemindApproval() {
+  return useMutation({
+    mutationFn: (body: RemindIn) => api.post<{ notified: number }>("/api/approvals/remind", body),
+    onSuccess: (r) => {
+      toast.success(r.notified > 0 ? "已提醒主管尽快审批" : "团队里暂时没有主管可以提醒")
+    },
+    onError: notifyError,
+  })
+}

@@ -3,6 +3,7 @@
 提交规则：
 - 票据前置条件：必备票据（rules.yaml expense.required_kinds）不全 → 42201 expense_missing_invoice
 - 制度校验通过 → approved；超标 → pending_approval 并创建审批
+- 拆单：同一人、同一客户、同一天已提交的客户招待合并计算人均，合计超标同样进入审批
 - 同一 idempotency_key 重复新建、或对已提交的报销单再次提交 → 40901（不会重复创建审批）
 """
 
@@ -199,6 +200,44 @@ def get_expense(db: Session, user: CurrentUser, expense_id: uuid.UUID) -> Expens
     )
 
 
+SPLIT_STATUSES = ("approved", "pending_approval")
+
+
+def split_check(db: Session, expense: Expense, rules: RuleSet) -> tuple[PolicyCheck, str] | None:
+    """同一人、同一客户、同一天的客户招待合并算人均（一顿饭拆成几张单各自不超标）。
+
+    人数取几张单里最多的（同一顿饭的参与人），合计超标时返回合并后的校验结果和原因。
+    """
+    if expense.type != "entertainment" or expense.customer_id is None:
+        return None
+    others = list(
+        db.scalars(
+            select(Expense).where(
+                Expense.id != expense.id,
+                Expense.owner_id == expense.owner_id,
+                Expense.customer_id == expense.customer_id,
+                Expense.occurred_on == expense.occurred_on,
+                Expense.type == "entertainment",
+                Expense.status.in_(SPLIT_STATUSES),
+            )
+        )
+    )
+    if not others:
+        return None
+    total = expense.amount + sum(e.amount for e in others)
+    headcount = max([expense.headcount, *(e.headcount for e in others)])
+    merged = policy_check("entertainment", total, headcount, rules)
+    if merged.passed:
+        return None
+    codes = "、".join(e.code for e in others)
+    reason = (
+        f"同一天同一客户已有招待报销 {codes}，合计 ¥{total / 100:,.0f}、"
+        f"人均 ¥{merged.per_person / 100:.0f} 超出标准 ¥{merged.limit_per_person / 100:.0f}/人，"
+        "疑似拆单，需主管审批"
+    )
+    return merged, reason
+
+
 def missing_kinds(db: Session, expense: Expense, rules: RuleSet) -> list[str]:
     have = {a.kind for a in attachment_query.rows_for(db, "expense", expense.id)}
     return [k for k in rules.expense.kinds_for(expense.type) if k not in have]
@@ -226,6 +265,9 @@ def submit_expense(
     reason = check_expense_policy(
         expense.amount, expense.headcount, expense.type, rules, expense.details
     ).reason
+    if check.passed and (split := split_check(db, expense, rules)):
+        check, reason = split
+        expense.policy_check = check.model_dump()
     if check.passed:
         expense.status = "approved"
         content = f"提交报销单，制度校验通过：{reason}"

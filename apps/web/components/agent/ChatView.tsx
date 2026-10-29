@@ -65,7 +65,19 @@ export function ChatView({
       stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
     }
     const follow = () => {
-      if (stick.current) el.scrollTop = el.scrollHeight
+      if (!stick.current) return
+      // 新出现的锚点（三档方案卡）：滚到它的顶部并停止跟随，后面的说明和确认卡往下翻看
+      const anchor = content.querySelector<HTMLElement>("[data-scroll-anchor]:not([data-anchored])")
+      if (anchor) {
+        anchor.dataset.anchored = ""
+        const offset = anchor.getBoundingClientRect().top - el.getBoundingClientRect().top
+        if (offset > 0 && anchor.offsetHeight > 0) {
+          el.scrollTop += offset - 16
+          stick.current = false
+          return
+        }
+      }
+      el.scrollTop = el.scrollHeight
     }
     follow()
     el.addEventListener("scroll", onScroll, { passive: true })

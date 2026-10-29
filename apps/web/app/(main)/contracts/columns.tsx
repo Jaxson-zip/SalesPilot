@@ -54,6 +54,8 @@ export function contractColumns(
       id: "customer",
       label: "客户",
       icon: Building2,
+      // 列多：客户按比例给宽度（避免公司名被截成三个字），其余列平分
+      width: "w-[14%]",
       cell: (c) => (c.customer ? <Chip name={c.customer.name} logo={c.customer.name.slice(0, 1)} /> : "—"),
     },
     { id: "amount", label: "合同金额", icon: Coins, align: "right", cell: (c) => formatFen(c.amount) },
@@ -67,14 +69,14 @@ export function contractColumns(
       id: "next_payment",
       label: "下期回款",
       icon: CalendarClock,
-      width: "w-[250px]",
+      width: "w-[230px]",
       cell: (c) => <NextPaymentCell c={c} />,
     },
     {
       id: "quote",
       label: "报价单",
       icon: Hash,
-      secondary: true,
+      secondary: "wide",
       cell: (c) =>
         c.quote ? (
           <Link href={`/quotes/${c.quote.id}`} className="hover:underline">
@@ -96,7 +98,7 @@ export function contractColumns(
       label: "已确认提成",
       icon: Wallet,
       align: "right",
-      secondary: true,
+      secondary: "wide",
       cell: (c) => formatFen(c.commission.confirmed),
     },
     {
@@ -104,6 +106,7 @@ export function contractColumns(
       label: "状态",
       icon: CircleDot,
       status: true,
+      width: "w-[84px]",
       cell: (c) => {
         const m = labelOf(CONTRACT_STATUS_META, c.status)
         return <Tag color={m.color}>{m.label}</Tag>

@@ -18,6 +18,7 @@ from app.common.auth import CurrentUserDep
 from app.common.errors import BizError, ErrorCode
 from app.common.response import ApiResponse, ok
 from app.crm.routers.deps import DbDep
+from app.crm.services import usage_service
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
 
@@ -46,6 +47,7 @@ def _request_id(request: Request) -> str:
 
 @router.post("/chat")
 async def chat(body: ChatIn, user: CurrentUserDep, request: Request) -> EventSourceResponse:
+    await run_in_threadpool(usage_service.ensure_daily_quota, user)
     deps = service.build_deps(user, body.thread_id, _request_id(request), body.model)
     run = await run_in_threadpool(
         service.prepare_chat,
@@ -71,6 +73,7 @@ def extract_material(
     user: CurrentUserDep, request: Request, file: Annotated[UploadFile, File()]
 ) -> ApiResponse[materials.MaterialOut]:
     """一手材料 → 文字（不入库）：文本 / Word / PDF 本地解析，图片走视觉模型识别。"""
+    usage_service.ensure_daily_quota(user)
     content = file.file.read(materials.MAX_BYTES + 1)
     return ok(materials.extract(file.filename or "", content, _request_id(request)))
 
@@ -80,6 +83,7 @@ def analyze_sample(
     user: CurrentUserDep, request: Request, file: Annotated[UploadFile, File()]
 ) -> ApiResponse[sample_lib.SampleItem]:
     """客户样例图片 → 单据类型、字段名、清晰度（一次一张，不入库）。"""
+    usage_service.ensure_daily_quota(user)
     content = file.file.read(materials.MAX_BYTES + 1)
     return ok(sample_lib.analyze(file.filename or "", content, _request_id(request)))
 

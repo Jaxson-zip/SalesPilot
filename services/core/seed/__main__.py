@@ -19,7 +19,7 @@ from seed.business import seed_business
 
 logger = logging.getLogger("seed")
 
-# --reset 清空的业务表（保留组织、产品线、知识库，以及管理员在网页上改的配置 config_overrides）。录演示视频前用它去掉测试和试用产生的数据。
+# --reset 清空的业务表，录演示视频前用它去掉测试和试用产生的数据。
 RESET_TABLES = (
     "notifications",
     "tasks",
@@ -39,6 +39,17 @@ RESET_TABLES = (
     "agent_threads",
     "daily_reports",
     "ai_usage",
+    "audit_logs",  # 日报草稿按今天的操作日志汇总，不清会把测试时的操作算进演示数据
+)
+# 重置时保留：组织、行业包配置、竞品战卡、知识库、外部集成
+KEEP_TABLES = (
+    "users",
+    "teams",
+    "product_lines",
+    "config_overrides",
+    "competitors",
+    "kb_chunks",
+    "integrations",
 )
 
 

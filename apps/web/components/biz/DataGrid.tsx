@@ -16,8 +16,8 @@ export interface GridColumn<T> {
   cell: (row: T) => ReactNode
   /** 数字列：右对齐 + tabular-nums */
   align?: "right"
-  /** 次要列（原型里的 `lg`）：<1024 隐藏 */
-  secondary?: boolean
+  /** 次要列（原型里的 `lg`）：<1024 隐藏；"wide" 表示列多的表格里 <1360 就隐藏 */
+  secondary?: boolean | "wide"
   /** 状态列：手机卡片里放右上角 */
   status?: boolean
   /** 列宽（Tailwind 类，如 w-[220px]）；不填则平分剩余宽度 */
@@ -38,7 +38,8 @@ interface DataGridProps<T> {
   onSelectionChange?: (next: SelectionState) => void
 }
 
-const hideSecondary = (c: { secondary?: boolean }) => (c.secondary ? "hidden lg:table-cell" : "")
+const hideSecondary = (c: { secondary?: boolean | "wide" }) =>
+  c.secondary === "wide" ? "hidden min-[1360px]:table-cell" : c.secondary ? "hidden lg:table-cell" : ""
 const SKELETON_ROWS = Array.from({ length: 8 }, (_, i) => i)
 /** 勾选列：左边距 12px（离面板边缘），勾选框 16px，右侧 8px 与首列内容隔开 */
 const CHECK_CELL = "w-9 border-b pl-3 pr-2 text-left align-middle"

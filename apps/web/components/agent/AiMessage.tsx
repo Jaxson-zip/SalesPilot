@@ -100,7 +100,12 @@ export function AiMessage({
         ) : null}
         {showCards
           ? turn.artifacts.map((a) => (
-              <div key={a.id} className={cn(animate && "animate-in fade-in slide-in-from-bottom-1 duration-300")}>
+              <div
+                key={a.id}
+                // 三档方案卡：出来时滚到卡片顶部（下面还有确认卡，一直跟到底会把方案顶出视口）
+                data-scroll-anchor={!readonly && a.type === "solution_tiers" ? "" : undefined}
+                className={cn(animate && "animate-in fade-in slide-in-from-bottom-1 duration-300")}
+              >
                 <ArtifactView artifact={a} onConfirmRequirement={onConfirmRequirement} readonly={readonly || busy} />
               </div>
             ))

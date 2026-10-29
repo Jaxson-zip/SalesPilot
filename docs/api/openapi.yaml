@@ -84,6 +84,15 @@ paths:
             maxLength: 60
           - type: 'null'
           title: Action
+      - name: exclude
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 60
+          - type: 'null'
+          title: Exclude
       - name: user_id
         in: query
         required: false
@@ -780,7 +789,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RemindIn'
+              $ref: '#/components/schemas/app__crm__services__report_service__RemindIn'
       responses:
         '200':
           description: Successful Response
@@ -3058,6 +3067,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_Page_ApprovalItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/approvals/remind:
+    post:
+      tags:
+      - approvals
+      summary: Remind
+      description: 报价 / 报销待审批时，负责人提醒本团队主管（站内通知，30 分钟一次）。
+      operationId: remind_api_approvals_remind_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/app__crm__services__approval_remind__RemindIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_RemindOut_'
         '422':
           description: Validation Error
           content:
@@ -5409,6 +5453,31 @@ components:
           default: ''
       type: object
       title: ApiResponse[QuoteDetail]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_RemindOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/RemindOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[RemindOut]
       required:
       - code
       - message
@@ -9727,16 +9796,15 @@ components:
       - owner
       - created_at
       title: QuoteListItem
-    RemindIn:
+    RemindOut:
       properties:
-        date:
-          anyOf:
-          - type: string
-            format: date
-          - type: 'null'
-          title: Date
+        notified:
+          type: integer
+          title: Notified
       type: object
-      title: RemindIn
+      required:
+      - notified
+      title: RemindOut
     RequirementOut:
       properties:
         pack:
@@ -10919,3 +10987,30 @@ components:
       - ok
       - error
       title: WecomPush
+    app__crm__services__approval_remind__RemindIn:
+      properties:
+        target_type:
+          type: string
+          enum:
+          - quote
+          - expense
+          title: Target Type
+        target_id:
+          type: string
+          format: uuid
+          title: Target Id
+      type: object
+      required:
+      - target_type
+      - target_id
+      title: RemindIn
+    app__crm__services__report_service__RemindIn:
+      properties:
+        date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date
+      type: object
+      title: RemindIn

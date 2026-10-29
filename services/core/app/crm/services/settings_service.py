@@ -224,6 +224,15 @@ GLOBAL_FIELDS: list[SettingField] = [
         help="超过 80% 时 AI 用量页提醒；0 表示不设，不会拦截调用",
     ),
     _f("ai_usage.team_monthly_budget", "每个团队月度预算", "AI 用量", "money", min=0),
+    _f(
+        "ai_usage.user_daily_tokens",
+        "每人每日 tokens 上限",
+        "AI 用量",
+        "int",
+        unit="tokens",
+        min=0,
+        help="超过后当天不能再发起 AI 对话、识别和日报草稿（已在确认中的操作不受影响）；0 表示不限",
+    ),
 ]
 
 

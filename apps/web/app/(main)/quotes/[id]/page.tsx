@@ -5,6 +5,7 @@ import { useParams } from "next/navigation"
 import { useState } from "react"
 
 import { BomTable } from "@/components/agent/BomTable"
+import { RemindButton } from "@/components/approvals/RemindButton"
 import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { Crumb, FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { QueryError } from "@/components/biz/QueryStatus"
@@ -148,6 +149,9 @@ export default function QuoteDetailPage() {
           <>
             <FrameAction icon={Printer} label="打印报价单" href={`/quotes/${encodeURIComponent(q.id)}/print`} />
             {buttons}
+            {q && q.status === "pending_approval" && canEdit(q.owner?.id) ? (
+              <RemindButton targetType="quote" targetId={q.id} />
+            ) : null}
           </>
         ) : null
       }

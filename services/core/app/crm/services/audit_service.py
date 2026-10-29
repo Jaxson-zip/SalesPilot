@@ -73,6 +73,7 @@ ROUTES: dict[tuple[str, str], tuple[str, str]] = {
     ("POST", "/api/expenses/{id}/attachments"): ("attachment.upload", "上传票据"),
     ("DELETE", "/api/attachments/{id}"): ("attachment.delete", "删除票据"),
     ("POST", "/api/approvals/{id}/decide"): ("approval.decide", "审批"),
+    ("POST", "/api/approvals/remind"): ("approval.remind", "催办审批"),
     ("PUT", "/api/product-lines/{id}"): ("product_line.update", "修改产品线"),
     ("PUT", "/api/settings/rules"): ("settings.rules", "修改业务规则"),
     ("PUT", "/api/packs/{id}/settings"): ("pack.settings", "修改行业包规则"),
@@ -186,6 +187,7 @@ class AuditItem(BaseModel):
 class AuditFilter(BaseModel):
     q: str | None = None
     action: str | None = None
+    exclude: str | None = None  # 排除的 action 前缀（如 auth. 不看登录）
     user_id: uuid.UUID | None = None
     ok: bool | None = None
     source: Literal["web", "agent"] | None = None
@@ -208,6 +210,8 @@ def list_logs(
         stmt = stmt.where(AuditLog.team_id == user.team_id)
     if f.action:
         stmt = stmt.where(AuditLog.action.startswith(f.action))
+    if f.exclude:
+        stmt = stmt.where(~AuditLog.action.startswith(f.exclude))
     if f.user_id:
         stmt = stmt.where(AuditLog.user_id == f.user_id)
     if f.ok is not None:

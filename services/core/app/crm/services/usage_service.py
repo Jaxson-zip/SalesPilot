@@ -8,12 +8,34 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser, Role
+from app.common.db import session_scope
 from app.common.errors import BizError, ErrorCode
 from app.crm.models import AiUsage, User
 from app.crm.services.codes import LOCAL_TZ, local_today
 from app.rules import load_rules
 
 Period = Literal["7d", "30d", "month"]
+
+
+def tokens_today(db: Session, user_id: Any) -> int:
+    start = datetime.combine(local_today(), time.min, tzinfo=LOCAL_TZ)
+    stmt = select(func.coalesce(func.sum(AiUsage.prompt_tokens + AiUsage.completion_tokens), 0))
+    return int(db.scalar(stmt.where(AiUsage.user_id == user_id, AiUsage.created_at >= start)) or 0)
+
+
+def ensure_daily_quota(user: CurrentUser) -> None:
+    """每人每日 tokens 上限（ai_usage.user_daily_tokens）：发起新的 AI 调用前检查，超过 42901。"""
+    limit = load_rules().ai_usage.user_daily_tokens
+    if limit <= 0:
+        return
+    with session_scope() as db:
+        used = tokens_today(db, user.id)
+    if used >= limit:
+        raise BizError(
+            ErrorCode.RATE_LIMITED,
+            f"今天的 AI 用量已达上限（{limit:,} tokens），明天恢复；如需提高请联系管理员",
+            {"rule": "ai_daily_quota", "used": used, "limit": limit},
+        )
 
 
 class UsageRow(BaseModel):

@@ -28,6 +28,7 @@ def list_audit_logs(
     db: DbDep,
     q: Annotated[str | None, Query(max_length=100)] = None,
     action: Annotated[str | None, Query(max_length=60)] = None,
+    exclude: Annotated[str | None, Query(max_length=60)] = None,
     user_id: uuid.UUID | None = None,
     result: Literal["ok", "failed"] | None = None,
     source: Literal["web", "agent"] | None = None,
@@ -41,6 +42,7 @@ def list_audit_logs(
         {
             "q": q,
             "action": action,
+            "exclude": exclude,
             "user_id": user_id,
             "ok": None if result is None else result == "ok",
             "source": source,

@@ -41,11 +41,19 @@ export const quoteColumns: GridColumn<QuoteItem>[] = [
       </>
     ),
   },
-  { id: "amount", label: "金额", icon: Coins, align: "right", cell: (q) => formatFen(q.total_price) },
+  {
+    id: "amount",
+    label: "金额",
+    icon: Coins,
+    width: "w-[120px]",
+    align: "right",
+    cell: (q) => formatFen(q.total_price),
+  },
   {
     id: "margin",
     label: "毛利率",
     icon: Percent,
+    width: "w-[90px]",
     align: "right",
     // 是否低于底线由 core 判断（status=pending_approval），前端不硬编码阈值
     cell: (q) => (
@@ -58,6 +66,7 @@ export const quoteColumns: GridColumn<QuoteItem>[] = [
     id: "status",
     label: "状态",
     icon: CircleDot,
+    width: "w-[110px]",
     status: true,
     cell: (q) => {
       const m = labelOf(QUOTE_STATUS_META, q.status)
@@ -68,6 +77,7 @@ export const quoteColumns: GridColumn<QuoteItem>[] = [
     id: "owner",
     label: "负责人",
     icon: User,
+    width: "w-[140px]",
     secondary: true,
     // 负责人是谁就写谁；AI 生成的单子另加小标记（原来只显示「AI」，主管分不清是谁的单）
     cell: (q) => (
@@ -82,7 +92,14 @@ export const quoteColumns: GridColumn<QuoteItem>[] = [
       </span>
     ),
   },
-  { id: "created", label: "创建时间", icon: Calendar, secondary: true, cell: (q) => formatRelative(q.created_at) },
+  {
+    id: "created",
+    label: "创建时间",
+    icon: Calendar,
+    width: "w-[110px]",
+    secondary: true,
+    cell: (q) => formatRelative(q.created_at),
+  },
 ]
 
 /* ---------- ViewBar：筛选 / 排序 / 导出 ---------- */

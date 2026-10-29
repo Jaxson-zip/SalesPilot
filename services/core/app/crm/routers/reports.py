@@ -9,7 +9,7 @@ from starlette.concurrency import run_in_threadpool
 from app.common.auth import CurrentUserDep
 from app.common.response import ApiResponse, ok
 from app.crm.routers.deps import DbDep
-from app.crm.services import report_service
+from app.crm.services import report_service, usage_service
 from app.crm.services.codes import local_today
 from app.crm.services.report_service import (
     DailyReportIn,
@@ -45,6 +45,7 @@ async def draft_daily(
     body: DraftIn, user: CurrentUserDep, db: DbDep, request: Request
 ) -> ApiResponse[DraftOut]:
     """AI 按当天事实写草稿（不保存）；无模型时按模板。"""
+    await run_in_threadpool(usage_service.ensure_daily_quota, user)
     d = body.date or local_today()
     out = await run_in_threadpool(report_service.draft_daily, db, user, d, _llm(request))
     return ok(out)

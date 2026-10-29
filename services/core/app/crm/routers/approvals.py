@@ -1,4 +1,4 @@
-"""审批接口（接口契约 §6，仅 manager；角色校验在 approval_service）。"""
+"""审批接口（接口契约 §6，仅 manager；角色校验在 approval_service）；催办由单据负责人发起。"""
 
 import uuid
 from typing import Literal
@@ -10,7 +10,7 @@ from app.common.response import ApiResponse, ok
 from app.crm.routers.deps import DbDep, PageDep
 from app.crm.schemas.common import Page
 from app.crm.schemas.finance import ApprovalDecision, ApprovalItem
-from app.crm.services import approval_service
+from app.crm.services import approval_remind, approval_service
 
 router = APIRouter(prefix="/api/approvals", tags=["approvals"])
 
@@ -23,6 +23,14 @@ def list_approvals(
     status: Literal["pending", "done"] | None = None,
 ) -> ApiResponse[Page[ApprovalItem]]:
     return ok(approval_service.list_approvals(db, user, status, page))
+
+
+@router.post("/remind", response_model=ApiResponse[approval_remind.RemindOut])
+def remind(
+    body: approval_remind.RemindIn, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[approval_remind.RemindOut]:
+    """报价 / 报销待审批时，负责人提醒本团队主管（站内通知，30 分钟一次）。"""
+    return ok(approval_remind.remind(db, user, body))
 
 
 @router.post("/{approval_id}/decide", response_model=ApiResponse[ApprovalItem])

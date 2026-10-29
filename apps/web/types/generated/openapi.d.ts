@@ -1125,6 +1125,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/approvals/remind": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Remind
+     * @description 报价 / 报销待审批时，负责人提醒本团队主管（站内通知，30 分钟一次）。
+     */
+    post: operations["remind_api_approvals_remind_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/approvals/{approval_id}/decide": {
     parameters: {
       query?: never
@@ -2479,6 +2499,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["QuoteDetail"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[RemindOut] */
+    ApiResponse_RemindOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["RemindOut"] | null
       /**
        * Request Id
        * @default
@@ -4825,10 +4864,10 @@ export interface components {
        */
       created_at: string
     }
-    /** RemindIn */
-    RemindIn: {
-      /** Date */
-      date?: string | null
+    /** RemindOut */
+    RemindOut: {
+      /** Notified */
+      notified: number
     }
     /** RequirementOut */
     RequirementOut: {
@@ -5468,6 +5507,24 @@ export interface components {
       /** Error */
       error: string | null
     }
+    /** RemindIn */
+    app__crm__services__approval_remind__RemindIn: {
+      /**
+       * Target Type
+       * @enum {string}
+       */
+      target_type: "quote" | "expense"
+      /**
+       * Target Id
+       * Format: uuid
+       */
+      target_id: string
+    }
+    /** RemindIn */
+    app__crm__services__report_service__RemindIn: {
+      /** Date */
+      date?: string | null
+    }
   }
   responses: never
   parameters: never
@@ -5546,6 +5603,7 @@ export interface operations {
       query?: {
         q?: string | null
         action?: string | null
+        exclude?: string | null
         user_id?: string | null
         result?: ("ok" | "failed") | null
         source?: ("web" | "agent") | null
@@ -6170,7 +6228,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        "application/json": components["schemas"]["RemindIn"]
+        "application/json": components["schemas"]["app__crm__services__report_service__RemindIn"]
       }
     }
     responses: {
@@ -8081,6 +8139,41 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_Page_ApprovalItem__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  remind_api_approvals_remind_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["app__crm__services__approval_remind__RemindIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_RemindOut_"]
         }
       }
       /** @description Validation Error */

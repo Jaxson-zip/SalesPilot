@@ -246,3 +246,44 @@ def test_precheck_hotel_other_city(client: TestClient) -> None:
     data = client.post("/api/expenses/precheck", json=body, headers=SALES_H).json()["data"]
     assert data["unit"] == "night" and data["limit_per_person"] == 35_000
     assert data["need_approval"] is False
+
+
+def test_split_entertainment_goes_to_approval(client: TestClient, tracker: Tracker) -> None:
+    """一顿 ¥1,200 / 4 人的饭拆成两张 ¥600：单张不超标，合并人均 ¥300 超标 → 第二张进审批。"""
+    day = {"occurred_on": "2026-09-03"}
+    first = new_expense(client, tracker, amount=60_000, **day)
+    with_receipts(client, first["id"])
+    r = client.post(f"/api/expenses/{first['id']}/submit", headers=SALES_H).json()
+    assert r["data"]["status"] == "approved"
+    second = new_expense(client, tracker, amount=60_000, **day)
+    assert second["policy_check"]["passed"]  # 单看这一张不超标
+    with_receipts(client, second["id"])
+    r = client.post(f"/api/expenses/{second['id']}/submit", headers=SALES_H).json()
+    data = r["data"]
+    assert data["status"] == "pending_approval"
+    assert data["policy_check"]["passed"] is False and data["policy_check"]["per_person"] == 30_000
+    pending = client.get("/api/approvals?status=pending&page_size=100", headers=MANAGER_H)
+    approval = next(a for a in pending.json()["data"]["items"] if a["target"]["id"] == second["id"])
+    assert first["code"] in approval["reason"] and "拆单" in approval["reason"]
+    assert approval["target"]["over_amount"] == 60_000
+    # 另一天的同类招待不受影响
+    other = new_expense(client, tracker, amount=60_000, occurred_on="2026-09-04")
+    with_receipts(client, other["id"])
+    r = client.post(f"/api/expenses/{other['id']}/submit", headers=SALES_H).json()
+    assert r["data"]["status"] == "approved"
+
+
+def test_owner_can_remind_manager_once_per_half_hour(client: TestClient, tracker: Tracker) -> None:
+    e = new_expense(client, tracker, amount=86_000, occurred_on="2026-09-05")
+    body = {"target_type": "expense", "target_id": e["id"]}
+    early = client.post("/api/approvals/remind", json=body, headers=SALES_H).json()
+    assert early["code"] == 42201 and early["data"]["rule"] == "approval_not_pending"
+    with_receipts(client, e["id"])
+    client.post(f"/api/expenses/{e['id']}/submit", headers=SALES_H)
+    assert client.post("/api/approvals/remind", json=body, headers=SALES2_H).json()["code"] != 0
+    r = client.post("/api/approvals/remind", json=body, headers=SALES_H).json()
+    assert r["code"] == 0 and r["data"]["notified"] >= 1
+    notes = client.get("/api/notifications", headers=MANAGER_H).json()["data"]["items"]
+    assert any(n["type"] == "approval_remind" and e["code"] in n["title"] for n in notes)
+    again = client.post("/api/approvals/remind", json=body, headers=SALES_H).json()
+    assert again["code"] == 42201 and "分钟后可以再催" in again["message"]

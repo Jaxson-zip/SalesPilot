@@ -4,6 +4,7 @@ import { CircleAlert } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import { RemindButton } from "@/components/approvals/RemindButton"
 import { Alert } from "@/components/biz/Alert"
 import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { FormField } from "@/components/biz/FormControls"
@@ -155,9 +156,14 @@ export function ExpenseSheet({
       </Button>
     </>
   ) : (
-    <Button variant="outline" onClick={close}>
-      关闭
-    </Button>
+    <>
+      {exp?.status === "pending_approval" && canEdit(exp.owner?.id) ? (
+        <RemindButton targetType="expense" targetId={exp.id} />
+      ) : null}
+      <Button variant="outline" onClick={close}>
+        关闭
+      </Button>
+    </>
   )
 
   return (

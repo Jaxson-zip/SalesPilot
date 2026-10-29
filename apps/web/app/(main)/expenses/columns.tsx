@@ -26,13 +26,21 @@ export function expenseColumns(onOpen: (e: ExpenseItem) => void): GridColumn<Exp
       id: "type",
       label: "类型",
       icon: TagIcon,
+      width: "w-[100px]",
       cell: (e) => {
         const m = labelOf(EXPENSE_TYPE_META, e.type)
         return <Tag color={m.color}>{m.label}</Tag>
       },
     },
-    { id: "amount", label: "金额", icon: Coins, align: "right", cell: (e) => formatFen(e.amount) },
-    { id: "date", label: "发生日期", icon: Calendar, secondary: true, cell: (e) => e.occurred_on.slice(5, 10) },
+    { id: "amount", label: "金额", icon: Coins, width: "w-[110px]", align: "right", cell: (e) => formatFen(e.amount) },
+    {
+      id: "date",
+      label: "发生日期",
+      icon: Calendar,
+      width: "w-[100px]",
+      secondary: true,
+      cell: (e) => e.occurred_on.slice(5, 10),
+    },
     {
       id: "customer",
       label: "关联客户",
@@ -50,6 +58,7 @@ export function expenseColumns(onOpen: (e: ExpenseItem) => void): GridColumn<Exp
       id: "attachments",
       label: "票据",
       icon: Paperclip,
+      width: "w-[90px]",
       cell: (e) =>
         e.attachment_count > 0 ? (
           <span className="inline-flex h-5 items-center gap-1 rounded bg-zinc-100 px-1.5 text-zinc-600">
@@ -69,6 +78,7 @@ export function expenseColumns(onOpen: (e: ExpenseItem) => void): GridColumn<Exp
       id: "status",
       label: "状态",
       icon: CircleDot,
+      width: "w-[150px]",
       status: true,
       cell: (e) => {
         const m = labelOf(EXPENSE_STATUS_META, e.status)

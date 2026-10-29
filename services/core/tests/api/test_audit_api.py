@@ -161,3 +161,20 @@ def test_agent_write_tool_is_logged() -> None:
         )
         assert rows and rows[-1].action == "followup.create" and not rows[-1].ok
         db.execute(delete(AuditLog).where(AuditLog.extra["thread_id"].astext == "t-audit"))
+
+
+def test_audit_list_can_hide_logins(client: TestClient) -> None:
+    marker = f"login-{uuid.uuid4().hex[:6]}"
+    with session_scope() as db:
+        db.add(AuditLog(action="auth.login", label="登录", detail=marker, ok=True, status=200))
+    try:
+        params = {"q": marker}
+        shown = client.get("/api/audit-logs", params=params, headers=ADMIN_H).json()["data"]
+        assert shown["total"] == 1
+        hidden = client.get(
+            "/api/audit-logs", params={**params, "exclude": "auth."}, headers=ADMIN_H
+        ).json()["data"]
+        assert hidden["total"] == 0
+    finally:
+        with session_scope() as db:
+            db.execute(delete(AuditLog).where(AuditLog.detail == marker))

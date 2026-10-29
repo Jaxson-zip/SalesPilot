@@ -117,12 +117,13 @@ class MeddicRules(BaseModel):
 
 
 class AiUsageRules(BaseModel):
-    """AI 成本估算：按 token 单价（元 / 百万 tokens）；预算只做提醒，不拦截调用。"""
+    """AI 成本估算：按 token 单价（元 / 百万 tokens）；预算只做提醒，每人每日额度会拦截。"""
 
     input_price_per_million: float = 2.0
     output_price_per_million: float = 8.0
     monthly_budget: int = 50_000  # 全公司每月预算（分），0 表示不设
     team_monthly_budget: int = 0  # 每个团队每月预算（分），0 表示不设
+    user_daily_tokens: int = 2_000_000  # 每人每天 tokens 上限，超过后当天不能再发起 AI 调用；0 不限
 
 
 class RuleSet(BaseModel):

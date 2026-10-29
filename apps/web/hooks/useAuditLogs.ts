@@ -24,6 +24,8 @@ export interface AuditItem {
 export interface AuditParams {
   q?: string
   action?: string
+  /** 排除的 action 前缀 */
+  exclude?: string
   result?: "ok" | "failed"
   source?: "web" | "agent"
   page: number
@@ -40,6 +42,7 @@ export function useAuditLogs(params: AuditParams) {
         {
           q: params.q || undefined,
           action: params.action || undefined,
+          exclude: params.exclude || undefined,
           result: params.result,
           source: params.source,
           page: params.page,

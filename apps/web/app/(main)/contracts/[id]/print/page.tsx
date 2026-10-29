@@ -15,16 +15,21 @@ import {
   TermsList,
   useDocTitle,
 } from "@/components/biz/PrintSheet"
+import { ChatMarkdown } from "@/components/agent/ChatMarkdown"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { useContract, usePaymentPlan } from "@/hooks/useContracts"
 import { useCustomer } from "@/hooks/useCustomers"
+import { usePrd } from "@/hooks/usePrd"
 import { useQuote } from "@/hooks/useQuotes"
+import { useOpportunityRequirement } from "@/hooks/useRequirement"
 import { useTemplates } from "@/hooks/useTemplates"
 import { contractDocTitle, planGap, planRatio } from "@/lib/contract-print"
 import { formatFen } from "@/lib/format"
+import { prdForPrint, sowScope } from "@/lib/contract-print"
 import { PRINT_COMPANY } from "@/lib/quote-print"
 import { fenToRmbUpper } from "@/lib/rmb"
 import type { ContractItem } from "@/types/api"
@@ -93,6 +98,57 @@ function Plan({ c }: { c: ContractItem }) {
   )
 }
 
+/**
+ * 附件一：需求范围说明书（SOW）。商机上生成过 PRD 时附 PRD 全文，否则按已确认的需求清单列出功能范围；
+ * 都没有时不显示。另起一页打印。
+ */
+function SowAppendix({ c }: { c: ContractItem }) {
+  const quote = useQuote(c.quote?.id ?? "")
+  const oppId = quote.data?.opportunity?.id ?? ""
+  const prd = usePrd(oppId, Boolean(oppId))
+  const req = useOpportunityRequirement(oppId || null)
+  const scope = req.data?.confirmed ? sowScope(req.data.data) : null
+  if (!prd.data && !scope) return null
+  return (
+    <PrintPaper>
+      <section aria-label="附件一 需求范围说明书" className="break-before-page">
+        <div className="border-b-2 border-zinc-900 pb-3 text-lg font-semibold">
+          附件一：需求范围说明书（SOW）
+          <span className="ml-2 text-xs font-normal text-zinc-500">合同 {c.code} 的组成部分</span>
+        </div>
+        {prd.data ? (
+          <div className="prose-chat mt-4 text-[12px] break-words">
+            <ChatMarkdown text={prdForPrint(prd.data.markdown)} />
+          </div>
+        ) : scope ? (
+          <div className="mt-4 space-y-3">
+            <Meta label="交付端" value={scope.platforms || "—"} />
+            <table className="w-full table-fixed border-collapse">
+              <thead>
+                <tr className="bg-zinc-100 text-left">
+                  <th className={`${TD} font-medium`}>功能模块</th>
+                  <th className={`${TD} w-24 font-medium`}>阶段</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scope.modules.map((m) => (
+                  <tr key={m.name}>
+                    <td className={TD}>{m.name}</td>
+                    <td className={TD}>{m.phase}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="text-zinc-600">
+              上表以外的功能、与第三方系统的对接不在本合同范围内；需求变更按双方确认的变更单另行计价。
+            </p>
+          </div>
+        ) : null}
+      </section>
+    </PrintPaper>
+  )
+}
+
 function ContractSheet({ c }: { c: ContractItem }) {
   const customer = useCustomer(c.customer?.id ?? "")
   const terms = useTemplates().data?.contract_terms ?? []
@@ -145,6 +201,7 @@ export default function ContractPrintPage() {
   const contractId = decodeURIComponent(id)
   const query = useContract(contractId)
   const c = query.data
+  const [withSow, setWithSow] = useState(true)
   useDocTitle(c ? contractDocTitle(c) : null)
 
   let body
@@ -155,7 +212,13 @@ export default function ContractPrintPage() {
         <QueryError error={query.error} onRetry={() => void query.refetch()} feature="合同" />
       </div>
     )
-  else body = <ContractSheet c={query.data} />
+  else
+    body = (
+      <>
+        <ContractSheet c={query.data} />
+        {withSow && query.data.quote ? <SowAppendix c={query.data} /> : null}
+      </>
+    )
 
   return (
     <PrintPortal>
@@ -167,6 +230,16 @@ export default function ContractPrintPage() {
           </Link>
         </Button>
         <span className="min-w-0 flex-1 truncate text-zinc-500">{c ? contractDocTitle(c) : "合同要素确认单"}</span>
+        {c?.quote ? (
+          <label className="flex items-center gap-1.5 text-sm text-zinc-600">
+            <Checkbox
+              checked={withSow}
+              onCheckedChange={(v) => setWithSow(v === true)}
+              aria-label="附带需求范围说明书"
+            />
+            <span className="max-sm:hidden">附带需求范围（SOW）</span>
+          </label>
+        ) : null}
         {c ? (
           <Button size="sm" onClick={() => window.print()}>
             <Printer />

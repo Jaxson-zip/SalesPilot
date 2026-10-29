@@ -15,6 +15,7 @@ const META: Record<string, { label: string; tone: NotificationTone }> = {
   account_deactivated: { label: "成员停用", tone: "assign" },
   task_due: { label: "任务到期", tone: "task" },
   task_overdue: { label: "任务逾期", tone: "task" },
+  payment_due: { label: "回款到期", tone: "task" },
   payment_overdue: { label: "回款逾期", tone: "task" },
   opportunity_stale: { label: "商机停滞", tone: "task" },
   report_remind: { label: "日报提醒", tone: "task" },

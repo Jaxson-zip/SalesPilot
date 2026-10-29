@@ -83,6 +83,7 @@ class PaymentRules(BaseModel):
         PaymentStage(name="到货验收款", ratio=0.6, due_days=60),
         PaymentStage(name="质保金", ratio=0.1, due_days=425),
     ]
+    remind_days: int = 3
     followup_days: int = 30
     block_days: int = 90
     rule_ref: str = ""
@@ -90,6 +91,7 @@ class PaymentRules(BaseModel):
 
 class QuoteRules(BaseModel):
     valid_days: int = 30
+    followup_days: int = 3
 
 
 class PrivacyRules(BaseModel):

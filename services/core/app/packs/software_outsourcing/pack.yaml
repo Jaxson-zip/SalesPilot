@@ -7,6 +7,7 @@ sample_data: true
 
 # 管理员可以在「行业包配置 → 业务规则」里修改的参数（默认值在 rules.yaml 的 pack 段）
 settings:
+  - {key: payment.schedule, label: 里程碑回款计划, group: 回款, kind: stages, help: 合同生成时按此拆分回款期次（比例合计 100%）；日期是签订后的默认天数，签约后按实际排期调整}
   - {key: pack.team_size, label: 项目团队人数, group: 工期, kind: int, unit: 人, min: 1, max: 30, help: 用总人天估算工期：人天 ÷ 人数 ÷ 5}
   - {key: pack.solo_ai_factor, label: 个人全栈 AI 编码提效系数, group: 个人全栈, kind: float, unit: 倍, min: 0.3, max: 1, help: 一个人用 AI 写代码时研发人天按此比例计；销售说「一个人做 / 个人全栈」时生效}
   - {key: pack.ai_tool_cost_per_day, label: AI 编码工具成本（每人天）, group: 成本, kind: money, min: 0, max: 100000, help: 开发时 AI 工具订阅或 token 费分摊到每个人天，只计入成本、不单列给客户}

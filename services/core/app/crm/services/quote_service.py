@@ -5,6 +5,7 @@ accept 时自动生成合同（C-YYYY-NNN）和提成，并把关联商机改为
 """
 
 import uuid
+from datetime import datetime, time, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -23,14 +24,16 @@ from app.crm.schemas.quote import (
     QuoteListItem,
     QuoteOut,
 )
+from app.crm.schemas.task import TaskCreate
 from app.crm.services import (
     activity_service,
     approval_hints,
     approval_service,
     contract_service,
     quote_query,
+    task_service,
 )
-from app.crm.services.codes import next_code
+from app.crm.services.codes import LOCAL_TZ, local_today, next_code
 from app.crm.services.opportunity_service import apply_stage, get_owned
 from app.packs.base import SolutionTier
 from app.packs.registry import get_pack
@@ -133,6 +136,8 @@ def create_from_tier(
     activity_service.record(
         db, user, "quote", quote.id, "create", f"生成报价单 {quote.code}", "agent", quote
     )
+    if opp is not None and opp.stage in BEFORE_PROPOSAL:
+        apply_stage(db, user, opp, StageChange(stage="proposal"), "agent")
     return _to_out(quote, items)
 
 
@@ -276,6 +281,8 @@ def _mark_won(db: Session, user: CurrentUser, opportunity_id: uuid.UUID | None, 
 
 
 WIN_STATUSES = ("approved", "sent")
+# 出了报价单还停在这些阶段的商机自动推进到「方案报价」（谈判中的不往回退）
+BEFORE_PROPOSAL = ("lead", "qualified")
 RULE_WIN_QUOTE = "won_quote_invalid"
 
 
@@ -306,6 +313,31 @@ def win_with_quote(
     activity_service.record(db, user, "quote", quote.id, "accept", content, source, quote)
 
 
+def _schedule_followup(db: Session, user: CurrentUser, quote: Quote) -> str:
+    """发送报价后建一条电话跟进任务（N 天后上午 10 点到期），返回追加到动态里的说明。"""
+    days = rules_for(quote).quote.followup_days
+    subject_type, subject_id = (
+        ("opportunity", quote.opportunity_id)
+        if quote.opportunity_id
+        else ("customer", quote.customer_id)
+    )
+    if days <= 0 or subject_id is None:
+        return ""
+    due = datetime.combine(local_today() + timedelta(days=days), time(10), tzinfo=LOCAL_TZ)
+    data = TaskCreate(
+        title=f"跟进报价 {quote.code}：确认客户意见",
+        due_at=due,
+        subject_type=subject_type,  # type: ignore[arg-type]
+        subject_id=subject_id,
+        type="call",
+    )
+    try:
+        task_service.create_task(db, user, data, "auto")
+    except BizError:  # 商机 / 客户已转给别人：不替别人建任务
+        return ""
+    return f"，已建跟进任务（{due:%m-%d}）"
+
+
 def transition(
     db: Session, user: CurrentUser, quote_id: uuid.UUID, action: str, source: str = "manual"
 ) -> QuoteDetail:
@@ -329,6 +361,8 @@ def transition(
     else:
         quote.status = TRANSITIONS[action][1]
         content = f"报价单{ACTION_LABELS[action]}"
+    if action == "send":
+        content += _schedule_followup(db, user, quote)
     db.flush()
     activity_service.record(db, user, "quote", quote.id, action, content, source, quote)
     return get_quote(db, user, quote.id)

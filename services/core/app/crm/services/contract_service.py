@@ -3,7 +3,7 @@
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import ColumnElement, Select, and_, exists, func, select
@@ -298,6 +298,25 @@ class ContractFilter:
     customer_id: list[uuid.UUID] = field(default_factory=list)
     owner_id: list[uuid.UUID] = field(default_factory=list)
     sort: SortKey | None = None
+
+
+def due_soon_condition(days: int) -> ColumnElement[bool]:
+    """未来 days 天内（含今天）有一期到期且按期次累计还没收齐。"""
+    later = aliased(PaymentPlan)
+    cumulative = (
+        select(func.sum(later.amount))
+        .where(later.contract_id == PaymentPlan.contract_id, later.seq <= PaymentPlan.seq)
+        .scalar_subquery()
+    )
+    today = local_today()
+    return exists().where(
+        and_(
+            PaymentPlan.contract_id == Contract.id,
+            PaymentPlan.due_date >= today,
+            PaymentPlan.due_date <= today + timedelta(days=days),
+            cumulative > Contract.paid_amount,
+        )
+    )
 
 
 def overdue_condition() -> ColumnElement[bool]:

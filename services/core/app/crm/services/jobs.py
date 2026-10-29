@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from app.crm.models import Contract, Customer, DailyReport, Followup, Opportunity, Task, User
 from app.crm.schemas.opportunity import FINAL_STAGES
 from app.crm.services import activity_service, notification_service, wecom_service
-from app.crm.services.contract_service import overdue_condition, plan_states
+from app.crm.services.contract_service import due_soon_condition, overdue_condition, plan_states
 from app.crm.services.opportunity_insights import last_activity
 from app.crm.services.transfer_service import move_customer
 from app.rules.crm_calc import day_bounds, idle_days_of, is_stale, local_date
@@ -76,6 +76,48 @@ def _task_due(db: Session, now: datetime, _: dict[str, Any]) -> str:
             notification_service.subject_link(t.subject_type, t.subject_id),
         )
     return f"今天到期 {len(today)} 个、逾期 {len(overdue)} 个任务，新发提醒 {sent} 条"
+
+
+def _payment_due(db: Session, now: datetime, _: dict[str, Any]) -> str:
+    """到期前提醒负责人：可以提前开票、提醒客户走付款流程。每期只提醒一次。"""
+    days = load_rules().payment.remind_days
+    if days <= 0:
+        return "到期前提醒已关闭（业务规则里设为 0 天）"
+    contracts = list(
+        db.scalars(select(Contract).where(Contract.status == "active", due_soon_condition(days)))
+    )
+    states = plan_states(db, contracts)
+    names = dict(
+        db.execute(
+            select(Customer.id, Customer.name).where(
+                Customer.id.in_({c.customer_id for c in contracts})
+            )
+        ).all()
+    )
+    today = local_date(now)
+    periods = sent = 0
+    for c in contracts:
+        for plan, state in states[c.id]:
+            left = (state.due_date - today).days
+            if (
+                state.status not in ("pending", "partial")
+                or not 0 <= left <= days
+                or not c.owner_id
+            ):
+                continue
+            periods += 1
+            when = "今天" if left == 0 else f"{left} 天后（{state.due_date:%m-%d}）"
+            sent += notification_service.notify_once(
+                db,
+                c.owner_id,
+                "payment_due",
+                f"回款将到期：{c.code} {plan.name}",
+                f"payment_due:{plan.id}",
+                f"{names.get(c.customer_id, '')} 应收 ¥{(state.amount - state.paid) / 100:,.2f}，"
+                f"{when}到期；需要发票的可以先申请开票",
+                f"/contracts?plan={c.id}",
+            )
+    return f"{days} 天内到期 {periods} 期，新发提醒 {sent} 条"
 
 
 def _payment_overdue(db: Session, now: datetime, _: dict[str, Any]) -> str:
@@ -233,6 +275,16 @@ JOBS: dict[str, JobDef] = {
             True,
             False,
             _task_due,
+        ),
+        JobDef(
+            "payment_due",
+            "回款到期提醒",
+            "回款计划某一期快到期（默认提前 3 天，在业务规则里改）还没收齐：提醒合同负责人，"
+            "可以提前开票、提醒客户付款；每期只提醒一次。",
+            time(9, 0),
+            True,
+            False,
+            _payment_due,
         ),
         JobDef(
             "payment_overdue",

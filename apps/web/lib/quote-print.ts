@@ -26,7 +26,7 @@ export function printDocTitle(q: Pick<QuoteDetail, "code" | "customer">): string
   return ["报价单", q.code, q.customer?.name].filter(Boolean).join("-")
 }
 
-const PLATFORM_NAMES: Record<string, string> = {
+export const PLATFORM_NAMES: Record<string, string> = {
   mini_program: "微信小程序",
   app: "App",
   web: "网站 / H5",

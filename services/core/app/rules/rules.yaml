@@ -49,6 +49,7 @@ pipeline:
 
 quote:
   valid_days: 30              # 报价有效期：创建日 + N 天
+  followup_days: 3            # 发送报价后自动建跟进任务，N 天后到期；0 表示不建
 
 payment:
   # 标准回款计划（《合同审批与回款流程》3.1）：合同生成时按此拆期，负责人可以调整
@@ -57,6 +58,7 @@ payment:
     - {name: 预付款, ratio: 0.30, due_days: 0}
     - {name: 到货验收款, ratio: 0.60, due_days: 60}
     - {name: 质保金, ratio: 0.10, due_days: 425}
+  remind_days: 3              # 每期到期前 N 天提醒负责人（可提前开票、提醒客户）；0 表示不提醒
   followup_days: 30           # 逾期超过 30 天：每周跟进（3.3）
   block_days: 90              # 逾期超过 90 天：暂停该客户新报价审批（3.3）
   rule_ref: "《合同审批与回款流程》3.1 标准付款方式、3.3 逾期回款"

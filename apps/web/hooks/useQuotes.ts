@@ -67,6 +67,8 @@ export function useQuoteAction(id: string) {
         qc.invalidateQueries({ queryKey: ["contracts"] }),
         qc.invalidateQueries({ queryKey: opportunityKeys.all }),
         qc.invalidateQueries({ queryKey: ["approvals"] }),
+        // send 会按规则自动建一条跟进任务
+        qc.invalidateQueries({ queryKey: ["tasks"] }),
       ])
     },
     onError: notifyError,

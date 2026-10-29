@@ -89,6 +89,10 @@ def test_deadline_and_budget() -> None:
     budget = (eco.total_price + std.total_price) // 2
     picked = [t.tier for t in cfg().configure(req(budget=budget)) if t.recommended]
     assert picked == ["economy"]
+    # 预算连经济版都不够：仍推荐经济版，并提示砍功能或分期
+    low = cfg().configure(req(budget=eco.total_price // 2))
+    assert low[0].recommended and "建议砍掉部分功能或分期" in low[0].summary
+    assert "建议砍掉" not in cfg().configure(req(budget=budget))[0].summary
 
 
 def test_extract_hint_lists_library() -> None:
@@ -132,3 +136,24 @@ def test_ai_feature_monthly_cost() -> None:
     assert tier.specs["ai_monthly_cost"] > 0
     assert "AI 调用费" in tier.summary
     assert tier.total_price == sum(i.total_price for i in tier.items)
+
+
+def test_clarify_range_and_questions() -> None:
+    mods = [
+        {"key": "account", "name": "会员登录"},
+        {"key": "booking", "name": "在线预约", "complexity": "complex"},
+        {"key": "rbac", "name": "多门店权限", "source": "inferred"},
+    ]
+    info = cfg().clarify(req(modules=mods))
+    assert info["inferred"] == 1
+    assert info["price_low"] < info["price_high"]
+    assert "多门店权限" in info["questions"][0] and len(info["questions"]) <= 5
+    asked = cfg().clarify(req(modules=mods, questions=["教练和学员是两套界面吗？"]))
+    assert asked["questions"] == ["教练和学员是两套界面吗？"]
+
+
+def test_extract_hint_includes_current_draft() -> None:
+    plain = cfg().extract_hint()
+    draft = {"platforms": ["app"], "modules": [{"key": "map", "name": "门店地图"}]}
+    with_draft = cfg().extract_hint(draft)
+    assert "门店地图" in with_draft and "门店地图" not in plain

@@ -20,8 +20,9 @@ from app.crm.schemas.opportunity import (
     Stage,
     StageChange,
 )
-from app.crm.services import meddic_service, opportunity_service
+from app.crm.services import meddic_service, opportunity_service, requirement_service
 from app.crm.services.meddic_service import AssessOut, MeddicOut, MeddicUpdate
+from app.crm.services.requirement_service import RequirementOut
 from app.llm.client import get_chat_model, model_available
 
 router = APIRouter(prefix="/api", tags=["opportunities"])
@@ -73,6 +74,17 @@ def pipeline_summary(
     user: CurrentUserDep, db: DbDep, view: View | None = None
 ) -> ApiResponse[PipelineSummary]:
     return ok(opportunity_service.pipeline_summary(db, user, view))
+
+
+@router.get(
+    "/opportunities/{opportunity_id}/requirement",
+    response_model=ApiResponse[RequirementOut | None],
+)
+def get_requirement(
+    opportunity_id: uuid.UUID, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[RequirementOut | None]:
+    """出方案时保存的需求清单（还没出过方案时 data 为 null）。"""
+    return ok(requirement_service.get_requirement(db, user, opportunity_id))
 
 
 @router.get("/opportunities/{opportunity_id}/meddic", response_model=ApiResponse[MeddicOut])

@@ -51,6 +51,7 @@ export function AiMessage({
   busy,
   onDecide,
   onRetry,
+  onConfirmRequirement,
   readonly,
 }: {
   turn: AssistantTurn
@@ -60,6 +61,7 @@ export function AiMessage({
   readonly?: boolean
   onDecide: (decision: ResumeDecision) => void
   onRetry: () => void
+  onConfirmRequirement?: (requirement: Record<string, unknown>) => void
 }) {
   const live = turn.status === "streaming"
   const [animate] = useState(live)
@@ -99,7 +101,7 @@ export function AiMessage({
         {showCards
           ? turn.artifacts.map((a) => (
               <div key={a.id} className={cn(animate && "animate-in fade-in slide-in-from-bottom-1 duration-300")}>
-                <ArtifactView artifact={a} />
+                <ArtifactView artifact={a} onConfirmRequirement={onConfirmRequirement} readonly={readonly || busy} />
               </div>
             ))
           : null}

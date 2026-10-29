@@ -7,6 +7,7 @@ START → router
   │                 └─ 完成 → respond
   └─ solution   → parse_requirement
                     ├─ 缺信息 → ask_user → END
+                    ├─ 行业包要先确认需求且还没确认 → clarify（粗估区间 + 需求卡片）→ END
                     └─ configure → price → check_margin
                                     ├─ 不达标且 retry < 2 → configure（带调整提示）
                                     ├─ 不达标且 retry = 2 → respond
@@ -23,6 +24,7 @@ from app.agent.nodes.router import make_router, route_intent
 from app.agent.nodes.solution import (
     make_ask_user,
     make_check_margin,
+    make_clarify,
     make_configure,
     make_confirm,
     make_parse_requirement,
@@ -51,6 +53,7 @@ def build_graph(deps: AgentDeps, checkpointer: BaseCheckpointSaver) -> CompiledS
     g.add_node("run_action", make_run_action(deps))
     g.add_node("parse_requirement", make_parse_requirement(deps))
     g.add_node("ask_user", make_ask_user(deps))
+    g.add_node("clarify", make_clarify(deps))
     g.add_node("configure", make_configure(deps))
     g.add_node("price", make_price(deps))
     g.add_node("check_margin", make_check_margin(deps))
@@ -65,9 +68,10 @@ def build_graph(deps: AgentDeps, checkpointer: BaseCheckpointSaver) -> CompiledS
     g.add_edge("confirm_action", "run_action")
     g.add_edge("run_action", "tool_agent")
     g.add_conditional_edges(
-        "parse_requirement", route_after_parse, ["ask_user", "configure", "respond"]
+        "parse_requirement", route_after_parse, ["ask_user", "clarify", "configure", "respond"]
     )
     g.add_edge("ask_user", END)
+    g.add_edge("clarify", END)
     g.add_conditional_edges("configure", route_after_configure, ["price", "respond"])
     g.add_edge("price", "check_margin")
     g.add_conditional_edges("check_margin", route_after_margin, ["explain", "configure", "respond"])

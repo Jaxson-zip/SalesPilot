@@ -14,7 +14,8 @@ from app.agent.state import AgentState, Intent, turn_reset
 logger = logging.getLogger("core.agent")
 
 ROUTER_PROMPT = """你是 CRM 助手的意图分类器，只输出分类结果。
-- solution：要出方案、配置、报价、选型、估算算力，或在补充方案需求（模型、并发、预算等）
+- solution：要出方案、配置、报价、选型、估算算力或开发工作量，
+  或在补充方案需求（模型、并发、预算、要做的功能 / 端、交付人数等）
 - crm_action：查客户 / 商机、记跟进、改商机阶段、安排任务、报销、算提成、审批、问公司制度
 - chitchat：打招呼、闲聊、问你能做什么"""
 
@@ -25,7 +26,9 @@ class IntentDecision(BaseModel):
     intent: Intent = Field(description="solution / crm_action / chitchat")
 
 
-SOLUTION_WORDS = ("方案", "部署", "配置", "报价", "采购", "私有化", "选型", "显存")
+SOLUTION_WORDS = (
+    "方案", "部署", "配置", "报价", "采购", "私有化", "选型", "显存", "小程序", "定制开发", "估价",
+)  # fmt: skip
 CRM_WORDS = ("跟进", "记一下", "记录", "客户", "商机", "阶段", "报销", "提成", "漏斗", "制度")
 
 
@@ -58,6 +61,8 @@ def make_router(deps: AgentDeps) -> Callable[[AgentState], dict[str, Any]]:
         node_start("router")
         pending = bool(state.get("missing"))
         text = state.get("user_message", "")
+        if state.get("confirmed_requirement"):
+            return {**turn_reset(), "intent": "solution"}  # 需求卡片确认：直接出方案
         if state.get("material"):
             return {**turn_reset(), "intent": "crm_action"}  # 上传了材料：直接整理写入
         intent = llm_intent(deps, text, pending) or classify_intent(text, pending)

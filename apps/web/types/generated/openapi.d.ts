@@ -747,6 +747,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/opportunities/{opportunity_id}/requirement": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Requirement
+     * @description 出方案时保存的需求清单（还没出过方案时 data 为 null）。
+     */
+    get: operations["get_requirement_api_opportunities__opportunity_id__requirement_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/opportunities/{opportunity_id}/meddic": {
     parameters: {
       query?: never
@@ -2616,6 +2636,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[Union[RequirementOut, NoneType]] */
+    ApiResponse_Union_RequirementOut__NoneType__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["RequirementOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[UsageStats] */
     ApiResponse_UsageStats_: {
       /**
@@ -3003,6 +3042,10 @@ export interface components {
       message: string
       /** Opportunity Id */
       opportunity_id?: string | null
+      /** Requirement */
+      requirement?: {
+        [key: string]: unknown
+      } | null
       /** Model */
       model?: string | null
       material?: components["schemas"]["MaterialIn"] | null
@@ -4741,6 +4784,33 @@ export interface components {
     RemindIn: {
       /** Date */
       date?: string | null
+    }
+    /** RequirementOut */
+    RequirementOut: {
+      /** Pack */
+      pack: string
+      /** Data */
+      data: {
+        [key: string]: unknown
+      }
+      /**
+       * Confirmed
+       * @default false
+       */
+      confirmed: boolean
+      /** Price Low */
+      price_low: number | null
+      /** Price High */
+      price_high: number | null
+      /** Questions */
+      questions: string[]
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string
+      /** Updated By */
+      updated_by: string | null
     }
     /** ResumeIn */
     ResumeIn: {
@@ -7111,6 +7181,39 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_PipelineSummary_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  get_requirement_api_opportunities__opportunity_id__requirement_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        opportunity_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_Union_RequirementOut__NoneType__"]
         }
       }
       /** @description Validation Error */

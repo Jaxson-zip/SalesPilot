@@ -1,9 +1,11 @@
 import { BomTable } from "@/components/agent/BomTable"
+import { RequirementCard } from "@/components/agent/RequirementCard"
 import { Sources } from "@/components/agent/Sources"
 import { TierCards } from "@/components/agent/TierCards"
 import type { AgentArtifact } from "@/lib/agent-reducer"
 import { QuoteCard } from "@/components/agent/QuoteCard"
 import { isCoreQuote, isCoreTier, isCoreTiers, toBomData, toTierCards } from "@/lib/artifacts"
+import { isRequirementCard } from "@/lib/requirement-card"
 import type { BomData, SolutionTier, SourceRef } from "@/types/api"
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null
@@ -21,8 +23,19 @@ function isSources(v: unknown): v is SourceRef[] {
 }
 
 /** 按 artifact.type 渲染结构化卡片；结构不符时降级为 JSON，避免整条消息崩溃 */
-export function ArtifactView({ artifact }: { artifact: AgentArtifact }) {
+export function ArtifactView({
+  artifact,
+  onConfirmRequirement,
+  readonly,
+}: {
+  artifact: AgentArtifact
+  /** 需求卡片「确认需求，出报价」 */
+  onConfirmRequirement?: (requirement: Record<string, unknown>) => void
+  readonly?: boolean
+}) {
   const { type, data } = artifact
+  if (type === "requirement" && isRequirementCard(data))
+    return <RequirementCard data={data} onConfirm={onConfirmRequirement} readOnly={readonly} />
   // core 的原始结构（packs/base.py）优先；也兼容已经是视图模型的数据
   if (type === "solution_tiers" && isCoreTiers(data)) return <TierCards tiers={toTierCards(data)} />
   if (type === "solution_tiers" && isTiers(data)) return <TierCards tiers={data} />

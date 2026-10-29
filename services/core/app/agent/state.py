@@ -19,6 +19,10 @@ class AgentState(TypedDict):
     intent: NotRequired[Intent]
     pack_id: NotRequired[str | None]
     requirement: NotRequired[dict[str, Any]]  # 跨轮次累积的需求草稿
+    # 需求已由销售在需求卡片上确认（跨轮次保留；功能 / 端变了会回到待确认）
+    requirement_confirmed: NotRequired[bool]
+    confirmed_requirement: NotRequired[dict[str, Any] | None]  # 本轮从需求卡片提交的确认结果
+    clarify: NotRequired[dict[str, Any] | None]  # 需求确认前的粗估（价格区间、问题）
     missing: NotRequired[list[str]]
     tiers: NotRequired[list[dict[str, Any]]]
     margin_ok: NotRequired[bool]
@@ -42,6 +46,7 @@ def turn_reset() -> dict[str, Any]:
         "intent": "chitchat",
         "missing": [],
         "tiers": [],
+        "clarify": None,
         "margin_ok": False,
         "margin_reason": "",
         "retry": 0,

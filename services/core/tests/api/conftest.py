@@ -17,6 +17,7 @@ from app.common.auth import CurrentUser, Role, issue_token
 from app.common.db import get_engine, session_scope
 from app.crm.models import (
     Activity,
+    AgentThread,
     Approval,
     Attachment,
     Commission,
@@ -92,6 +93,10 @@ class Tracker:
             )
             _purge_followups(db, self.followups)
             db.execute(delete(Activity).where(Activity.subject_id.in_(self.opportunities)))
+            # 从商机出方案时会话记录关联了商机
+            db.execute(
+                delete(AgentThread).where(AgentThread.opportunity_id.in_(self.opportunities))
+            )
             db.execute(delete(Opportunity).where(Opportunity.id.in_(self.opportunities)))
             _purge_customers(db, self.customers)
 

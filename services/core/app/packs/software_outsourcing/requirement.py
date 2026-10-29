@@ -29,6 +29,10 @@ class Module(BaseModel):
     must: bool = Field(
         default=True, description="首期必须上线为 true；客户说可以二期 / 以后再做的为 false"
     )
+    source: Literal["mentioned", "inferred"] = Field(
+        default="mentioned",
+        description="mentioned 客户明确提到的功能；inferred 你根据业务常识推断、客户没说的功能",
+    )
 
 
 class SoftwareRequirement(BaseModel):
@@ -45,6 +49,12 @@ class SoftwareRequirement(BaseModel):
     modules: list[Module] = Field(min_length=1, description="功能模块拆解清单")
     deadline_weeks: int | None = Field(default=None, gt=0, le=104, description="期望工期（周）")
     budget: int | None = Field(default=None, ge=0, description="预算（分）")
+    questions: list[str] = Field(
+        default_factory=list,
+        description="销售下次需要和客户确认的 3–5 个关键问题"
+        "（针对描述里不清楚、会明显影响工作量的点，"
+        "例如有几种角色、要不要对接已有系统、数据量和并发、是否分期）；每个问题一句话",
+    )
     team_size: int | None = Field(
         default=None,
         ge=1,

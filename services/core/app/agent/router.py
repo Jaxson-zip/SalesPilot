@@ -25,6 +25,8 @@ class ChatIn(BaseModel):
     thread_id: str = Field(min_length=1, max_length=100)
     message: str = Field(min_length=1, max_length=4000)
     opportunity_id: uuid.UUID | None = None
+    # 需求卡片上确认后的需求（交付端、功能模块…）：本轮直接按它出正式报价
+    requirement: dict[str, Any] | None = None
     model: str | None = Field(default=None, max_length=100)
     # 上传的一手材料（先调 /materials 取文字）；有材料时 AI 直接整理成跟进 / 联系人 / 下一步
     material: materials.MaterialIn | None = None
@@ -43,7 +45,12 @@ def _request_id(request: Request) -> str:
 async def chat(body: ChatIn, user: CurrentUserDep, request: Request) -> EventSourceResponse:
     deps = service.build_deps(user, body.thread_id, _request_id(request), body.model)
     run = await run_in_threadpool(
-        service.prepare_chat, deps, body.message, body.opportunity_id, body.material
+        service.prepare_chat,
+        deps,
+        body.message,
+        body.opportunity_id,
+        body.material,
+        requirement=body.requirement,
     )
     return EventSourceResponse(follow_run(service.start_run(run, user)))
 

@@ -6,6 +6,7 @@
 """
 
 import logging
+import uuid
 from collections.abc import Callable
 from typing import Any
 
@@ -27,7 +28,7 @@ from app.agent.state import AgentState
 from app.common.errors import BizError
 from app.crm.models import Opportunity
 from app.crm.schemas.opportunity import FINAL_STAGES
-from app.crm.services import customer_service
+from app.crm.services import customer_service, requirement_service
 from app.packs.base import MarginHint
 from app.packs.registry import get_configurator
 
@@ -75,41 +76,161 @@ def make_parse_requirement(deps: AgentDeps) -> Node:
     def parse_requirement(state: AgentState) -> dict[str, Any]:
         node_start("parse_requirement")
         linked = link_customer(deps, state)
+        opp_id = linked.get("opportunity_id", state.get("opportunity_id"))
         try:
-            pack_id = deps.resolve_pack(linked.get("opportunity_id", state.get("opportunity_id")))
+            pack_id = deps.resolve_pack(opp_id)
         except BizError as exc:
             return {"error": {"code": exc.code, "message": exc.message}}
-        text = state.get("user_message", "")
         configurator = get_configurator(pack_id)
-        hint_fn = getattr(configurator, "extract_hint", None)  # 可选：行业包补充的抽取说明
-        hint = hint_fn() if callable(hint_fn) else ""
-        args = {
-            "pack_id": pack_id,
-            "text": text,
-            "draft": state.get("requirement", {}),
-            "extracted": extract_with_llm(deps, configurator.requirement_model, text, hint),
-        }
+        saved = load_saved(deps, opp_id, pack_id) if not state.get("requirement") else None
+        prev = state.get("requirement") or (saved or {}).get("data") or {}
+        prev_confirmed = bool(state.get("requirement_confirmed") or (saved or {}).get("confirmed"))
+        if confirmed := state.get("confirmed_requirement"):
+            # 需求卡片上确认的结果：不再抽取，直接按它出方案
+            args: dict[str, Any] = {"pack_id": pack_id, "text": "", "draft": confirmed}
+        else:
+            text = state.get("user_message", "")
+            hint_fn = getattr(configurator, "extract_hint", None)  # 可选：行业包补充的抽取说明
+            hint = hint_fn(prev) if callable(hint_fn) else ""
+            args = {
+                "pack_id": pack_id,
+                "text": text,
+                "draft": prev,
+                "extracted": extract_with_llm(deps, configurator.requirement_model, text, hint),
+            }
         result = call_tool(deps, "parse_requirement", args)
         if not result.ok:
             return {
                 "error": tool_error(result),
                 "tool_log": log_tool(state, "parse_requirement", result),
             }
-        return {
+        requirement = result.data["requirement"]
+        # 确认后只补充预算、工期、交付人数等，仍算已确认；功能或端变了要重新确认
+        is_confirmed = bool(confirmed) or (prev_confirmed and same_scope(prev, requirement))
+        out = {
             **linked,
             "pack_id": pack_id,
-            "requirement": result.data["requirement"],
+            "requirement": requirement,
+            "requirement_confirmed": is_confirmed,
             "missing": result.data["missing"],
             "tool_log": log_tool(state, "parse_requirement", result),
         }
+        if confirmed and not out["missing"]:
+            save_to_opportunity(deps, {**state, **out})  # type: ignore[typeddict-item]
+        return out
 
     return parse_requirement
+
+
+def same_scope(a: dict[str, Any], b: dict[str, Any]) -> bool:
+    """交付端和功能模块（名称、复杂度、是否首期）是否一致。"""
+
+    def scope(r: dict[str, Any]) -> tuple[list[str], list[tuple[str, str, bool]]]:
+        mods = [
+            (str(m.get("name")), str(m.get("complexity", "medium")), bool(m.get("must", True)))
+            for m in r.get("modules") or []
+            if isinstance(m, dict)
+        ]
+        return sorted(r.get("platforms") or []), sorted(mods)
+
+    return scope(a) == scope(b)
+
+
+def load_saved(deps: AgentDeps, opp_id: str | None, pack_id: str) -> dict[str, Any] | None:
+    """从商机进入时读上次保存的需求清单（同一行业包才用），接着上次的往下走。"""
+    if not opp_id:
+        return None
+    try:
+        with deps.ctx.session() as db:
+            rec = requirement_service.get_requirement(db, deps.ctx.user, uuid.UUID(opp_id))
+    except Exception:
+        logger.warning("load saved requirement failed", exc_info=True)
+        return None
+    return rec.model_dump(mode="json") if rec and rec.pack == pack_id else None
+
+
+def save_to_opportunity(deps: AgentDeps, state: AgentState, **extra: Any) -> None:
+    """把需求清单存到商机上（只有负责人本人能存；失败不影响出方案）。"""
+    opp_id = state.get("opportunity_id")
+    if not opp_id:
+        return
+    try:
+        with deps.ctx.session() as db:
+            requirement_service.save_requirement(
+                db,
+                deps.ctx.user,
+                uuid.UUID(opp_id),
+                pack=state.get("pack_id") or "",
+                data=state.get("requirement") or {},
+                confirmed=bool(state.get("requirement_confirmed")),
+                **extra,
+            )
+    except Exception:
+        logger.warning("save requirement failed", exc_info=True)
 
 
 def route_after_parse(state: AgentState) -> str:
     if state.get("error"):
         return "respond"
-    return "ask_user" if state.get("missing") else "configure"
+    if state.get("missing"):
+        return "ask_user"
+    configurator = get_configurator(state.get("pack_id") or "")
+    if hasattr(configurator, "clarify") and not state.get("requirement_confirmed"):
+        return "clarify"
+    return "configure"
+
+
+def make_clarify(deps: AgentDeps) -> Node:
+    def clarify(state: AgentState) -> dict[str, Any]:
+        """需求还没确认：先给粗估区间和需求卡片，销售和客户核对后再出正式报价。"""
+        node_start("clarify")
+        configurator = get_configurator(state["pack_id"] or "")
+        req = configurator.requirement_model.model_validate(state.get("requirement", {}))
+        info: dict[str, Any] = configurator.clarify(req)  # type: ignore[attr-defined]
+        card = {
+            "pack_id": state.get("pack_id"),
+            "opportunity_id": state.get("opportunity_id"),
+            "requirement": req.model_dump(mode="json"),
+            **info,
+        }
+        emit("artifact", {"type": "requirement", "data": card})
+        save_to_opportunity(
+            deps,
+            state,
+            price_low=info["price_low"],
+            price_high=info["price_high"],
+            questions=info["questions"],
+        )
+        text = clarify_text(card)
+        emit("message.delta", {"text": text})
+        extra = {"artifacts": [{"type": "requirement", "data": card}], "created_at": now_iso()}
+        return {
+            "clarify": info,
+            "messages": [AIMessage(content=text, additional_kwargs=extra)],
+        }
+
+    return clarify
+
+
+def clarify_text(card: dict[str, Any]) -> str:
+    """需求卡片上方的说明（模板，数字来自配置器）。"""
+    modules = card["requirement"].get("modules") or []
+    inferred = card.get("inferred", 0)
+    low, high = card["price_low"] / 1_000_000, card["price_high"] / 1_000_000
+    head = f"根据描述初步拆出 {len(modules)} 个功能模块"
+    if inferred:
+        head += f"（其中 {inferred} 个是按业务常识补充的，标了「AI 推断」）"
+    lines = [
+        f"{head}，粗估 **{low:.1f}–{high:.1f} 万**，可以先给客户这个区间。",
+        "",
+        "正式报价前，建议先和客户确认：",
+        *[f"{i}. {q}" for i, q in enumerate(card.get("questions") or [], 1)],
+        "",
+        "确认后在下面的需求卡片里增删模块、调整复杂度，点「确认需求，出报价」生成三档正式报价。",
+    ]
+    if card.get("opportunity_id"):
+        lines.append("需求清单已保存到商机，下次从商机进入会接着这一版。")
+    return "\n".join(lines)
 
 
 def make_ask_user(deps: AgentDeps) -> Node:

@@ -29,6 +29,8 @@ class Opportunity(OwnedMixin, Base):
     # MEDDIC 赢单要素：{key: {status, evidence, updated_at, updated_by}}（meddic_service）
     meddic: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     competitor_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)  # 遇到的竞品
+    # 出方案时的需求清单：{pack, data, confirmed, price_low, price_high, questions, ...}
+    requirement: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
 
 class Quote(OwnedMixin, Base):

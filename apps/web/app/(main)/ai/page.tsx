@@ -117,6 +117,7 @@ function AiWorkbench() {
             onDecide={stream.resume}
             onRetry={stream.retry}
             onNew={goNew}
+            onConfirmRequirement={w.confirmRequirement}
           />
         ) : w.loadingId ? (
           <div className="flex flex-1 items-center justify-center gap-2 text-sm text-zinc-400">

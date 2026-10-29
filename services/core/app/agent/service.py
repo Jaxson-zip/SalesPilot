@@ -101,6 +101,7 @@ def prepare_chat(
     opportunity_id: uuid.UUID | None,
     material: MaterialIn | None = None,
     checkpointer: BaseCheckpointSaver | None = None,
+    requirement: dict[str, Any] | None = None,
 ) -> PreparedRun:
     thread_id = deps.ctx.thread_id
     graph = build_graph(deps, checkpointer or get_checkpointer())
@@ -118,6 +119,7 @@ def prepare_chat(
         "user_message": message,
         "material": material.name if material else None,
         "opportunity_id": str(opportunity_id) if opportunity_id else None,
+        "confirmed_requirement": requirement,
     }
     touch_thread(deps.ctx.session, deps.ctx.user, thread_id, message, opportunity_id)
     return PreparedRun(

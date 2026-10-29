@@ -47,7 +47,14 @@ export interface UseAgentStream {
   threadId: string | null
   isStreaming: boolean
   /** opportunityId：从商机进入的会话，每条消息都带上，报价单关联到这个商机、行业包随商机产品线 */
-  send: (message: string, model: string, material?: MaterialIn | null, opportunityId?: string | null) => void
+  /** requirement：需求卡片上确认后的需求（软件外包），本轮直接按它出正式报价 */
+  send: (
+    message: string,
+    model: string,
+    material?: MaterialIn | null,
+    opportunityId?: string | null,
+    requirement?: Record<string, unknown> | null,
+  ) => void
   resume: (decision: ResumeDecision) => void
   stop: () => void
   retry: () => void
@@ -120,6 +127,7 @@ export function useAgentStream(): UseAgentStream {
     model: string
     material?: MaterialIn | null
     opportunity_id?: string
+    requirement?: Record<string, unknown>
   } | null>(null)
 
   const patch = useCallback<Patch>((fn) => setTurns((ts) => updateLastAssistant(ts, fn)), [])
@@ -138,16 +146,27 @@ export function useAgentStream(): UseAgentStream {
   }, [])
 
   const send = useCallback(
-    (message: string, model: string, material?: MaterialIn | null, opportunityId?: string | null) => {
+    (
+      message: string,
+      model: string,
+      material?: MaterialIn | null,
+      opportunityId?: string | null,
+      req?: Record<string, unknown> | null,
+    ) => {
       const text = message.trim() || (material ? MATERIAL_DEFAULT_ASK : "")
       if (!text || abortRef.current) return
       const opportunity_id = opportunityId ?? undefined
-      lastChat.current = { message: text, model, material, opportunity_id }
+      const requirement = req ?? undefined
+      lastChat.current = { message: text, model, material, opportunity_id, requirement }
       const thread_id = ensureThread()
       const meta = material ? { name: material.name, chars: material.text.length } : null
       setTurns((ts) => [...ts, { id: nextId("u"), role: "user", text, material: meta }, createAssistantTurn()])
       void run((o) =>
-        postSSE(CHAT_PATH, { thread_id, message: text, model, material: material ?? undefined, opportunity_id }, o),
+        postSSE(
+          CHAT_PATH,
+          { thread_id, message: text, model, material: material ?? undefined, opportunity_id, requirement },
+          o,
+        ),
       )
     },
     [abortRef, ensureThread, run],
@@ -177,6 +196,7 @@ export function useAgentStream(): UseAgentStream {
           model: last.model,
           material: last.material ?? undefined,
           opportunity_id: last.opportunity_id,
+          requirement: last.requirement,
         },
         o,
       ),

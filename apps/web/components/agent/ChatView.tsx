@@ -35,6 +35,7 @@ export function ChatView({
   onDecide,
   onRetry,
   onNew,
+  onConfirmRequirement,
 }: {
   title: string
   turns: ChatTurn[]
@@ -45,6 +46,7 @@ export function ChatView({
   onDecide: (decision: ResumeDecision) => void
   onRetry: () => void
   onNew: () => void
+  onConfirmRequirement?: (requirement: Record<string, unknown>) => void
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -97,6 +99,7 @@ export function ChatView({
                 busy={busy}
                 onDecide={onDecide}
                 onRetry={onRetry}
+                onConfirmRequirement={onConfirmRequirement}
                 readonly={i !== turns.length - 1}
               />
             ),

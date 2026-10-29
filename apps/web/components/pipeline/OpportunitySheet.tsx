@@ -26,6 +26,7 @@ import { PackName } from "@/components/biz/PackName"
 import { Tag } from "@/components/biz/Tag"
 import { CompetitorsCard } from "@/components/pipeline/CompetitorsCard"
 import { MeddicCard } from "@/components/pipeline/MeddicCard"
+import { RequirementSummary } from "@/components/pipeline/RequirementSummary"
 import { SubjectTasks } from "@/components/tasks/TaskList"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -313,6 +314,7 @@ export function OpportunitySheet({
             <StageReadOnly stage={o.stage} />
           )}
           <Fields o={o} editable={editable} />
+          <RequirementSummary oppId={o.id} />
           <MeddicCard oppId={o.id} editable={editable} />
           <CompetitorsCard oppId={o.id} editable={editable} />
           {/* U9：去掉固定文字的「下一步建议」，换成真实的下一步任务（v3 §12） */}

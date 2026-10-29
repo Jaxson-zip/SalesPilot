@@ -223,3 +223,68 @@ def test_graph_exception_becomes_error_event(tool_ctx: ToolContext) -> None:
 def test_to_sse_keeps_chinese() -> None:
     msg = to_sse({"event": "message.delta", "data": {"text": "已为你生成"}})
     assert msg == {"event": "message.delta", "data": '{"text": "已为你生成"}'}
+
+
+SOFTWARE_MSG = "做个门店预约小程序，要会员登录、在线预约和微信支付，还要管理后台"
+
+
+def software_deps(ctx: ToolContext) -> AgentDeps:
+    return AgentDeps(ctx=ctx, resolve_pack=lambda _opp: "software_outsourcing", llm=None)
+
+
+def run_confirm(
+    deps: AgentDeps, saver: InMemorySaver, requirement: dict[str, Any]
+) -> list[dict[str, Any]]:
+    run = service.prepare_chat(
+        deps, "需求已确认，出正式报价", None, checkpointer=saver, requirement=requirement
+    )
+    return list(iter_graph_events(run.graph, run.payload, run.config, run.thread_id))
+
+
+class TestClarifyFlow:
+    """软件外包：先粗估区间 + 需求卡片，确认后才出三档报价。"""
+
+    def test_clarify_then_confirm_quotes(self, tool_ctx: ToolContext) -> None:
+        saver, deps = InMemorySaver(), software_deps(tool_ctx)
+        first = run_chat(deps, saver, SOFTWARE_MSG)
+        seq = names(first)
+        assert "interrupt" not in seq and seq[-1] == "done"
+        card = next(e for e in first if e["event"] == "artifact")["data"]
+        assert card["type"] == "requirement"
+        data = card["data"]
+        assert data["price_low"] < data["price_high"]
+        assert {m["key"] for m in data["requirement"]["modules"]} >= {"account", "booking"}
+        assert 1 <= len(data["questions"]) <= 5
+        text = "".join(e["data"]["text"] for e in first if e["event"] == "message.delta")
+        assert "粗估" in text and "确认需求" in text
+
+        # 销售在卡片上删掉支付后确认
+        req = data["requirement"]
+        req["modules"] = [m for m in req["modules"] if m["key"] != "payment"]
+        second = run_confirm(deps, saver, req)
+        assert names(second)[-2:] == ["interrupt", "done"]
+        tiers = next(e for e in second if e["event"] == "artifact")["data"]
+        assert tiers["type"] == "solution_tiers"
+        skus = {i["sku"] for i in tiers["data"][1]["items"]}
+        assert "MOD-BOOKING" in skus and "MOD-PAYMENT" not in skus
+
+    def test_confirmed_stays_confirmed_when_only_budget_changes(
+        self, tool_ctx: ToolContext
+    ) -> None:
+        saver, deps = InMemorySaver(), software_deps(tool_ctx)
+        first = run_chat(deps, saver, SOFTWARE_MSG)
+        req = next(e for e in first if e["event"] == "artifact")["data"]["data"]["requirement"]
+        run_confirm(deps, saver, req)
+        run_resume(deps, saver, "reject")
+        # 只补充预算：仍按已确认需求直接出方案；改了功能则回到需求确认
+        again = run_chat(deps, saver, "方案的预算 10 万")
+        assert names(again)[-2:] == ["interrupt", "done"]
+        run_resume(deps, saver, "reject")
+        changed = run_chat(deps, saver, "方案还要加上订单管理")
+        arts = [e["data"]["type"] for e in changed if e["event"] == "artifact"]
+        assert arts == ["requirement"]
+
+    def test_other_packs_skip_clarify(self, tool_ctx: ToolContext) -> None:
+        events = run_chat(make_deps(tool_ctx), InMemorySaver(), SOLUTION_MSG)
+        arts = [e["data"]["type"] for e in events if e["event"] == "artifact"]
+        assert "requirement" not in arts and "solution_tiers" in arts

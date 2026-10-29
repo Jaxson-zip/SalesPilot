@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react"
 import { notifyError } from "@/hooks/notify"
 import { fetchThreadMessages, threadKeys } from "@/hooks/useAgentThreads"
 import { useAgentStream } from "@/hooks/useAgentStream"
+import { requirementKey } from "@/hooks/useRequirement"
 import { DEFAULT_MODEL } from "@/lib/agent-labels"
 import { extractMaterial, type MaterialOut } from "@/lib/materials"
 import { lastUserText, messagesToTurns } from "@/lib/thread-history"
@@ -45,9 +46,11 @@ export function useAiWorkbench() {
   useEffect(() => {
     if (wasStreaming.current && !stream.isStreaming) {
       void qc.invalidateQueries(wrote ? undefined : { queryKey: threadKeys.list })
+      // 出方案会把需求清单存到商机上
+      if (opportunityId) void qc.invalidateQueries({ queryKey: requirementKey(opportunityId) })
     }
     wasStreaming.current = stream.isStreaming
-  }, [stream.isStreaming, wrote, qc])
+  }, [stream.isStreaming, wrote, qc, opportunityId])
 
   const firstUser = stream.turns.find((t) => t.role === "user")
   const title = firstUser?.role === "user" ? firstUser.text : "新对话"
@@ -58,6 +61,12 @@ export function useAiWorkbench() {
     stream.send(msg, model, material ? { name: material.name, text: material.text } : null, opportunityId)
     setInput("")
     setMaterial(null)
+  }
+
+  /** 需求卡片「确认需求，出报价」：把核对后的需求随消息提交 */
+  const confirmRequirement = (requirement: Record<string, unknown>) => {
+    if (stream.isStreaming) return
+    stream.send("需求已确认，出正式报价", model, null, opportunityId, requirement)
   }
 
   const newChat = () => {
@@ -102,6 +111,7 @@ export function useAiWorkbench() {
     clearMaterial: () => setMaterial(null),
     title,
     send,
+    confirmRequirement,
     newChat,
     openThread,
     opportunityId,

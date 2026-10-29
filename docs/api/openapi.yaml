@@ -2054,6 +2054,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/opportunities/{opportunity_id}/requirement:
+    get:
+      tags:
+      - opportunities
+      summary: Get Requirement
+      description: 出方案时保存的需求清单（还没出过方案时 data 为 null）。
+      operationId: get_requirement_api_opportunities__opportunity_id__requirement_get
+      parameters:
+      - name: opportunity_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Opportunity Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Union_RequirementOut__NoneType__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/opportunities/{opportunity_id}/meddic:
     get:
       tags:
@@ -5568,6 +5604,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_Union_RequirementOut__NoneType__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/RequirementOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Union[RequirementOut, NoneType]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_UsageStats_:
       properties:
         code:
@@ -6218,6 +6279,12 @@ components:
             format: uuid
           - type: 'null'
           title: Opportunity Id
+        requirement:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Requirement
         model:
           anyOf:
           - type: string
@@ -9596,6 +9663,54 @@ components:
           title: Date
       type: object
       title: RemindIn
+    RequirementOut:
+      properties:
+        pack:
+          type: string
+          title: Pack
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        confirmed:
+          type: boolean
+          title: Confirmed
+          default: false
+        price_low:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Price Low
+        price_high:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Price High
+        questions:
+          items:
+            type: string
+          type: array
+          title: Questions
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        updated_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated By
+      type: object
+      required:
+      - pack
+      - data
+      - updated_at
+      - confirmed
+      - price_low
+      - price_high
+      - questions
+      - updated_by
+      title: RequirementOut
     ResumeIn:
       properties:
         thread_id:

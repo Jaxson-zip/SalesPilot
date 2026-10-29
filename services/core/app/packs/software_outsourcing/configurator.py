@@ -6,6 +6,7 @@
 - 单价来自产品目录（研发 / UI / 测试 / 产品经理人天，部署、运维、源码交付）。
 """
 
+import json
 import math
 import re
 from pathlib import Path
@@ -58,16 +59,31 @@ class SoftwareOutsourcingConfigurator:
 
     # ---------- 需求 ----------
 
-    def extract_hint(self) -> str:
-        """给大模型的拆解说明：模块库、复杂度和首期判断（数字一律不让模型估）。"""
+    def extract_hint(self, draft: dict[str, Any] | None = None) -> str:
+        """给大模型的拆解说明：模块库、复杂度和首期判断（数字一律不让模型估）。
+
+        已有需求草稿时附上，让模型在草稿基础上改（「去掉地图」「支付改简单」），输出完整模块清单。
+        """
         lib = "；".join(f"{k}={m['name']}" for k, m in self.params["modules"].items())
-        return (
+        current = ""
+        if draft and draft.get("modules"):
+            keep = {k: draft[k] for k in ("project", "platforms", "modules") if k in draft}
+            current = (
+                "\n当前需求草稿（JSON）："
+                + json.dumps(keep, ensure_ascii=False)
+                + "\n用户这句话如果在增删或修改功能 / 端，"
+                "请在草稿基础上输出修改后的完整 modules / platforms；"
+                "只是补充预算、工期等其他信息时不要输出 modules 和 platforms。"
+            )
+        return current + (
             "这是软件外包项目。modules 需要你把客户描述的业务拆解成功能模块"
             "（这一项可以根据业务常识推断，"
             "例如「预约小程序」通常包含 用户登录、预约排期、消息通知）："
             f"优先使用模块库里的 key：{lib}。模块库没有的功能用 key=custom 并写清名称。"
             "同一个功能只出现一次；复杂度按描述判断（多规则、多角色、需对接外部系统 → complex）；"
             "客户说「以后再做 / 二期」的模块 must=false。"
+            "客户明确提到的功能 source=mentioned，你根据常识补充的 source=inferred。"
+            "questions 写 3–5 个销售需要回头和客户确认的关键问题。"
             "platforms 只填客户明确提到或业务上必然需要的端（提到管理、运营、后台配置时加 admin）。"
             "不要估算人天和价格。"
         )
@@ -105,15 +121,37 @@ class SoftwareOutsourcingConfigurator:
             for t in ("economy", "standard", "premium")
         ]
         pick = self._recommend(tiers, r.budget)
-        return [t.model_copy(update={"recommended": t.tier == pick}) for t in tiers]
+        out = [t.model_copy(update={"recommended": t.tier == pick}) for t in tiers]
+        if r.budget and r.budget < out[0].total_price:
+            # 预算连经济版都不够：提示砍功能或分期，不自动压价
+            gap = (out[0].total_price - r.budget) / 1_000_000
+            note = f"（客户预算比经济版少 {gap:.1f} 万，建议砍掉部分功能或分期）"
+            out[0] = out[0].model_copy(update={"summary": out[0].summary + note})
+        return out
 
     @staticmethod
     def _recommend(tiers: list[SolutionTier], budget: int | None) -> str:
-        """默认推荐标准版；客户预算放不下标准版、但放得下经济版时推荐经济版。"""
+        """默认推荐标准版；客户预算放不下标准版时推荐经济版。"""
         by = {t.tier: t for t in tiers}
-        if budget and by["standard"].total_price > budget >= by["economy"].total_price:
+        if budget and by["standard"].total_price > budget:
             return "economy"
         return "standard"
+
+    def clarify(self, r: SoftwareRequirement) -> dict[str, Any]:
+        """需求确认前的粗估：价格区间 + 建议和客户确认的问题。
+
+        低 = 只做客户提到的功能、经济版；高 = 全部功能（含 AI 推断的）、高配版。
+        """
+        mentioned = [m for m in r.modules if m.source == "mentioned"]
+        low_req = r.model_copy(update={"modules": mentioned}) if mentioned else r
+        low = min(t.total_price for t in self.configure(low_req))
+        high = max(t.total_price for t in self.configure(r))
+        return {
+            "price_low": low,
+            "price_high": high,
+            "inferred": len(r.modules) - len(mentioned),
+            "questions": (r.questions or default_questions(r))[:5],
+        }
 
     def module_days(self, m: Module) -> int:
         lib = self.params["modules"]
@@ -261,6 +299,21 @@ class SoftwareOutsourcingConfigurator:
             + tokens * 0.25 * usage.output_price_per_million
         ) / 1_000_000
         return round(yuan * 100)
+
+
+def default_questions(r: SoftwareRequirement) -> list[str]:
+    """没有模型或模型没给问题时的通用确认清单。"""
+    qs = []
+    inferred = [m.name for m in r.modules if m.source == "inferred"]
+    if inferred:
+        qs.append(f"这些功能是按常识补充的，客户是否需要：{'、'.join(inferred)}？")
+    qs.append("系统有几种使用角色（例如顾客、员工、管理员），各自能做什么？")
+    qs.append("是否需要对接已有系统（ERP、财务、OA、支付、硬件设备等）？")
+    if not r.deadline_weeks:
+        qs.append("期望什么时候上线？能否先上首期核心功能、其余放二期？")
+    if not r.budget:
+        qs.append("预算大概在什么范围？")
+    return qs
 
 
 def third_party_skus(platforms: list[str]) -> list[str]:

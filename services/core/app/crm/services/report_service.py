@@ -125,14 +125,15 @@ def collect_facts(db: Session, user_id: uuid.UUID, d: date) -> DailyFacts:
     logs = [lg for lg in logs if not lg.action.startswith(SKIP_ACTIONS)]
     names = audit_service.target_names(db, [lg.target_id for lg in logs])
     counts = Counter(lg.action for lg in logs)
-    actions: list[str] = []
+    # 同一条文字只列一次；没有对象名的（如新建类操作）在后面标次数
+    seen: Counter[str] = Counter()
     for lg in logs:
         target = names.get(str(lg.target_id)) if lg.target_id else None
         text = f"{lg.label}「{target}」" if target else lg.label
         if lg.source == "agent":
             text += "（AI）"
-        if text not in actions:
-            actions.append(text)
+        seen[text] += 1
+    actions = [t if n == 1 or "「" in t else f"{t} ×{n}" for t, n in seen.items()]
 
     rows = db.execute(
         select(Customer.name, Followup.content)

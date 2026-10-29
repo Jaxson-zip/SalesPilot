@@ -203,7 +203,7 @@ def update_meddic(
         db.flush()
         activity_service.record(
             db, user, "opportunity", opp.id, "meddic_updated",
-            f"更新了赢单要素：{'、'.join(changed)}", subject=opp,
+            '、'.join(changed), subject=opp,
         )  # fmt: skip
     return to_out(opp)
 

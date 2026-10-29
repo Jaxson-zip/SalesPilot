@@ -179,7 +179,7 @@ function MyReport() {
       ) : q.isError ? (
         <QueryError error={q.error} onRetry={() => void q.refetch()} feature="日报" />
       ) : (
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <Facts facts={q.data.facts} />
           <section aria-label="日报内容" className="space-y-2">
             <div className="flex items-center gap-2">

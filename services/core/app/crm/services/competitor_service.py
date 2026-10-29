@@ -204,7 +204,7 @@ def set_opportunity_competitors(
     db.flush()
     text = "、".join(names[i] for i in ids) if ids else "（清空）"
     activity_service.record(
-        db, user, "opportunity", opp.id, "competitors_updated", f"竞争对手：{text}", subject=opp
+        db, user, "opportunity", opp.id, "competitors_updated", text, subject=opp
     )
     return opportunity_competitors(db, user, opportunity_id)
 

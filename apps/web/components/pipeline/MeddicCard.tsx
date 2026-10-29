@@ -182,8 +182,8 @@ export function MeddicCard({ oppId, editable }: { oppId: string; editable: boole
   const d = q.data
   return (
     <section aria-label="赢单要素" className="space-y-2 text-sm">
-      <div className="flex items-center gap-2">
-        <h3 className="font-medium">赢单要素</h3>
+      <div className="flex h-7 items-center gap-2">
+        <h3 className="text-zinc-500">赢单要素</h3>
         <span className="text-xs text-zinc-400">MEDDIC</span>
         <div className="ml-1 h-1.5 w-20 overflow-hidden rounded-full bg-zinc-100">
           <div

@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, ChevronDown, Plus, Swords } from "lucide-react"
+import { Check, ChevronRight, Plus, Swords } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 
@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useCompetitors, useOpportunityCompetitors, useSetOpportunityCompetitors } from "@/hooks/useCompetitors"
 import { cn } from "@/lib/utils"
 
-/** 商机侧栏：遇到的竞品（负责人标注），点开直接看战卡话术 */
+/** 商机侧栏：遇到的竞品（负责人标注），点开直接看战卡话术；版式与「下一步」「最近动态」一致 */
 export function CompetitorsCard({ oppId, editable }: { oppId: string; editable: boolean }) {
   const mine = useOpportunityCompetitors(oppId)
   const all = useCompetitors()
@@ -21,16 +21,16 @@ export function CompetitorsCard({ oppId, editable }: { oppId: string; editable: 
   const toggle = (id: string) => set.mutate(ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id])
 
   return (
-    <section aria-label="竞争对手" className="space-y-2 text-sm">
-      <div className="flex items-center gap-2">
-        <h3 className="font-medium">竞争对手</h3>
-        <Link href="/battlecards" className="text-xs text-zinc-400 hover:text-zinc-600">
+    <section aria-label="竞争对手">
+      <div className="mb-1.5 flex h-7 items-center gap-2">
+        <h3 className="text-zinc-500">竞争对手</h3>
+        <Link href="/battlecards" className="text-xs text-zinc-400 hover:text-zinc-600 hover:underline">
           全部战卡
         </Link>
         {editable ? (
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="xs" variant="outline" className="ml-auto" disabled={set.isPending}>
+              <Button size="xs" variant="ghost" className="ml-auto h-7 text-zinc-600" disabled={set.isPending}>
                 <Plus />
                 标注竞品
               </Button>
@@ -62,30 +62,28 @@ export function CompetitorsCard({ oppId, editable }: { oppId: string; editable: 
       {selected.length === 0 ? (
         <p className="text-zinc-400">{editable ? "客户在比较别家时标注一下，就能直接看到应对话术。" : "未标注竞品"}</p>
       ) : (
-        <ul className="space-y-1.5">
+        <ul className="space-y-0.5">
           {selected.map((c) => (
-            <li key={c.id} className="rounded-lg border border-zinc-200">
+            <li key={c.id}>
               <button
                 type="button"
                 onClick={() => setOpen(open === c.id ? null : c.id)}
                 aria-expanded={open === c.id}
                 aria-label={`${c.name} 应对话术`}
-                className="flex w-full items-start gap-2 p-2.5 text-left"
+                className="flex w-full items-start gap-2.5 rounded-md px-1 py-1.5 text-left hover:bg-zinc-50"
               >
                 <Swords className="mt-0.5 size-4 shrink-0 text-zinc-400" />
                 <span className="min-w-0 flex-1">
-                  <span className="block font-medium">{c.name}</span>
+                  <span className="block">{c.name}</span>
                   <CompetitorRecord c={c} />
                 </span>
-                <ChevronDown
-                  className={cn(
-                    "mt-0.5 size-4 shrink-0 text-zinc-400 transition-transform",
-                    open !== c.id && "-rotate-90",
-                  )}
-                />
+                <span className="mt-0.5 flex shrink-0 items-center text-xs text-zinc-400">
+                  {open === c.id ? "收起" : "应对话术"}
+                  <ChevronRight className={cn("size-4 transition-transform", open === c.id && "rotate-90")} />
+                </span>
               </button>
               {open === c.id ? (
-                <div className="border-t border-zinc-100 p-2.5">
+                <div className="mt-1 mb-2 ml-7">
                   <BattleCardBody c={c} compact />
                 </div>
               ) : null}

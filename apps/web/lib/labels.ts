@@ -139,6 +139,8 @@ const ACTIVITY_LABEL_BY_ACTION: Record<string, string> = {
   pool_claim: "从公海领取了客户",
   contact_updated: "更新了联系人",
   contact_removed: "删除了联系人",
+  meddic_updated: "更新了赢单要素",
+  competitors_updated: "标注了竞争对手",
   "followup.phone": "记录了电话跟进",
   "followup.visit": "记录了上门拜访",
   "followup.wechat": "记录了微信沟通",

@@ -264,3 +264,37 @@ def test_quote_without_customer_cannot_be_submitted(tracker: Tracker, client: Te
     tracker.quotes.append(out.id)
     r = act(client, str(out.id), "submit")
     assert r["code"] == 42201 and r["data"]["rule"] == "quote_no_customer"
+
+
+def test_won_on_board_with_quote_creates_contract(client: TestClient, tracker: Tracker) -> None:
+    """看板标赢单时指定报价：已审批的报价直接成交，生成合同、回款计划和提成。"""
+    opp = new_opp(client, tracker)
+    draft = create_quote(tracker, make_tier(GOOD), opp["id"])
+    url = f"/api/opportunities/{opp['id']}/stage"
+
+    body = client.patch(url, json={"stage": "won", "quote_id": draft}, headers=SALES_H).json()
+    assert body["code"] == 42201 and body["data"]["rule"] == "won_quote_invalid"  # 草稿不行
+    bad = client.patch(url, json={"stage": "lead", "quote_id": draft}, headers=SALES_H).json()
+    assert bad["code"] == 40001
+
+    assert act(client, draft, "submit")["data"]["status"] == "approved"
+    assert client.patch(url, json={"stage": "won", "quote_id": draft}, headers=SALES2_H).json()[
+        "code"
+    ] in (40301, 40401)
+    won = client.patch(url, json={"stage": "won", "quote_id": draft}, headers=SALES_H).json()
+    assert won["code"] == 0 and won["data"]["stage"] == "won"
+
+    quote = client.get(f"/api/quotes/{draft}", headers=SALES_H).json()["data"]
+    assert quote["status"] == "accepted" and quote["contract_id"]
+    contract = client.get(f"/api/contracts/{quote['contract_id']}", headers=SALES_H).json()["data"]
+    assert contract["amount"] == 15_000_000 and contract["commission"]["estimated"] == 700_000
+    plan_url = f"/api/contracts/{quote['contract_id']}/payment-plan"
+    assert len(client.get(plan_url, headers=SALES_H).json()["data"]["items"]) == 3  # 30/60/10
+
+    other = new_opp(client, tracker)
+    stray = client.patch(
+        f"/api/opportunities/{other['id']}/stage",
+        json={"stage": "won", "quote_id": draft},
+        headers=SALES_H,
+    ).json()
+    assert stray["code"] == 40401  # 报价不属于这个商机

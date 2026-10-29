@@ -3,10 +3,9 @@
 import { useState, type ReactElement } from "react"
 import { toast } from "sonner"
 
-import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { LostReasonDialog } from "@/components/pipeline/LostReasonDialog"
+import { WonDialog } from "@/components/pipeline/WonDialog"
 import { useChangeStage } from "@/hooks/useOpportunities"
-import { stageConfirm } from "@/lib/confirm-texts"
 import { STAGE_META } from "@/lib/labels"
 import {
   canUndoStage,
@@ -28,8 +27,8 @@ export function useStageMove(): {
   dialogs: ReactElement
 } {
   const change = useChangeStage()
-  const { ask, dialog } = useConfirmAction()
   const [losing, setLosing] = useState<OpportunityItem | null>(null)
+  const [winning, setWinning] = useState<OpportunityItem | null>(null)
 
   const undo = (id: string, movedTo: OpportunityStage, undoTo: OpportunityStage) => {
     if (!canUndoStage(movedTo, undoTo)) return
@@ -40,13 +39,7 @@ export function useStageMove(): {
     const plan = planStageMove(opp.stage, to)
     if (plan.kind === "invalid") return void toast.error(plan.reason)
     if (plan.kind === "lost") return setLosing(opp)
-    if (plan.kind === "confirm") {
-      return ask({
-        ...stageConfirm(opp.name),
-        onConfirm: () =>
-          change.mutate({ id: opp.id, stage: to }, { onSuccess: () => toast.success(stageChangedText(to)) }),
-      })
-    }
+    if (plan.kind === "confirm") return setWinning(opp)
     change.mutate(
       { id: opp.id, stage: to },
       {
@@ -62,7 +55,23 @@ export function useStageMove(): {
 
   const dialogs = (
     <>
-      {dialog}
+      <WonDialog
+        opp={winning}
+        onCancel={() => setWinning(null)}
+        onConfirm={(quote) => {
+          if (winning)
+            change.mutate(
+              { id: winning.id, stage: "won", ...(quote ? { quote_id: quote.id } : {}) },
+              {
+                onSuccess: () =>
+                  toast.success(stageChangedText("won"), {
+                    description: quote ? `已按报价 ${quote.code} 生成合同和回款计划` : "未生成合同",
+                  }),
+              },
+            )
+          setWinning(null)
+        }}
+      />
       <LostReasonDialog
         opp={losing}
         onCancel={() => setLosing(null)}

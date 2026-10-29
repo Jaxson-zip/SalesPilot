@@ -4879,6 +4879,8 @@ export interface components {
       stage: "lead" | "qualified" | "proposal" | "negotiation" | "won" | "lost"
       /** Lost Reason */
       lost_reason?: string | null
+      /** Quote Id */
+      quote_id?: string | null
     }
     /** Suggestion */
     Suggestion: {

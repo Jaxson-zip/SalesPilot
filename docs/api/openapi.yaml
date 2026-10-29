@@ -9834,6 +9834,12 @@ components:
             maxLength: 500
           - type: 'null'
           title: Lost Reason
+        quote_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Quote Id
       type: object
       required:
       - stage

@@ -69,11 +69,15 @@ class OpportunityUpdate(BaseModel):
 class StageChange(BaseModel):
     stage: Stage
     lost_reason: str | None = Field(default=None, max_length=500)
+    # 赢单时按这张报价单成交：生成合同、回款计划和提成（与报价单「客户接受」相同）
+    quote_id: uuid.UUID | None = None
 
     @model_validator(mode="after")
     def _lost_needs_reason(self) -> Self:
         if self.stage == "lost" and not (self.lost_reason or "").strip():
             raise ValueError("输单时必须填写 lost_reason")
+        if self.quote_id is not None and self.stage != "won":
+            raise ValueError("只有赢单时才能指定 quote_id")
         return self
 
 

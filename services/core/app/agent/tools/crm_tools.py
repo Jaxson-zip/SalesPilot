@@ -69,10 +69,12 @@ class UpdateStageArgs(StageChange):
 
 def update_opportunity_stage(ctx: ToolContext, args: UpdateStageArgs) -> ToolResult:
     """复用接口的阶段校验（终态不能再改、输单必须写原因）。"""
-    change = StageChange(stage=args.stage, lost_reason=args.lost_reason)
+    change = StageChange(stage=args.stage, lost_reason=args.lost_reason, quote_id=args.quote_id)
     with ctx.session() as db:
         out = opp_service.change_stage(db, ctx.user, args.opportunity_id, change, "agent")
     summary = f"阶段已改为「{STAGE_LABELS[out.stage]}」"
+    if args.quote_id:
+        summary += "，已按报价生成合同和回款计划"
     return ToolResult(ok=True, summary=summary, data=out.model_dump(mode="json"))
 
 
@@ -187,7 +189,8 @@ CRM_TOOLS: list[ToolSpec] = [
     ToolSpec(
         "update_opportunity_stage",
         "修改商机阶段（lead 线索 / qualified 需求确认 / proposal 方案报价 / negotiation 商务谈判 / "
-        "won 赢单 / lost 输单，输单必须写 lost_reason）。opportunity_id 来自 get_customer_context",
+        "won 赢单 / lost 输单，输单必须写 lost_reason）。opportunity_id 来自 get_customer_context。"
+        "赢单时若该商机有已审批 / 已发送的报价，传 quote_id 按该报价成交（生成合同和回款计划）",
         UpdateStageArgs,
         update_opportunity_stage,
         write=True,

@@ -131,6 +131,12 @@ export function useChangeStage() {
       ctx?.snapshot.forEach(([key, data]) => qc.setQueryData(key, data))
       notifyError(err)
     },
-    onSettled: () => invalidatePipeline(qc),
+    onSettled: (_data, _err, vars) =>
+      Promise.all([
+        invalidatePipeline(qc),
+        // 按报价成交会生成合同
+        vars.quote_id ? qc.invalidateQueries({ queryKey: ["quotes"] }) : null,
+        vars.quote_id ? qc.invalidateQueries({ queryKey: ["contracts"] }) : null,
+      ]),
   })
 }

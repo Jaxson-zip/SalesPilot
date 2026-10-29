@@ -124,6 +124,8 @@ export interface OpportunityUpdate {
 export interface StageChange {
   stage: OpportunityStage
   lost_reason?: string
+  /** 赢单时按这张报价成交（生成合同、回款计划和提成） */
+  quote_id?: string
 }
 
 export interface OpportunityListParams {

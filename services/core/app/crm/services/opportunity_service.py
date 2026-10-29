@@ -236,7 +236,12 @@ def change_stage(
     source: str = "manual",
 ) -> OpportunityItem:
     opp = get_owned(db, user, opportunity_id)
-    apply_stage(db, user, opp, change, source)
+    if change.quote_id is not None:
+        from app.crm.services import quote_service  # quote_service 依赖本模块，延迟导入
+
+        quote_service.win_with_quote(db, user, opp, change.quote_id, source)
+    else:
+        apply_stage(db, user, opp, change, source)
     return get_item(db, user, opp.id)
 
 

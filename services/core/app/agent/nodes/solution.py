@@ -24,12 +24,14 @@ from app.agent.nodes.common import (
     tool_error,
 )
 from app.agent.nodes.requirement_fields import extract_with_llm
+from app.agent.samples import describe
 from app.agent.state import AgentState
+from app.agent.tools.solution_tools import missing_fields
 from app.common.errors import BizError
 from app.crm.models import Opportunity
 from app.crm.schemas.opportunity import FINAL_STAGES
 from app.crm.services import customer_service, requirement_service
-from app.packs.base import MarginHint
+from app.packs.base import MarginHint, SampleSummary
 from app.packs.registry import get_configurator
 
 Node = Callable[[AgentState], dict[str, Any]]
@@ -90,6 +92,9 @@ def make_parse_requirement(deps: AgentDeps) -> Node:
             args: dict[str, Any] = {"pack_id": pack_id, "text": "", "draft": confirmed}
         else:
             text = state.get("user_message", "")
+            if samples := state.get("samples"):
+                # 样例汇总一起交给模型：单据类型和字段有助于拆模块、提问
+                text = f"{text}\n\n{describe(SampleSummary.model_validate(samples))}"
             hint_fn = getattr(configurator, "extract_hint", None)  # 可选：行业包补充的抽取说明
             hint = hint_fn(prev) if callable(hint_fn) else ""
             args = {
@@ -105,6 +110,11 @@ def make_parse_requirement(deps: AgentDeps) -> Node:
                 "tool_log": log_tool(state, "parse_requirement", result),
             }
         requirement = result.data["requirement"]
+        missing = result.data["missing"]
+        apply = getattr(configurator, "apply_samples", None)  # 可选：行业包按样例调整需求
+        if (samples := state.get("samples")) and callable(apply) and not confirmed:
+            requirement = apply(requirement, samples)
+            missing = missing_fields(configurator.requirement_model, requirement)
         # 确认后只补充预算、工期、交付人数等，仍算已确认；功能或端变了要重新确认
         is_confirmed = bool(confirmed) or (prev_confirmed and same_scope(prev, requirement))
         out = {
@@ -112,7 +122,7 @@ def make_parse_requirement(deps: AgentDeps) -> Node:
             "pack_id": pack_id,
             "requirement": requirement,
             "requirement_confirmed": is_confirmed,
-            "missing": result.data["missing"],
+            "missing": missing,
             "tool_log": log_tool(state, "parse_requirement", result),
         }
         if confirmed and not out["missing"]:

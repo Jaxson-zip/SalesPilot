@@ -58,6 +58,24 @@ class SolutionTier(BaseModel):
     specs: dict[str, Any] = Field(default_factory=dict)
 
 
+class SampleType(BaseModel):
+    """客户样例里的一类单据 / 表单。"""
+
+    name: str
+    count: int
+    fields: list[str] = Field(default_factory=list)
+
+
+class SampleSummary(BaseModel):
+    """客户样例图片的识别汇总（不含原图和字段值，只有类型、字段名和清晰度）。"""
+
+    total: int = Field(description="上传的张数")
+    analyzed: int = Field(description="识别成功的张数")
+    types: list[SampleType] = Field(default_factory=list)
+    blurry: int = 0
+    handwritten: int = 0
+
+
 @runtime_checkable
 class Configurator(Protocol):
     """行业包配置器：需求 → 多档 BOM。"""

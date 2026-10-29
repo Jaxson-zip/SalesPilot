@@ -14,7 +14,14 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from app.packs.base import TIER_NAMES, BomItem, Catalog, SolutionTier, price_tier
+from app.packs.base import (
+    TIER_NAMES,
+    BomItem,
+    Catalog,
+    SampleSummary,
+    SolutionTier,
+    price_tier,
+)
 from app.packs.software_outsourcing.requirement import (
     COMPLEXITY_NAMES,
     PLATFORM_NAMES,
@@ -110,6 +117,31 @@ class SoftwareOutsourcingConfigurator:
             return {**merged, "platforms": ["web"]}
         return merged
 
+    def apply_samples(self, merged: dict[str, Any], samples: dict[str, Any]) -> dict[str, Any]:
+        """本轮上传了客户样例：记到需求里，并按样例定识别模块的复杂度（没有识别模块就补上）。
+
+        只在上传样例的这一轮调用：之后销售在需求卡片上改了复杂度，不会被样例结果改回去。
+        """
+        s = SampleSummary.model_validate(samples)
+        level = sample_complexity(s)
+        mods = [dict(m) for m in merged.get("modules") or []]
+        ocr = [m for m in mods if m.get("key") == "ocr"]
+        for m in ocr:
+            m["complexity"] = level
+        if not ocr:
+            names = "、".join(t.name for t in s.types[:3])
+            mods.append(
+                {
+                    "key": "ocr",
+                    "name": f"单据识别（{names}）" if names else "单据识别",
+                    "complexity": level,
+                    "must": True,
+                    "source": "inferred",
+                }
+            )
+        out = {**merged, "modules": mods, "samples": s.model_dump()}
+        return self.fill_defaults(out)
+
     def draft_requirement(self, text: str) -> dict[str, Any]:
         """规则兜底：按关键词识别端和标准模块（大模型不可用时也能出一版）。"""
         low = text.lower()
@@ -177,17 +209,22 @@ class SoftwareOutsourcingConfigurator:
         low_req = r.model_copy(update={"modules": mentioned}) if mentioned else r
         low = min(t.total_price for t in self.configure(low_req))
         high = max(t.total_price for t in self.configure(r))
+        questions = r.questions or default_questions(r)
+        if r.samples and (q := sample_question(r.samples)):
+            questions = [q, *questions]
         return {
             "price_low": low,
             "price_high": high,
             "inferred": len(r.modules) - len(mentioned),
-            "questions": (r.questions or default_questions(r))[:5],
+            "questions": questions[:5],
             "notes": self.notes(r),
         }
 
     def notes(self, r: SoftwareRequirement) -> list[str]:
         """粗估时要提醒销售的事：额外的工作量、报价外的费用和建议。"""
         out = []
+        if r.samples:
+            out.append(sample_note(r.samples))
         if r.no_sop:
             out.append(
                 f"客户没有现成的 SOP：报价已含 {self.params['sop_days']} 人天业务调研与流程梳理"
@@ -206,8 +243,9 @@ class SoftwareOutsourcingConfigurator:
             return None
         rate = self.catalog.get("DAY-FULLSTACK" if r.team_size == 1 else "DAY-DEV")
         price = days * rate.price
+        which = f"这 {r.samples.total} 张" if r.samples else "客户"
         advice = (
-            f"建议先用客户样例做识别验证（约 {days} 人天 ¥{price / 100:,.0f}，1–2 周）："
+            f"建议先用{which}样例做识别验证（约 {days} 人天 ¥{price / 100:,.0f}，1–2 周）："
             "测出各类单据的识别准确率再签正式合同，验收写明「样例集准确率不低于约定值」"
         )
         return {"days": days, "price": price, "advice": advice}
@@ -372,6 +410,37 @@ class SoftwareOutsourcingConfigurator:
             pages = ocr_pages if ocr_pages is not None else int(p["ocr_monthly_pages"])
             cost += pages * p["ocr_cost_per_page"]
         return round(cost), pages
+
+
+def sample_complexity(s: SampleSummary) -> str:
+    """按样例定识别难度：3 类以上单据或手写占两成以上算复杂，2 类或模糊多算中等。"""
+    n = max(s.analyzed, 1)
+    if len(s.types) >= 3 or s.handwritten / n >= 0.2:
+        return "complex"
+    if len(s.types) == 2 or s.blurry / n >= 0.2:
+        return "medium"
+    return "simple"
+
+
+def sample_note(s: SampleSummary) -> str:
+    types = "、".join(f"{t.name} {t.count}" for t in s.types)
+    failed = f"，{s.total - s.analyzed} 张没识别出来" if s.total > s.analyzed else ""
+    quality = f"；模糊 {s.blurry} 张、手写 {s.handwritten} 张" if s.blurry or s.handwritten else ""
+    level = COMPLEXITY_NAMES[sample_complexity(s)]
+    return (
+        f"样例分析：{s.total} 张里识别出 {len(s.types)} 类单据（{types}）{failed}{quality}。"
+        f"按样例，单据识别建议按「{level}」估。"
+    )
+
+
+def sample_question(s: SampleSummary) -> str | None:
+    """让客户确认样例里识别出的字段是不是要录入的全部字段（列最多的一类）。"""
+    top = next((t for t in s.types if t.fields), None)
+    if not top:
+        return None
+    fields = "、".join(top.fields[:6]) + ("等" if len(top.fields) > 6 else "")
+    more = f"其余 {len(s.types) - 1} 类单据也请确认一下。" if len(s.types) > 1 else ""
+    return f"样例里{top.name}识别出的字段有 {fields}，是否就是要录入系统的全部字段？{more}"
 
 
 def default_questions(r: SoftwareRequirement) -> list[str]:

@@ -11,6 +11,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
 
+from app.agent import samples as sample_lib
 from app.agent.checkpoint import get_checkpointer
 from app.agent.deps import AgentDeps
 from app.agent.graph import build_graph
@@ -102,6 +103,7 @@ def prepare_chat(
     material: MaterialIn | None = None,
     checkpointer: BaseCheckpointSaver | None = None,
     requirement: dict[str, Any] | None = None,
+    samples: sample_lib.SamplesIn | None = None,
 ) -> PreparedRun:
     thread_id = deps.ctx.thread_id
     graph = build_graph(deps, checkpointer or get_checkpointer())
@@ -113,12 +115,17 @@ def prepare_chat(
     if material is not None:
         extra["material"] = {"name": material.name, "chars": len(material.text)}
         content = compose(message, material)
+    summary = sample_lib.summarize(samples) if samples else None
+    if summary is not None:
+        extra["material"] = {"name": sample_lib.label(summary), "chars": 0}  # 名称已含张数
+        content = sample_lib.compose(message, summary)
     payload: dict[str, Any] = {
         "messages": [HumanMessage(content=content, additional_kwargs=extra)],
         "user_id": str(deps.ctx.user.id),
         "user_message": message,
         "material": material.name if material else None,
         "confirmed_requirement": requirement,
+        "samples": summary.model_dump() if summary else None,
     }
     # 没带商机（例如从历史记录重新打开的会话）时不覆盖：会话之前关联的商机继续有效
     if opportunity_id:

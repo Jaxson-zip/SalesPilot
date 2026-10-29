@@ -3897,6 +3897,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/agent/samples:
+    post:
+      tags:
+      - agent
+      summary: Analyze Sample
+      description: 客户样例图片 → 单据类型、字段名、清晰度（一次一张，不入库）。
+      operationId: analyze_sample_api_agent_samples_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_analyze_sample_api_agent_samples_post'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_SampleItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/agent/models:
     get:
       tags:
@@ -5379,6 +5414,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_SampleItem_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/SampleItem'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[SampleItem]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_SettingsOut_:
       properties:
         code:
@@ -6149,6 +6209,16 @@ components:
       - ip
       - target_name
       title: AuditItem
+    Body_analyze_sample_api_agent_samples_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_analyze_sample_api_agent_samples_post
     Body_extract_material_api_agent_materials_post:
       properties:
         file:
@@ -6294,6 +6364,10 @@ components:
         material:
           anyOf:
           - $ref: '#/components/schemas/MaterialIn'
+          - type: 'null'
+        samples:
+          anyOf:
+          - $ref: '#/components/schemas/SamplesIn'
           - type: 'null'
       type: object
       required:
@@ -9821,6 +9895,59 @@ components:
       - kind
       - input
       title: RunningInfo
+    SampleItem:
+      properties:
+        name:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Name
+        doc_type:
+          type: string
+          maxLength: 30
+          minLength: 1
+          title: Doc Type
+        fields:
+          items:
+            type: string
+          type: array
+          maxItems: 30
+          title: Fields
+        quality:
+          type: string
+          enum:
+          - clear
+          - blurry
+          - handwritten
+          title: Quality
+      type: object
+      required:
+      - name
+      - doc_type
+      - fields
+      - quality
+      title: SampleItem
+      description: 一张样例图片的识别结果。
+    SamplesIn:
+      properties:
+        total:
+          type: integer
+          maximum: 30.0
+          minimum: 1.0
+          title: Total
+        items:
+          items:
+            $ref: '#/components/schemas/SampleItem'
+          type: array
+          maxItems: 30
+          minItems: 1
+          title: Items
+      type: object
+      required:
+      - total
+      - items
+      title: SamplesIn
+      description: 随聊天消息发送的样例识别结果（失败的不带，total 是上传的张数）。
     SettingValue:
       properties:
         key:

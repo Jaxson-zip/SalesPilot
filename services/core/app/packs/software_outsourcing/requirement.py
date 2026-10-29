@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.packs.base import SampleSummary
+
 Platform = Literal["web", "mini_program", "app", "admin"]
 Complexity = Literal["simple", "medium", "complex"]
 
@@ -72,6 +74,11 @@ class SoftwareRequirement(BaseModel):
         ge=0,
         description="上线后每月要识别的图片 / 单据张数（「每天 200 票」= 6000）；"
         "客户发来的样例张数（如「先给了 30 张」）不是业务量，不要填；没说留空",
+    )
+    samples: SampleSummary | None = Field(
+        default=None,
+        description="客户样例图片的识别汇总（系统填写）",
+        json_schema_extra={"extract": False},
     )
 
 

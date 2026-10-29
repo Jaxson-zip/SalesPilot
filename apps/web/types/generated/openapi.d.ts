@@ -1408,6 +1408,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/agent/samples": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Analyze Sample
+     * @description 客户样例图片 → 单据类型、字段名、清晰度（一次一张，不入库）。
+     */
+    post: operations["analyze_sample_api_agent_samples_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/agent/models": {
     parameters: {
       query?: never
@@ -2465,6 +2485,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[SampleItem] */
+    ApiResponse_SampleItem_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["SampleItem"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[SettingsOut] */
     ApiResponse_SettingsOut_: {
       /**
@@ -2974,6 +3013,11 @@ export interface components {
       /** Target Name */
       target_name: string | null
     }
+    /** Body_analyze_sample_api_agent_samples_post */
+    Body_analyze_sample_api_agent_samples_post: {
+      /** File */
+      file: string
+    }
     /** Body_extract_material_api_agent_materials_post */
     Body_extract_material_api_agent_materials_post: {
       /** File */
@@ -3049,6 +3093,7 @@ export interface components {
       /** Model */
       model?: string | null
       material?: components["schemas"]["MaterialIn"] | null
+      samples?: components["schemas"]["SamplesIn"] | null
     }
     /** ChatModelOut */
     ChatModelOut: {
@@ -4876,6 +4921,33 @@ export interface components {
       kind: "chat" | "resume"
       /** Input */
       input: string
+    }
+    /**
+     * SampleItem
+     * @description 一张样例图片的识别结果。
+     */
+    SampleItem: {
+      /** Name */
+      name: string
+      /** Doc Type */
+      doc_type: string
+      /** Fields */
+      fields: string[]
+      /**
+       * Quality
+       * @enum {string}
+       */
+      quality: "clear" | "blurry" | "handwritten"
+    }
+    /**
+     * SamplesIn
+     * @description 随聊天消息发送的样例识别结果（失败的不带，total 是上传的张数）。
+     */
+    SamplesIn: {
+      /** Total */
+      total: number
+      /** Items */
+      items: components["schemas"]["SampleItem"][]
     }
     /** SettingValue */
     SettingValue: {
@@ -8744,6 +8816,41 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_MaterialOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  analyze_sample_api_agent_samples_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_analyze_sample_api_agent_samples_post"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_SampleItem_"]
         }
       }
       /** @description Validation Error */

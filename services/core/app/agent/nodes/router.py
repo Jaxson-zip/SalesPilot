@@ -63,6 +63,8 @@ def make_router(deps: AgentDeps) -> Callable[[AgentState], dict[str, Any]]:
         text = state.get("user_message", "")
         if state.get("confirmed_requirement"):
             return {**turn_reset(), "intent": "solution"}  # 需求卡片确认：直接出方案
+        if state.get("samples"):
+            return {**turn_reset(), "intent": "solution"}  # 上传了客户样例：按样例出方案
         if state.get("material"):
             return {**turn_reset(), "intent": "crm_action"}  # 上传了材料：直接整理写入
         intent = llm_intent(deps, text, pending) or classify_intent(text, pending)

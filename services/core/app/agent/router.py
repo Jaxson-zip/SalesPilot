@@ -9,6 +9,7 @@ from sse_starlette.sse import EventSourceResponse
 from starlette.concurrency import run_in_threadpool
 
 from app.agent import materials, models, service, threads
+from app.agent import samples as sample_lib
 from app.agent.checkpoint import get_checkpointer
 from app.agent.history import ThreadMessages, read_thread_messages
 from app.agent.runs import registry
@@ -30,6 +31,8 @@ class ChatIn(BaseModel):
     model: str | None = Field(default=None, max_length=100)
     # 上传的一手材料（先调 /materials 取文字）；有材料时 AI 直接整理成跟进 / 联系人 / 下一步
     material: materials.MaterialIn | None = None
+    # 客户样例图片的逐张识别结果（先调 /samples）；有样例时直接走出方案
+    samples: sample_lib.SamplesIn | None = None
 
 
 class ResumeIn(BaseModel):
@@ -51,6 +54,7 @@ async def chat(body: ChatIn, user: CurrentUserDep, request: Request) -> EventSou
         body.opportunity_id,
         body.material,
         requirement=body.requirement,
+        samples=body.samples,
     )
     return EventSourceResponse(follow_run(service.start_run(run, user)))
 
@@ -69,6 +73,15 @@ def extract_material(
     """一手材料 → 文字（不入库）：文本 / Word / PDF 本地解析，图片走视觉模型识别。"""
     content = file.file.read(materials.MAX_BYTES + 1)
     return ok(materials.extract(file.filename or "", content, _request_id(request)))
+
+
+@router.post("/samples", response_model=ApiResponse[sample_lib.SampleItem])
+def analyze_sample(
+    user: CurrentUserDep, request: Request, file: Annotated[UploadFile, File()]
+) -> ApiResponse[sample_lib.SampleItem]:
+    """客户样例图片 → 单据类型、字段名、清晰度（一次一张，不入库）。"""
+    content = file.file.read(materials.MAX_BYTES + 1)
+    return ok(sample_lib.analyze(file.filename or "", content, _request_id(request)))
 
 
 @router.get("/models", response_model=ApiResponse[models.ChatModels])

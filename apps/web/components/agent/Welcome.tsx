@@ -1,6 +1,6 @@
 "use client"
 
-import { Paperclip, Sparkles } from "lucide-react"
+import { Images, Paperclip, Sparkles } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { PromptCards } from "@/components/agent/PromptCards"
@@ -53,6 +53,12 @@ export function Welcome({
           <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-zinc-500">
             <Paperclip className="size-3.5 shrink-0" />
             有会议纪要、聊天记录或名片？点输入框里的「上传材料」，AI 会整理成跟进、联系人和下一步
+          </p>
+        )}
+        {readOnly ? null : (
+          <p className="mt-1.5 flex items-center justify-center gap-1.5 text-center text-xs text-zinc-500">
+            <Images className="size-3.5 shrink-0" />
+            客户发来单据或表单样例？点「样例图片」，AI 识别单据类型和字段后出方案
           </p>
         )}
       </div>

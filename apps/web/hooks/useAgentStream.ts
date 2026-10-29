@@ -14,6 +14,7 @@ import {
 } from "@/lib/agent-reducer"
 import { api, isAbortError, isApiError } from "@/lib/api"
 import { MATERIAL_DEFAULT_ASK, type MaterialIn } from "@/lib/materials"
+import { SAMPLE_DEFAULT_ASK, sampleChipName, type SamplesIn } from "@/lib/samples"
 import { getSSE, postSSE, type StreamOptions } from "@/lib/sse"
 import type { ThreadRunning } from "@/lib/thread-history"
 import { ErrorCode, type ResumeDecision } from "@/types/api"
@@ -54,6 +55,7 @@ export interface UseAgentStream {
     material?: MaterialIn | null,
     opportunityId?: string | null,
     requirement?: Record<string, unknown> | null,
+    samples?: SamplesIn | null,
   ) => void
   resume: (decision: ResumeDecision) => void
   stop: () => void
@@ -128,6 +130,7 @@ export function useAgentStream(): UseAgentStream {
     material?: MaterialIn | null
     opportunity_id?: string
     requirement?: Record<string, unknown>
+    samples?: SamplesIn
   } | null>(null)
 
   const patch = useCallback<Patch>((fn) => setTurns((ts) => updateLastAssistant(ts, fn)), [])
@@ -152,19 +155,26 @@ export function useAgentStream(): UseAgentStream {
       material?: MaterialIn | null,
       opportunityId?: string | null,
       req?: Record<string, unknown> | null,
+      sampleSet?: SamplesIn | null,
     ) => {
-      const text = message.trim() || (material ? MATERIAL_DEFAULT_ASK : "")
+      const fallback = material ? MATERIAL_DEFAULT_ASK : sampleSet ? SAMPLE_DEFAULT_ASK : ""
+      const text = message.trim() || fallback
       if (!text || abortRef.current) return
       const opportunity_id = opportunityId ?? undefined
       const requirement = req ?? undefined
-      lastChat.current = { message: text, model, material, opportunity_id, requirement }
+      const samples = sampleSet ?? undefined
+      lastChat.current = { message: text, model, material, opportunity_id, requirement, samples }
       const thread_id = ensureThread()
-      const meta = material ? { name: material.name, chars: material.text.length } : null
+      const meta = material
+        ? { name: material.name, chars: material.text.length }
+        : samples
+          ? { name: sampleChipName(samples), chars: 0 }
+          : null
       setTurns((ts) => [...ts, { id: nextId("u"), role: "user", text, material: meta }, createAssistantTurn()])
       void run((o) =>
         postSSE(
           CHAT_PATH,
-          { thread_id, message: text, model, material: material ?? undefined, opportunity_id, requirement },
+          { thread_id, message: text, model, material: material ?? undefined, opportunity_id, requirement, samples },
           o,
         ),
       )
@@ -197,6 +207,7 @@ export function useAgentStream(): UseAgentStream {
           material: last.material ?? undefined,
           opportunity_id: last.opportunity_id,
           requirement: last.requirement,
+          samples: last.samples,
         },
         o,
       ),

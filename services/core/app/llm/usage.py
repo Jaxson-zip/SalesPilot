@@ -30,6 +30,7 @@ _ctx: ContextVar[UsageContext | None] = ContextVar("usage_ctx", default=None)
 # 接口路径 → 功能名（按顺序匹配第一个包含的片段）
 FEATURES: list[tuple[str, str]] = [
     ("/api/agent/materials", "材料识别"),
+    ("/api/agent/samples", "样例识别"),
     ("/api/agent/", "AI 工作台"),
     ("/meddic/assess", "赢单评估"),
     ("/api/reports/daily/draft", "日报草稿"),

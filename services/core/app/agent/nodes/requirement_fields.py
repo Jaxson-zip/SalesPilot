@@ -21,10 +21,16 @@ EXTRACT_PROMPT = (
 
 
 def optional_model(model: type[BaseModel]) -> type[BaseModel]:
-    """把需求 schema 的字段全部变为可选（保留类型和字段说明）。"""
+    """把需求 schema 的字段全部变为可选（保留类型和字段说明）。
+
+    标了 json_schema_extra={"extract": False} 的字段由系统填写（例如样例识别汇总），不交给模型。
+    """
     fields: dict[str, Any] = {
         name: (f.annotation | None, Field(default=None, description=f.description))
         for name, f in model.model_fields.items()
+        if not (
+            isinstance(f.json_schema_extra, dict) and f.json_schema_extra.get("extract") is False
+        )
     }
     return create_model(f"{model.__name__}Extract", __doc__=model.__doc__, **fields)
 

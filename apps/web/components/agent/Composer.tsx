@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowUp, Boxes, Cpu, FileText, Loader2, Lock, Paperclip, X } from "lucide-react"
+import { ArrowUp, Boxes, Cpu, FileText, Images, Loader2, Lock, Paperclip, RotateCw, X } from "lucide-react"
 import { useRef, type KeyboardEvent } from "react"
 
 import {
@@ -17,6 +17,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useAgentModels } from "@/hooks/useAgentModels"
 import { modelOptions, ruleModeHint } from "@/lib/agent-models"
 import { MATERIAL_ACCEPT, MATERIAL_DEFAULT_ASK, type MaterialOut } from "@/lib/materials"
+import {
+  MAX_SAMPLES,
+  SAMPLE_ACCEPT,
+  SAMPLE_DEFAULT_ASK,
+  samplesBusy,
+  samplesLabel,
+  toSamplesIn,
+  type SampleState,
+} from "@/lib/samples"
 import { cn } from "@/lib/utils"
 
 interface ComposerProps {
@@ -37,6 +46,11 @@ interface ComposerProps {
   uploading?: boolean
   onAttach?: (file: File) => void
   onClearMaterial?: () => void
+  /** 客户样例图片：传了 onAttachSamples 才显示「样例图片」按钮 */
+  samples?: SampleState | null
+  onAttachSamples?: (files: File[]) => void
+  onRetrySamples?: () => void
+  onClearSamples?: () => void
 }
 
 const KIND_LABEL: Record<MaterialOut["kind"], string> = {
@@ -66,6 +80,89 @@ function MaterialChip({ material, onClear }: { material: MaterialOut; onClear?: 
         <X className="size-3.5" />
       </button>
     </div>
+  )
+}
+
+/** 样例图片标签：识别进度 → 张数和单据类数；有失败的可以重试 */
+function SamplesChip({
+  samples,
+  onRetry,
+  onClear,
+}: {
+  samples: SampleState
+  onRetry?: () => void
+  onClear?: () => void
+}) {
+  const busy = samplesBusy(samples)
+  return (
+    <div
+      aria-label="客户样例图片"
+      className="mx-3 mt-3 flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs"
+    >
+      {busy ? (
+        <Loader2 className="size-4 shrink-0 animate-spin text-zinc-500" />
+      ) : (
+        <Images className="size-4 shrink-0 text-zinc-500" />
+      )}
+      <span className="min-w-0 truncate font-medium text-zinc-800">客户样例图片</span>
+      <span className="shrink-0 text-zinc-400">{samplesLabel(samples)}</span>
+      <div className="flex-1" />
+      {!busy && samples.failed.length > 0 ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-zinc-600 hover:bg-zinc-200"
+        >
+          <RotateCw className="size-3" />
+          重试失败的
+        </button>
+      ) : null}
+      <button
+        type="button"
+        aria-label="移除样例图片"
+        onClick={onClear}
+        className="rounded p-0.5 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700"
+      >
+        <X className="size-3.5" />
+      </button>
+    </div>
+  )
+}
+
+/** 样例图片按钮：客户发来的单据 / 表单样例（可多选），AI 识别类型和字段后出方案 */
+function SamplesButton({ busy, onPick }: { busy?: boolean; onPick: (files: File[]) => void }) {
+  const input = useRef<HTMLInputElement>(null)
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label="上传样例图片"
+          disabled={busy}
+          onClick={() => input.current?.click()}
+          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-zinc-200 px-3 text-xs text-zinc-700 hover:bg-zinc-50 disabled:opacity-60"
+        >
+          <Images className="size-3.5" />
+          <span className="max-sm:hidden">样例图片</span>
+          <input
+            ref={input}
+            type="file"
+            hidden
+            multiple
+            accept={SAMPLE_ACCEPT}
+            data-testid="samples-input"
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? [])
+              e.target.value = ""
+              if (files.length) onPick(files)
+            }}
+          />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>
+        上传客户发来的单据 / 表单样例图片（最多 {MAX_SAMPLES} 张），AI 识别单据类型、字段和清晰度后出方案
+      </TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -234,9 +331,15 @@ export function Composer(props: ComposerProps) {
     uploading,
     onAttach,
     onClearMaterial,
+    samples,
+    onAttachSamples,
+    onRetrySamples,
+    onClearSamples,
   } = props
   const composing = useRef(false)
-  const canSend = (value.trim().length > 0 || Boolean(material)) && !uploading
+  const busy = samplesBusy(samples ?? null)
+  const canSend =
+    (value.trim().length > 0 || Boolean(material) || Boolean(toSamplesIn(samples ?? null))) && !uploading && !busy
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && !composing.current) {
@@ -248,6 +351,7 @@ export function Composer(props: ComposerProps) {
   return (
     <div className="rounded-[20px] border border-zinc-200 bg-white shadow-sm focus-within:border-zinc-300">
       {material ? <MaterialChip material={material} onClear={onClearMaterial} /> : null}
+      {samples ? <SamplesChip samples={samples} onRetry={onRetrySamples} onClear={onClearSamples} /> : null}
       <textarea
         rows={rows}
         value={value}
@@ -258,13 +362,16 @@ export function Composer(props: ComposerProps) {
         placeholder={
           material
             ? `可以补充说明，例如：这是和明理律所的拜访纪要（不填则「${MATERIAL_DEFAULT_ASK}」）`
-            : (placeholder ?? "给 SalesPilot 发消息，例如：给明理律所出一份 Qwen3-32B 私有化方案")
+            : samples
+              ? `可以补充说明，例如：报关单据，每天约 200 票，审核后导出（不填则「${SAMPLE_DEFAULT_ASK}」）`
+              : (placeholder ?? "给 SalesPilot 发消息，例如：给明理律所出一份 Qwen3-32B 私有化方案")
         }
         className="w-full resize-none bg-transparent px-4 pt-3.5 text-[14px] outline-none placeholder:text-zinc-400"
       />
       <div className="flex min-w-0 items-center gap-1.5 px-3 pb-3">
         {!compact && pack ? <PackChip pack={pack} /> : null}
         {onAttach ? <AttachButton uploading={uploading} onPick={onAttach} /> : null}
+        {onAttachSamples ? <SamplesButton busy={busy} onPick={onAttachSamples} /> : null}
         <ModelSelect model={model} onModelChange={onModelChange} />
         <div className="flex-1" />
         <SendButton streaming={streaming} disabled={!streaming && !canSend} onClick={streaming ? onStop : onSubmit} />

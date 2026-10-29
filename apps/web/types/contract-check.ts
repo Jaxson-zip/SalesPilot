@@ -11,6 +11,7 @@ import type * as P from "@/lib/pack-rules"
 import type * as C from "@/lib/settings"
 import type * as T from "@/types/api"
 import type * as M from "@/lib/materials"
+import type * as Smp from "@/lib/samples"
 import type * as A from "@/hooks/useAuditLogs"
 import type * as I from "@/components/customers/CustomerIntel"
 import type * as K from "@/hooks/useCompetitors"
@@ -60,6 +61,7 @@ export const responses = {
   KnowledgeDoc: true as Fits<S["KnowledgeDoc"], P.PackKnowledgeDoc>,
   KnowledgeUploadOut: true as Fits<S["KnowledgeUploadOut"], C.KnowledgeUploadOut>,
   MaterialOut: true as Fits<S["MaterialOut"], M.MaterialOut>,
+  SampleItem: true as Fits<S["SampleItem"], Smp.SampleItem>,
   AuditItem: true as Fits<S["AuditItem"], A.AuditItem>,
   MeddicOut: true as Fits<S["MeddicOut"], D.MeddicOut>,
   CompetitorOut: true as Fits<S["CompetitorOut"], K.Competitor>,
@@ -97,4 +99,5 @@ export const requests = {
   SettingsUpdate: true as Fits<C.SettingsUpdate, S["SettingsUpdate"]>,
   CatalogEdit: true as Fits<C.CatalogEdit, S["CatalogEdit"]>,
   MaterialIn: true as Fits<M.MaterialIn, S["MaterialIn"]>,
+  SamplesIn: true as Fits<Smp.SamplesIn, S["SamplesIn"]>,
 } satisfies Record<string, true>

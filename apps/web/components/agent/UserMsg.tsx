@@ -10,7 +10,9 @@ export function UserMsg({ text, material }: { text: string; material?: MaterialM
         <div className="inline-flex max-w-[80%] items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs">
           <FileText className="size-4 shrink-0 text-zinc-500" />
           <span className="truncate font-medium text-zinc-800">{material.name}</span>
-          <span className="shrink-0 text-zinc-400">{material.chars.toLocaleString()} 字</span>
+          {material.chars > 0 ? (
+            <span className="shrink-0 text-zinc-400">{material.chars.toLocaleString()} 字</span>
+          ) : null}
         </div>
       ) : null}
       <div className="max-w-[80%] rounded-2xl bg-zinc-100 px-4 py-2.5 text-[14px] leading-6 break-words whitespace-pre-wrap">

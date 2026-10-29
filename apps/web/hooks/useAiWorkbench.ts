@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
 
 import { notifyError } from "@/hooks/notify"
 import { fetchThreadMessages, threadKeys } from "@/hooks/useAgentThreads"
@@ -9,6 +10,15 @@ import { useAgentStream } from "@/hooks/useAgentStream"
 import { requirementKey } from "@/hooks/useRequirement"
 import { DEFAULT_MODEL } from "@/lib/agent-labels"
 import { extractMaterial, type MaterialOut } from "@/lib/materials"
+import {
+  MAX_SAMPLES,
+  SAMPLE_CONCURRENCY,
+  analyzeSample,
+  runQueue,
+  samplesBusy,
+  toSamplesIn,
+  type SampleState,
+} from "@/lib/samples"
 import { lastUserText, messagesToTurns } from "@/lib/thread-history"
 
 /**
@@ -23,6 +33,9 @@ export function useAiWorkbench() {
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [material, setMaterial] = useState<MaterialOut | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [samples, setSamples] = useState<SampleState | null>(null)
+  // 每批样例一个编号：清除或重新选择后，上一批还没回来的结果直接丢弃
+  const sampleBatch = useRef(0)
   // 从商机「出方案」进入时关联的商机；新对话 / 打开历史会话时清空
   const [opportunityId, setOpportunityId] = useState<string | null>(null)
 
@@ -31,11 +44,58 @@ export function useAiWorkbench() {
     setUploading(true)
     try {
       setMaterial(await extractMaterial(file))
+      clearSamples()
     } catch (err) {
       notifyError(err)
     } finally {
       setUploading(false)
     }
+  }
+
+  /** 识别一批样例图片（限量并发，逐张更新进度）；只提示第一条错误，避免几十条重复提示 */
+  const recognize = async (files: File[], batch: number) => {
+    let reported = false
+    await runQueue(files, analyzeSample, SAMPLE_CONCURRENCY, (file, result) => {
+      if (sampleBatch.current !== batch) return
+      if (result instanceof Error && !reported) {
+        reported = true
+        notifyError(result)
+      }
+      setSamples((s) =>
+        s
+          ? {
+              ...s,
+              done: s.done + 1,
+              items: result instanceof Error ? s.items : [...s.items, result],
+              failed: result instanceof Error ? [...s.failed, file] : s.failed,
+            }
+          : s,
+      )
+    })
+  }
+
+  /** 选择客户样例图片：超过上限只取前 MAX_SAMPLES 张；与「上传材料」二选一 */
+  const attachSamples = (picked: File[]) => {
+    const files = picked.slice(0, MAX_SAMPLES)
+    if (files.length === 0) return
+    if (picked.length > MAX_SAMPLES) toast.warning(`一次最多 ${MAX_SAMPLES} 张，只取了前 ${MAX_SAMPLES} 张`)
+    const batch = ++sampleBatch.current
+    setMaterial(null)
+    setSamples({ total: files.length, done: 0, items: [], failed: [] })
+    void recognize(files, batch)
+  }
+
+  /** 重试识别失败的图片 */
+  const retrySamples = () => {
+    if (!samples || samplesBusy(samples) || samples.failed.length === 0) return
+    const files = samples.failed
+    setSamples({ ...samples, done: samples.done - files.length, failed: [] })
+    void recognize(files, sampleBatch.current)
+  }
+
+  const clearSamples = () => {
+    sampleBatch.current++
+    setSamples(null)
   }
 
   // 一轮对话结束（流式 → 空闲）后刷新会话列表：新会话出现在历史里、旧会话排到最前。
@@ -57,10 +117,13 @@ export function useAiWorkbench() {
 
   const send = (text: string) => {
     const msg = text.trim()
-    if ((!msg && !material) || stream.isStreaming) return
-    stream.send(msg, model, material ? { name: material.name, text: material.text } : null, opportunityId)
+    const sampleSet = toSamplesIn(samples)
+    if ((!msg && !material && !sampleSet) || stream.isStreaming || samplesBusy(samples)) return
+    const mat = material ? { name: material.name, text: material.text } : null
+    stream.send(msg, model, mat, opportunityId, null, sampleSet)
     setInput("")
     setMaterial(null)
+    clearSamples()
   }
 
   /** 需求卡片「确认需求，出报价」：把核对后的需求随消息提交 */
@@ -73,6 +136,7 @@ export function useAiWorkbench() {
     stream.reset()
     setInput("")
     setMaterial(null)
+    clearSamples()
     setOpportunityId(null)
   }
 
@@ -110,6 +174,10 @@ export function useAiWorkbench() {
     uploading,
     attach,
     clearMaterial: () => setMaterial(null),
+    samples,
+    attachSamples,
+    retrySamples,
+    clearSamples,
     title,
     send,
     confirmRequirement,

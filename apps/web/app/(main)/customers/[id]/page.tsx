@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useClaimCustomer, useCustomer } from "@/hooks/useCustomers"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useQuotes } from "@/hooks/useQuotes"
+import { aiPrefillHref, solutionPrompt } from "@/lib/thread-history"
 import { defaultScope } from "@/lib/views"
 import type { Role } from "@/types/api"
 
@@ -166,7 +167,14 @@ export default function CustomerDetailPage() {
               <FrameAction icon={PencilLine} label="写跟进" onClick={writeFollowup} />
             </span>
           ) : null}
-          {canAiWrite ? <FrameAction icon={Sparkles} label="为该客户出方案" href="/ai" primary /> : null}
+          {canAiWrite ? (
+            <FrameAction
+              icon={Sparkles}
+              label="为该客户出方案"
+              href={c ? aiPrefillHref(solutionPrompt(c.name)) : "/ai"}
+              primary
+            />
+          ) : null}
         </>
       }
     >

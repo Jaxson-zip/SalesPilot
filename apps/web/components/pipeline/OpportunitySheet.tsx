@@ -43,6 +43,7 @@ import {
 } from "@/lib/labels"
 import { isFinalStage, stageBarState } from "@/lib/pipeline"
 import { staleText } from "@/lib/tasks"
+import { aiPrefillHref, solutionPrompt } from "@/lib/thread-history"
 import { cn } from "@/lib/utils"
 import type { OpportunityDetail, OpportunityItem, OpportunityStage } from "@/types/api"
 
@@ -277,7 +278,7 @@ export function OpportunitySheet({
             </Button>
             {editable ? (
               <Button asChild>
-                <Link href="/ai">
+                <Link href={aiPrefillHref(solutionPrompt(o.customer.name, o.name), o.id)}>
                   <Sparkles />
                   出方案
                 </Link>

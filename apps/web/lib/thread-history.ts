@@ -120,3 +120,13 @@ export function lastUserText(turns: ChatTurn[]): string | null {
 export function aiThreadHref(id: string): string {
   return `/ai?t=${encodeURIComponent(id)}`
 }
+
+/** 从客户 / 商机页点「出方案」：开新对话并预填客户和商机，销售补上需求后再发送 */
+export function aiPrefillHref(prompt: string, opportunityId?: string): string {
+  const opp = opportunityId ? `&opp=${encodeURIComponent(opportunityId)}` : ""
+  return `/ai?prompt=${encodeURIComponent(prompt)}${opp}`
+}
+
+export function solutionPrompt(customer: string, opportunity?: string): string {
+  return opportunity ? `给「${customer}」的「${opportunity}」商机出一份方案：` : `给「${customer}」出一份方案：`
+}

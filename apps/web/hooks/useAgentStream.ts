@@ -46,7 +46,8 @@ export interface UseAgentStream {
   turns: ChatTurn[]
   threadId: string | null
   isStreaming: boolean
-  send: (message: string, model: string, material?: MaterialIn | null) => void
+  /** opportunityId：从商机进入的会话，每条消息都带上，报价单关联到这个商机、行业包随商机产品线 */
+  send: (message: string, model: string, material?: MaterialIn | null, opportunityId?: string | null) => void
   resume: (decision: ResumeDecision) => void
   stop: () => void
   retry: () => void
@@ -114,7 +115,12 @@ export function useAgentStream(): UseAgentStream {
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const [threadId, setThreadId] = useState<string | null>(null)
   const threadRef = useRef<string | null>(null)
-  const lastChat = useRef<{ message: string; model: string; material?: MaterialIn | null } | null>(null)
+  const lastChat = useRef<{
+    message: string
+    model: string
+    material?: MaterialIn | null
+    opportunity_id?: string
+  } | null>(null)
 
   const patch = useCallback<Patch>((fn) => setTurns((ts) => updateLastAssistant(ts, fn)), [])
   const onThread = useCallback((id: string) => {
@@ -132,14 +138,17 @@ export function useAgentStream(): UseAgentStream {
   }, [])
 
   const send = useCallback(
-    (message: string, model: string, material?: MaterialIn | null) => {
+    (message: string, model: string, material?: MaterialIn | null, opportunityId?: string | null) => {
       const text = message.trim() || (material ? MATERIAL_DEFAULT_ASK : "")
       if (!text || abortRef.current) return
-      lastChat.current = { message: text, model, material }
+      const opportunity_id = opportunityId ?? undefined
+      lastChat.current = { message: text, model, material, opportunity_id }
       const thread_id = ensureThread()
       const meta = material ? { name: material.name, chars: material.text.length } : null
       setTurns((ts) => [...ts, { id: nextId("u"), role: "user", text, material: meta }, createAssistantTurn()])
-      void run((o) => postSSE(CHAT_PATH, { thread_id, message: text, model, material: material ?? undefined }, o))
+      void run((o) =>
+        postSSE(CHAT_PATH, { thread_id, message: text, model, material: material ?? undefined, opportunity_id }, o),
+      )
     },
     [abortRef, ensureThread, run],
   )
@@ -162,7 +171,13 @@ export function useAgentStream(): UseAgentStream {
     void run((o) =>
       postSSE(
         CHAT_PATH,
-        { thread_id, message: last.message, model: last.model, material: last.material ?? undefined },
+        {
+          thread_id,
+          message: last.message,
+          model: last.model,
+          material: last.material ?? undefined,
+          opportunity_id: last.opportunity_id,
+        },
         o,
       ),
     )

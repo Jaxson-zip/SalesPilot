@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest"
 
-import { lastUserText, messagesToTurns, toHistoryItems, type ThreadMessages } from "@/lib/thread-history"
+import {
+  aiPrefillHref,
+  lastUserText,
+  messagesToTurns,
+  solutionPrompt,
+  toHistoryItems,
+  type ThreadMessages,
+} from "@/lib/thread-history"
 
 describe("toHistoryItems", () => {
   it("updated_at → 毫秒时间戳，空标题回落为「新对话」", () => {
@@ -62,5 +69,17 @@ describe("messagesToTurns", () => {
   it("lastUserText 取最后一条用户消息", () => {
     expect(lastUserText(messagesToTurns(data))).toBe("给明理律所出方案")
     expect(lastUserText([])).toBeNull()
+  })
+})
+
+describe("出方案带上下文", () => {
+  it("预填客户和商机，链接带 prompt 和商机 id", () => {
+    expect(solutionPrompt("深职大")).toBe("给「深职大」出一份方案：")
+    expect(solutionPrompt("深职大", "AI 客服")).toBe("给「深职大」的「AI 客服」商机出一份方案：")
+    const url = new URL(aiPrefillHref("给「深职大」出一份方案：", "o1"), "http://x")
+    expect(url.pathname).toBe("/ai")
+    expect(url.searchParams.get("prompt")).toBe("给「深职大」出一份方案：")
+    expect(url.searchParams.get("opp")).toBe("o1")
+    expect(new URL(aiPrefillHref("x"), "http://x").searchParams.has("opp")).toBe(false)
   })
 })

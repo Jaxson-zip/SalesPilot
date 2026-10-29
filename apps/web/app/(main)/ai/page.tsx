@@ -21,7 +21,10 @@ import { aiThreadHref } from "@/lib/thread-history"
  * - 发出第一条消息生成了新会话 → 把 id 写进地址（replace，不多一条历史记录）
  */
 function useThreadUrl(w: AiSession): () => void {
-  const t = useSearchParams().get("t")
+  const params = useSearchParams()
+  const t = params.get("t")
+  const prompt = params.get("prompt")
+  const opp = params.get("opp")
   const router = useRouter()
   const latest = useRef({ w, t })
   const mounted = useRef(false)
@@ -39,6 +42,15 @@ function useThreadUrl(w: AiSession): () => void {
       w.newChat()
     }
   }, [t])
+
+  // ?prompt=：从客户 / 商机页带过来的上下文，开新对话并预填输入框（不自动发送），然后去掉参数
+  useEffect(() => {
+    if (prompt === null) return
+    latest.current.w.newChat()
+    latest.current.w.setInput(prompt)
+    latest.current.w.setOpportunityId(opp)
+    router.replace("/ai", { scroll: false })
+  }, [prompt, opp, router])
 
   const threadId = w.stream.threadId
   useEffect(() => {

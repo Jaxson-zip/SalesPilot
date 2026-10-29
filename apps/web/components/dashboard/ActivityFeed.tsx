@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useActivities } from "@/hooks/useDashboard"
 import { formatRelative } from "@/lib/format"
 import { activityActionLabel } from "@/lib/labels"
+import { activityActor } from "@/lib/timeline"
 import type { Activity, DataView } from "@/types/api"
 
 const SUBJECT_LABEL: Record<string, string> = {
@@ -27,8 +28,9 @@ const PAGE = 20
 const MAX = 100
 
 function FeedRow({ a }: { a: Activity }) {
-  const isAi = a.source === "agent" || a.actor === null
-  const name = isAi ? "AI 助手" : (a.actor?.name ?? "—")
+  const by = activityActor(a)
+  const isAi = by === "ai"
+  const name = by === "system" ? "系统" : isAi ? "AI 助手" : (a.actor?.name ?? "—")
   return (
     <li className="flex items-start gap-3 border-b border-zinc-100 py-2.5 last:border-0">
       <LetterAvatar name={isAi ? "AI" : name} className="mt-0.5 size-6 text-[11px]" />

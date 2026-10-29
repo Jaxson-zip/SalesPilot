@@ -5,6 +5,7 @@ from app.crm.models.competitor import Competitor
 from app.crm.models.customer import Activity, Contact, Customer, Followup
 from app.crm.models.finance import Approval, Attachment, Expense
 from app.crm.models.integration import Integration
+from app.crm.models.job import JobRun, ScheduledJob
 from app.crm.models.knowledge import AgentThread, KbChunk
 from app.crm.models.org import ConfigOverride, ProductLine, Team, User
 from app.crm.models.report import DailyReport
@@ -36,6 +37,7 @@ __all__ = [
     "Expense",
     "Followup",
     "Integration",
+    "JobRun",
     "KbChunk",
     "Notification",
     "Opportunity",
@@ -43,6 +45,7 @@ __all__ = [
     "ProductLine",
     "Quote",
     "QuoteItem",
+    "ScheduledJob",
     "Task",
     "Team",
     "User",

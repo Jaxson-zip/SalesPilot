@@ -21,6 +21,7 @@ import type * as R from "@/hooks/useReports"
 import type * as W from "@/hooks/useWecom"
 import type * as Acc from "@/hooks/useAccounts"
 import type * as LV from "@/lib/list-view"
+import type * as Jobs from "@/hooks/useJobs"
 
 type S = components["schemas"]
 /** A 能赋给 B 时为 true；不能时类型为 false，下面的 `= true` 就会报错 */
@@ -41,6 +42,8 @@ export const responses = {
   UserItem: true as Fits<S["UserListItem"], T.UserItem>,
   AccountItem: true as Fits<S["AccountItem"], Acc.AccountItem>,
   FacetOption: true as Fits<S["FacetOption"], LV.FilterOption>,
+  JobItem: true as Fits<S["JobItem"], Jobs.JobItem>,
+  JobRunOut: true as Fits<S["JobRunOut"], Jobs.JobRun>,
   TempPassword: true as Fits<S["TempPassword"], Acc.TempPassword>,
   TeamItem: true as Fits<S["TeamItem"], Acc.TeamItem>,
   TaskItem: true as Fits<S["TaskItem"], T.TaskItem>,
@@ -91,6 +94,7 @@ export const requests = {
   AccountCreate: true as Fits<Acc.AccountCreate, S["AccountCreate"]>,
   AccountUpdate: true as Fits<Acc.AccountUpdate, S["AccountUpdate"]>,
   TeamIn: true as Fits<Acc.TeamIn, S["TeamIn"]>,
+  JobUpdate: true as Fits<Jobs.JobUpdate, S["JobUpdate"]>,
   QuoteItemsPatch: true as Fits<T.QuoteItemsPatch, S["QuoteItemsUpdate"]>,
   TaskCreate: true as Fits<T.TaskCreate, S["TaskCreate"]>,
   TaskUpdate: true as Fits<T.TaskUpdate, S["TaskUpdate"]>,

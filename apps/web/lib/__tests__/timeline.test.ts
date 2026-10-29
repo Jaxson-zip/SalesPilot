@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { buildTimeline } from "@/lib/timeline"
+import { activityActor, buildTimeline } from "@/lib/timeline"
 import type { Activity, FollowupItem } from "@/types/api"
 
 const followup: FollowupItem = {
@@ -57,5 +57,20 @@ describe("buildTimeline", () => {
   it("跟进没有 owner 时用 fallbackActor", () => {
     const [e] = buildTimeline([{ ...followup, owner: undefined }], [], "李薇")
     expect(e.actor).toBe("李薇")
+  })
+})
+
+describe("activityActor：系统操作不算 AI", () => {
+  it("定时任务的动态显示为「系统」，不带 AI 标记", () => {
+    const sys: Activity = { ...act("a9", "pool_release", "2026-10-29T18:00:00Z", null), source: "system" }
+    expect(activityActor(sys)).toBe("system")
+    const [entry] = buildTimeline([], [sys])
+    expect(entry.actor).toBe("系统")
+    expect(entry.icon).toBe("activity")
+  })
+
+  it("老数据：没有操作人仍算 AI；有人的算本人", () => {
+    expect(activityActor(act("a1", "create", "2026-10-29T01:00:00Z", null))).toBe("ai")
+    expect(activityActor(act("a2", "create", "2026-10-29T01:00:00Z"))).toBe("user")
   })
 })

@@ -26,12 +26,19 @@ function followupEntry(f: FollowupItem, fallbackActor: string): TimelineEntry {
   }
 }
 
+/** 动态是谁做的：AI、系统（定时任务）还是某个人。老数据没有 source=system，没有操作人的都算 AI */
+export function activityActor(a: Pick<Activity, "source" | "actor">): "ai" | "system" | "user" {
+  if (a.source === "system") return "system"
+  return a.source === "agent" || a.actor === null ? "ai" : "user"
+}
+
 function activityEntry(a: Activity): TimelineEntry {
-  const isAi = a.source === "agent" || a.actor === null
+  const by = activityActor(a)
+  const isAi = by === "ai"
   return {
     key: `a-${a.id}`,
     kind: "activity",
-    actor: isAi ? "AI" : (a.actor?.name ?? "—"),
+    actor: by === "system" ? "系统" : isAi ? "AI" : (a.actor?.name ?? "—"),
     action: activityActionLabel(a.action, a.subject_type),
     content: a.content,
     at: a.created_at,

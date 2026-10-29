@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     access_code: str | None = None
     # 登录页显示演示账户（一键进入、左下角切换）；正式使用时关掉，只能账号密码登录
     demo_login: bool = True
+    # 定时任务调度器（到期提醒、回款逾期、日报催交等）；测试和只读副本设为 false
+    scheduler_enabled: bool = True
     # 演示账户的初始密码（迁移 0019 和种子数据写入）
     demo_password: str = "demo2026"
     llm_gateway_base: str = "http://localhost:8100/v1"

@@ -378,6 +378,154 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/jobs:
+    get:
+      tags:
+      - jobs
+      summary: List Jobs
+      operationId: list_jobs_api_admin_jobs_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_JobItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/jobs/runs:
+    get:
+      tags:
+      - jobs
+      summary: List Runs
+      operationId: list_runs_api_admin_jobs_runs_get
+      parameters:
+      - name: name
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 50
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_JobRunOut__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/jobs/{name}:
+    patch:
+      tags:
+      - jobs
+      summary: Update Job
+      operationId: update_job_api_admin_jobs__name__patch
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Name
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_JobItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/jobs/{name}/run:
+    post:
+      tags:
+      - jobs
+      summary: Run Job
+      description: 立即运行一次（不受开关和时间限制；通知有去重，不会重复提醒）。
+      operationId: run_job_api_admin_jobs__name__run_post
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Name
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_JobRunOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/audit-logs:
     get:
       tags:
@@ -5175,6 +5323,7 @@ components:
           enum:
           - manual
           - agent
+          - system
           title: Source
         action:
           type: string
@@ -5744,6 +5893,56 @@ components:
           default: ''
       type: object
       title: ApiResponse[Health]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_JobItem_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/JobItem'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[JobItem]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_JobRunOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/JobRunOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[JobRunOut]
       required:
       - code
       - message
@@ -7010,6 +7209,62 @@ components:
           default: ''
       type: object
       title: ApiResponse[list[CompetitorOut]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_list_JobItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/JobItem'
+            type: array
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[list[JobItem]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_list_JobRunOut__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/JobRunOut'
+            type: array
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[list[JobRunOut]]
       required:
       - code
       - message
@@ -9447,6 +9702,134 @@ components:
       - action
       title: InvoiceIn
       description: 开票操作：request 负责人申请；issue 主管登记已开票；void 主管作废（红冲或撤回申请）。
+    JobItem:
+      properties:
+        name:
+          type: string
+          title: Name
+        title:
+          type: string
+          title: Title
+        description:
+          type: string
+          title: Description
+        enabled:
+          type: boolean
+          title: Enabled
+        run_at:
+          type: string
+          title: Run At
+        weekdays_only:
+          type: boolean
+          title: Weekdays Only
+        options:
+          items:
+            $ref: '#/components/schemas/JobOption'
+          type: array
+          title: Options
+        last_run:
+          anyOf:
+          - $ref: '#/components/schemas/JobRunOut'
+          - type: 'null'
+      type: object
+      required:
+      - name
+      - title
+      - description
+      - enabled
+      - run_at
+      - weekdays_only
+      - options
+      - last_run
+      title: JobItem
+    JobOption:
+      properties:
+        key:
+          type: string
+          title: Key
+        value:
+          type: integer
+          title: Value
+      type: object
+      required:
+      - key
+      - value
+      title: JobOption
+    JobRunOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        job:
+          type: string
+          title: Job
+        trigger:
+          type: string
+          enum:
+          - auto
+          - manual
+          title: Trigger
+        triggered_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Triggered By
+        status:
+          type: string
+          enum:
+          - running
+          - ok
+          - failed
+          title: Status
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        started_at:
+          type: string
+          format: date-time
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+      type: object
+      required:
+      - id
+      - job
+      - trigger
+      - status
+      - started_at
+      - triggered_by
+      - summary
+      - finished_at
+      title: JobRunOut
+    JobUpdate:
+      properties:
+        enabled:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Enabled
+        run_at:
+          anyOf:
+          - type: string
+            pattern: ^([01]\d|2[0-3]):[0-5]\d$
+          - type: 'null'
+          title: Run At
+        options:
+          anyOf:
+          - additionalProperties:
+              type: integer
+            type: object
+          - type: 'null'
+          title: Options
+      type: object
+      title: JobUpdate
     KnowledgeDoc:
       properties:
         doc_name:

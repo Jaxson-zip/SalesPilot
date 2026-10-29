@@ -26,6 +26,7 @@ from app.crm.routers import (
     dashboard,
     expenses,
     integrations,
+    jobs,
     notifications,
     opportunities,
     product_lines,
@@ -36,6 +37,7 @@ from app.crm.routers import (
     tasks,
     usage,
 )
+from app.crm.services.scheduler import Scheduler
 from app.rag.autoload import start_auto_ingest
 from app.rules.overrides import refresh_on_startup as refresh_overrides
 
@@ -56,7 +58,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if db_ok:
         await run_in_threadpool(refresh_overrides)  # 网页上改过的规则 / 价格
         app.state.kb_autoload = await run_in_threadpool(start_auto_ingest)
+    scheduler = Scheduler() if db_ok and get_settings().scheduler_enabled else None
+    if scheduler is not None:
+        scheduler.start()
     yield
+    if scheduler is not None:
+        await scheduler.stop()
     await run_in_threadpool(close_checkpointer)
 
 
@@ -68,6 +75,7 @@ def create_app() -> FastAPI:
     routers = (
         auth.router,
         accounts.router,
+        jobs.router,
         audit.router,
         competitors.router,
         integrations.router,

@@ -69,7 +69,7 @@ class ActivityOut(BaseModel):
     subject_type: str
     subject_id: uuid.UUID
     actor: UserBrief | None
-    source: Literal["manual", "agent"]
+    source: Literal["manual", "agent", "system"]
     action: str
     content: str | None
     created_at: datetime

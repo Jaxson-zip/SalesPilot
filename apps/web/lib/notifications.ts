@@ -14,6 +14,11 @@ const META: Record<string, { label: string; tone: NotificationTone }> = {
   customer_handover: { label: "客户交接", tone: "assign" },
   account_deactivated: { label: "成员停用", tone: "assign" },
   task_due: { label: "任务到期", tone: "task" },
+  task_overdue: { label: "任务逾期", tone: "task" },
+  payment_overdue: { label: "回款逾期", tone: "task" },
+  opportunity_stale: { label: "商机停滞", tone: "task" },
+  report_remind: { label: "日报提醒", tone: "task" },
+  customer_recycled: { label: "退回公海", tone: "assign" },
 }
 
 export function notificationMeta(type: string): { label: string; tone: NotificationTone } {

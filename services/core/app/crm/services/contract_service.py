@@ -96,6 +96,14 @@ def _states(contract: Contract, plans: list[PaymentPlan]) -> list[PlanState]:
     return allocate(inputs, contract.paid_amount, local_today())
 
 
+def plan_states(
+    db: Session, contracts: list[Contract]
+) -> dict[uuid.UUID, list[tuple[PaymentPlan, PlanState]]]:
+    """每份合同的各期回款计划及其状态（回款按期次顺序冲抵）。"""
+    plans = _plans(db, [c.id for c in contracts])
+    return {c.id: list(zip(plans[c.id], _states(c, plans[c.id]), strict=True)) for c in contracts}
+
+
 def _overdue_amount(states: list[PlanState]) -> int:
     return sum(s.amount - s.paid for s in states if s.status == "overdue")
 

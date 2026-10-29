@@ -1,4 +1,5 @@
 import {
+  AlarmClock,
   BellRing,
   BookOpen,
   Boxes,
@@ -50,6 +51,7 @@ const PUSH: NavItem = { href: "/settings/integrations", label: "消息推送", i
 const USAGE: NavItem = { href: "/settings/ai-usage", label: "AI 用量", icon: Gauge }
 const AUDIT: NavItem = { href: "/settings/audit", label: "操作日志", icon: ScrollText }
 const ACCOUNTS: NavItem = { href: "/settings/accounts", label: "成员与团队", icon: UsersRound }
+const JOBS: NavItem = { href: "/settings/jobs", label: "定时任务", icon: AlarmClock }
 /** 使用说明：所有角色可见，放在侧栏底部（不属于任何业务分组） */
 export const HELP: NavItem = { href: "/help", label: "使用说明", icon: BookOpen }
 
@@ -69,7 +71,7 @@ export function navGroupsFor(role: Role): NavGroup[] {
     return [
       top,
       { label: "业务总览（只读）", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, REPORTS] },
-      { label: "系统设置", items: [ACCOUNTS, RULES, PACKS, BATTLE, PUSH, USAGE, AUDIT] },
+      { label: "系统设置", items: [ACCOUNTS, RULES, PACKS, BATTLE, PUSH, JOBS, USAGE, AUDIT] },
     ]
   if (role === "manager")
     return [
@@ -105,6 +107,7 @@ const ALL_ITEMS: NavItem[] = [
   USAGE,
   AUDIT,
   ACCOUNTS,
+  JOBS,
 ]
 
 export function isActivePath(pathname: string, href: string): boolean {

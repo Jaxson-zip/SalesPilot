@@ -24,7 +24,8 @@ export interface ProductLineBrief {
   pack: string
 }
 
-export type ActivitySource = "manual" | "agent"
+/** system：定时任务等系统操作（没有操作人） */
+export type ActivitySource = "manual" | "agent" | "system"
 
 export interface Activity {
   id: string

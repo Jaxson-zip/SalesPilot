@@ -176,6 +176,77 @@ export interface paths {
     patch: operations["rename_team_api_admin_teams__team_id__patch"]
     trace?: never
   }
+  "/api/admin/jobs": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Jobs */
+    get: operations["list_jobs_api_admin_jobs_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/admin/jobs/runs": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Runs */
+    get: operations["list_runs_api_admin_jobs_runs_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/admin/jobs/{name}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    /** Update Job */
+    patch: operations["update_job_api_admin_jobs__name__patch"]
+    trace?: never
+  }
+  "/api/admin/jobs/{name}/run": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Run Job
+     * @description 立即运行一次（不受开关和时间限制；通知有去重，不会重复提醒）。
+     */
+    post: operations["run_job_api_admin_jobs__name__run_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/audit-logs": {
     parameters: {
       query?: never
@@ -1909,7 +1980,7 @@ export interface components {
        * Source
        * @enum {string}
        */
-      source: "manual" | "agent"
+      source: "manual" | "agent" | "system"
       /** Action */
       action: string
       /** Content */
@@ -2332,6 +2403,44 @@ export interface components {
        */
       message: string
       data: components["schemas"]["Health"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[JobItem] */
+    ApiResponse_JobItem_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["JobItem"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[JobRunOut] */
+    ApiResponse_JobRunOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["JobRunOut"] | null
       /**
        * Request Id
        * @default
@@ -3292,6 +3401,46 @@ export interface components {
       message: string
       /** Data */
       data: components["schemas"]["CompetitorOut"][] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[list[JobItem]] */
+    ApiResponse_list_JobItem__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: components["schemas"]["JobItem"][] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[list[JobRunOut]] */
+    ApiResponse_list_JobRunOut__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: components["schemas"]["JobRunOut"][] | null
       /**
        * Request Id
        * @default
@@ -4578,6 +4727,73 @@ export interface components {
       invoiced_on?: string | null
       /** Note */
       note?: string | null
+    }
+    /** JobItem */
+    JobItem: {
+      /** Name */
+      name: string
+      /** Title */
+      title: string
+      /** Description */
+      description: string
+      /** Enabled */
+      enabled: boolean
+      /** Run At */
+      run_at: string
+      /** Weekdays Only */
+      weekdays_only: boolean
+      /** Options */
+      options: components["schemas"]["JobOption"][]
+      last_run: components["schemas"]["JobRunOut"] | null
+    }
+    /** JobOption */
+    JobOption: {
+      /** Key */
+      key: string
+      /** Value */
+      value: number
+    }
+    /** JobRunOut */
+    JobRunOut: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Job */
+      job: string
+      /**
+       * Trigger
+       * @enum {string}
+       */
+      trigger: "auto" | "manual"
+      /** Triggered By */
+      triggered_by: string | null
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "running" | "ok" | "failed"
+      /** Summary */
+      summary: string | null
+      /**
+       * Started At
+       * Format: date-time
+       */
+      started_at: string
+      /** Finished At */
+      finished_at: string | null
+    }
+    /** JobUpdate */
+    JobUpdate: {
+      /** Enabled */
+      enabled?: boolean | null
+      /** Run At */
+      run_at?: string | null
+      /** Options */
+      options?: {
+        [key: string]: number
+      } | null
     }
     /** KnowledgeDoc */
     KnowledgeDoc: {
@@ -6549,6 +6765,141 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_TeamItem_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  list_jobs_api_admin_jobs_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_JobItem__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  list_runs_api_admin_jobs_runs_get: {
+    parameters: {
+      query?: {
+        name?: string | null
+        limit?: number
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_JobRunOut__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  update_job_api_admin_jobs__name__patch: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        name: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["JobUpdate"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_JobItem_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  run_job_api_admin_jobs__name__run_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        name: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_JobRunOut_"]
         }
       }
       /** @description Validation Error */

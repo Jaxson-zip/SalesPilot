@@ -34,14 +34,25 @@ MAX_BYTES = 4000  # 企业微信 markdown 内容上限 4096 字节
 RECENT = 20
 QUEUE_KEY = "wecom_queue"
 
-Event = Literal["approval_pending", "deal_won", "report_summary", "report_remind"]
+Event = Literal[
+    "approval_pending",
+    "deal_won",
+    "report_summary",
+    "report_remind",
+    "report_remind_auto",
+    "payment_overdue",
+]
 EVENTS: dict[str, str] = {
     "approval_pending": "新的待审批（报价 / 报销超出权限）",
     "deal_won": "赢单喜报",
     "report_summary": "主管推送团队日报汇总",
     "report_remind": "主管提醒未提交日报",
+    "report_remind_auto": "定时任务：工作日自动催交日报",
+    "payment_overdue": "定时任务：回款逾期",
 }
-DEFAULT_EVENTS = list(EVENTS)
+# 定时任务自动发的消息不默认开启：管理员在「消息推送」里勾选后才推到群
+AUTO_EVENTS = {"report_remind_auto", "payment_overdue"}
+DEFAULT_EVENTS = [e for e in EVENTS if e not in AUTO_EVENTS]
 
 _pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="wecom")
 

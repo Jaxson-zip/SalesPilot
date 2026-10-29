@@ -42,9 +42,10 @@ RESET_TABLES = (
     "agent_threads",
     "daily_reports",
     "ai_usage",
+    "job_runs",  # 运行记录清掉后，当天的定时任务会按新数据重新跑一次
     "audit_logs",  # 日报草稿按今天的操作日志汇总，不清会把测试时的操作算进演示数据
 )
-# 重置时保留：组织、行业包配置、竞品战卡、知识库、外部集成
+# 重置时保留：组织、行业包配置、竞品战卡、知识库、外部集成、定时任务配置
 KEEP_TABLES = (
     "users",
     "teams",
@@ -53,6 +54,7 @@ KEEP_TABLES = (
     "competitors",
     "kb_chunks",
     "integrations",
+    "scheduled_jobs",
 )
 
 

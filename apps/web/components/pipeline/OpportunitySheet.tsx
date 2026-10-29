@@ -42,6 +42,7 @@ import {
   STAGE_META,
   STAGE_ORDER,
 } from "@/lib/labels"
+import { activityActor } from "@/lib/timeline"
 import { isFinalStage, stageBarState } from "@/lib/pipeline"
 import { staleText } from "@/lib/tasks"
 import { aiPrefillHref, solutionPrompt } from "@/lib/thread-history"
@@ -223,7 +224,7 @@ function RecentActivities({ detail }: { detail: OpportunityDetail | undefined })
       <div className="mb-2 text-zinc-500">最近动态</div>
       {list.length === 0 ? <div className="text-zinc-400">暂无动态</div> : null}
       {list.map((a) => {
-        const isAi = a.source === "agent" || a.actor === null
+        const isAi = activityActor(a) === "ai"
         return (
           <div key={a.id} className="flex h-8 items-center gap-2.5">
             <span

@@ -47,6 +47,31 @@ def record(
     return activity
 
 
+def record_system(
+    db: Session,
+    subject_type: str,
+    subject_id: uuid.UUID,
+    action: str,
+    content: str | None,
+    team_id: uuid.UUID | None,
+    owner_id: uuid.UUID | None = None,
+) -> Activity:
+    """定时任务等系统操作留下的动态：没有操作人，来源记为 system。"""
+    activity = Activity(
+        subject_type=subject_type,
+        subject_id=subject_id,
+        actor_id=None,
+        source="system",
+        action=action,
+        content=content,
+        owner_id=owner_id,
+        team_id=team_id,
+    )
+    db.add(activity)
+    db.flush()
+    return activity
+
+
 def _to_out(row: Any) -> ActivityOut:
     a: Activity = row.Activity
     actor = UserBrief(id=a.actor_id, name=row.actor_name) if a.actor_id and row.actor_name else None

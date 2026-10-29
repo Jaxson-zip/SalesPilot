@@ -11,6 +11,7 @@ import pytest
 
 os.environ.setdefault("JWT_SECRET", "test-secret-for-unit-tests-only-32bytes!")
 os.environ.setdefault("LLM_GATEWAY_BASE", "http://127.0.0.1:9/v1")  # 不可达，防止误调外网
+os.environ["SCHEDULER_ENABLED"] = "false"  # 定时任务由用例直接调用，不在后台自动跑
 
 
 def _test_database_url() -> str:

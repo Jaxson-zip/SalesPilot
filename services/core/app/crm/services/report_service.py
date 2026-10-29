@@ -300,7 +300,8 @@ def _team_users(db: Session, user: CurrentUser) -> list[User]:
     if user.role == Role.SALES:
         raise BizError(ErrorCode.FORBIDDEN, "团队日报仅主管和管理员可以查看")
     # 只统计销售：主管自己的日报可写可不写，不出现在「未提交」名单里
-    stmt = select(User).where(User.role == Role.SALES.value).order_by(User.name)
+    stmt = select(User).where(User.role == Role.SALES.value, User.active.is_(True))
+    stmt = stmt.order_by(User.name)
     if user.role == Role.MANAGER:
         stmt = stmt.where(User.team_id == user.team_id)
     return list(db.scalars(stmt))

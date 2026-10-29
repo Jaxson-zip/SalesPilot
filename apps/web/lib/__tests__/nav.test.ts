@@ -27,6 +27,7 @@ describe("导航按角色分组（契约 §0）", () => {
       "/settings/packs",
       "/battlecards",
       "/settings/integrations",
+      "/settings/jobs",
       "/settings/ai-usage",
       "/settings/audit",
     ])
@@ -51,6 +52,7 @@ describe("导航按角色分组（契约 §0）", () => {
     // 成员与团队只给管理员
     expect(isForbiddenPath("/settings/accounts", "manager")).toBe(true)
     expect(isForbiddenPath("/settings/accounts", "sales")).toBe(true)
+    expect(isForbiddenPath("/settings/jobs", "manager")).toBe(true)
     expect(isForbiddenPath("/approvals", "manager")).toBe(false)
     expect(isForbiddenPath("/settings/packs", "manager")).toBe(true)
     expect(isForbiddenPath("/settings/audit", "sales")).toBe(true)

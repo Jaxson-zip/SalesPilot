@@ -45,6 +45,32 @@ def notify(
     return len(targets)
 
 
+def notify_once(
+    db: Session,
+    user_id: uuid.UUID,
+    type_: str,
+    title: str,
+    dedupe_key: str,
+    body: str | None = None,
+    link: str | None = None,
+) -> bool:
+    """按 dedupe_key 只写一次（定时任务重复运行、手动「立即运行」都不会重复提醒）；写入了返回 True。
+
+    dedupe_key 全局唯一，同一件事提醒多个人时 key 里要带上接收人。"""
+    values = {
+        "id": uuid.uuid4(),
+        "user_id": user_id,
+        "type": type_,
+        "title": title[:200],
+        "body": body,
+        "link": link,
+        "read": False,
+        "dedupe_key": dedupe_key[:150],
+    }
+    stmt = insert(Notification).values(**values).on_conflict_do_nothing()
+    return db.scalar(stmt.returning(Notification.id)) is not None
+
+
 def team_managers(db: Session, team_id: uuid.UUID | None) -> list[uuid.UUID]:
     if team_id is None:
         return []

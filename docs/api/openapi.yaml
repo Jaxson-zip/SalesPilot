@@ -5,18 +5,40 @@ info:
   version: 0.1.0
   description: SalesPilot 业务服务。统一响应 {code, message, data, request_id}；错误码见 docs/开发规范.md §8.2；字段说明见 docs/api/业务模块接口契约.md。
 paths:
+  /api/auth/options:
+    get:
+      tags:
+      - auth
+      summary: Auth Options
+      operationId: auth_options_api_auth_options_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_AuthOptions_'
   /api/auth/mock-login:
     post:
       tags:
       - auth
       summary: Mock Login
       operationId: mock_login_api_auth_mock_login_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/MockLoginIn'
-        required: true
       responses:
         '200':
           description: Successful Response
@@ -4478,6 +4500,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_AuthOptions_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/AuthOptions'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[AuthOptions]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_ChatModels_:
       properties:
         code:
@@ -6422,6 +6469,15 @@ components:
       - ip
       - target_name
       title: AuditItem
+    AuthOptions:
+      properties:
+        access_code_required:
+          type: boolean
+          title: Access Code Required
+      type: object
+      required:
+      - access_code_required
+      title: AuthOptions
     Body_analyze_sample_api_agent_samples_post:
       properties:
         file:
@@ -8710,6 +8766,12 @@ components:
       properties:
         role:
           $ref: '#/components/schemas/Role'
+        access_code:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Access Code
       type: object
       required:
       - role

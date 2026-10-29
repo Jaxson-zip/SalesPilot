@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+  "/api/auth/options": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Auth Options */
+    get: operations["auth_options_api_auth_options_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/auth/mock-login": {
     parameters: {
       query?: never
@@ -1722,6 +1739,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[AuthOptions] */
+    ApiResponse_AuthOptions_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["AuthOptions"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[ChatModels] */
     ApiResponse_ChatModels_: {
       /**
@@ -3125,6 +3161,11 @@ export interface components {
       /** Target Name */
       target_name: string | null
     }
+    /** AuthOptions */
+    AuthOptions: {
+      /** Access Code Required */
+      access_code_required: boolean
+    }
     /** Body_analyze_sample_api_agent_samples_post */
     Body_analyze_sample_api_agent_samples_post: {
       /** File */
@@ -4313,6 +4354,8 @@ export interface components {
     /** MockLoginIn */
     MockLoginIn: {
       role: components["schemas"]["Role"]
+      /** Access Code */
+      access_code?: string | null
     }
     /** NewsItem */
     NewsItem: {
@@ -5694,10 +5737,32 @@ export interface components {
 }
 export type $defs = Record<string, never>
 export interface operations {
-  mock_login_api_auth_mock_login_post: {
+  auth_options_api_auth_options_get: {
     parameters: {
       query?: never
       header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_AuthOptions_"]
+        }
+      }
+    }
+  }
+  mock_login_api_auth_mock_login_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
       path?: never
       cookie?: never
     }

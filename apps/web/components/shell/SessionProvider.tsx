@@ -1,10 +1,11 @@
 "use client"
 
 import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { usePathname, useRouter } from "next/navigation"
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 
 import { api } from "@/lib/api"
-import { DEMO_USERS, getStoredRole, mockLogin, storeRole } from "@/lib/session"
+import { DEMO_USERS, getStoredRole, LOGIN_PATH, loginUrl, logout, mockLogin, storeRole } from "@/lib/session"
 import { getToken } from "@/lib/storage"
 import type { CurrentUser, Role } from "@/types/api"
 
@@ -16,24 +17,44 @@ interface SessionValue {
   userId: string | null
   /** 切换演示角色：重新 mock 登录并刷新所有查询 */
   switchRole: (role: Role) => Promise<void>
+  /** 登录页：选演示账户（+ 访问口令）登录 */
+  signIn: (role: Role, accessCode?: string) => Promise<void>
+  /** 退出登录，回到登录页 */
+  signOut: () => void
 }
 
 const SessionContext = createContext<SessionValue | null>(null)
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
+  const router = useRouter()
+  const pathname = usePathname()
   const [role, setRole] = useState<Role>("sales")
+  const [authed, setAuthed] = useState(false)
 
-  // 首次挂载：恢复上次的角色；没有 token 时静默登录（core 未启动时忽略错误，由页面显示错误状态）
+  // 恢复上次的角色；没有 token 时去登录页选演示账户
   useEffect(() => {
-    const stored = getStoredRole()
-    setRole(stored)
-    if (!getToken()) {
-      mockLogin(stored)
-        .then(() => queryClient.invalidateQueries())
-        .catch(() => undefined)
-    }
-  }, [queryClient])
+    setRole(getStoredRole())
+    const has = Boolean(getToken())
+    setAuthed(has)
+    if (!has && pathname !== LOGIN_PATH) router.replace(loginUrl(window.location.pathname + window.location.search))
+  }, [pathname, router])
+
+  const signIn = useCallback(
+    async (next: Role, accessCode?: string) => {
+      await mockLogin(next, accessCode)
+      setRole(next)
+      setAuthed(true)
+      queryClient.clear()
+    },
+    [queryClient],
+  )
+
+  // 整页跳转：丢掉所有缓存和进行中的请求，避免它们 401 后又带着 next 跳一次
+  const signOut = useCallback(() => {
+    logout()
+    window.location.assign(LOGIN_PATH)
+  }, [])
 
   const switchRole = useCallback(
     async (next: Role) => {
@@ -53,12 +74,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     queryKey: ["me", role],
     queryFn: ({ signal }) => api.get<CurrentUser>("/api/me", undefined, signal),
     staleTime: 5 * 60_000,
+    enabled: authed,
   })
   const userId = me.data && me.data.role === role ? me.data.id : null
 
   const value = useMemo<SessionValue>(
-    () => ({ role, user: DEMO_USERS[role], isLead: role !== "sales", userId, switchRole }),
-    [role, userId, switchRole],
+    () => ({ role, user: DEMO_USERS[role], isLead: role !== "sales", userId, switchRole, signIn, signOut }),
+    [role, userId, switchRole, signIn, signOut],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

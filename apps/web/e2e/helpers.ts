@@ -19,7 +19,9 @@ export class Api {
   ) {}
 
   static async as(request: APIRequestContext, role: Role): Promise<Api> {
-    const res = await request.post("/api/auth/mock-login", { data: { role } })
+    const res = await request.post("/api/auth/mock-login", {
+      data: { role, access_code: process.env.E2E_ACCESS_CODE },
+    })
     const body = (await res.json()) as Envelope<{ token: string }>
     expect(body.code, body.message).toBe(0)
     return new Api(request, body.data.token)
@@ -93,11 +95,23 @@ export function artifactOf<T>(stream: string, type: string): T {
 }
 
 /** 让页面以某个角色打开（写入前端 session 用的 localStorage，再由页面自动 mock 登录） */
+/** 以演示账户登录：先拿 token 写进 localStorage（服务端配了访问口令时用 E2E_ACCESS_CODE） */
 export async function loginAs(page: Page, role: Role): Promise<void> {
-  await page.addInitScript((r) => {
-    window.localStorage.setItem("sp.role", r)
-    window.localStorage.removeItem("sp.token")
-  }, role)
+  const res = await page.request.post("/api/auth/mock-login", {
+    data: { role, access_code: process.env.E2E_ACCESS_CODE },
+  })
+  const body = (await res.json()) as Envelope<{ token: string }>
+  expect(body.code, body.message).toBe(0)
+  await page.addInitScript(
+    ([r, token]) => {
+      // 每个 token 只写一次：之后页面里退出登录、切换账户不会被下一次导航覆盖回来
+      if (window.sessionStorage.getItem("e2e.token") === token) return
+      window.sessionStorage.setItem("e2e.token", token)
+      window.localStorage.setItem("sp.role", r)
+      window.localStorage.setItem("sp.token", token)
+    },
+    [role, body.data.token] as const,
+  )
 }
 
 /**

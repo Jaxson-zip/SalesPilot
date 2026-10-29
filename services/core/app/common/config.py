@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://crm:crm@localhost:5432/crm"
     jwt_secret: str = "change-me"
     jwt_expire_minutes: int = 60 * 24
+    # 访问口令：公网演示时设置，登录页要先输入口令才能进入；为空表示不需要（本地开发）
+    access_code: str | None = None
     llm_gateway_base: str = "http://localhost:8100/v1"
     llm_gateway_key: str = "change-me"
     llm_default_group: str = "chat-agent"

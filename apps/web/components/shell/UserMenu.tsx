@@ -18,14 +18,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { isForbiddenPath } from "@/lib/nav"
-import { DEMO_USERS, isRole, logout, ROLES } from "@/lib/session"
+import { DEMO_USERS, isRole, ROLES } from "@/lib/session"
 import type { Role } from "@/types/api"
 
 const ROLE_ICONS: Record<Role, LucideIcon> = { sales: User, manager: UserCheck, admin: Shield }
 
 /** 底部用户卡片：切换演示角色（销售 / 主管 / 管理员） */
 export function UserMenu() {
-  const { role, user, switchRole } = useSession()
+  const { role, user, switchRole, signOut } = useSession()
   const pathname = usePathname()
   const router = useRouter()
 
@@ -69,12 +69,7 @@ export function UserMenu() {
               })}
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => {
-                logout()
-                toast("已退出演示登录，下次请求会自动重新登录")
-              }}
-            >
+            <DropdownMenuItem onSelect={signOut}>
               <LogOut className="text-zinc-500" />
               退出登录
             </DropdownMenuItem>

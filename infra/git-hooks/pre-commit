@@ -1,0 +1,28 @@
+#!/bin/sh
+# 提交前评估：改到 AI 拆解 / 提示词相关代码时，跑软件外包评估并与基线对比，有回归就拦下提交。
+# 安装：git config core.hooksPath infra/git-hooks
+# 跳过（例如网关没启动又急着提交）：SKIP_EVAL=1 git commit ...
+
+[ -n "$SKIP_EVAL" ] && { echo "pre-commit：SKIP_EVAL=1，跳过评估"; exit 0; }
+
+# 只有这些路径会影响 AI 拆解结果；改别的文件不跑（评估要调真实模型，约 1–2 分钟）
+changed=$(git diff --cached --name-only -- \
+  services/core/app/packs \
+  services/core/app/agent \
+  services/core/app/llm \
+  services/core/evals)
+[ -z "$changed" ] && exit 0
+
+echo "pre-commit：以下改动会影响 AI 拆解，运行评估与基线对比"
+echo "$changed" | sed 's/^/  /'
+
+root=$(git rev-parse --show-toplevel)
+cd "$root/services/core" || exit 1
+
+# 改了方案解释才评估解释里的数字（多一倍模型调用）
+explain="--no-explain"
+echo "$changed" | grep -q "nodes/respond.py" && explain=""
+
+# 在本机跑工作区代码（容器里是上次构建的旧代码）；网关端口已映射到本机
+LLM_GATEWAY_BASE=http://127.0.0.1:8100/v1 PYTHONIOENCODING=utf-8 PYTHONPATH=. \
+  uv run python -m evals.run_eval --check $explain

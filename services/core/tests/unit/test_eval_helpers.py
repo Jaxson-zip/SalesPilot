@@ -54,3 +54,19 @@ def test_rule_mode_case_and_vague() -> None:
     assert r.passed and r.required_hit == 3 and r.quote_ok and r.values_ok
     vague = eval_case({"id": "v", "text": "帮我给客户做个系统", "vague": True}, cfg, None, False)  # type: ignore[arg-type]
     assert vague.passed and vague.missing
+
+
+def test_regressions_against_baseline() -> None:
+    """基线里通过、这次没过算回归；模型没调通单列，不算回归；基线外的用例不管。"""
+    from evals.run_eval import CaseResult, regressions
+
+    def res(id_: str, passed: bool, model_failed: bool = False) -> CaseResult:
+        r = CaseResult(id=id_, mode="llm", vague=False, seconds=0)
+        r.passed, r.model_failed = passed, model_failed
+        return r
+
+    baseline = {"llm": ["a", "b", "c"]}
+    results = {"llm": [res("a", True), res("b", False), res("c", False, True), res("d", False)]}
+    bad, unknown = regressions(baseline, results)
+    assert [b.split("：")[0] for b in bad] == ["llm/b"]
+    assert unknown == ["llm/c"]

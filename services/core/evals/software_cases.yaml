@@ -117,6 +117,17 @@ cases:
     platforms: [app]
     required: [content, "~成绩", "workflow|~请假", im]
 
+  # 图片 OCR + 流程，没有 SOP：要拆出上传、大模型识别、流程三块，追问字段和版式
+  - id: ocr-terse
+    text: 客户给了30张图片，需要做一个结构化工作流，要用大模型OCR识别，没有SOP文档
+    platforms: [web]
+    required: ["file|~上传|~图片", "ai|~OCR|~识别", "workflow|~流程"]
+
+  - id: ocr-customs
+    text: 我们是做报关的，客户先发了30张单据照片当样例（发票、装箱单、提单），想做个系统，上传图片后用大模型OCR识别成结构化数据，再走审核、导出的流程。现在没有SOP文档，流程都在老员工脑子里。
+    platforms: [web]
+    required: ["file|~上传", "ai|~OCR|~识别", "workflow|~审核", "~导出|report"]
+
   # 信息太少：期望追问，而不是硬拆
   - id: vague-1
     text: 帮我给客户做个系统

@@ -120,6 +120,8 @@ cd apps/web && pnpm install && pnpm dev                      # http://127.0.0.1:
 
 跑完端到端 / 浏览器测试后恢复干净的演示数据：`cd apps/web && pnpm e2e:reset`。软件外包 AI 评估：`docker compose exec core python -m evals.run_eval`（报告见 [docs/eval](docs/eval/软件外包AI评估报告.md)）。
 
+**提交前自动评估**：`git config core.hooksPath infra/git-hooks` 安装后，提交里改到 `app/packs`、`app/agent`、`app/llm` 或 `evals` 时，会用真实模型跑软件外包评估并与 `evals/baseline.json` 对比，基线里通过的用例这次没过就拦下提交（失败的用例会复跑 2 次，3 次里失败 2 次才算回归；模型调不通只警告不拦）。需要网关在 8100 端口运行；有意改变结果时运行 `uv run python -m evals.run_eval --write-baseline` 更新基线；临时跳过：`SKIP_EVAL=1 git commit …`。
+
 > 浏览器测试会保存企业微信配置；`.env` 里配置了 `WECOM_WEBHOOK_URL` 时先注释掉再跑，避免向真实群发消息。测试结果和联调过程见 [测试与联调报告](docs/测试与联调报告.md)。
 
 ## 目录

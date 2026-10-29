@@ -1,0 +1,42 @@
+{
+ "llm": [
+  "ai-service",
+  "approval-oa",
+  "canteen",
+  "chain-store",
+  "crm-lite",
+  "deadline",
+  "driving-school",
+  "expense",
+  "gym-booking",
+  "hospital-app",
+  "iot",
+  "mall",
+  "map-delivery",
+  "ocr-customs",
+  "ocr-terse",
+  "phase-two",
+  "property",
+  "recruit",
+  "school",
+  "solo-blog",
+  "solo-budget",
+  "training",
+  "vague-1",
+  "vague-2",
+  "vague-3"
+ ],
+ "rule": [
+  "ai-service",
+  "approval-oa",
+  "chain-store",
+  "expense",
+  "mall",
+  "recruit",
+  "solo-blog",
+  "solo-budget",
+  "vague-1",
+  "vague-2",
+  "vague-3"
+ ]
+}

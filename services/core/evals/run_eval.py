@@ -12,6 +12,7 @@
 import argparse
 import json
 import re
+import sys
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -443,11 +444,80 @@ def render(by_mode: dict[str, list[CaseResult]], model_name: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+# ---------- 基线对比（提交前检查） ----------
+
+BASELINE = HERE / "baseline.json"
+RERUNS = 2
+
+
+def confirm_failures(
+    results: list[CaseResult],
+    cases: list[dict[str, Any]],
+    cfg: SoftwareOutsourcingConfigurator,
+    llm: BaseChatModel,
+    explain: bool,
+) -> None:
+    """模型输出有随机性：失败的用例再跑 RERUNS 次，都通过才算偶发。
+
+    即 3 次里失败 2 次以上才算真失败，避免一次抽风就拦下提交。
+    """
+    by_id = {c["id"]: c for c in cases}
+    for i, r in enumerate(results):
+        if r.passed or r.model_failed:
+            continue
+        reruns = [eval_case(by_id[r.id], cfg, llm, explain) for _ in range(RERUNS)]
+        ok = sum(x.passed for x in reruns)
+        print(f"[llm] {r.id:<16} 复跑 {RERUNS} 次通过 {ok} 次", flush=True)
+        if ok == RERUNS:
+            results[i] = reruns[-1]
+
+
+def passed_ids(by_mode: dict[str, list[CaseResult]]) -> dict[str, list[str]]:
+    return {m: sorted(r.id for r in rs if r.passed) for m, rs in by_mode.items()}
+
+
+def regressions(
+    baseline: dict[str, list[str]], by_mode: dict[str, list[CaseResult]]
+) -> tuple[list[str], list[str]]:
+    """返回（回归：基线里通过、这次没过的用例；模型没调通、无法判断的用例）。"""
+    bad, unknown = [], []
+    for mode, rs in by_mode.items():
+        expected = set(baseline.get(mode, []))
+        for r in rs:
+            if r.id not in expected:
+                continue
+            if r.model_failed:
+                unknown.append(f"{mode}/{r.id}")
+            elif not r.passed:
+                bad.append(f"{mode}/{r.id}：{r.error or '见报告'}")
+    return bad, unknown
+
+
+def check_baseline(by_mode: dict[str, list[CaseResult]]) -> int:
+    if not BASELINE.exists():
+        print("没有基线（evals/baseline.json），先运行 --write-baseline")
+        return 1
+    bad, unknown = regressions(json.loads(BASELINE.read_text(encoding="utf-8")), by_mode)
+    if unknown:
+        # 网络、余额等外部原因不拦提交，但要说清楚这次没有真正检查
+        print(f"⚠️ 模型没调通，{len(unknown)} 条用例未检查：{'、'.join(unknown[:5])}")
+    if bad:
+        print("❌ 评估回归（基线里通过、这次没过）：")
+        for b in bad:
+            print(f"  - {b}")
+        print("修好后再提交；确认是有意的变化时运行 --write-baseline 更新基线")
+        return 1
+    print("✅ 评估没有回归")
+    return 0
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--rule-only", action="store_true", help="只跑规则模式，不调模型")
     ap.add_argument("--no-explain", action="store_true", help="不评估方案解释")
     ap.add_argument("--only", help="只跑某个用例 id（调试用）")
+    ap.add_argument("--check", action="store_true", help="与基线对比，有回归时退出码为 1")
+    ap.add_argument("--write-baseline", action="store_true", help="把这次通过的用例写成新基线")
     args = ap.parse_args()
 
     cases = yaml.safe_load(CASES.read_text(encoding="utf-8"))["cases"]
@@ -484,6 +554,8 @@ def main() -> None:
             by_mode[mode].append(r)
             status = "MODEL-FAIL" if r.model_failed else "PASS" if r.passed else "FAIL"
             print(f"[{mode}] {r.id:<16} {status}  {r.seconds}s", flush=True)
+        if llm is not None and (args.check or args.write_baseline):
+            confirm_failures(by_mode[mode], cases, cfg, llm, explain=not args.no_explain)
 
     OUT.mkdir(exist_ok=True)
     report = render(by_mode, model_name)
@@ -499,6 +571,14 @@ def main() -> None:
             f"关键模块召回 {s.get('required_recall', '—')}，模型失败 {s['model_failed']}"
         )
     print(f"报告：{OUT / 'report.md'}")
+
+    if args.write_baseline:
+        BASELINE.write_text(
+            json.dumps(passed_ids(by_mode), ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
+        )
+        print(f"基线已更新：{BASELINE}")
+    if args.check:
+        sys.exit(check_baseline(by_mode))
 
 
 if __name__ == "__main__":

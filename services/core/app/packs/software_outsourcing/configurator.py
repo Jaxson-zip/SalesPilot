@@ -18,6 +18,7 @@ from app.packs.base import (
     TIER_NAMES,
     BomItem,
     Catalog,
+    ClientCost,
     SampleSummary,
     SolutionTier,
     price_tier,
@@ -315,7 +316,10 @@ class SoftwareOutsourcingConfigurator:
             items.append(self.catalog.line("SVC-OPS", cfg["ops_months"]))
         if cfg["handover"]:
             items.append(self.catalog.line("SVC-HANDOVER", 1))
-        items += [self.catalog.line(sku, 1) for sku in third_party_skus(platforms)]
+        third = [self.catalog.line(sku, 1) for sku in third_party_skus(platforms)]
+        in_quote = bool(self.params.get("third_party_in_quote"))
+        if in_quote:
+            items += third
 
         person_days = sum(i.qty for i in items if i.unit == "人天")
         weeks = math.ceil(person_days / team / 5)
@@ -329,6 +333,10 @@ class SoftwareOutsourcingConfigurator:
         if ai_monthly:
             basis = f"，其中图片识别按每月 {ocr_pages:,} 张估" if ocr_pages else ""
             summary += f"；上线后 AI 调用费约 ¥{ai_monthly / 100:,.0f}/月（客户另付{basis}）"
+        client = client_costs([] if in_quote else third, ai_monthly, ocr_pages)
+        yearly = sum(c.amount for c in client if c.period == "year")
+        if yearly:
+            summary += f"；云服务器、域名等第三方费用约 ¥{yearly / 100:,.0f}/年由客户自付"
         return SolutionTier(
             tier=tier_id,  # type: ignore[arg-type]
             name=TIER_NAMES[tier_id],
@@ -352,6 +360,8 @@ class SoftwareOutsourcingConfigurator:
                 "cost_breakdown": self._cost_breakdown(items),
                 "ai_monthly_cost": ai_monthly,
                 "ocr_monthly_pages": ocr_pages,
+                # 运营期客户自付费用（实报实销，不含在报价内）
+                "client_costs": [c.model_dump() for c in client],
             },
         )
 
@@ -456,6 +466,30 @@ def default_questions(r: SoftwareRequirement) -> list[str]:
     if not r.budget:
         qs.append("预算大概在什么范围？")
     return qs
+
+
+def client_costs(third: list[BomItem], ai_monthly: int, ocr_pages: int) -> list[ClientCost]:
+    """运营期客户自付费用：没计入报价的第三方费用（按年）+ 上线后的大模型调用费（按月）。"""
+    out = [
+        ClientCost(
+            name=i.name.split("（")[0],
+            amount=i.unit_price,
+            period="year",
+            note="以客户主体开通" if "客户主体" in i.name else "按实际采购价，可由我方代办",
+        )
+        for i in third
+    ]
+    if ai_monthly:
+        basis = f"，其中图片识别按每月 {ocr_pages:,} 张估" if ocr_pages else ""
+        out.append(
+            ClientCost(
+                name="大模型调用费（AI 功能）",
+                amount=ai_monthly,
+                period="month",
+                note=f"按预计调用量估算，以实际用量为准{basis}",
+            )
+        )
+    return out
 
 
 def third_party_skus(platforms: list[str]) -> list[str]:

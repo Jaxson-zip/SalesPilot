@@ -3,6 +3,7 @@
 import { Download } from "lucide-react"
 import { toast } from "sonner"
 
+import { ClientCosts } from "@/components/biz/ClientCosts"
 import { Button } from "@/components/ui/button"
 import { bomToCsv, safeFileName } from "@/lib/artifacts"
 import { downloadText } from "@/lib/download"
@@ -74,6 +75,9 @@ export function BomTable({ bom, onExport }: { bom: BomData; onExport?: () => voi
             </div>
           ))}
         </div>
+      ) : null}
+      {bom.client_costs?.length ? (
+        <ClientCosts costs={bom.client_costs} className="border-t border-zinc-200 px-3.5 py-2.5" />
       ) : null}
     </div>
   )

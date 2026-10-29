@@ -4,7 +4,8 @@
  */
 import { formatFen } from "@/lib/format"
 
-export type SettingKind = "percent" | "money" | "int" | "float" | "cities" | "percent_list" | "stages" | "megabytes"
+export type SettingKind =
+  "percent" | "money" | "int" | "float" | "cities" | "percent_list" | "stages" | "megabytes" | "bool"
 
 export interface PaymentStageValue {
   name: string
@@ -61,6 +62,8 @@ export function formatSetting(kind: SettingKind, value: unknown, unit = ""): str
   if (value === null || value === undefined) return "—"
   const u = unit ? ` ${unit}` : ""
   switch (kind) {
+    case "bool":
+      return value ? "开" : "关"
     case "percent":
       return `${tidy(asNumber(value) * 100)}%`
     case "money":
@@ -115,6 +118,7 @@ function num(text: string): number | null {
 /** 输入框文字 → 存储值；范围用后端给的 min/max（按存储单位）先校验一遍，后端会再校验 */
 export function parseInputText(field: Pick<SettingValue, "kind" | "min" | "max" | "label">, text: string): Parsed {
   const { kind, min, max, label } = field
+  if (kind === "bool") return { ok: true, value: text === "true" }
   const inRange = (v: number) => (min === null || v >= min) && (max === null || v <= max)
   const range = () => {
     const fmt = (v: number) => formatSetting(kind === "percent_list" ? "percent" : kind, v)

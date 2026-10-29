@@ -325,7 +325,7 @@ export function OpportunitySheet({
             <StageReadOnly stage={o.stage} />
           )}
           <Fields o={o} editable={editable} />
-          <RequirementSummary oppId={o.id} />
+          <RequirementSummary oppId={o.id} oppName={o.name} editable={editable} />
           <MeddicCard oppId={o.id} editable={editable} />
           <CompetitorsCard oppId={o.id} editable={editable} />
           {/* U9：去掉固定文字的「下一步建议」，换成真实的下一步任务（v3 §12） */}

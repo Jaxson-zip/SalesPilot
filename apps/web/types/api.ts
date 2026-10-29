@@ -3,6 +3,8 @@
  * TODO: docs/api/openapi.yaml 就绪后改为 openapi-typescript 自动生成。
  */
 
+import type { ClientCost } from "@/lib/client-costs"
+
 /** 统一响应 §8.1 */
 export interface ApiEnvelope<T> {
   code: number
@@ -162,6 +164,8 @@ export interface BomData {
   title: string
   items: BomItem[]
   totals: { label: string; value: string }[]
+  /** 运营期客户自付费用（不含在报价内） */
+  client_costs?: ClientCost[]
 }
 
 export interface SourceRef {

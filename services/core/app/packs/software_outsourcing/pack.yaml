@@ -14,6 +14,7 @@ settings:
   - {key: pack.ai_tokens_per_call, label: 每次调用 token 数, group: 成本, kind: int, unit: tokens, min: 0, max: 200000}
   - {key: pack.ocr_monthly_pages, label: 图片识别默认月量, group: 成本, kind: int, unit: 张, min: 0, max: 10000000, help: 有图片 / 单据识别、客户没说业务量时按此估算上线后的识别费}
   - {key: pack.ocr_cost_per_page, label: 每张图片识别费用, group: 成本, kind: money, min: 0, max: 10000, help: 视觉大模型识别一张图片的费用，按所选模型价格填；由客户承担，不计入报价}
+  - {key: pack.third_party_in_quote, label: 第三方费用计入报价, group: 成本, kind: bool, help: 关闭时云服务器、域名证书、小程序认证、苹果开发者账号由客户自付，在方案和报价单里单列「运营期客户自付费用」；打开时按成本代采计入报价}
   - {key: pack.sop_days, label: 业务调研与 SOP 梳理, group: 估算, kind: int, unit: 人天, min: 0, max: 60, help: 客户没有流程文档时加上，按产品经理单价}
   - {key: pack.poc_days, label: 图片识别样例验证, group: 估算, kind: int, unit: 人天, min: 0, max: 60, help: 有图片识别时建议先做的验证，单独报价，不计入三档}
   - {key: pack.base_days, label: 技术架构与数据库设计, group: 估算, kind: int, unit: 人天, min: 0, max: 60, help: 每个项目都有的基础工作量}

@@ -1,6 +1,6 @@
 "use client"
 
-import { CircleAlert, CornerDownRight, RotateCcw, Sparkles } from "lucide-react"
+import { CircleAlert, CornerDownRight, FileText, RotateCcw, Sparkles } from "lucide-react"
 import { useState } from "react"
 
 import { ArtifactView } from "@/components/agent/ArtifactView"
@@ -8,6 +8,7 @@ import { BomEditor } from "@/components/agent/BomEditor"
 import { ChatMarkdown } from "@/components/agent/ChatMarkdown"
 import { ConfirmCard } from "@/components/agent/ConfirmCard"
 import { MsgActions } from "@/components/agent/MsgActions"
+import { PrdDialog } from "@/components/pipeline/PrdDialog"
 import { ThinkBlock } from "@/components/agent/ThinkBlock"
 import { Button } from "@/components/ui/button"
 import { useSmoothText } from "@/hooks/useSmoothText"
@@ -57,6 +58,7 @@ export function AiMessage({
   onRetry,
   onConfirmRequirement,
   onAsk,
+  prdOpportunity,
   readonly,
 }: {
   turn: AssistantTurn
@@ -70,7 +72,10 @@ export function AiMessage({
   onConfirmRequirement?: (requirement: Record<string, unknown>) => void
   /** 学习问答：回答末尾「可以接着问」拆成按钮，点击直接发送 */
   onAsk?: (question: string) => void
+  /** 会话关联的商机：软件外包方案下面显示「PRD 规格书」（需求清单存在商机上） */
+  prdOpportunity?: { id: string; name: string; canGenerate: boolean }
 }) {
+  const [prdOpen, setPrdOpen] = useState(false)
   const live = turn.status === "streaming"
   // 生成报价单前可以在三档里另选：物料清单和确认卡跟着切换，确认时把选中档带给后端
   const [picked, setPicked] = useState<string | null>(null)
@@ -196,6 +201,22 @@ export function AiMessage({
                 {q}
               </button>
             ))}
+          </div>
+        ) : null}
+        {prdOpportunity && showCards && tiers.some((t) => Array.isArray(t.specs?.modules)) ? (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+            <Button variant="outline" size="xs" onClick={() => setPrdOpen(true)}>
+              <FileText />
+              PRD 规格书
+            </Button>
+            按需求清单生成需求规格说明书，可复制到飞书 / 钉钉 / Notion
+            <PrdDialog
+              oppId={prdOpportunity.id}
+              title={prdOpportunity.name}
+              canGenerate={prdOpportunity.canGenerate}
+              open={prdOpen}
+              onOpenChange={setPrdOpen}
+            />
           </div>
         ) : null}
         {turn.status === "done" && !typing ? (

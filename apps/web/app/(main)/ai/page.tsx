@@ -142,6 +142,7 @@ function AiWorkbench() {
             onConfirmRequirement={w.confirmRequirement}
             mode={w.mode}
             onAsk={send}
+            prdOpportunity={opp.data ? { id: opp.data.id, name: opp.data.name, canGenerate: canAiWrite } : undefined}
           />
         ) : w.loadingId ? (
           <div className="flex flex-1 items-center justify-center gap-2 text-sm text-zinc-400">

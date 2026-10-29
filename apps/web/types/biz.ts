@@ -2,6 +2,7 @@
  * 业务模块类型：照抄 docs/api/业务模块接口契约.md（v1）。
  * 金额一律为整数「分」；比例 0–1（win_rate 例外，0–100 整数）；时间 ISO 8601。
  */
+import type { ClientCost } from "@/lib/client-costs"
 import type { UserBrief } from "@/types/api"
 import type { NextTask } from "@/types/biz-v3"
 
@@ -205,6 +206,8 @@ export interface QuoteDetail extends QuoteItem {
   /** v3 §14：整单折扣 0–1；有效期 YYYY-MM-DD（后端未就绪时缺省） */
   discount_rate?: number
   valid_until?: string | null
+  /** 运营期客户自付费用（不含在报价内） */
+  client_costs?: ClientCost[]
 }
 
 export interface QuoteListParams {

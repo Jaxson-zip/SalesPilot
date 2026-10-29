@@ -1,5 +1,6 @@
 import { formatFen, formatPercent } from "@/lib/format"
 import { fenToYuan, toCsv } from "@/lib/list-view"
+import { isClientCosts, type ClientCost } from "@/lib/client-costs"
 import type { BomData, SolutionTier } from "@/types/api"
 
 /**
@@ -43,10 +44,19 @@ function costTotals(specs: Record<string, unknown> | undefined): { label: string
   const out: { label: string; value: string }[] = []
   const cb = specs?.cost_breakdown
   if (isObj(cb))
-    for (const [k, label] of COST_LABELS) if (typeof cb[k] === "number") out.push({ label, value: formatFen(cb[k]) })
+    for (const [k, label] of COST_LABELS)
+      if (typeof cb[k] === "number" && cb[k] > 0) out.push({ label, value: formatFen(cb[k]) })
+  // 旧数据没有 client_costs：AI 调用费仍放在合计里
   const ai = specs?.ai_monthly_cost
-  if (typeof ai === "number" && ai > 0) out.push({ label: "上线后 AI 调用费（客户付）", value: `${formatFen(ai)}/月` })
+  if (!isClientCosts(specs?.client_costs) && typeof ai === "number" && ai > 0)
+    out.push({ label: "上线后 AI 调用费（客户付）", value: `${formatFen(ai)}/月` })
   return out
+}
+
+/** 运营期客户自付费用（软件外包）；没有返回空数组 */
+export function clientCostsOf(t: CoreSolutionTier): ClientCost[] {
+  const c = t.specs?.client_costs
+  return isClientCosts(c) ? c : []
 }
 
 /** generate_quote 写入成功后推送的报价单（core QuoteOut 的子集） */
@@ -113,6 +123,7 @@ export function toBomData(t: CoreSolutionTier): BomData {
       { label: "毛利率", value: formatPercent(t.margin_rate) },
       ...costTotals(t.specs),
     ],
+    client_costs: clientCostsOf(t),
   }
 }
 

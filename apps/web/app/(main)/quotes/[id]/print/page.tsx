@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { useQuote } from "@/hooks/useQuotes"
 import { useOpportunityRequirement } from "@/hooks/useRequirement"
+import { costAmount } from "@/lib/client-costs"
 import { formatFen, formatPercent } from "@/lib/format"
 import { useTemplates } from "@/hooks/useTemplates"
 import { PRINT_COMPANY, printDocTitle, printScope, printTotals } from "@/lib/quote-print"
@@ -94,6 +95,31 @@ function QuoteSheet({ q, showUpper }: { q: QuoteDetail; showUpper: boolean }) {
           </div>
         ) : null}
       </div>
+      {q.client_costs?.length ? (
+        <section className="mt-5" aria-label="客户自付费用">
+          <div className="mb-1.5 font-medium">运营期客户自付费用预估（不含在本报价内，实报实销）</div>
+          <table className="w-full table-fixed border-collapse">
+            <thead>
+              <tr className="bg-zinc-100 text-left">
+                <th className="border border-zinc-300 px-2 py-1.5 font-medium">项目</th>
+                <th className="border border-zinc-300 px-2 py-1.5 font-medium">说明</th>
+                <th className="w-32 border border-zinc-300 px-2 py-1.5 text-right font-medium">预估金额</th>
+              </tr>
+            </thead>
+            <tbody>
+              {q.client_costs.map((c) => (
+                <tr key={c.name}>
+                  <td className="border border-zinc-300 px-2 py-1.5">{c.name}</td>
+                  <td className="border border-zinc-300 px-2 py-1.5 text-zinc-600">{c.note || "—"}</td>
+                  <td className="border border-zinc-300 px-2 py-1.5 text-right whitespace-nowrap tabular-nums">
+                    {costAmount(c)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ) : null}
       <QuoteTerms />
       <div className="mt-4">
         <label htmlFor="print-note" className="font-medium">

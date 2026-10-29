@@ -2,9 +2,10 @@
 
 import { RotateCcw, Trash2, Undo2 } from "lucide-react"
 
+import { ClientCosts } from "@/components/biz/ClientCosts"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import type { CoreSolutionTier } from "@/lib/artifacts"
+import { clientCostsOf, type CoreSolutionTier } from "@/lib/artifacts"
 import { adjustTier, changedQty, parseQty, type QtyEdits } from "@/lib/bom-adjust"
 import { formatFen, formatPercent } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -108,6 +109,7 @@ export function BomEditor({
           <div className="truncate font-semibold tabular-nums">{formatPercent(preview.margin_rate)}</div>
         </div>
       </div>
+      <ClientCosts costs={clientCostsOf(tier)} className="border-t border-zinc-200 px-3.5 py-2.5" />
       {changed ? (
         <p className="border-t border-zinc-100 px-3.5 py-2 text-xs text-zinc-500">
           单价和折扣不变；确认后由系统按产品目录重新计算，毛利不达标的报价单提交时需要主管审批。

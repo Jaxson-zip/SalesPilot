@@ -46,6 +46,7 @@ export function ChatView({
   onConfirmRequirement,
   mode = "work",
   onAsk,
+  prdOpportunity,
 }: {
   title: string
   turns: ChatTurn[]
@@ -60,6 +61,7 @@ export function ChatView({
   mode?: AgentMode
   /** 学习问答：点回答末尾的追问建议直接发送 */
   onAsk?: (question: string) => void
+  prdOpportunity?: { id: string; name: string; canGenerate: boolean }
 }) {
   const learn = mode === "learn"
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -127,6 +129,7 @@ export function ChatView({
                 onRetry={onRetry}
                 onConfirmRequirement={onConfirmRequirement}
                 onAsk={learn ? onAsk : undefined}
+                prdOpportunity={learn ? undefined : prdOpportunity}
                 readonly={i !== turns.length - 1}
               />
             ),

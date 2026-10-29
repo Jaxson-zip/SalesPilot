@@ -45,7 +45,10 @@ export function submitResultText(status: QuoteStatus): string {
 
 /** 报价明细 → 物料清单组件（BomTable）的数据 */
 export function quoteToBom(
-  q: Pick<QuoteDetail, "tier_name" | "items" | "total_cost" | "total_price" | "margin_rate" | "estimated_commission">,
+  q: Pick<
+    QuoteDetail,
+    "tier_name" | "items" | "total_cost" | "total_price" | "margin_rate" | "estimated_commission" | "client_costs"
+  >,
 ): BomData {
   return {
     title: `${q.tier_name || "方案"} · 物料清单`,
@@ -61,5 +64,6 @@ export function quoteToBom(
       { label: "毛利率", value: formatPercent(q.margin_rate) },
       { label: "预估提成", value: formatFen(q.estimated_commission) },
     ],
+    client_costs: q.client_costs ?? [],
   }
 }

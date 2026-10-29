@@ -1,6 +1,11 @@
 "use client"
 
+import { FileText } from "lucide-react"
+import { useState } from "react"
+
 import { Tag } from "@/components/biz/Tag"
+import { PrdDialog } from "@/components/pipeline/PrdDialog"
+import { Button } from "@/components/ui/button"
 import { useOpportunityRequirement } from "@/hooks/useRequirement"
 import { formatFen, formatRelative } from "@/lib/format"
 import { COMPLEXITIES, PLATFORMS } from "@/lib/requirement-card"
@@ -9,8 +14,18 @@ const PLATFORM_NAME = Object.fromEntries(PLATFORMS)
 const COMPLEXITY_NAME = Object.fromEntries(COMPLEXITIES)
 
 /** 商机侧栏：出方案时 AI 拆出并保存的需求清单（还没出过方案时不显示）；版式与「竞争对手」一致 */
-export function RequirementSummary({ oppId }: { oppId: string }) {
+export function RequirementSummary({
+  oppId,
+  oppName,
+  editable,
+}: {
+  oppId: string
+  oppName: string
+  /** 负责人本人：可以生成 PRD */
+  editable: boolean
+}) {
   const { data } = useOpportunityRequirement(oppId)
+  const [prdOpen, setPrdOpen] = useState(false)
   if (!data) return null
   const r = data.data
   const modules = r.modules ?? []
@@ -51,11 +66,22 @@ export function RequirementSummary({ oppId }: { oppId: string }) {
             ))}
           </ol>
         ) : null}
-        <div className="text-xs text-zinc-400">
-          {data.updated_by ? `${data.updated_by} · ` : ""}
-          {formatRelative(data.updated_at)}
-          {data.confirmed ? "" : " · 点「出方案」继续确认"}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs text-zinc-400">
+            {data.updated_by ? `${data.updated_by} · ` : ""}
+            {formatRelative(data.updated_at)}
+            {data.confirmed ? "" : " · 点「出方案」继续确认"}
+          </span>
+          {data.pack === "software_outsourcing" ? (
+            <Button variant="outline" size="xs" onClick={() => setPrdOpen(true)}>
+              <FileText />
+              PRD 规格书
+            </Button>
+          ) : null}
         </div>
+        {data.pack === "software_outsourcing" ? (
+          <PrdDialog oppId={oppId} title={oppName} canGenerate={editable} open={prdOpen} onOpenChange={setPrdOpen} />
+        ) : null}
       </div>
     </section>
   )

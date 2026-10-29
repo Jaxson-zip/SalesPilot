@@ -31,6 +31,8 @@ class Opportunity(OwnedMixin, Base):
     competitor_ids: Mapped[list[str]] = mapped_column(JSONB, default=list)  # 遇到的竞品
     # 出方案时的需求清单：{pack, data, confirmed, price_low, price_high, questions, ...}
     requirement: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    # 按需求清单生成的 PRD 规格书（prd_service.PrdOut）
+    prd: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
 
 class Quote(OwnedMixin, Base):
@@ -48,6 +50,10 @@ class Quote(OwnedMixin, Base):
     total_price: Mapped[int] = mapped_column(BigInteger, default=0)
     margin_rate: Mapped[float] = mapped_column(Float, default=0)
     discount_rate: Mapped[float] = mapped_column(Float, default=0, server_default="0")
+    # 运营期客户自付费用（packs.base.ClientCost 列表）：不含在报价内，打印时单列
+    client_costs: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, default=list, server_default="[]"
+    )
     idempotency_key: Mapped[str | None] = mapped_column(String(100), unique=True)
     source: Mapped[str] = mapped_column(String(10), default="manual")  # manual / agent
 

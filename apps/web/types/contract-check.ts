@@ -23,6 +23,8 @@ import type * as Acc from "@/hooks/useAccounts"
 import type * as LV from "@/lib/list-view"
 import type * as Jobs from "@/hooks/useJobs"
 import type * as Imp from "@/lib/customer-import"
+import type * as Prd from "@/lib/prd"
+import type * as CC from "@/lib/client-costs"
 import type * as Tg from "@/lib/targets"
 
 type S = components["schemas"]
@@ -63,6 +65,8 @@ export const responses = {
   PipelineSummary: true as Fits<S["PipelineSummary"], T.PipelineSummary>,
   QuoteItem: true as Fits<S["QuoteListItem"], T.QuoteItem>,
   QuoteDetail: true as Fits<S["QuoteDetail"], T.QuoteDetail>,
+  PrdOut: true as Fits<S["PrdOut"], Prd.Prd>,
+  ClientCost: true as Fits<S["ClientCost"], CC.ClientCost>,
   ContractList: true as Fits<S["ContractList"], T.ContractList>,
   PaymentPlanView: true as Fits<S["PaymentPlanView"], T.PaymentPlanView>,
   ExpenseItem: true as Fits<S["ExpenseItem"], T.ExpenseItem>,

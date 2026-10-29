@@ -142,6 +142,7 @@ const ACTIVITY_LABEL_BY_ACTION: Record<string, string> = {
   contact_removed: "删除了联系人",
   meddic_updated: "更新了赢单要素",
   requirement_confirmed: "确认了需求清单",
+  prd: "生成了 PRD 规格书",
   competitors_updated: "标注了竞争对手",
   "followup.phone": "记录了电话跟进",
   "followup.visit": "记录了上门拜访",

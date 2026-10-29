@@ -44,6 +44,15 @@ class BomItem(BaseModel):
         return self.unit_price * self.qty
 
 
+class ClientCost(BaseModel):
+    """运营期客户自付的费用（实报实销，不含在报价内）：云服务器、域名证书、大模型调用费等。"""
+
+    name: str
+    amount: int  # 分，按 period 计
+    period: Literal["year", "month"]
+    note: str = ""
+
+
 class SolutionTier(BaseModel):
     tier: TierId
     name: str

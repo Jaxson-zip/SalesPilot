@@ -1,5 +1,7 @@
 """软件外包行业包：规则兜底的需求识别、模块人天、多端系数、三档差异、工期与预算推荐。"""
 
+import pytest
+
 from app.packs.base import Configurator
 from app.packs.registry import get_configurator, list_packs
 from app.packs.software_outsourcing.configurator import SoftwareOutsourcingConfigurator
@@ -120,11 +122,30 @@ def test_solo_words_and_cost_breakdown() -> None:
     days = sum(i.qty for i in tier.items if i.unit == "人天")
     assert cb["ai_tools"] == days * 3000
     assert sum(cb.values()) == sum(i.total_cost for i in tier.items)
-    # 第三方费用按成本代采，小程序要认证费
+    # 默认第三方费用由客户自付：不在报价里，单列在 client_costs（小程序要认证费）
+    assert not [i for i in tier.items if i.sku.startswith("TP-")]
+    assert cb["third_party"] == 0
+    yearly = {c["name"]: c for c in tier.specs["client_costs"] if c["period"] == "year"}
+    assert set(yearly) == {"云服务器与数据库", "域名与 SSL 证书", "微信小程序认证费"}
+    assert yearly["微信小程序认证费"]["note"] == "以客户主体开通"
+    assert "由客户自付" in tier.summary
+
+
+def test_third_party_in_quote_switch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """管理员打开「第三方费用计入报价」：按成本代采计入报价，不再单列。"""
+    original = SoftwareOutsourcingConfigurator.params.fget
+    assert original is not None
+    monkeypatch.setattr(
+        SoftwareOutsourcingConfigurator,
+        "params",
+        property(lambda self: {**original(self), "third_party_in_quote": True}),
+    )
+    tier = {t.tier: t for t in cfg().configure(req())}["standard"]
     tp = [i for i in tier.items if i.sku.startswith("TP-")]
     assert {i.sku for i in tp} == {"TP-CLOUD-1Y", "TP-DOMAIN-SSL", "TP-MP-CERT"}
     assert all(i.unit_cost == i.unit_price for i in tp)
-    assert cb["third_party"] == sum(i.total_cost for i in tp)
+    assert tier.specs["cost_breakdown"]["third_party"] == sum(i.total_cost for i in tp)
+    assert tier.specs["client_costs"] == []
 
 
 def test_ai_feature_monthly_cost() -> None:
@@ -135,6 +156,8 @@ def test_ai_feature_monthly_cost() -> None:
     tier = {t.tier: t for t in cfg().configure(req(modules=mods))}["standard"]
     assert tier.specs["ai_monthly_cost"] > 0
     assert "AI 调用费" in tier.summary
+    monthly = [c for c in tier.specs["client_costs"] if c["period"] == "month"]
+    assert [c["amount"] for c in monthly] == [tier.specs["ai_monthly_cost"]]
     assert tier.total_price == sum(i.total_price for i in tier.items)
 
 

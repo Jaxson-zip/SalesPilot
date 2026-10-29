@@ -73,6 +73,7 @@ def _to_out(quote: Quote, items: list[QuoteItem]) -> QuoteOut:
         total_price=quote.total_price,
         margin_rate=quote.margin_rate,
         items=[QuoteItemOut.model_validate(i, from_attributes=True) for i in items],
+        client_costs=quote.client_costs or [],
     )
 
 
@@ -119,6 +120,7 @@ def create_from_tier(
         margin_rate=margin.margin_rate,
         discount_rate=discount_rate_of(sum(i.total_price for i in tier.items), tier.total_price),
         idempotency_key=idempotency_key,
+        client_costs=tier.specs.get("client_costs") or [],
         source="agent",
         owner_id=user.id,
         team_id=user.team_id,
@@ -191,6 +193,7 @@ def get_quote(db: Session, user: CurrentUser, quote_id: uuid.UUID) -> QuoteDetai
         list_price=sum(i.subtotal_price for i in lines),
         discount_rate=quote.discount_rate,
         valid_until=quote_valid_until(quote.created_at, rules_for(quote)),
+        client_costs=quote.client_costs or [],
     )
 
 

@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.crm.schemas.common import CustomerBrief, OppBrief, UserBrief
+from app.packs.base import ClientCost
 
 QuoteStatus = Literal["draft", "pending_approval", "approved", "sent", "accepted", "rejected"]
 
@@ -43,6 +44,7 @@ class QuoteOut(BaseModel):
     total_price: int
     margin_rate: float
     items: list[QuoteItemOut] = []
+    client_costs: list[ClientCost] = []
 
 
 class QuoteLine(QuoteItemOut):
@@ -85,6 +87,8 @@ class QuoteDetail(QuoteListItem):
     list_price: int  # 折前合计 = Σ 单价 × 数量
     discount_rate: float
     valid_until: date
+    # 运营期客户自付费用（实报实销，不含在报价内）
+    client_costs: list[ClientCost] = []
 
 
 class QuoteLineIn(BaseModel):

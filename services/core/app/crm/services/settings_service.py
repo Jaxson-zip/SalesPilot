@@ -25,7 +25,9 @@ from app.rag.loaders import LOADERS, load_file
 from app.rules import overrides
 from app.rules.loader import RULES_FILE, RuleSet, deep_merge, load_raw_rules, read_yaml
 
-Kind = Literal["percent", "money", "int", "float", "cities", "percent_list", "stages", "megabytes"]
+Kind = Literal[
+    "percent", "money", "int", "float", "cities", "percent_list", "stages", "megabytes", "bool"
+]
 
 
 class SettingField(BaseModel):
@@ -355,6 +357,10 @@ def _clean(f: SettingField, v: Any) -> Any:
         return [round(_number(f, x, integer=False), 6) for x in v]
     if f.kind == "stages":
         return _clean_stages(f, v)
+    if f.kind == "bool":
+        if not isinstance(v, bool):
+            raise _invalid(f.key, f"「{f.label}」只能是开或关")
+        return v
     raise _invalid(f.key, "不支持的配置类型")
 
 

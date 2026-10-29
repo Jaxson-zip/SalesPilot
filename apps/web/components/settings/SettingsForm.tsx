@@ -6,6 +6,7 @@ import { useState } from "react"
 import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import { useUpdateSettings } from "@/hooks/useSettings"
 import { formatRelative } from "@/lib/format"
 import {
@@ -100,6 +101,16 @@ function FieldInput({
   onStages: (s: PaymentStageValue[]) => void
 }) {
   if (field.kind === "stages") return <StagesEditor value={stages} onChange={onStages} />
+  if (field.kind === "bool")
+    return (
+      <div className="flex justify-end">
+        <Switch
+          aria-label={field.label}
+          checked={text === "true"}
+          onCheckedChange={(on) => onText(on ? "true" : "false")}
+        />
+      </div>
+    )
   const wide = field.kind === "cities" || field.kind === "percent_list"
   const suffix =
     field.kind === "percent" || field.kind === "percent_list" ? "%" : field.kind === "money" ? "元" : field.unit

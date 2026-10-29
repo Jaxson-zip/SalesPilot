@@ -143,4 +143,4 @@ prototype/             UI 原型
 
 ## AI Coding 记录
 
-开发全过程由 Claude Code 辅助完成，每个阶段的任务、AI 写错的地方和人工修正都记录在 [docs/ai-log/](docs/ai-log/)；项目规范见 [AGENTS.md](AGENTS.md)。
+开发全过程由 Claude Code 辅助完成，每个阶段的任务、AI 写错的地方和人工修正都记录在 [docs/ai-log/](docs/ai-log/README.md)（目录页汇总了 AI 写错的典型问题）；项目规范见 [AGENTS.md](AGENTS.md)。

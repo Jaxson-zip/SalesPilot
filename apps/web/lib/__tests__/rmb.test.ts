@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { printDocTitle, printTotals } from "@/lib/quote-print"
+import { printDocTitle, printScope, printTotals } from "@/lib/quote-print"
 import { fenToRmbUpper } from "@/lib/rmb"
 
 describe("金额大写", () => {
@@ -59,5 +59,22 @@ describe("报价单打印", () => {
       "报价单-Q-2026-018-明理律所",
     )
     expect(printDocTitle({ code: "Q-1", customer: null })).toBe("报价单-Q-1")
+  })
+})
+
+describe("报价单项目范围", () => {
+  it("列出交付端、交付方式和这一档没有包含的功能", () => {
+    const req = {
+      platforms: ["mini_program", "admin"],
+      team_size: 1,
+      modules: [{ name: "在线预约" }, { name: "会员积分" }, { name: "数据报表" }],
+    }
+    const items = [{ name: "在线预约（复杂）" }, { name: "数据报表（中等）" }, { name: "UI 设计" }]
+    expect(printScope(req, items)).toEqual({
+      platforms: "微信小程序、管理后台",
+      delivery: "个人全栈",
+      excluded: ["会员积分"],
+    })
+    expect(printScope({}, []).delivery).toBe("团队")
   })
 })

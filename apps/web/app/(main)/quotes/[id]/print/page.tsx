@@ -12,9 +12,10 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { useQuote } from "@/hooks/useQuotes"
+import { useOpportunityRequirement } from "@/hooks/useRequirement"
 import { formatFen, formatPercent } from "@/lib/format"
 import { useTemplates } from "@/hooks/useTemplates"
-import { PRINT_COMPANY, printDocTitle, printTotals } from "@/lib/quote-print"
+import { PRINT_COMPANY, printDocTitle, printScope, printTotals } from "@/lib/quote-print"
 import { fenToRmbUpper } from "@/lib/rmb"
 import type { QuoteDetail } from "@/types/api"
 
@@ -56,6 +57,24 @@ function QuoteTerms() {
   )
 }
 
+/** 项目范围：只在商机上有「已确认」的需求清单时显示（软件外包），说明交付端、交付方式和本期不含的功能 */
+function ProjectScope({ q }: { q: QuoteDetail }) {
+  const { data } = useOpportunityRequirement(q.opportunity?.id ?? null)
+  if (!data?.confirmed || data.pack !== q.pack) return null
+  const s = printScope(data.data, q.items)
+  return (
+    <section className="mt-4 space-y-1" aria-label="项目范围">
+      <div className="font-medium">项目范围</div>
+      <Meta label="交付端" value={s.platforms || "—"} />
+      <Meta label="交付方式" value={s.delivery === "个人全栈" ? "个人全栈开发" : "项目团队开发"} />
+      <Meta label="功能清单" value="见下表各功能模块，以表内列出的为准" />
+      {s.excluded.length > 0 ? (
+        <Meta label="本期不含" value={`${s.excluded.join("、")}（可作为二期另行报价）`} />
+      ) : null}
+    </section>
+  )
+}
+
 function QuoteSheet({ q, showUpper }: { q: QuoteDetail; showUpper: boolean }) {
   const [note, setNote] = useState(DEFAULT_NOTE)
   const t = printTotals(q)
@@ -73,6 +92,7 @@ function QuoteSheet({ q, showUpper }: { q: QuoteDetail; showUpper: boolean }) {
         <Meta label="方案" value={q.tier_name || q.tier || "—"} />
         <Meta label="有效期至" value={q.valid_until ? q.valid_until.slice(0, 10) : "—"} />
       </div>
+      <ProjectScope q={q} />
       <table className="mt-5 w-full table-fixed border-collapse">
         <thead>
           <tr className="bg-zinc-100 text-left">

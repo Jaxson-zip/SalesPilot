@@ -1,5 +1,5 @@
 /** 报价单打印页的纯函数：合计、折扣（均来自后端返回的明细与总价，不重新计算价格规则） */
-import type { QuoteDetail } from "@/types/api"
+import type { QuoteDetail, QuoteLine } from "@/types/api"
 
 export const PRINT_COMPANY = "SalesPilot 演示公司"
 
@@ -24,4 +24,35 @@ export function printTotals(q: Pick<QuoteDetail, "items" | "total_price" | "disc
 /** 打印页标题（浏览器「存为 PDF」默认文件名）：报价单-Q-2026-018-客户名 */
 export function printDocTitle(q: Pick<QuoteDetail, "code" | "customer">): string {
   return ["报价单", q.code, q.customer?.name].filter(Boolean).join("-")
+}
+
+const PLATFORM_NAMES: Record<string, string> = {
+  mini_program: "微信小程序",
+  app: "App",
+  web: "网站 / H5",
+  admin: "管理后台",
+}
+
+export interface PrintScope {
+  platforms: string
+  delivery: "团队" | "个人全栈"
+  /** 需求清单里有、但这一档报价没有包含的功能（二期或经济版砍掉的） */
+  excluded: string[]
+}
+
+/**
+ * 软件外包报价单的「项目范围」：来自商机上确认过的需求清单。
+ * 功能明细已在报价表里（明细名称以模块名开头），这里只补交付端、交付方式和「本期不含」，
+ * 让客户看清哪些功能不在这次的价格里，避免签约后扯皮。
+ */
+export function printScope(
+  req: { platforms?: string[]; modules?: { name: string }[]; team_size?: number | null },
+  items: Pick<QuoteLine, "name">[],
+): PrintScope {
+  const quoted = (name: string) => items.some((it) => it.name.startsWith(name))
+  return {
+    platforms: (req.platforms ?? []).map((p) => PLATFORM_NAMES[p] ?? p).join("、"),
+    delivery: req.team_size === 1 ? "个人全栈" : "团队",
+    excluded: (req.modules ?? []).map((m) => m.name).filter((n) => !quoted(n)),
+  }
 }

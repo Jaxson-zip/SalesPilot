@@ -84,8 +84,13 @@ class SoftwareOutsourcingConfigurator:
             "客户说「以后再做 / 二期」的模块 must=false。"
             "客户明确提到的功能 source=mentioned，你根据常识补充的 source=inferred。"
             "questions 写 3–5 个销售需要回头和客户确认的关键问题。"
-            "platforms 只填客户明确提到或业务上必然需要的端（提到管理、运营、后台配置时加 admin）。"
-            "不要估算人天和价格。"
+            "platforms 只填客户明确提到或业务上必然需要的端（提到管理、运营、后台配置时加 admin）；"
+            "只说「手机也能用」「网页和手机都能用」、没提 App 或小程序时"
+            "按网页自适应处理，只填 web；客户没说做什么端时，按用户是谁选一个最合适的客户端"
+            "（面向消费者 / 学员 / 会员的优先 mini_program，企业内部办公优先 web），"
+            "不要同时加多个。"
+            "客户只说了要做 App / 小程序 / 系统、没说是什么业务时，modules 留空（交给销售追问），"
+            "不要凭空拆解。不要估算人天和价格。"
         )
 
     def draft_requirement(self, text: str) -> dict[str, Any]:

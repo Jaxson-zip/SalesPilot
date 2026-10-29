@@ -2,7 +2,7 @@
 
 腾讯 AI Coding 课程作业 · 方向二 · 场景 3「业务智能体」。
 
-面向 ToB 销售的 CRM：销售用一句话完成「查客户 → 记跟进 → 推进商机 → 出方案报价 → 报销」，AI 通过 **function calling** 调用真实的业务工具读写数据，写操作必须经用户确认；价格、毛利、提成、报销标准一律由规则代码计算；行业知识以可插拔的「行业包」提供（大模型部署 / 企业办公 IT）。
+面向 ToB 销售的 CRM：销售用一句话完成「查客户 → 记跟进 → 推进商机 → 出方案报价 → 报销」，AI 通过 **function calling** 调用真实的业务工具读写数据，写操作必须经用户确认；价格、毛利、提成、报销标准一律由规则代码计算；行业知识以可插拔的「行业包」提供（大模型部署 / 企业办公 IT / 软件外包）。
 
 > ⚠️ 项目中的客户、产品价格、提成比例、报销标准均为**模拟数据**。
 
@@ -14,6 +14,9 @@
 | 客户 / 商机 | 列表筛选排序导出、多选批量操作、主管转移负责人；商机看板拖拽（可撤销）、赢单 / 输单确认；下一步任务、阶段默认赢率、久未跟进提醒 |
 | 报价 / 合同 | 报价调价（规则重算毛利和是否需审批）、正式报价单打印 / 存 PDF（不含成本毛利）；合同、回款登记、提成按回款确认 |
 | 报销 / 审批 | 按类型填写（客户招待选参与人、差旅填行程、住宿按城市每晚标准校验）、模板和报销须知、上传票据自动存草稿、超标自动转主管审批 |
+| 软件外包报价 | 模糊需求分三步：AI 拆功能模块并给粗估区间和确认问题 → 需求卡片上增删模块、标二期 → 确认后出三档报价；支持个人全栈，成本拆成人工、AI 编码工具、第三方代采，并估算上线后的 AI 调用费 |
+| 销售辅助 | 上传纪要 / 聊天记录 / 名片一键整理成跟进和联系人；MEDDIC 赢单要素与阶段风险；竞品战卡；日报（按当天真实操作生成草稿）；客户外部情报（演示数据） |
+| 数据安全与集成 | 操作日志、电话脱敏与查看留痕、导出按角色授权；企业微信群推送（待审批、赢单喜报、日报）；AI 用量与成本统计 |
 | 权限 | 销售只改自己的数据；主管看团队、审批、登记回款；管理员只读并配置行业包；无权按钮不显示 |
 | 其他 | 通知铃铛、工作台待办、「使用说明」页 |
 
@@ -115,7 +118,9 @@ cd apps/web && pnpm install && pnpm dev                      # http://127.0.0.1:
 | 接口端到端 | `uv run --python 3.12 --with httpx --with pytest pytest tests/e2e -q` | 需要 Docker 环境在运行 |
 | 浏览器自动化 | `cd apps/web && PW_CHANNEL=msedge pnpm test:e2e` | Playwright，直接用 Windows 自带的 Edge；`E2E_BASE_URL=http://127.0.0.1:8080` 可经 Nginx 测 |
 
-跑完端到端 / 浏览器测试后恢复干净的演示数据：`docker compose exec core python -m seed --reset`。测试结果和联调过程见 [测试与联调报告](docs/测试与联调报告.md)。
+跑完端到端 / 浏览器测试后恢复干净的演示数据：`cd apps/web && pnpm e2e:reset`。软件外包 AI 评估：`docker compose exec core python -m evals.run_eval`（报告见 [docs/eval](docs/eval/软件外包AI评估报告.md)）。
+
+> 浏览器测试会保存企业微信配置；`.env` 里配置了 `WECOM_WEBHOOK_URL` 时先注释掉再跑，避免向真实群发消息。测试结果和联调过程见 [测试与联调报告](docs/测试与联调报告.md)。
 
 ## 目录
 
@@ -124,7 +129,7 @@ apps/web               前端（页面、组件、hooks、纯函数 lib、Playwr
 services/core          业务 + Agent + 行业包 + RAG
   app/crm              routers → services → models（权限在 service 层）
   app/agent            LangGraph 状态图、function calling、工具
-  app/packs            行业包（llm_deploy / it_office）
+  app/packs            行业包（llm_deploy / it_office / software_outsourcing）
   app/rag              加载（Markdown / PDF / Excel）、切块、入库、检索、评测
   app/rules            rules.yaml（标准 / 阈值）+ templates.yaml（业务模板）+ 计算器
 services/gateway       模型网关（注册表 models.yaml、兼容层、契约测试）

@@ -46,7 +46,8 @@ class DigestMaterialArgs(BaseModel):
     summary: str = Field(
         min_length=1,
         max_length=2000,
-        description="跟进记录正文：沟通要点、客户需求与痛点、预算 / 时间、顾虑、竞品，分条写",
+        description="跟进记录正文，分两段、每段分条："
+        "「跟进重点：」沟通结论、进展、预算 / 时间；「客户关注点：」需求与痛点、顾虑、提到的竞品",
     )
     contacts: list[MaterialContact] = Field(default_factory=list, max_length=20)
     next_steps: list[MaterialStep] = Field(default_factory=list, max_length=10)
@@ -119,10 +120,11 @@ def digest_material(ctx: ToolContext, args: DigestMaterialArgs) -> ToolResult:
 MATERIAL_TOOLS: list[ToolSpec] = [
     ToolSpec(
         "digest_material",
-        "把用户上传的一手材料（会议纪要、聊天记录、名片）整理后一次写入："
+        "把用户上传或粘贴的一手材料（会议纪要、聊天记录、录音转写、名片）整理后一次写入："
         "跟进记录 + 联系人 + 下一步任务。"
         "先用 search_customer / get_customer_context 确认客户和商机；"
-        "summary 分条写要点，contacts 只写材料里出现的客户方人员（不要写我方同事），"
+        "summary 按「跟进重点」「客户关注点」两段分条写，"
+        "contacts 只写材料里出现的客户方人员（不要写我方同事），"
         "next_steps 写材料里约定或明显需要的后续动作",
         DigestMaterialArgs,
         digest_material,

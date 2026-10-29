@@ -3,6 +3,7 @@
 import { ArrowRight, Clock, Handshake, Mail, MessageCircle, Phone, Sparkles, type LucideIcon } from "lucide-react"
 import { forwardRef, useState } from "react"
 
+import { PasteNotesDialog } from "@/components/agent/PasteNotesDialog"
 import { LetterAvatar } from "@/components/biz/Chip"
 import { EmptyState } from "@/components/biz/EmptyState"
 import { DatePicker, SimpleSelect } from "@/components/biz/FormControls"
@@ -36,10 +37,11 @@ const TYPE_OPTIONS: { value: FollowupType; label: string }[] = (["phone", "visit
 )
 
 /** 写跟进：内容 + 类型 Select + 日期 DatePicker + 保存 */
-export const FollowupComposer = forwardRef<HTMLTextAreaElement, { customerId: string }>(function FollowupComposer(
-  { customerId },
-  ref,
-) {
+export const FollowupComposer = forwardRef<
+  HTMLTextAreaElement,
+  { customerId: string; customerName: string; canAi?: boolean }
+>(function FollowupComposer({ customerId, customerName, canAi }, ref) {
+  const [pasting, setPasting] = useState(false)
   const [content, setContent] = useState("")
   const [type, setType] = useState<FollowupType>("phone")
   const [date, setDate] = useState(() => localDate())
@@ -82,12 +84,19 @@ export const FollowupComposer = forwardRef<HTMLTextAreaElement, { customerId: st
         <div className="w-36">
           <DatePicker value={date} onChange={setDate} size="sm" />
         </div>
+        {canAi ? (
+          <Button variant="ghost" size="sm" className="text-ai" onClick={() => setPasting(true)}>
+            <Sparkles />
+            粘贴纪要，AI 提炼
+          </Button>
+        ) : null}
         {/* ml-auto：窄屏换行后保存按钮仍靠右 */}
         {unfilled ? <span className="text-xs text-amber-700">模板还没填写内容</span> : null}
         <Button size="sm" className="ml-auto" disabled={!content.trim() || unfilled || create.isPending} onClick={save}>
           {create.isPending ? "保存中…" : "保存"}
         </Button>
       </div>
+      {canAi ? <PasteNotesDialog open={pasting} onOpenChange={setPasting} customer={customerName} /> : null}
     </div>
   )
 })

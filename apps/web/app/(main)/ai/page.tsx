@@ -14,6 +14,7 @@ import { useOpportunity } from "@/hooks/useOpportunities"
 import { usePermissions } from "@/hooks/usePermissions"
 import { usePackName } from "@/hooks/useProductLines"
 import { DEFAULT_PACK_LABEL } from "@/lib/agent-labels"
+import { takePastedMaterial } from "@/lib/materials"
 import { aiThreadHref } from "@/lib/thread-history"
 
 /**
@@ -27,6 +28,7 @@ function useThreadUrl(w: AiSession): () => void {
   const t = params.get("t")
   const prompt = params.get("prompt")
   const opp = params.get("opp")
+  const paste = params.get("paste") === "1"
   const router = useRouter()
   const latest = useRef({ w, t })
   const mounted = useRef(false)
@@ -51,8 +53,11 @@ function useThreadUrl(w: AiSession): () => void {
     latest.current.w.newChat()
     latest.current.w.setInput(prompt)
     latest.current.w.setOpportunityId(opp)
+    // &paste=1：写跟进处粘贴的纪要，作为材料带进来（不自动发送，销售看一眼再发）
+    const pasted = paste ? takePastedMaterial() : null
+    if (pasted) latest.current.w.loadMaterial(pasted)
     router.replace("/ai", { scroll: false })
-  }, [prompt, opp, router])
+  }, [prompt, opp, paste, router])
 
   const threadId = w.stream.threadId
   useEffect(() => {

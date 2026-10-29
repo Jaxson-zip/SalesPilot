@@ -174,6 +174,11 @@ export function useAiWorkbench() {
     uploading,
     attach,
     clearMaterial: () => setMaterial(null),
+    /** 带入一份已有文字的材料（写跟进处粘贴的纪要） */
+    loadMaterial: (m: MaterialOut) => {
+      setMaterial(m)
+      clearSamples()
+    },
     samples,
     attachSamples,
     retrySamples,

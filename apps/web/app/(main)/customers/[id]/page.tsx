@@ -111,7 +111,14 @@ export default function CustomerDetailPage() {
                 icon: Clock,
                 content: (
                   <>
-                    {canFollowup ? <FollowupComposer ref={composerRef} customerId={cust.id} /> : null}
+                    {canFollowup ? (
+                      <FollowupComposer
+                        ref={composerRef}
+                        customerId={cust.id}
+                        customerName={cust.name}
+                        canAi={canAiWrite}
+                      />
+                    ) : null}
                     <CustomerTimeline
                       customerId={cust.id}
                       role={role}

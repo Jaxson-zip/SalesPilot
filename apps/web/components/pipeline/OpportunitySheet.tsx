@@ -8,6 +8,7 @@ import {
   ExternalLink,
   FileText,
   Lock,
+  NotebookPen,
   Package,
   Percent,
   Sparkles,
@@ -16,7 +17,9 @@ import {
   UserRoundCheck,
 } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
 
+import { PasteNotesDialog } from "@/components/agent/PasteNotesDialog"
 import { Chip } from "@/components/biz/Chip"
 import { FieldRow } from "@/components/biz/FieldRow"
 import { FormSheet } from "@/components/biz/FormSheet"
@@ -264,6 +267,7 @@ export function OpportunitySheet({
 }) {
   const detail = useOpportunity(opp?.id ?? null)
   const o = detail.data ?? opp
+  const [pasting, setPasting] = useState(false)
   return (
     <FormSheet
       open={opp !== null}
@@ -278,6 +282,12 @@ export function OpportunitySheet({
                 打开客户页面
               </Link>
             </Button>
+            {editable ? (
+              <Button variant="outline" onClick={() => setPasting(true)}>
+                <NotebookPen />
+                粘贴纪要
+              </Button>
+            ) : null}
             {editable ? (
               <Button asChild>
                 <Link href={aiPrefillHref(solutionPrompt(o.customer.name, o.name), o.id)}>
@@ -327,6 +337,14 @@ export function OpportunitySheet({
           ) : (
             <RecentActivities detail={detail.data} />
           )}
+          {editable ? (
+            <PasteNotesDialog
+              open={pasting}
+              onOpenChange={setPasting}
+              customer={o.customer.name}
+              opportunity={{ id: o.id, name: o.name }}
+            />
+          ) : null}
         </>
       ) : null}
     </FormSheet>

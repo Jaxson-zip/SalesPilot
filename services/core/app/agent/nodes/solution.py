@@ -31,8 +31,9 @@ from app.common.errors import BizError
 from app.crm.models import Opportunity
 from app.crm.schemas.opportunity import FINAL_STAGES
 from app.crm.services import customer_service, requirement_service
-from app.packs.base import MarginHint, SampleSummary
-from app.packs.registry import get_configurator
+from app.packs.base import MarginHint, SampleSummary, SolutionTier, adjust_tier
+from app.packs.registry import get_configurator, get_pack
+from app.rules.loader import load_rules
 
 Node = Callable[[AgentState], dict[str, Any]]
 
@@ -294,6 +295,12 @@ def chosen_tier(state: AgentState) -> dict[str, Any]:
     return next((t for t in tiers if key and t.get("tier") == key), None) or recommended_tier(tiers)
 
 
+def adjusted(pack: str, tier: dict[str, Any], qty: dict[str, int]) -> dict[str, Any]:
+    """按销售在方案卡上调整的数量重新算价（单价、折扣不变，毛利由规则重算）。"""
+    rules = load_rules(get_pack(pack).rules_file, scope=pack)
+    return adjust_tier(SolutionTier.model_validate(tier), qty, rules).model_dump(mode="json")
+
+
 def make_price(deps: AgentDeps) -> Node:
     def price(state: AgentState) -> dict[str, Any]:
         """价格已由行业包配置器按目录和规则算好；这里推送方案卡片和推荐档位的物料清单。"""
@@ -367,8 +374,12 @@ def make_confirm(deps: AgentDeps) -> Node:
         value = interrupt({"action": "generate_quote", "preview": preview})
         # 恢复值：只有决定，或带上另选的档位 {"decision": "approve", "tier": "economy"}
         if isinstance(value, dict):
-            return {"decision": str(value.get("decision")), "chosen_tier": value.get("tier")}
-        return {"decision": str(value), "chosen_tier": None}
+            return {
+                "decision": str(value.get("decision")),
+                "chosen_tier": value.get("tier"),
+                "adjusted_qty": value.get("items"),
+            }
+        return {"decision": str(value), "chosen_tier": None, "adjusted_qty": None}
 
     return confirm
 
@@ -381,6 +392,8 @@ def make_save_quote(deps: AgentDeps) -> Node:
     def save_quote(state: AgentState) -> dict[str, Any]:
         node_start("save_quote")
         tier = chosen_tier(state)
+        if qty := state.get("adjusted_qty"):
+            tier = adjusted(state["pack_id"], tier, qty)
         key = f"agent:{deps.ctx.thread_id}:{tier['tier']}:{tier['total_price']}"
         args = {
             "pack_id": state["pack_id"],

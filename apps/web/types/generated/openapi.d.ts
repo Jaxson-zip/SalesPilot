@@ -5893,6 +5893,10 @@ export interface components {
       decision: "approve" | "reject"
       /** Tier */
       tier?: string | null
+      /** Items */
+      items?: {
+        [key: string]: number
+      } | null
     }
     /** RiskItem */
     RiskItem: {

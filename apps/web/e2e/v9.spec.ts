@@ -169,6 +169,10 @@ test.describe("审查 v9：日报", () => {
     await loginAs(page, "sales")
     await page.goto("/reports")
     const facts = page.getByRole("region", { name: "当天记录" })
+    await expect(facts.getByText("客户跟进")).toBeVisible()
+    // 当天跑过多次时跟进超过 8 条会折叠，新建的那条可能在后面
+    const expand = facts.getByRole("button", { name: /展开全部/ }).first()
+    if (await expand.isVisible()) await expand.click()
     await expect(facts).toContainText(name)
     await page.getByRole("button", { name: "AI 生成草稿" }).click()
     // 当天已有草稿（之前跑过）时会先确认覆盖

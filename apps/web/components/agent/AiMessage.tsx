@@ -4,6 +4,7 @@ import { CircleAlert, CornerDownRight, RotateCcw, Sparkles } from "lucide-react"
 import { useState } from "react"
 
 import { ArtifactView } from "@/components/agent/ArtifactView"
+import { BomEditor } from "@/components/agent/BomEditor"
 import { ChatMarkdown } from "@/components/agent/ChatMarkdown"
 import { ConfirmCard } from "@/components/agent/ConfirmCard"
 import { MsgActions } from "@/components/agent/MsgActions"
@@ -12,7 +13,8 @@ import { Button } from "@/components/ui/button"
 import { useSmoothText } from "@/hooks/useSmoothText"
 import { splitFollowUps } from "@/lib/agent-mode"
 import type { AgentArtifact, AssistantTurn } from "@/lib/agent-reducer"
-import { isCoreTiers, type CoreSolutionTier } from "@/lib/artifacts"
+import { isCoreTier, isCoreTiers, type CoreSolutionTier } from "@/lib/artifacts"
+import { adjustTier, changedQty, type QtyEdits } from "@/lib/bom-adjust"
 import { previewRows } from "@/lib/interrupt-preview"
 import { cn } from "@/lib/utils"
 import type { ResumeDecision } from "@/types/api"
@@ -62,8 +64,8 @@ export function AiMessage({
   busy?: boolean
   /** 历史消息：不再响应确认 / 重试 */
   readonly?: boolean
-  /** tier：确认生成报价单时另选的档位 */
-  onDecide: (decision: ResumeDecision, tier?: string) => void
+  /** tier：确认生成报价单时另选的档位；items：在物料清单上调整的数量（sku → 数量） */
+  onDecide: (decision: ResumeDecision, tier?: string, items?: QtyEdits) => void
   onRetry: () => void
   onConfirmRequirement?: (requirement: Record<string, unknown>) => void
   /** 学习问答：回答末尾「可以接着问」拆成按钮，点击直接发送 */
@@ -76,20 +78,34 @@ export function AiMessage({
   const pending = turn.interrupt?.action === "generate_quote" && !turn.interrupt.decision
   const canPick = pending && !readonly && !busy && tiers.length > 1
   const pickedTier = picked ? tiers.find((t) => t.tier === picked) : undefined
+  // 待确认时可以在物料清单上改数量 / 删项；换档位时清空调整
+  const [edits, setEdits] = useState<QtyEdits>({})
+  const canEdit = pending && !readonly && !busy
+  const baseTier = pickedTier ?? tiers.find((t) => t.recommended) ?? tiers[0]
+  const changes = baseTier ? changedQty(baseTier, edits) : {}
+  const adjusted = baseTier && Object.keys(changes).length ? adjustTier(baseTier, edits) : undefined
+  const shownTier = adjusted ?? pickedTier
+  const pick = (key: string) => {
+    setPicked(key)
+    setEdits({})
+  }
   const preview = turn.interrupt
-    ? pickedTier && turn.interrupt.action === "generate_quote"
+    ? shownTier && turn.interrupt.action === "generate_quote"
       ? {
           ...turn.interrupt.preview,
-          tier: pickedTier.tier,
-          name: pickedTier.name,
-          summary: pickedTier.summary,
-          total_price: pickedTier.total_price,
-          margin_rate: pickedTier.margin_rate,
+          tier: shownTier.tier,
+          name: adjusted ? `${shownTier.name}（已调整）` : shownTier.name,
+          summary: shownTier.summary,
+          total_price: shownTier.total_price,
+          margin_rate: shownTier.margin_rate,
         }
       : turn.interrupt.preview
     : {}
-  const decide = (decision: ResumeDecision) =>
-    onDecide(decision, decision === "approve" && pickedTier && !pickedTier.recommended ? pickedTier.tier : undefined)
+  const decide = (decision: ResumeDecision) => {
+    if (decision !== "approve") return onDecide(decision)
+    const tier = pickedTier && !pickedTier.recommended ? pickedTier.tier : undefined
+    onDecide(decision, tier, adjusted ? changes : undefined)
+  }
   const [animate] = useState(live)
   const smooth = useSmoothText(turn.text, animate)
   const followUps = onAsk ? splitFollowUps(smooth) : null
@@ -134,13 +150,17 @@ export function AiMessage({
                 data-scroll-anchor={!readonly && a.type === "solution_tiers" ? "" : undefined}
                 className={cn(animate && "animate-in fade-in slide-in-from-bottom-1 duration-300")}
               >
-                <ArtifactView
-                  artifact={a.type === "bom" && pickedTier ? { ...a, data: pickedTier } : a}
-                  onConfirmRequirement={onConfirmRequirement}
-                  readonly={readonly || busy}
-                  selectedTier={pickedTier?.tier}
-                  onSelectTier={canPick ? setPicked : undefined}
-                />
+                {a.type === "bom" && canEdit && baseTier && isCoreTier(a.data) ? (
+                  <BomEditor tier={baseTier} edits={edits} onChange={setEdits} />
+                ) : (
+                  <ArtifactView
+                    artifact={a.type === "bom" && shownTier ? { ...a, data: shownTier } : a}
+                    onConfirmRequirement={onConfirmRequirement}
+                    readonly={readonly || busy}
+                    selectedTier={pickedTier?.tier}
+                    onSelectTier={canPick ? pick : undefined}
+                  />
+                )}
               </div>
             ))
           : null}

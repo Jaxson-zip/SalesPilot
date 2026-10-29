@@ -43,6 +43,8 @@ class ResumeIn(BaseModel):
     decision: Literal["approve", "reject"]
     # 生成报价单时销售在三档里另选的档位（tier 键，如 economy）；不传按推荐档
     tier: str | None = Field(default=None, max_length=30)
+    # 生成报价单前在方案卡上调整的数量：sku → 数量（0 为删除这一项）；只能改本档已有的物料
+    items: dict[str, int] | None = Field(default=None, max_length=200)
 
 
 def _request_id(request: Request) -> str:
@@ -69,7 +71,9 @@ async def chat(body: ChatIn, user: CurrentUserDep, request: Request) -> EventSou
 @router.post("/resume")
 async def resume(body: ResumeIn, user: CurrentUserDep, request: Request) -> EventSourceResponse:
     deps = service.build_deps(user, body.thread_id, _request_id(request), None)
-    run = await run_in_threadpool(service.prepare_resume, deps, body.decision, None, body.tier)
+    run = await run_in_threadpool(
+        service.prepare_resume, deps, body.decision, None, body.tier, body.items
+    )
     return EventSourceResponse(follow_run(service.start_run(run, user)))
 
 

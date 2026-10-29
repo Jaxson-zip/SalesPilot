@@ -169,6 +169,26 @@ class TestSolutionFlow:
         assert quote["total_price"] == economy["total_price"]
         assert quote["total_price"] != next(t for t in tiers if t.get("recommended"))["total_price"]
 
+    def test_approve_with_adjusted_items(self, tool_ctx: ToolContext, fake_quotes: None) -> None:
+        """销售在方案卡上删一项、改一项数量：报价单按调整后的物料重新算价；不合法的调整 40001。"""
+        saver, deps = InMemorySaver(), make_deps(tool_ctx)
+        events = run_chat(deps, saver, SOLUTION_MSG)
+        cards = [e["data"] for e in events if e["event"] == "artifact"]
+        tiers = [c for c in cards if c["type"] == "solution_tiers"][-1]["data"]
+        rec = next(t for t in tiers if t.get("recommended"))
+        first, second = rec["items"][0], rec["items"][1]
+        for bad in ({"NO-SKU": 1}, {first["sku"]: -1}, {i["sku"]: 0 for i in rec["items"]}):
+            with pytest.raises(BizError) as exc:
+                service.prepare_resume(deps, "approve", saver, None, bad)
+            assert exc.value.code == 40001
+        qty = {first["sku"]: 0, second["sku"]: second["qty"] + 1}
+        run = service.prepare_resume(deps, "approve", saver, None, qty)
+        resumed = list(iter_graph_events(run.graph, run.payload, run.config, run.thread_id))
+        quote = next(e for e in resumed if e["event"] == "artifact")["data"]["data"]
+        listed = sum(i["unit_price"] * i["qty"] for i in rec["items"])
+        listed += second["unit_price"] - first["unit_price"] * first["qty"]
+        assert quote["total_price"] == round(listed * (1 - rec["discount_rate"]))
+
     def test_reject_does_not_write(self, tool_ctx: ToolContext, fake_quotes: None) -> None:
         saver, deps = InMemorySaver(), make_deps(tool_ctx)
         run_chat(deps, saver, SOLUTION_MSG)

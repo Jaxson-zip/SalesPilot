@@ -24,6 +24,8 @@ export interface CoreSolutionTier {
   total_cost: number
   total_price: number
   margin_rate: number
+  /** 整单折扣 0–1 */
+  discount_rate?: number
   recommended?: boolean
   /** 行业包附加信息；软件外包带 cost_breakdown（分）和 ai_monthly_cost（分/月） */
   specs?: Record<string, unknown>

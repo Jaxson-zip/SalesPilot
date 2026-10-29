@@ -34,6 +34,8 @@ class AgentState(TypedDict):
     retry: NotRequired[int]
     hint: NotRequired[str | None]
     chosen_tier: NotRequired[str | None]  # 确认生成报价时销售另选的档位（tier 键），None 按推荐档
+    # 确认时在方案卡上调整的数量（sku → 数量，0 为删除）；None 按原方案
+    adjusted_qty: NotRequired[dict[str, int] | None]
     decision: NotRequired[str | None]
     quote: NotRequired[dict[str, Any] | None]
     tool_log: NotRequired[list[dict[str, Any]]]  # 本轮工具结果摘要，respond 用

@@ -60,8 +60,8 @@ export interface UseAgentStream {
     /** 会话模式：服务端以会话第一轮为准 */
     mode?: AgentMode,
   ) => void
-  /** tier：确认生成报价单时另选的档位 */
-  resume: (decision: ResumeDecision, tier?: string) => void
+  /** tier：确认生成报价单时另选的档位；items：物料清单上调整的数量（sku → 数量，0 为删除） */
+  resume: (decision: ResumeDecision, tier?: string, items?: Record<string, number>) => void
   stop: () => void
   retry: () => void
   reset: () => void
@@ -198,11 +198,11 @@ export function useAgentStream(): UseAgentStream {
   )
 
   const resume = useCallback(
-    (decision: ResumeDecision, tier?: string) => {
+    (decision: ResumeDecision, tier?: string, items?: Record<string, number>) => {
       const thread_id = threadRef.current
       if (!thread_id || abortRef.current) return
       patch((t) => applyDecision(t, decision))
-      void run((o) => postSSE(RESUME_PATH, { thread_id, decision, tier }, o))
+      void run((o) => postSSE(RESUME_PATH, { thread_id, decision, tier, items }, o))
     },
     [abortRef, patch, run],
   )

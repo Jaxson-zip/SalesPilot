@@ -11913,6 +11913,14 @@ components:
             maxLength: 30
           - type: 'null'
           title: Tier
+        items:
+          anyOf:
+          - additionalProperties:
+              type: integer
+            type: object
+            maxProperties: 200
+          - type: 'null'
+          title: Items
       type: object
       required:
       - thread_id

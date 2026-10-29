@@ -74,3 +74,77 @@ test("出方案：点选经济版后物料清单和确认卡跟着切换，确�
   // 确认后不能再切换
   await expect(page.getByRole("button", { name: "选择旗舰版" })).toHaveCount(0)
 })
+
+test("出方案：确认前在物料清单上删一项、改数量，合计即时更新，确认时带上调整", async ({ page }) => {
+  await loginAs(page, "sales")
+  const item = (sku: string, name: string, qty: number, cost: number, price: number) => ({
+    sku,
+    name,
+    category: "service",
+    unit: "项",
+    qty,
+    unit_cost: cost,
+    unit_price: price,
+  })
+  const standard = {
+    tier: "standard",
+    name: "标准版",
+    summary: "标准版配置说明",
+    discount_rate: 0,
+    total_cost: 14_500_000,
+    total_price: 22_000_000,
+    margin_rate: 0.3409,
+    recommended: true,
+    items: [item("SRV", "推理服务器", 2, 7_000_000, 10_000_000), item("MON", "Prometheus 监控", 1, 500_000, 2_000_000)],
+  }
+  const preview = {
+    customer_name: "南山教育集团",
+    tier: "standard",
+    name: "标准版",
+    total_price: 22_000_000,
+    margin_rate: 0.3409,
+  }
+  await page.route("**/api/agent/chat", (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { "content-type": "text/event-stream" },
+      body: [
+        sse("artifact", { type: "solution_tiers", data: [standard] }),
+        sse("artifact", { type: "bom", data: standard }),
+        sse("interrupt", { action: "generate_quote", preview }),
+        sse("done", {}),
+      ].join(""),
+    }),
+  )
+  const resumes: Record<string, unknown>[] = []
+  await page.route("**/api/agent/resume", async (route) => {
+    resumes.push(route.request().postDataJSON() as Record<string, unknown>)
+    await route.fulfill({
+      status: 200,
+      headers: { "content-type": "text/event-stream" },
+      body: sse("message.delta", { text: "已按调整后的物料生成报价单。" }) + sse("done", {}),
+    })
+  })
+
+  await page.goto("/ai")
+  await page.getByRole("textbox").first().fill("给南山教育集团出一份方案")
+  await page.getByRole("button", { name: "发送" }).click()
+
+  const editor = page.getByLabel("调整物料清单")
+  await expect(editor).toBeVisible()
+  await editor.getByRole("button", { name: "删除Prometheus 监控" }).click()
+  const qty = editor.getByLabel("推理服务器的数量")
+  await qty.fill("3")
+  await qty.press("Enter")
+  await expect(editor.getByText("已调整 2 项")).toBeVisible()
+  await expect(editor.getByText("¥300,000").last()).toBeVisible() // 报价合计（行小计也是 30 万）
+  await expect(editor.getByText("30.0%")).toBeVisible()
+  await expect(page.getByText("标准版（已调整）")).toBeVisible() // 确认卡跟着变
+
+  await page.getByRole("button", { name: "确认执行" }).click()
+  await expect.poll(() => resumes.length).toBe(1)
+  expect(resumes[0]).toMatchObject({ decision: "approve", items: { SRV: 3, MON: 0 } })
+  expect(resumes[0].tier).toBeUndefined()
+  // 确认后不能再改
+  await expect(page.getByLabel("调整物料清单")).toHaveCount(0)
+})

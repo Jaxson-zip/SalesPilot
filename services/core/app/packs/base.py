@@ -164,3 +164,32 @@ def price_tier(tier: SolutionTier, rules: RuleSet) -> SolutionTier:
             "margin_ok": margin.passed,
         }
     )
+
+
+# 方案卡上可以调整的数量上限（单行）
+MAX_ADJUST_QTY = 9999
+# 调整后物料变了，按原物料算的成本构成不再准确，去掉
+STALE_SPECS = ("cost_breakdown", "ai_monthly_cost")
+
+
+def adjust_tier(tier: SolutionTier, qty: dict[str, int], rules: RuleSet) -> SolutionTier:
+    """销售在方案卡上改数量 / 删行（数量 0）后重新算价：单价、折扣不变，总价和毛利由规则重算。
+
+    qty 只能是本档已有的物料（sku → 新数量）；不能新增物料，加物料到报价单里改。
+    """
+    unknown = set(qty) - {i.sku for i in tier.items}
+    if unknown:
+        raise ValueError(f"方案里没有这些物料：{'、'.join(sorted(unknown))}")
+    if any(not 0 <= q <= MAX_ADJUST_QTY for q in qty.values()):
+        raise ValueError(f"数量要在 0～{MAX_ADJUST_QTY} 之间")
+    items = [
+        i.model_copy(update={"qty": qty.get(i.sku, i.qty)})
+        for i in tier.items
+        if qty.get(i.sku, i.qty) > 0
+    ]
+    if not items:
+        raise ValueError("至少保留一项物料")
+    specs = {k: v for k, v in tier.specs.items() if k not in STALE_SPECS}
+    return price_tier(
+        tier.model_copy(update={"items": items, "specs": {**specs, "adjusted": True}}), rules
+    )

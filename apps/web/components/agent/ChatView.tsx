@@ -7,6 +7,7 @@ import { AiMessage } from "@/components/agent/AiMessage"
 import { UserMsg } from "@/components/agent/UserMsg"
 import { MODE_LABEL, type AgentMode } from "@/lib/agent-mode"
 import type { ChatTurn } from "@/lib/agent-reducer"
+import type { QtyEdits } from "@/lib/bom-adjust"
 import { cn } from "@/lib/utils"
 import type { ResumeDecision } from "@/types/api"
 
@@ -52,7 +53,7 @@ export function ChatView({
   /** 正在切换到另一个会话 */
   loading?: boolean
   composer: ReactNode
-  onDecide: (decision: ResumeDecision, tier?: string) => void
+  onDecide: (decision: ResumeDecision, tier?: string, items?: QtyEdits) => void
   onRetry: () => void
   onNew: () => void
   onConfirmRequirement?: (requirement: Record<string, unknown>) => void

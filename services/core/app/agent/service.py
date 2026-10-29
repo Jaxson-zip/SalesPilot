@@ -17,6 +17,7 @@ from app.agent.deps import AgentDeps
 from app.agent.graph import build_graph
 from app.agent.history import build_messages
 from app.agent.materials import MaterialIn, compose
+from app.agent.nodes import solution
 from app.agent.nodes.common import now_iso
 from app.agent.runs import Run, RunKind, registry
 from app.agent.sse import iter_graph_events
@@ -148,6 +149,7 @@ def prepare_resume(
     decision: str,
     checkpointer: BaseCheckpointSaver | None = None,
     tier: str | None = None,
+    items: dict[str, int] | None = None,
 ) -> PreparedRun:
     thread_id = deps.ctx.thread_id
     graph = build_graph(deps, checkpointer or get_checkpointer())
@@ -157,13 +159,26 @@ def prepare_resume(
         raise BizError(ErrorCode.NOT_FOUND, "没有待确认的操作")
     _ensure_idle(thread_id)
     base = build_messages(thread_id, snapshot)
-    value: str | dict[str, str] = decision
-    if tier and decision == "approve":
-        keys = {t.get("tier") for t in snapshot.values.get("tiers") or []}
-        if _pending_action(snapshot) != "generate_quote" or tier not in keys:
-            raise BizError(ErrorCode.VALIDATION, "没有这个方案档位，请在方案卡片里重新选择")
-        value = {"decision": decision, "tier": tier}
+    value: str | dict[str, Any] = decision
+    if (tier or items) and decision == "approve":
+        value = _quote_choice(snapshot, tier, items)
     return PreparedRun(graph, Command(resume=value), config, thread_id, "resume", decision, base)
+
+
+def _quote_choice(snapshot: Any, tier: str | None, items: dict[str, int] | None) -> dict[str, Any]:
+    """生成报价单时另选的档位、调整的数量：先校验（不合法直接报错，不进入图）。"""
+    tiers = snapshot.values.get("tiers") or []
+    if _pending_action(snapshot) != "generate_quote":
+        raise BizError(ErrorCode.VALIDATION, "当前没有待确认的报价单")
+    if tier and tier not in {t.get("tier") for t in tiers}:
+        raise BizError(ErrorCode.VALIDATION, "没有这个方案档位，请在方案卡片里重新选择")
+    if items:
+        picked = solution.chosen_tier({**snapshot.values, "chosen_tier": tier})
+        try:
+            solution.adjusted(snapshot.values["pack_id"], picked, items)
+        except ValueError as e:
+            raise BizError(ErrorCode.VALIDATION, str(e)) from e
+    return {"decision": "approve", "tier": tier, "items": items or None}
 
 
 def _pending_action(snapshot: Any) -> str | None:

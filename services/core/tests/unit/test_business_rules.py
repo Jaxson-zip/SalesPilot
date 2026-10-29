@@ -24,6 +24,7 @@ from app.crm.services import (
 from app.crm.services.codes import format_code, month_start, parse_seq
 from app.crm.services.demo import DEMO_USERS
 from app.crm.services.expense_service import policy_check
+from app.packs.base import BomItem, SolutionTier, adjust_tier, price_tier
 from app.rules import (
     allocate_by_category,
     confirm_commission,
@@ -262,3 +263,50 @@ def test_approval_target_status() -> None:
     assert approval_service.TARGET_STATUS[("quote", "reject")] == "draft"
     assert approval_service.TARGET_STATUS[("expense", "reject")] == "rejected"
     assert approval_service.TARGET_STATUS[("quote", "approve")] == "approved"
+
+
+class TestAdjustTier:
+    """方案卡上调整数量后重算：单价和折扣不变，毛利由规则重算，成本构成去掉。"""
+
+    def _tier(self) -> SolutionTier:
+        items = [
+            BomItem(
+                sku="A",
+                name="服务器",
+                category="hardware",
+                unit="台",
+                qty=2,
+                unit_cost=70,
+                unit_price=100,
+            ),
+            BomItem(
+                sku="B",
+                name="监控",
+                category="service",
+                unit="项",
+                qty=1,
+                unit_cost=10,
+                unit_price=40,
+            ),
+        ]
+        tier = SolutionTier(
+            tier="standard",
+            name="标准版",
+            summary="",
+            items=items,
+            discount_rate=0.1,
+            specs={"cost_breakdown": {"labor": 1}, "gpu": "L20"},
+        )
+        return price_tier(tier, load_rules())
+
+    def test_remove_and_change_qty(self) -> None:
+        out = adjust_tier(self._tier(), {"A": 3, "B": 0}, load_rules())
+        assert [(i.sku, i.qty) for i in out.items] == [("A", 3)]
+        assert (out.total_cost, out.total_price) == (210, 270)
+        assert out.margin_rate == round((270 - 210) / 270, 4)
+        assert out.specs == {"gpu": "L20", "adjusted": True}
+
+    @pytest.mark.parametrize("qty", [{"X": 1}, {"A": -1}, {"A": 10_000}, {"A": 0, "B": 0}])
+    def test_invalid(self, qty: dict[str, int]) -> None:
+        with pytest.raises(ValueError):
+            adjust_tier(self._tier(), qty, load_rules())

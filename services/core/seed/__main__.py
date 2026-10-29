@@ -7,7 +7,7 @@ import argparse
 import logging
 from typing import Any
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
@@ -15,8 +15,9 @@ from app.common.config import get_settings
 from app.common.db import session_scope
 from app.common.errors import BizError
 from app.common.passwords import hash_password
-from app.crm.models import Customer, Followup, Opportunity, ProductLine, Team, User
+from app.crm.models import Customer, Followup, Opportunity, ProductLine, SalesTarget, Team, User
 from app.crm.services.demo import DEMO_LOGINS
+from app.crm.services.target_service import parse_month
 from seed import data
 from seed.business import seed_business
 
@@ -42,6 +43,7 @@ RESET_TABLES = (
     "agent_threads",
     "daily_reports",
     "ai_usage",
+    "sales_targets",
     "job_runs",  # 运行记录清掉后，当天的定时任务会按新数据重新跑一次
     "audit_logs",  # 日报草稿按今天的操作日志汇总，不清会把测试时的操作算进演示数据
 )
@@ -99,6 +101,20 @@ def seed_crm(db: Session) -> None:
     owners = {c["id"]: c["owner"] for c in data.CUSTOMERS}
     for row in data.FOLLOWUPS:
         db.merge(Followup(**_owned({**row, "owner": owners[row["customer_id"]]})))
+    seed_targets(db)
+
+
+def seed_targets(db: Session) -> None:
+    """本月业绩目标（主管改过的不覆盖）：工作台和「业绩目标」页有完成进度可看。"""
+    month = parse_month(None)
+    for user, amount in data.TARGETS:
+        exists = db.scalar(
+            select(SalesTarget.id).where(
+                SalesTarget.owner_id == user.id, SalesTarget.month == month
+            )
+        )
+        if exists is None:
+            db.add(SalesTarget(owner_id=user.id, team_id=user.team_id, month=month, amount=amount))
 
 
 def main() -> None:

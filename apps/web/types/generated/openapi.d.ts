@@ -1659,6 +1659,46 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/targets": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Board
+     * @description month=YYYY-MM，默认本月（北京时间）。
+     */
+    get: operations["get_board_api_targets_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/targets/{month}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /**
+     * Update Targets
+     * @description 主管批量设置本团队成员的目标（amount 为 null 清除）。
+     */
+    put: operations["update_targets_api_targets__month__put"]
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/tasks": {
     parameters: {
       query?: never
@@ -3115,6 +3155,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[TargetBoard] */
+    ApiResponse_TargetBoard_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["TargetBoard"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[TaskItem] */
     ApiResponse_TaskItem_: {
       /**
@@ -4367,6 +4426,8 @@ export interface components {
        * @default 0
        */
       tasks_overdue: number
+      /** Target Month */
+      target_month: number | null
       /** Funnel */
       funnel: components["schemas"]["PipelineStage"][]
     }
@@ -6029,6 +6090,81 @@ export interface components {
       date_to: string
       /** Content */
       content: string
+    }
+    /** TargetBoard */
+    TargetBoard: {
+      /** Month */
+      month: string
+      /** Editable */
+      editable: boolean
+      /** Time Progress */
+      time_progress: number
+      total: components["schemas"]["TargetTotal"]
+      /** Rows */
+      rows: components["schemas"]["TargetRow"][]
+    }
+    /** TargetItem */
+    TargetItem: {
+      /**
+       * User Id
+       * Format: uuid
+       */
+      user_id: string
+      /** Amount */
+      amount?: number | null
+    }
+    /** TargetRow */
+    TargetRow: {
+      user: components["schemas"]["UserBrief"]
+      role: components["schemas"]["Role"]
+      /** Team Name */
+      team_name: string | null
+      /**
+       * Active
+       * @default true
+       */
+      active: boolean
+      /** Target */
+      target: number | null
+      /**
+       * Achieved
+       * @default 0
+       */
+      achieved: number
+      /**
+       * Contracts
+       * @default 0
+       */
+      contracts: number
+      /**
+       * Forecast
+       * @default 0
+       */
+      forecast: number
+      /** Rate */
+      rate: number | null
+    }
+    /** TargetTotal */
+    TargetTotal: {
+      /** Target */
+      target: number | null
+      /**
+       * Achieved
+       * @default 0
+       */
+      achieved: number
+      /**
+       * Forecast
+       * @default 0
+       */
+      forecast: number
+      /** Rate */
+      rate: number | null
+    }
+    /** TargetUpdate */
+    TargetUpdate: {
+      /** Items */
+      items: components["schemas"]["TargetItem"][]
     }
     /** TaskCreate */
     TaskCreate: {
@@ -10279,6 +10415,76 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_NoneType_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  get_board_api_targets_get: {
+    parameters: {
+      query?: {
+        month?: string | null
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_TargetBoard_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  update_targets_api_targets__month__put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        month: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TargetUpdate"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_TargetBoard_"]
         }
       }
       /** @description Validation Error */

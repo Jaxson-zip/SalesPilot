@@ -13,7 +13,7 @@ import { TodoCard } from "@/components/dashboard/TodoCard"
 import { useSession } from "@/components/shell/SessionProvider"
 import { useDashboard } from "@/hooks/useDashboard"
 import { usePermissions } from "@/hooks/usePermissions"
-import { formatFen } from "@/lib/format"
+import { formatFen, formatPercent } from "@/lib/format"
 import { todoSummary } from "@/lib/tasks"
 import { defaultScope } from "@/lib/views"
 
@@ -32,6 +32,12 @@ function useGreeting(): string {
   return g
 }
 
+/** 本月成交卡片的说明：设了目标显示完成率，否则说明口径 */
+function targetHint(won: number | undefined, target: number | null | undefined): string {
+  if (!target || won === undefined) return "按本月新签合同"
+  return `目标 ${formatFen(target)} · 完成 ${formatPercent(won / target, 0)}`
+}
+
 /** 工作台：StatCard ×4、FunnelChart、待办（TodoCard）、ActivityFeed、PipelineOverview */
 export default function DashboardPage() {
   const { role, user, isLead } = useSession()
@@ -48,7 +54,12 @@ export default function DashboardPage() {
 
   const cards = [
     // 与合同页「本月成交」同一口径：本月新签合同金额
-    { label: `${prefix}本月成交`, value: formatFen(d?.won_amount_month), hint: "按本月新签合同", icon: Trophy },
+    {
+      label: `${prefix}本月成交`,
+      value: formatFen(d?.won_amount_month),
+      hint: targetHint(d?.won_amount_month, d?.target_month),
+      icon: Trophy,
+    },
     {
       label: `${prefix}进行中商机`,
       value: String(d?.open_opportunities ?? "—"),

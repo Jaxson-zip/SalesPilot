@@ -67,6 +67,8 @@ export interface DashboardData {
   /** v3 §12：今天到期 / 已逾期的未完成任务数（后端未就绪时缺省） */
   tasks_today?: number
   tasks_overdue?: number
+  /** 当前范围内本月业绩目标之和；没人设目标为 null */
+  target_month?: number | null
 }
 
 export interface ActivityListParams {

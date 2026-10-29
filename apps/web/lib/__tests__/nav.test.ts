@@ -11,12 +11,13 @@ describe("导航按角色分组（契约 §0）", () => {
     expect(labels("sales")).toEqual(["", "工作区"])
     expect(hrefs("sales")).not.toContain("/approvals")
     expect(hrefs("sales")).not.toContain("/settings/packs")
+    expect(hrefs("sales")).toContain("/targets") // 销售看自己的目标完成情况
   })
 
   it("主管：工作区 + 团队管理（审批、合同与回款）", () => {
     expect(labels("manager")).toEqual(["", "工作区", "团队管理"])
     const team = navGroupsFor("manager")[2].items.map((i) => i.label)
-    expect(team).toEqual(["审批", "合同与回款", "AI 用量", "操作日志"])
+    expect(team).toEqual(["审批", "合同与回款", "业绩目标", "AI 用量", "操作日志"])
   })
 
   it("管理员：业务总览（只读）+ 系统设置", () => {
@@ -53,6 +54,7 @@ describe("导航按角色分组（契约 §0）", () => {
     expect(isForbiddenPath("/settings/accounts", "manager")).toBe(true)
     expect(isForbiddenPath("/settings/accounts", "sales")).toBe(true)
     expect(isForbiddenPath("/settings/jobs", "manager")).toBe(true)
+    expect(isForbiddenPath("/targets", "admin")).toBe(false)
     expect(isForbiddenPath("/approvals", "manager")).toBe(false)
     expect(isForbiddenPath("/settings/packs", "manager")).toBe(true)
     expect(isForbiddenPath("/settings/audit", "sales")).toBe(true)

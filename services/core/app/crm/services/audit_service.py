@@ -49,6 +49,7 @@ ROUTES: dict[tuple[str, str], tuple[str, str]] = {
     ("PATCH", "/api/admin/teams/{id}"): ("team.update", "修改团队"),
     ("PATCH", "/api/admin/jobs/{id}"): ("job.update", "修改定时任务"),
     ("POST", "/api/customers/import"): ("customer.import", "批量导入客户"),
+    ("PUT", "/api/targets/{id}"): ("target.update", "设置业绩目标"),
     ("POST", "/api/admin/jobs/{id}/run"): ("job.run", "立即运行定时任务"),
     ("POST", "/api/auth/password"): ("auth.password", "修改密码"),
     ("POST", "/api/customers/{id}/release"): ("customer.release", "退回公海"),

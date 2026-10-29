@@ -17,6 +17,7 @@ from app.crm.models.sales import (
     Quote,
     QuoteItem,
 )
+from app.crm.models.target import SalesTarget
 from app.crm.models.usage import AiUsage
 from app.crm.models.workflow import Notification, Task
 
@@ -45,6 +46,7 @@ __all__ = [
     "ProductLine",
     "Quote",
     "QuoteItem",
+    "SalesTarget",
     "ScheduledJob",
     "Task",
     "Team",

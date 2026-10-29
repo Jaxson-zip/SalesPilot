@@ -23,6 +23,7 @@ import type * as Acc from "@/hooks/useAccounts"
 import type * as LV from "@/lib/list-view"
 import type * as Jobs from "@/hooks/useJobs"
 import type * as Imp from "@/lib/customer-import"
+import type * as Tg from "@/lib/targets"
 
 type S = components["schemas"]
 /** A 能赋给 B 时为 true；不能时类型为 false，下面的 `= true` 就会报错 */
@@ -47,6 +48,8 @@ export const responses = {
   JobRunOut: true as Fits<S["JobRunOut"], Jobs.JobRun>,
   ImportResult: true as Fits<S["ImportResult"], Imp.ImportResult>,
   ImportRow: true as Fits<S["ImportRow"], Imp.ImportRow>,
+  TargetBoard: true as Fits<S["TargetBoard"], Tg.TargetBoard>,
+  TargetRow: true as Fits<S["TargetRow"], Tg.TargetRow>,
   TempPassword: true as Fits<S["TempPassword"], Acc.TempPassword>,
   TeamItem: true as Fits<S["TeamItem"], Acc.TeamItem>,
   TaskItem: true as Fits<S["TaskItem"], T.TaskItem>,
@@ -98,6 +101,7 @@ export const requests = {
   AccountUpdate: true as Fits<Acc.AccountUpdate, S["AccountUpdate"]>,
   TeamIn: true as Fits<Acc.TeamIn, S["TeamIn"]>,
   JobUpdate: true as Fits<Jobs.JobUpdate, S["JobUpdate"]>,
+  TargetUpdate: true as Fits<Tg.TargetUpdate, S["TargetUpdate"]>,
   QuoteItemsPatch: true as Fits<T.QuoteItemsPatch, S["QuoteItemsUpdate"]>,
   TaskCreate: true as Fits<T.TaskCreate, S["TaskCreate"]>,
   TaskUpdate: true as Fits<T.TaskUpdate, S["TaskUpdate"]>,

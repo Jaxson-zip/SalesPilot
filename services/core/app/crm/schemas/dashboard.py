@@ -20,6 +20,7 @@ class Dashboard(BaseModel):
     confirmed_commission_month: int
     tasks_today: int = 0  # v3 §12：今天到期的未完成任务
     tasks_overdue: int = 0  # v3 §12：已逾期的任务
+    target_month: int | None = None  # 当前范围内本月业绩目标之和；没人设目标为 null
     funnel: list[PipelineStage]
 
 

@@ -4537,6 +4537,84 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/targets:
+    get:
+      tags:
+      - targets
+      summary: Get Board
+      description: month=YYYY-MM，默认本月（北京时间）。
+      operationId: get_board_api_targets_get
+      parameters:
+      - name: month
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Month
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_TargetBoard_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/targets/{month}:
+    put:
+      tags:
+      - targets
+      summary: Update Targets
+      description: 主管批量设置本团队成员的目标（amount 为 null 清除）。
+      operationId: update_targets_api_targets__month__put
+      parameters:
+      - name: month
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Month
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TargetUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_TargetBoard_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/tasks:
     get:
       tags:
@@ -6842,6 +6920,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_TargetBoard_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/TargetBoard'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[TargetBoard]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_TaskItem_:
       properties:
         code:
@@ -8992,6 +9095,11 @@ components:
           type: integer
           title: Tasks Overdue
           default: 0
+        target_month:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Target Month
         funnel:
           items:
             $ref: '#/components/schemas/PipelineStage'
@@ -9008,6 +9116,7 @@ components:
       - funnel
       - tasks_today
       - tasks_overdue
+      - target_month
       title: Dashboard
     DraftIn:
       properties:
@@ -12174,6 +12283,137 @@ components:
       - date_to
       - content
       title: SummaryOut
+    TargetBoard:
+      properties:
+        month:
+          type: string
+          title: Month
+        editable:
+          type: boolean
+          title: Editable
+        time_progress:
+          type: number
+          title: Time Progress
+        total:
+          $ref: '#/components/schemas/TargetTotal'
+        rows:
+          items:
+            $ref: '#/components/schemas/TargetRow'
+          type: array
+          title: Rows
+      type: object
+      required:
+      - month
+      - editable
+      - time_progress
+      - total
+      - rows
+      title: TargetBoard
+    TargetItem:
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          title: User Id
+        amount:
+          anyOf:
+          - type: integer
+            maximum: 10000000000000.0
+            minimum: 0.0
+          - type: 'null'
+          title: Amount
+      type: object
+      required:
+      - user_id
+      title: TargetItem
+    TargetRow:
+      properties:
+        user:
+          $ref: '#/components/schemas/UserBrief'
+        role:
+          $ref: '#/components/schemas/Role'
+        team_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Team Name
+        active:
+          type: boolean
+          title: Active
+          default: true
+        target:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Target
+        achieved:
+          type: integer
+          title: Achieved
+          default: 0
+        contracts:
+          type: integer
+          title: Contracts
+          default: 0
+        forecast:
+          type: integer
+          title: Forecast
+          default: 0
+        rate:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Rate
+      type: object
+      required:
+      - user
+      - role
+      - team_name
+      - active
+      - target
+      - achieved
+      - contracts
+      - forecast
+      - rate
+      title: TargetRow
+    TargetTotal:
+      properties:
+        target:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Target
+        achieved:
+          type: integer
+          title: Achieved
+          default: 0
+        forecast:
+          type: integer
+          title: Forecast
+          default: 0
+        rate:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Rate
+      type: object
+      title: TargetTotal
+      required:
+      - target
+      - achieved
+      - forecast
+      - rate
+    TargetUpdate:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/TargetItem'
+          type: array
+          maxItems: 200
+          title: Items
+      type: object
+      required:
+      - items
+      title: TargetUpdate
     TaskCreate:
       properties:
         title:

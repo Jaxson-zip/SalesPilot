@@ -10,7 +10,7 @@ from app.common.scope import View, apply_scope
 from app.crm.models import Commission, Contract, Opportunity
 from app.crm.schemas.dashboard import Dashboard
 from app.crm.schemas.opportunity import FINAL_STAGES
-from app.crm.services import approval_service, opportunity_service, task_service
+from app.crm.services import approval_service, opportunity_service, target_service, task_service
 from app.crm.services.codes import month_start
 
 
@@ -61,4 +61,5 @@ def get_dashboard(db: Session, user: CurrentUser, view: View | None = None) -> D
         pending_approvals=approval_service.count_pending(db, user, approval_view),
         **task_service.count_due(db, user, view),
         funnel=opportunity_service.funnel(db, user, view),
+        target_month=target_service.month_target(db, user, view),
     )

@@ -34,6 +34,7 @@ from app.crm.routers import (
     reports,
     rules,
     settings,
+    targets,
     tasks,
     usage,
 )
@@ -91,6 +92,7 @@ def create_app() -> FastAPI:
         approvals.router,
         product_lines.router,
         settings.router,
+        targets.router,
         tasks.router,
         notifications.router,
         agent_router,

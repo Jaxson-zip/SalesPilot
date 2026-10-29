@@ -12,6 +12,8 @@ ADMIN = DEMO_USERS[Role.ADMIN]
 USERS = [SALES, MANAGER, ADMIN, EXTRA_SALES]
 
 TEAM: dict[str, Any] = {"id": TEAM_SOUTH_ID, "name": "华南销售组"}
+# 本月签约额目标（分）
+TARGETS = [(DEMO_USERS[Role.SALES], 80_000_000), (EXTRA_SALES, 50_000_000)]
 
 PL_LLM = demo_id("product_line:llm")
 PL_IT = demo_id("product_line:it")

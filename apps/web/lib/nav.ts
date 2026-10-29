@@ -7,6 +7,7 @@ import {
   ClipboardList,
   FileSignature,
   FileText,
+  Flag,
   Gauge,
   LayoutDashboard,
   Receipt,
@@ -52,6 +53,7 @@ const USAGE: NavItem = { href: "/settings/ai-usage", label: "AI 用量", icon: G
 const AUDIT: NavItem = { href: "/settings/audit", label: "操作日志", icon: ScrollText }
 const ACCOUNTS: NavItem = { href: "/settings/accounts", label: "成员与团队", icon: UsersRound }
 const JOBS: NavItem = { href: "/settings/jobs", label: "定时任务", icon: AlarmClock }
+const TARGETS: NavItem = { href: "/targets", label: "业绩目标", icon: Flag }
 /** 使用说明：所有角色可见，放在侧栏底部（不属于任何业务分组） */
 export const HELP: NavItem = { href: "/help", label: "使用说明", icon: BookOpen }
 
@@ -70,18 +72,21 @@ export function navGroupsFor(role: Role): NavGroup[] {
   if (role === "admin")
     return [
       top,
-      { label: "业务总览（只读）", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, REPORTS] },
+      {
+        label: "业务总览（只读）",
+        items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, TARGETS, EXPENSES, REPORTS],
+      },
       { label: "系统设置", items: [ACCOUNTS, RULES, PACKS, BATTLE, PUSH, JOBS, USAGE, AUDIT] },
     ]
   if (role === "manager")
     return [
       top,
       { label: "工作区", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, EXPENSES, REPORTS, BATTLE] },
-      { label: "团队管理", items: [APPROVALS, { ...CONTRACTS, label: contractsLabel(role) }, USAGE, AUDIT] },
+      { label: "团队管理", items: [APPROVALS, { ...CONTRACTS, label: contractsLabel(role) }, TARGETS, USAGE, AUDIT] },
     ]
   return [
     top,
-    { label: "工作区", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, REPORTS, BATTLE] },
+    { label: "工作区", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, TARGETS, EXPENSES, REPORTS, BATTLE] },
   ]
 }
 
@@ -108,6 +113,7 @@ const ALL_ITEMS: NavItem[] = [
   AUDIT,
   ACCOUNTS,
   JOBS,
+  TARGETS,
 ]
 
 export function isActivePath(pathname: string, href: string): boolean {
@@ -122,7 +128,7 @@ export function isForbiddenPath(pathname: string, role: Role): boolean {
 
 /** 业务页面（管理员打开时显示「只读」提示） */
 export function isBusinessPath(pathname: string): boolean {
-  return [AI, DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, REPORTS].some((i) =>
+  return [AI, DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, TARGETS, EXPENSES, REPORTS].some((i) =>
     isActivePath(pathname, i.href),
   )
 }

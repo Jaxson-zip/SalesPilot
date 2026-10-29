@@ -171,7 +171,12 @@ test.describe("审查 v9：日报", () => {
     const facts = page.getByRole("region", { name: "当天记录" })
     await expect(facts).toContainText(name)
     await page.getByRole("button", { name: "AI 生成草稿" }).click()
-    page.once("dialog", (d) => void d.accept())
+    // 当天已有草稿（之前跑过）时会先确认覆盖
+    const overwrite = page.getByRole("button", { name: "覆盖并生成" })
+    await overwrite.waitFor({ timeout: 3_000 }).then(
+      () => overwrite.click(),
+      () => undefined,
+    )
     const editor = page.getByRole("textbox", { name: "日报正文" })
     await expect(editor).not.toHaveValue("", { timeout: 90_000 })
     const marker = uniq("E2E日报标记")

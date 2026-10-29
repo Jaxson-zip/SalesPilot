@@ -40,12 +40,20 @@ export function contractColumns(
       id: "code",
       label: "合同编号",
       icon: Hash,
-      width: "w-[130px]",
+      width: "w-[170px]",
       cell: (c) =>
         onOpenPlan ? (
-          <button type="button" className="font-medium hover:underline" onClick={() => onOpenPlan(c)}>
-            {c.code}
-          </button>
+          <span className="inline-flex min-w-0 items-center gap-1.5">
+            <button type="button" className="font-medium hover:underline" onClick={() => onOpenPlan(c)}>
+              {c.code}
+            </button>
+            {/* 有期次申请了开票、等主管登记 */}
+            {c.invoice_requested ? (
+              <button type="button" onClick={() => onOpenPlan(c)} title="有开票申请待处理">
+                <Tag color="orange">待开票</Tag>
+              </button>
+            ) : null}
+          </span>
         ) : (
           <span className="font-medium">{c.code}</span>
         ),

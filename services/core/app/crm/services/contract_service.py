@@ -38,6 +38,19 @@ from app.rules.loader import RuleSet, load_rules
 
 RULE_EXCEEDS_BALANCE = "payment_exceeds_balance"
 RULE_PLAN_TOTAL = "plan_total_mismatch"
+RULE_PLAN_INVOICED = "plan_invoiced"
+INVOICE_FIELDS = (
+    "invoice_status",
+    "invoice_type",
+    "invoice_no",
+    "invoiced_on",
+    "invoice_note",
+    "invoice_requested_at",
+)
+
+
+def invoice_fields(p: PaymentPlan) -> dict[str, Any]:
+    return {f: getattr(p, f) for f in INVOICE_FIELDS}
 
 
 def _commissions(db: Session, ids: list[uuid.UUID]) -> dict[uuid.UUID, CommissionBrief]:
@@ -85,6 +98,21 @@ def _overdue_amount(states: list[PlanState]) -> int:
     return sum(s.amount - s.paid for s in states if s.status == "overdue")
 
 
+def _invoiced_unpaid(plans: list[PaymentPlan], states: list[PlanState]) -> int:
+    """已开票但还没收齐的金额（客户见票付款，这部分要重点催）。"""
+    return sum(
+        s.amount - s.paid
+        for p, s in zip(plans, states, strict=True)
+        if p.invoice_status == "issued" and s.status != "paid"
+    )
+
+
+def _unpaid_days(p: PaymentPlan, s: PlanState) -> int:
+    if p.invoice_status != "issued" or s.status == "paid" or p.invoiced_on is None:
+        return 0
+    return max(0, (local_today() - p.invoiced_on).days)
+
+
 def _next_payment(states: list[PlanState]) -> NextPayment | None:
     s = next_due(states)
     if s is None:
@@ -128,6 +156,7 @@ def get_payment_plan(db: Session, user: CurrentUser, contract_id: uuid.UUID) -> 
         amount=contract.amount,
         paid_amount=contract.paid_amount,
         overdue_amount=_overdue_amount(states),
+        invoiced_unpaid_amount=_invoiced_unpaid(plans, states),
         items=[
             PaymentPlanItem(
                 seq=p.seq,
@@ -137,6 +166,12 @@ def get_payment_plan(db: Session, user: CurrentUser, contract_id: uuid.UUID) -> 
                 paid=s.paid,
                 status=s.status,
                 overdue_days=s.overdue_days,
+                invoice_status=p.invoice_status,  # type: ignore[arg-type]
+                invoice_type=p.invoice_type,  # type: ignore[arg-type]
+                invoice_no=p.invoice_no,
+                invoiced_on=p.invoiced_on,
+                invoice_note=p.invoice_note,
+                invoiced_unpaid_days=_unpaid_days(p, s),
             )
             for p, s in zip(plans, states, strict=True)
         ],
@@ -158,10 +193,23 @@ def replace_payment_plan(
             f"各期合计 ¥{total / 100:,.2f}，与合同金额 ¥{contract.amount / 100:,.2f} 不一致",
             {"rule": RULE_PLAN_TOTAL, "expected": contract.amount, "actual": total},
         )
-    for old in _plans(db, [contract.id])[contract.id]:
+    old_plans = {p.seq: p for p in _plans(db, [contract.id])[contract.id]}
+    # 开票信息按期次带过去；已申请 / 已开票的期次不能删、不能改金额（发票金额已经定了）
+    for seq, old in old_plans.items():
+        if old.invoice_status == "none":
+            continue
+        new = data.items[seq - 1] if seq <= len(data.items) else None
+        if new is None or new.amount != old.amount:
+            raise BizError(
+                ErrorCode.RULE_VIOLATION,
+                f"「{old.name}」已申请或已开票，不能删除或修改金额；需要改请先让主管作废发票",
+                {"rule": RULE_PLAN_INVOICED, "seq": seq},
+            )
+    for old in old_plans.values():
         db.delete(old)
     db.flush()
     for seq, item in enumerate(data.items, start=1):
+        kept = old_plans.get(seq)
         db.add(
             PaymentPlan(
                 contract_id=contract.id,
@@ -171,6 +219,7 @@ def replace_payment_plan(
                 due_date=item.due_date,
                 owner_id=contract.owner_id,
                 team_id=contract.team_id,
+                **(invoice_fields(kept) if kept else {}),
             )
         )
     db.flush()
@@ -203,6 +252,8 @@ def to_items(db: Session, contracts: list[Contract]) -> list[ContractItem]:
             created_at=c.created_at,
             next_payment=_next_payment(states[c.id]),
             overdue_amount=_overdue_amount(states[c.id]),
+            invoice_requested=sum(p.invoice_status == "requested" for p in plans[c.id]),
+            invoiced_unpaid_amount=_invoiced_unpaid(plans[c.id], states[c.id]),
         )
         for c in contracts
     ]

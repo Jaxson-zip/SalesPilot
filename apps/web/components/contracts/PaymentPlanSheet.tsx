@@ -1,23 +1,76 @@
 "use client"
 
 import { CalendarClock, Plus, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { Fragment, useState } from "react"
 
 import { Alert } from "@/components/biz/Alert"
+import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { DatePicker, MoneyInput } from "@/components/biz/FormControls"
 import { FormSheet } from "@/components/biz/FormSheet"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { Tag } from "@/components/biz/Tag"
+import { InvoiceDialog, type InvoiceTarget } from "@/components/contracts/InvoiceDialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { usePaymentPlan, useSavePaymentPlan } from "@/hooks/useContracts"
+import { useInvoice, usePaymentPlan, useSavePaymentPlan } from "@/hooks/useContracts"
 import { formatFen } from "@/lib/format"
+import { INVOICE_STATUS_META, invoiceActions, invoiceDetail } from "@/lib/invoice"
 import { PLAN_STATUS_META } from "@/lib/labels"
 import { checkPlan, rowsTotal, toRows, type PlanRow } from "@/lib/payment-plan"
-import type { ContractItem, PaymentPlanView } from "@/types/api"
+import type { ContractItem, PaymentPlanItem, PaymentPlanView } from "@/types/api"
 
-function PlanTable({ plan }: { plan: PaymentPlanView }) {
+/** 每期下面一行发票信息：状态 + 号码 / 备注；按角色给出操作（负责人申请，主管登记或作废） */
+function InvoiceCell({
+  item,
+  who,
+  onAct,
+}: {
+  item: PaymentPlanItem
+  who: { owner: boolean; manager: boolean }
+  onAct: (item: PaymentPlanItem, action: "request" | "issue" | "void") => void
+}) {
+  const m = INVOICE_STATUS_META[item.invoice_status ?? "none"]
+  const detail = invoiceDetail(item)
+  const unpaid = (item.invoiced_unpaid_days ?? 0) > 0
+  const label = { request: "申请开票", issue: "登记开票", void: "作废" }
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+      <span className="text-zinc-500">发票</span>
+      <Tag color={m.color}>{m.label}</Tag>
+      {detail ? (
+        <span className={unpaid ? "min-w-0 text-amber-700" : "min-w-0 text-zinc-500"} title={detail}>
+          {detail}
+        </span>
+      ) : null}
+      {invoiceActions(item, who).length > 0 ? (
+        <div className="ml-auto flex gap-1">
+          {invoiceActions(item, who).map((a) => (
+            <Button
+              key={a}
+              size="xs"
+              variant={a === "void" ? "ghost" : "outline"}
+              aria-label={`${item.name}${label[a]}`}
+              onClick={() => onAct(item, a)}
+            >
+              {label[a]}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function PlanTable({
+  plan,
+  who,
+  onInvoice,
+}: {
+  plan: PaymentPlanView
+  who: { owner: boolean; manager: boolean }
+  onInvoice: (item: PaymentPlanItem, action: "request" | "issue" | "void") => void
+}) {
   return (
     <table className="w-full text-left" aria-label="回款计划">
       <thead className="text-xs text-zinc-500">
@@ -33,15 +86,24 @@ function PlanTable({ plan }: { plan: PaymentPlanView }) {
         {plan.items.map((i) => {
           const m = PLAN_STATUS_META[i.status]
           return (
-            <tr key={i.seq} className="border-b border-zinc-100">
-              <td className="py-2.5 font-medium">{i.name}</td>
-              <td className="py-2.5 text-right tabular-nums">{formatFen(i.amount)}</td>
-              <td className="py-2.5 text-right text-zinc-500 tabular-nums">{formatFen(i.paid)}</td>
-              <td className="py-2.5 pl-4 tabular-nums">{i.due_date}</td>
-              <td className="py-2.5">
-                <Tag color={m.color}>{i.status === "overdue" ? `逾期 ${i.overdue_days} 天` : m.label}</Tag>
-              </td>
-            </tr>
+            <Fragment key={i.seq}>
+              <tr>
+                <td className="pt-2.5 pb-1 font-medium whitespace-nowrap">{i.name}</td>
+                <td className="pt-2.5 pb-1 pl-2 text-right whitespace-nowrap tabular-nums">{formatFen(i.amount)}</td>
+                <td className="pt-2.5 pb-1 pl-3 text-right whitespace-nowrap text-zinc-500 tabular-nums">
+                  {formatFen(i.paid)}
+                </td>
+                <td className="pt-2.5 pb-1 pl-4 whitespace-nowrap tabular-nums">{i.due_date}</td>
+                <td className="pt-2.5 pb-1 pl-2 whitespace-nowrap">
+                  <Tag color={m.color}>{i.status === "overdue" ? `逾期 ${i.overdue_days} 天` : m.label}</Tag>
+                </td>
+              </tr>
+              <tr className="border-b border-zinc-100">
+                <td colSpan={5} className="pb-2.5">
+                  <InvoiceCell item={i} who={who} onAct={onInvoice} />
+                </td>
+              </tr>
+            </Fragment>
           )
         })}
       </tbody>
@@ -116,18 +178,37 @@ function PlanEditor({ plan, onDone }: { plan: PaymentPlanView; onDone: () => voi
   )
 }
 
-/** 回款计划（B9）：每期金额、到期日、已到账、是否逾期；合同负责人可调整 */
+/** 回款计划（B9）：每期金额、到期日、已到账、是否逾期、开票状态；合同负责人可调整计划、申请开票，主管登记开票 */
 export function PaymentPlanSheet({
   contract,
   editable,
+  manager = false,
   onClose,
 }: {
   contract: ContractItem | null
   editable: boolean
+  /** 主管：登记已开票、作废 */
+  manager?: boolean
   onClose: () => void
 }) {
   const q = usePaymentPlan(contract?.id ?? null)
   const [editing, setEditing] = useState(false)
+  const [invoiceOf, setInvoiceOf] = useState<InvoiceTarget | null>(null)
+  const invoice = useInvoice(contract?.id ?? "")
+  const { ask, dialog } = useConfirmAction()
+  const onInvoice = (item: PaymentPlanItem, action: "request" | "issue" | "void") => {
+    if (action !== "void") return setInvoiceOf({ item, action })
+    ask({
+      title: `作废「${item.name}」的发票？`,
+      description:
+        item.invoice_status === "issued"
+          ? `发票 ${item.invoice_no ?? ""} 将标记为作废（需要在税务系统里另行红冲），这一期回到未开票。`
+          : "撤回这一期的开票申请，回到未开票。",
+      confirmLabel: "确认作废",
+      destructive: true,
+      onConfirm: () => invoice.mutate({ seq: item.seq, body: { action: "void" } }),
+    })
+  }
   const close = () => {
     setEditing(false)
     onClose()
@@ -142,10 +223,11 @@ export function PaymentPlanSheet({
       ["合同金额", formatFen(plan.amount), false],
       ["已回款", formatFen(plan.paid_amount), false],
       ["逾期未收", formatFen(plan.overdue_amount), plan.overdue_amount > 0],
+      ["已开票未回款", formatFen(plan.invoiced_unpaid_amount ?? 0), (plan.invoiced_unpaid_amount ?? 0) > 0],
     ]
     body = (
       <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {stats.map(([k, v, alert]) => (
             <div key={k} className="rounded-lg border border-zinc-200 px-3 py-2">
               <div className="text-xs text-zinc-500">{k}</div>
@@ -164,8 +246,10 @@ export function PaymentPlanSheet({
           <PlanEditor plan={plan} onDone={() => setEditing(false)} />
         ) : (
           <>
-            <PlanTable plan={plan} />
-            <p className="text-xs text-zinc-500">回款按期次顺序冲抵：先收齐第一期，再算下一期。</p>
+            <PlanTable plan={plan} who={{ owner: editable, manager }} onInvoice={onInvoice} />
+            <p className="text-xs text-zinc-500">
+              回款按期次顺序冲抵：先收齐第一期，再算下一期。客户通常见票付款，已开票未回款的要重点跟进。
+            </p>
             {editable ? (
               <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
                 <CalendarClock /> 调整计划
@@ -184,6 +268,15 @@ export function PaymentPlanSheet({
       title={`回款计划 · ${contract?.code ?? ""}`}
     >
       {body}
+      {contract ? (
+        <InvoiceDialog
+          key={invoiceOf ? `${invoiceOf.item.seq}-${invoiceOf.action}` : "none"}
+          contractId={contract.id}
+          target={invoiceOf}
+          onClose={() => setInvoiceOf(null)}
+        />
+      ) : null}
+      {dialog}
     </FormSheet>
   )
 }

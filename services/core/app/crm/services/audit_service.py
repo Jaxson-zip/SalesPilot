@@ -68,6 +68,7 @@ ROUTES: dict[tuple[str, str], tuple[str, str]] = {
     ("POST", "/api/quotes/{id}/reject"): ("quote.reject", "客户拒绝报价"),
     ("POST", "/api/contracts/{id}/payments"): ("payment.create", "登记回款"),
     ("PUT", "/api/contracts/{id}/payment-plan"): ("payment.plan", "调整回款计划"),
+    ("POST", "/api/contracts/{id}/payment-plan/{seq}/invoice"): ("payment.invoice", "开票"),
     ("POST", "/api/expenses"): ("expense.create", "新建报销"),
     ("POST", "/api/expenses/{id}/submit"): ("expense.submit", "提交报销"),
     ("POST", "/api/expenses/{id}/attachments"): ("attachment.upload", "上传票据"),
@@ -109,7 +110,7 @@ EXPORT_LABELS = {
 }
 ExportEntity = Literal["customers", "opportunities", "quotes", "contracts", "expenses"]
 
-_PARAM = re.compile(r"\{(id|sub)\}")
+_PARAM = re.compile(r"\{(id|sub|seq)\}")
 _COMPILED = [
     (method, re.compile("^" + _PARAM.sub(r"(?P<\1>[^/]+)", tpl) + "$"), action)
     for (method, tpl), action in ROUTES.items()

@@ -7,6 +7,9 @@ const META: Record<string, { label: string; tone: NotificationTone }> = {
   approval_pending: { label: "待审批", tone: "approval" },
   approval_decided: { label: "审批结果", tone: "result" },
   approval_remind: { label: "催办", tone: "approval" },
+  invoice_requested: { label: "开票申请", tone: "approval" },
+  invoice_issued: { label: "已开票", tone: "result" },
+  invoice_voided: { label: "发票作废", tone: "result" },
   customer_assigned: { label: "客户转移", tone: "assign" },
   task_due: { label: "任务到期", tone: "task" },
 }

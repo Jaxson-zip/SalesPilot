@@ -88,6 +88,13 @@ class PaymentPlan(OwnedMixin, Base):
     name: Mapped[str] = mapped_column(String(30))
     amount: Mapped[int] = mapped_column(BigInteger)
     due_date: Mapped[date] = mapped_column(Date)
+    # 开票跟踪：none 未开票 / requested 销售已申请 / issued 已开票（主管登记）
+    invoice_status: Mapped[str] = mapped_column(String(20), default="none", server_default="none")
+    invoice_type: Mapped[str | None] = mapped_column(String(20))  # special 专票 / normal 普票
+    invoice_no: Mapped[str | None] = mapped_column(String(50))
+    invoiced_on: Mapped[date | None] = mapped_column(Date)
+    invoice_note: Mapped[str | None] = mapped_column(String(200))  # 申请时的备注（抬头、税号等）
+    invoice_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Commission(OwnedMixin, Base):

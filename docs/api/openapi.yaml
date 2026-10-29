@@ -2740,6 +2740,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/contracts/{contract_id}/payment-plan/{seq}/invoice:
+    post:
+      tags:
+      - contracts
+      summary: Invoice
+      description: 开票跟踪：负责人申请开票；主管登记已开票或作废。
+      operationId: invoice_api_contracts__contract_id__payment_plan__seq__invoice_post
+      parameters:
+      - name: contract_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Contract Id
+      - name: seq
+        in: path
+        required: true
+        schema:
+          type: integer
+          maximum: 12
+          minimum: 1
+          title: Seq
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PaymentPlanView_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/expenses:
     get:
       tags:
@@ -7009,6 +7059,14 @@ components:
           type: integer
           title: Overdue Amount
           default: 0
+        invoice_requested:
+          type: integer
+          title: Invoice Requested
+          default: 0
+        invoiced_unpaid_amount:
+          type: integer
+          title: Invoiced Unpaid Amount
+          default: 0
       type: object
       required:
       - id
@@ -7024,6 +7082,8 @@ components:
       - created_at
       - next_payment
       - overdue_amount
+      - invoice_requested
+      - invoiced_unpaid_amount
       title: ContractItem
     ContractList:
       properties:
@@ -8203,6 +8263,46 @@ components:
       - artifacts
       - created_at
       title: HistoryMessage
+    InvoiceIn:
+      properties:
+        action:
+          type: string
+          enum:
+          - request
+          - issue
+          - void
+          title: Action
+        invoice_type:
+          anyOf:
+          - type: string
+            enum:
+            - special
+            - normal
+          - type: 'null'
+          title: Invoice Type
+        invoice_no:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Invoice No
+        invoiced_on:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Invoiced On
+        note:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Note
+      type: object
+      required:
+      - action
+      title: InvoiceIn
+      description: 开票操作：request 负责人申请；issue 主管登记已开票；void 主管作废（红冲或撤回申请）。
     KnowledgeDoc:
       properties:
         doc_name:
@@ -9247,6 +9347,42 @@ components:
         overdue_days:
           type: integer
           title: Overdue Days
+        invoice_status:
+          type: string
+          enum:
+          - none
+          - requested
+          - issued
+          title: Invoice Status
+          default: none
+        invoice_type:
+          anyOf:
+          - type: string
+            enum:
+            - special
+            - normal
+          - type: 'null'
+          title: Invoice Type
+        invoice_no:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Invoice No
+        invoiced_on:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Invoiced On
+        invoice_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Invoice Note
+        invoiced_unpaid_days:
+          type: integer
+          title: Invoiced Unpaid Days
+          default: 0
       type: object
       required:
       - seq
@@ -9256,6 +9392,12 @@ components:
       - paid
       - status
       - overdue_days
+      - invoice_status
+      - invoice_type
+      - invoice_no
+      - invoiced_on
+      - invoice_note
+      - invoiced_unpaid_days
       title: PaymentPlanItem
     PaymentPlanLineIn:
       properties:
@@ -9309,6 +9451,10 @@ components:
         overdue_amount:
           type: integer
           title: Overdue Amount
+        invoiced_unpaid_amount:
+          type: integer
+          title: Invoiced Unpaid Amount
+          default: 0
         items:
           items:
             $ref: '#/components/schemas/PaymentPlanItem'
@@ -9326,6 +9472,7 @@ components:
       - overdue_amount
       - items
       - rule_ref
+      - invoiced_unpaid_amount
       title: PaymentPlanView
     PhoneOut:
       properties:

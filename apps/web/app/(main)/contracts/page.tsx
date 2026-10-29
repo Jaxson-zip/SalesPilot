@@ -1,7 +1,7 @@
 "use client"
 
 import { FileSignature } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { BulkBar } from "@/components/biz/BulkBar"
 import { DataGrid } from "@/components/biz/DataGrid"
@@ -81,6 +81,18 @@ export default function ContractsPage() {
   // 登记回款只给主管（契约 §0）；列内再按合同状态判断
   const allColumns = useMemo(() => contractColumns(payable ? setPaying : undefined, setPlanOf), [payable])
   const all = useMemo(() => query.data?.items ?? [], [query.data])
+  // 从开票通知跳转过来：/contracts?plan=<合同 id> 直接打开回款计划（不用 useSearchParams，避免整页需要 Suspense）
+  const [linked, setLinked] = useState<string | null>(null)
+  useEffect(() => {
+    setLinked(new URLSearchParams(window.location.search).get("plan"))
+  }, [])
+  useEffect(() => {
+    const hit = linked ? all.find((c) => c.id === linked) : undefined
+    if (hit) {
+      setPlanOf(hit)
+      setLinked(null)
+    }
+  }, [linked, all])
   const filters = useMemo(() => contractFilters(all), [all])
   const lv = useListView({
     entity: "contracts",
@@ -142,7 +154,12 @@ export default function ContractsPage() {
         </>
       )}
       <PaymentDialog contract={paying} onClose={() => setPaying(null)} />
-      <PaymentPlanSheet contract={planOf} editable={canEdit(planOf?.owner?.id)} onClose={() => setPlanOf(null)} />
+      <PaymentPlanSheet
+        contract={planOf}
+        editable={canEdit(planOf?.owner?.id)}
+        manager={role === "manager"}
+        onClose={() => setPlanOf(null)}
+      />
     </PageFrame>
   )
 }

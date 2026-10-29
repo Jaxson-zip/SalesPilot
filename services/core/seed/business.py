@@ -140,6 +140,10 @@ def _seed_contract(
 
 # 演示逾期回款：悦海合同的到货验收款改为 5 天前到期（已回款 40%，这一期只收了一部分）
 OVERDUE_DEMO = {"yuehai": (2, 5)}
+# 演示开票跟踪：期次 → (状态, 几天前开票)。悦海第 2 期已开票未回款，第 3 期销售已申请等主管开票
+INVOICE_DEMO: dict[str, dict[int, tuple[str, int]]] = {
+    "yuehai": {1: ("issued", 40), 2: ("issued", 12), 3: ("requested", 0)},
+}
 
 
 def _seed_payment_plan(db: Session, contract: Contract | None, rules: RuleSet, key: str) -> None:
@@ -155,6 +159,21 @@ def _seed_payment_plan(db: Session, contract: Contract | None, rules: RuleSet, k
         )
         assert plan is not None
         plan.due_date = local_today() - timedelta(days=days_ago)
+    for seq, (status, days_ago) in INVOICE_DEMO.get(key, {}).items():
+        plan = db.scalar(
+            select(PaymentPlan).where(
+                PaymentPlan.contract_id == contract.id, PaymentPlan.seq == seq
+            )
+        )
+        assert plan is not None
+        plan.invoice_status = status
+        plan.invoice_type = "special"
+        if status == "issued":
+            plan.invoice_no = f"4403{contract.code[-3:]}{seq:04d}"
+            plan.invoiced_on = local_today() - timedelta(days=days_ago)
+        else:
+            plan.invoice_requested_at = datetime.now(UTC)
+            plan.invoice_note = "抬头：粤海物流集团有限公司"
 
 
 def _seed_approval(

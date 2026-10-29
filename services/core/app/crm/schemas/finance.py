@@ -19,6 +19,8 @@ class CommissionBrief(BaseModel):
 
 
 PlanStatus = Literal["paid", "partial", "overdue", "pending"]
+InvoiceStatus = Literal["none", "requested", "issued"]
+InvoiceType = Literal["special", "normal"]
 
 
 class NextPayment(BaseModel):
@@ -45,6 +47,8 @@ class ContractItem(BaseModel):
     created_at: datetime
     next_payment: NextPayment | None = None
     overdue_amount: int = 0  # 已到期未收齐的金额合计
+    invoice_requested: int = 0  # 已申请、等主管开票的期数
+    invoiced_unpaid_amount: int = 0  # 已开票但还没收齐的金额
 
 
 class PaymentPlanItem(BaseModel):
@@ -55,6 +59,12 @@ class PaymentPlanItem(BaseModel):
     paid: int  # 实收按期次顺序分摊到这一期的金额
     status: PlanStatus
     overdue_days: int
+    invoice_status: InvoiceStatus = "none"
+    invoice_type: InvoiceType | None = None
+    invoice_no: str | None = None
+    invoiced_on: date | None = None
+    invoice_note: str | None = None
+    invoiced_unpaid_days: int = 0  # 已开票未收齐：从开票日起算的天数
 
 
 class PaymentPlanView(BaseModel):
@@ -63,8 +73,19 @@ class PaymentPlanView(BaseModel):
     amount: int
     paid_amount: int
     overdue_amount: int
+    invoiced_unpaid_amount: int = 0  # 已开票但还没收齐的金额
     items: list[PaymentPlanItem]
     rule_ref: str
+
+
+class InvoiceIn(BaseModel):
+    """开票操作：request 负责人申请；issue 主管登记已开票；void 主管作废（红冲或撤回申请）。"""
+
+    action: Literal["request", "issue", "void"]
+    invoice_type: InvoiceType | None = None
+    invoice_no: str | None = Field(default=None, max_length=50)
+    invoiced_on: date | None = None
+    note: str | None = Field(default=None, max_length=200)
 
 
 class PaymentPlanLineIn(BaseModel):

@@ -95,6 +95,7 @@ export const requests = {
   ContactIn: true as Fits<T.ContactIn, S["ContactIn"]>,
   ContactUpdate: true as Fits<T.ContactUpdate, S["ContactUpdate"]>,
   PaymentPlanUpdate: true as Fits<T.PaymentPlanUpdate, S["PaymentPlanUpdate"]>,
+  InvoiceIn: true as Fits<T.InvoiceIn, S["InvoiceIn"]>,
   ProductLineUpdate: true as Fits<T.ProductLineUpdate, S["ProductLineUpdate"]>,
   SettingsUpdate: true as Fits<C.SettingsUpdate, S["SettingsUpdate"]>,
   CatalogEdit: true as Fits<C.CatalogEdit, S["CatalogEdit"]>,

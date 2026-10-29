@@ -235,10 +235,18 @@ export interface ContractItem {
   next_payment: NextPayment | null
   /** 已到期未收齐的金额合计 */
   overdue_amount: number
+  /** 已申请、等主管开票的期数 */
+  invoice_requested?: number
+  /** 已开票但还没收齐的金额 */
+  invoiced_unpaid_amount?: number
 }
 
 /** 回款计划一期的状态：已收齐 / 部分到账（未到期） / 逾期 / 待收 */
 export type PlanStatus = "paid" | "partial" | "overdue" | "pending"
+/** 开票状态：未开票 / 销售已申请 / 已开票（主管登记） */
+export type InvoiceStatus = "none" | "requested" | "issued"
+/** 专票 / 普票 */
+export type InvoiceType = "special" | "normal"
 
 export interface NextPayment {
   name: string
@@ -257,6 +265,13 @@ export interface PaymentPlanItem {
   paid: number
   status: PlanStatus
   overdue_days: number
+  invoice_status?: InvoiceStatus
+  invoice_type?: InvoiceType | null
+  invoice_no?: string | null
+  invoiced_on?: string | null
+  invoice_note?: string | null
+  /** 已开票未收齐：从开票日起算的天数 */
+  invoiced_unpaid_days?: number
 }
 
 export interface PaymentPlanView {
@@ -265,8 +280,19 @@ export interface PaymentPlanView {
   amount: number
   paid_amount: number
   overdue_amount: number
+  /** 已开票但还没收齐的金额 */
+  invoiced_unpaid_amount?: number
   items: PaymentPlanItem[]
   rule_ref: string
+}
+
+/** POST /api/contracts/{id}/payment-plan/{seq}/invoice */
+export interface InvoiceIn {
+  action: "request" | "issue" | "void"
+  invoice_type?: InvoiceType
+  invoice_no?: string
+  invoiced_on?: string
+  note?: string
 }
 
 /** PUT /api/contracts/{id}/payment-plan：各期合计必须等于合同金额 */

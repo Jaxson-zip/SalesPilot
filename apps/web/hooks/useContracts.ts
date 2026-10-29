@@ -11,6 +11,7 @@ import type {
   ContractItem,
   ContractList,
   ContractListParams,
+  InvoiceIn,
   PaymentIn,
   PaymentPlanUpdate,
   PaymentPlanView,
@@ -71,6 +72,27 @@ export function useSavePaymentPlan(id: string) {
     onSuccess: (plan) => {
       qc.setQueryData(contractKeys.plan(id), plan)
       toast.success("回款计划已保存", { description: plan.code })
+      void qc.invalidateQueries({ queryKey: contractKeys.all })
+    },
+    onError: notifyError,
+  })
+}
+
+const INVOICE_DONE: Record<InvoiceIn["action"], string> = {
+  request: "已提交开票申请，主管会收到通知",
+  issue: "已登记开票",
+  void: "已作废",
+}
+
+/** POST /api/contracts/{id}/payment-plan/{seq}/invoice：负责人申请开票；主管登记已开票或作废 */
+export function useInvoice(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ seq, body }: { seq: number; body: InvoiceIn }) =>
+      api.post<PaymentPlanView>(`/api/contracts/${id}/payment-plan/${seq}/invoice`, body),
+    onSuccess: (plan, { body }) => {
+      qc.setQueryData(contractKeys.plan(id), plan)
+      toast.success(INVOICE_DONE[body.action], { description: plan.code })
       void qc.invalidateQueries({ queryKey: contractKeys.all })
     },
     onError: notifyError,

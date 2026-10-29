@@ -298,3 +298,66 @@ def test_won_on_board_with_quote_creates_contract(client: TestClient, tracker: T
         headers=SALES_H,
     ).json()
     assert stray["code"] == 40401  # 报价不属于这个商机
+
+
+def test_invoice_request_issue_void_and_unpaid(client: TestClient, tracker: Tracker) -> None:
+    """开票跟踪：销售申请 → 主管登记 → 已开票未回款提示；已开票的期次不能改金额；作废后可再申请。"""
+    contract = _accepted_contract(client, tracker)
+    cid = contract["id"]
+    url = f"/api/contracts/{cid}/payment-plan/1/invoice"
+    issue = {"action": "issue", "invoice_no": "No.12345678", "invoiced_on": "2026-10-01"}
+    # 主管不能替销售申请；销售不能登记开票
+    assert client.post(url, json={"action": "request"}, headers=MANAGER_H).json()["code"] == 40301
+    r = client.post(url, json={"action": "request", "note": "抬头：测试公司"}, headers=SALES_H)
+    plan = r.json()["data"]
+    first = plan["items"][0]
+    assert (first["invoice_status"], first["invoice_type"]) == ("requested", "special")
+    assert first["invoice_note"] == "抬头：测试公司"
+    again = client.post(url, json={"action": "request"}, headers=SALES_H).json()
+    assert again["code"] == 42201 and again["data"]["rule"] == "invoice_bad_state"
+    listed = client.get(f"/api/contracts/{cid}", headers=SALES_H).json()["data"]
+    assert listed["invoice_requested"] == 1
+    notes = client.get("/api/notifications", headers=MANAGER_H).json()["data"]["items"]
+    assert any(n["type"] == "invoice_requested" and contract["code"] in n["title"] for n in notes)
+
+    assert client.post(url, json=issue, headers=SALES_H).json()["code"] == 40301
+    missing = client.post(url, json={"action": "issue"}, headers=MANAGER_H).json()
+    assert missing["code"] == 40001
+    plan = client.post(url, json=issue, headers=MANAGER_H).json()["data"]
+    first = plan["items"][0]
+    assert first["invoice_status"] == "issued" and first["invoice_no"] == "No.12345678"
+    assert first["invoiced_unpaid_days"] > 0 and plan["invoiced_unpaid_amount"] == 4_500_000
+    listed = client.get(f"/api/contracts/{cid}", headers=SALES_H).json()["data"]
+    assert listed["invoice_requested"] == 0 and listed["invoiced_unpaid_amount"] == 4_500_000
+
+    # 调整计划：已开票的期次金额不能改；只改其他期次时开票信息保留
+    plan_url = f"/api/contracts/{cid}/payment-plan"
+    items = [
+        {"name": i["name"], "amount": i["amount"], "due_date": i["due_date"]} for i in plan["items"]
+    ]
+    changed = [{**items[0], "amount": 4_000_000}, {**items[1], "amount": 9_500_000}, items[2]]
+    bad = client.put(plan_url, json={"items": changed}, headers=SALES_H).json()
+    assert bad["code"] == 42201 and bad["data"]["rule"] == "plan_invoiced"
+    moved = [items[0], {**items[1], "due_date": "2099-01-01"}, items[2]]
+    kept = client.put(plan_url, json={"items": moved}, headers=SALES_H).json()["data"]
+    assert kept["items"][0]["invoice_no"] == "No.12345678"
+
+    # 回款收齐第一期：不再算已开票未回款
+    pay = {"amount": 4_500_000}
+    client.post(f"/api/contracts/{cid}/payments", json=pay, headers=MANAGER_H)
+    plan = client.get(plan_url, headers=SALES_H).json()["data"]
+    assert plan["invoiced_unpaid_amount"] == 0 and plan["items"][0]["invoiced_unpaid_days"] == 0
+
+    voided = client.post(url, json={"action": "void"}, headers=MANAGER_H).json()["data"]
+    assert voided["items"][0]["invoice_status"] == "none"
+    assert voided["items"][0]["invoice_no"] is None
+    r = client.post(url, json={"action": "request", "invoice_type": "normal"}, headers=SALES_H)
+    assert r.json()["data"]["items"][0]["invoice_type"] == "normal"
+    assert (
+        client.post(
+            f"/api/contracts/{cid}/payment-plan/9/invoice",
+            json={"action": "request"},
+            headers=SALES_H,
+        ).json()["code"]
+        == 40401
+    )

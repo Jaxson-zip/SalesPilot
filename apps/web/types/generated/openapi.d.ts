@@ -1005,6 +1005,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/contracts/{contract_id}/payment-plan/{seq}/invoice": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Invoice
+     * @description 开票跟踪：负责人申请开票；主管登记已开票或作废。
+     */
+    post: operations["invoice_api_contracts__contract_id__payment_plan__seq__invoice_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/expenses": {
     parameters: {
       query?: never
@@ -3421,6 +3441,16 @@ export interface components {
        * @default 0
        */
       overdue_amount: number
+      /**
+       * Invoice Requested
+       * @default 0
+       */
+      invoice_requested: number
+      /**
+       * Invoiced Unpaid Amount
+       * @default 0
+       */
+      invoiced_unpaid_amount: number
     }
     /** ContractList */
     ContractList: {
@@ -4038,6 +4068,25 @@ export interface components {
       /** Created At */
       created_at: string | null
     }
+    /**
+     * InvoiceIn
+     * @description 开票操作：request 负责人申请；issue 主管登记已开票；void 主管作废（红冲或撤回申请）。
+     */
+    InvoiceIn: {
+      /**
+       * Action
+       * @enum {string}
+       */
+      action: "request" | "issue" | "void"
+      /** Invoice Type */
+      invoice_type?: ("special" | "normal") | null
+      /** Invoice No */
+      invoice_no?: string | null
+      /** Invoiced On */
+      invoiced_on?: string | null
+      /** Note */
+      note?: string | null
+    }
     /** KnowledgeDoc */
     KnowledgeDoc: {
       /** Doc Name */
@@ -4580,6 +4629,25 @@ export interface components {
       status: "paid" | "partial" | "overdue" | "pending"
       /** Overdue Days */
       overdue_days: number
+      /**
+       * Invoice Status
+       * @default none
+       * @enum {string}
+       */
+      invoice_status: "none" | "requested" | "issued"
+      /** Invoice Type */
+      invoice_type: ("special" | "normal") | null
+      /** Invoice No */
+      invoice_no: string | null
+      /** Invoiced On */
+      invoiced_on: string | null
+      /** Invoice Note */
+      invoice_note: string | null
+      /**
+       * Invoiced Unpaid Days
+       * @default 0
+       */
+      invoiced_unpaid_days: number
     }
     /** PaymentPlanLineIn */
     PaymentPlanLineIn: {
@@ -4613,6 +4681,11 @@ export interface components {
       paid_amount: number
       /** Overdue Amount */
       overdue_amount: number
+      /**
+       * Invoiced Unpaid Amount
+       * @default 0
+       */
+      invoiced_unpaid_amount: number
       /** Items */
       items: components["schemas"]["PaymentPlanItem"][]
       /** Rule Ref */
@@ -7858,6 +7931,44 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["PaymentPlanUpdate"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_PaymentPlanView_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  invoice_api_contracts__contract_id__payment_plan__seq__invoice_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        contract_id: string
+        seq: number
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["InvoiceIn"]
       }
     }
     responses: {

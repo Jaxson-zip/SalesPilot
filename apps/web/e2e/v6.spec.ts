@@ -101,7 +101,7 @@ test.describe("B9 回款计划", () => {
 
     const sheet = page.getByRole("dialog", { name: /回款计划 · C-2026-001/ })
     const table = sheet.getByRole("table", { name: "回款计划" })
-    await expect(table.getByRole("row")).toHaveCount(4) // 表头 + 三期
+    await expect(table.getByRole("row")).toHaveCount(7) // 表头 + 三期（每期下面一行发票）
     await expect(table).toContainText("预付款")
     await expect(table).toContainText("已收齐") // 已回款 40%，预付款 30% 收齐
 

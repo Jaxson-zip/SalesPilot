@@ -363,6 +363,40 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/customers/handover/preview": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Preview Handover */
+    get: operations["preview_handover_api_customers_handover_preview_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/customers/handover": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Handover */
+    post: operations["handover_api_customers_handover_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/customers/pool": {
     parameters: {
       query?: never
@@ -1967,6 +2001,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["FollowupItem"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[HandoverResult] */
+    ApiResponse_HandoverResult_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["HandoverResult"] | null
       /**
        * Request Id
        * @default
@@ -4043,6 +4096,38 @@ export interface components {
     HTTPValidationError: {
       /** Detail */
       detail: components["schemas"]["ValidationError"][]
+    }
+    /**
+     * HandoverIn
+     * @description 按人一键交接：把 from_user 名下的全部客户和进行中的业务转给 to_user。
+     */
+    HandoverIn: {
+      /**
+       * From User Id
+       * Format: uuid
+       */
+      from_user_id: string
+      /**
+       * To User Id
+       * Format: uuid
+       */
+      to_user_id: string
+    }
+    /**
+     * HandoverResult
+     * @description 交接（或预览）的数量：客户、未结束商机、未完成任务、未成交报价、回款中的合同。
+     */
+    HandoverResult: {
+      /** Customers */
+      customers: number
+      /** Opportunities */
+      opportunities: number
+      /** Tasks */
+      tasks: number
+      /** Quotes */
+      quotes: number
+      /** Contracts */
+      contracts: number
     }
     /** Health */
     Health: {
@@ -6453,6 +6538,74 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_TransferResult_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  preview_handover_api_customers_handover_preview_get: {
+    parameters: {
+      query: {
+        from_user_id: string
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_HandoverResult_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  handover_api_customers_handover_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HandoverIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_HandoverResult_"]
         }
       }
       /** @description Validation Error */

@@ -93,3 +93,18 @@ export interface CustomerTransferIn {
   customer_ids: string[]
   to_user_id: string
 }
+
+/** POST /api/customers/handover：按人一键交接（离职 / 调岗），仅主管 */
+export interface HandoverIn {
+  from_user_id: string
+  to_user_id: string
+}
+
+/** 交接或预览的数量 */
+export interface HandoverResult {
+  customers: number
+  opportunities: number
+  tasks: number
+  quotes: number
+  contracts: number
+}

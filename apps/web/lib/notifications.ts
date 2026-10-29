@@ -11,6 +11,7 @@ const META: Record<string, { label: string; tone: NotificationTone }> = {
   invoice_issued: { label: "已开票", tone: "result" },
   invoice_voided: { label: "发票作废", tone: "result" },
   customer_assigned: { label: "客户转移", tone: "assign" },
+  customer_handover: { label: "客户交接", tone: "assign" },
   task_due: { label: "任务到期", tone: "task" },
 }
 

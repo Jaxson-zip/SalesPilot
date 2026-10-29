@@ -97,3 +97,20 @@ class TransferResult(BaseModel):
     opportunities: int
     tasks: int
     quotes: int
+
+
+class HandoverIn(BaseModel):
+    """按人一键交接：把 from_user 名下的全部客户和进行中的业务转给 to_user。"""
+
+    from_user_id: uuid.UUID
+    to_user_id: uuid.UUID
+
+
+class HandoverResult(BaseModel):
+    """交接（或预览）的数量：客户、未结束商机、未完成任务、未成交报价、回款中的合同。"""
+
+    customers: int
+    opportunities: int
+    tasks: int
+    quotes: int
+    contracts: int

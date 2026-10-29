@@ -13,6 +13,8 @@ import type {
   CustomerDetail,
   CustomerListParams,
   CustomerTransferIn,
+  HandoverIn,
+  HandoverResult,
   CustomerUpdate,
   PoolRelease,
   Paged,
@@ -134,6 +136,31 @@ export function useTransferCustomers() {
         qc.invalidateQueries({ queryKey: ["tasks"] }),
         qc.invalidateQueries({ queryKey: activityKeys.all }),
       ]),
+    onError: notifyError,
+  })
+}
+
+/** GET /api/customers/handover/preview：交接前看这个人名下有多少客户和进行中的业务 */
+export function useHandoverPreview(fromUserId: string) {
+  return useQuery({
+    queryKey: ["customers", "handover", fromUserId] as const,
+    queryFn: ({ signal }) =>
+      api.get<HandoverResult>("/api/customers/handover/preview", { from_user_id: fromUserId }, signal),
+    enabled: Boolean(fromUserId),
+  })
+}
+
+/** POST /api/customers/handover（仅主管）：把一个人名下全部客户、进行中的业务和回款中的合同转给接手人 */
+export function useHandover() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: HandoverIn) => api.post<HandoverResult>("/api/customers/handover", body),
+    onSuccess: () =>
+      Promise.all(
+        [customerKeys.all, ["opportunities"], ["quotes"], ["tasks"], ["contracts"], activityKeys.all].map((queryKey) =>
+          qc.invalidateQueries({ queryKey }),
+        ),
+      ),
     onError: notifyError,
   })
 }

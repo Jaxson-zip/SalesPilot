@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRightLeft, Building2, Plus } from "lucide-react"
+import { ArrowRightLeft, Building2, Plus, UserRoundCog } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { BulkBar } from "@/components/biz/BulkBar"
@@ -8,6 +8,7 @@ import { DataGrid } from "@/components/biz/DataGrid"
 import { EmptyState, ErrorState } from "@/components/biz/EmptyState"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { ViewBar, type ViewOption } from "@/components/biz/ViewBar"
+import { HandoverDialog } from "@/components/customers/HandoverDialog"
 import { NewCustomerSheet } from "@/components/customers/NewCustomerSheet"
 import { TransferDialog } from "@/components/customers/TransferDialog"
 import { useSession } from "@/components/shell/SessionProvider"
@@ -40,6 +41,7 @@ export default function CustomersPage() {
   const [selected, setView] = useState<ListView | null>(null)
   const [creating, setCreating] = useState(false)
   const [transferring, setTransferring] = useState(false)
+  const [handingOver, setHandingOver] = useState(false)
   const views: ViewOption[] =
     role === "admin"
       ? [{ value: "all", label: "全部客户" }]
@@ -82,7 +84,13 @@ export default function CustomersPage() {
       title="客户"
       icon={Building2}
       actions={
-        canCreate ? <FrameAction icon={Plus} label="新建客户" primary onClick={() => setCreating(true)} /> : null
+        <>
+          {/* 离职 / 调岗：按人把全部客户一次交接，只给主管 */}
+          {role === "manager" ? (
+            <FrameAction icon={UserRoundCog} label="按人交接" onClick={() => setHandingOver(true)} />
+          ) : null}
+          {canCreate ? <FrameAction icon={Plus} label="新建客户" primary onClick={() => setCreating(true)} /> : null}
+        </>
       }
     >
       {sel.count ? (
@@ -157,6 +165,7 @@ export default function CustomersPage() {
           onDone={sel.clear}
         />
       ) : null}
+      {role === "manager" ? <HandoverDialog open={handingOver} onOpenChange={setHandingOver} /> : null}
     </PageFrame>
   )
 }

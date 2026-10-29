@@ -41,6 +41,7 @@ logger = logging.getLogger("core.audit")
 ROUTES: dict[tuple[str, str], tuple[str, str]] = {
     ("POST", "/api/customers"): ("customer.create", "新建客户"),
     ("POST", "/api/customers/transfer"): ("customer.transfer", "转移客户"),
+    ("POST", "/api/customers/handover"): ("customer.handover", "按人交接客户"),
     ("POST", "/api/customers/{id}/release"): ("customer.release", "退回公海"),
     ("POST", "/api/customers/{id}/claim"): ("customer.claim", "领取客户"),
     ("PATCH", "/api/customers/{id}"): ("customer.update", "修改客户"),

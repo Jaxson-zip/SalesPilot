@@ -971,6 +971,75 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/handover/preview:
+    get:
+      tags:
+      - customers
+      summary: Preview Handover
+      operationId: preview_handover_api_customers_handover_preview_get
+      parameters:
+      - name: from_user_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: From User Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_HandoverResult_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/handover:
+    post:
+      tags:
+      - customers
+      summary: Handover
+      operationId: handover_api_customers_handover_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HandoverIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_HandoverResult_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/customers/pool:
     get:
       tags:
@@ -4784,6 +4853,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_HandoverResult_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/HandoverResult'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[HandoverResult]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_Health_:
       properties:
         code:
@@ -8212,6 +8306,48 @@ components:
       title: HTTPValidationError
       required:
       - detail
+    HandoverIn:
+      properties:
+        from_user_id:
+          type: string
+          format: uuid
+          title: From User Id
+        to_user_id:
+          type: string
+          format: uuid
+          title: To User Id
+      type: object
+      required:
+      - from_user_id
+      - to_user_id
+      title: HandoverIn
+      description: 按人一键交接：把 from_user 名下的全部客户和进行中的业务转给 to_user。
+    HandoverResult:
+      properties:
+        customers:
+          type: integer
+          title: Customers
+        opportunities:
+          type: integer
+          title: Opportunities
+        tasks:
+          type: integer
+          title: Tasks
+        quotes:
+          type: integer
+          title: Quotes
+        contracts:
+          type: integer
+          title: Contracts
+      type: object
+      required:
+      - customers
+      - opportunities
+      - tasks
+      - quotes
+      - contracts
+      title: HandoverResult
+      description: 交接（或预览）的数量：客户、未结束商机、未完成任务、未成交报价、回款中的合同。
     Health:
       properties:
         status:

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { transferConfirm } from "@/lib/confirm-texts"
+import { handoverSummary, transferConfirm } from "@/lib/confirm-texts"
 import { INDUSTRY_OPTIONS, SIZE_OPTIONS } from "@/lib/customer"
 import { applyFilters } from "@/lib/list-view"
 import { expectedCloseText, opportunityFilters, STALE_FILTER } from "@/lib/pipeline"
@@ -55,5 +55,14 @@ describe("转移负责人确认文案（v3 §16）", () => {
   })
   it("未选择新负责人时提示选择", () => {
     expect(transferConfirm(2, null).description).toContain("请选择本团队的新负责人")
+  })
+})
+
+describe("按人交接", () => {
+  it("只列出有数量的项", () => {
+    expect(handoverSummary({ customers: 3, opportunities: 2, tasks: 0, quotes: 1, contracts: 1 })).toBe(
+      "3 个客户、2 个进行中的商机、1 份未成交的报价、1 份回款中的合同",
+    )
+    expect(handoverSummary({ customers: 0, opportunities: 0, tasks: 0, quotes: 0, contracts: 0 })).toBe("")
   })
 })

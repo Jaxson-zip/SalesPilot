@@ -83,6 +83,27 @@ export function transferConfirm(count: number, toName: string | null): ConfirmCo
   }
 }
 
+/** 按人交接的影响范围：「3 个客户、2 个进行中的商机、1 份回款中的合同」，没有的项不写 */
+export function handoverSummary(r: {
+  customers: number
+  opportunities: number
+  tasks: number
+  quotes: number
+  contracts: number
+}): string {
+  const parts: [number, string][] = [
+    [r.customers, "个客户"],
+    [r.opportunities, "个进行中的商机"],
+    [r.quotes, "份未成交的报价"],
+    [r.tasks, "个未完成的任务"],
+    [r.contracts, "份回款中的合同"],
+  ]
+  return parts
+    .filter(([n]) => n > 0)
+    .map(([n, unit]) => `${n} ${unit}`)
+    .join("、")
+}
+
 export function deleteCompetitorConfirm(name: string): ConfirmCopy {
   return {
     title: `删除「${name}」战卡？`,

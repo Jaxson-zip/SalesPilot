@@ -81,6 +81,7 @@ export const requests = {
   FollowupCreate: true as Fits<T.FollowupCreate, S["FollowupIn"]>,
   CustomerCreate: true as Fits<T.CustomerCreate, S["CustomerCreate"]>,
   CustomerTransfer: true as Fits<T.CustomerTransferIn, S["CustomerTransfer"]>,
+  HandoverIn: true as Fits<T.HandoverIn, S["HandoverIn"]>,
   QuoteItemsPatch: true as Fits<T.QuoteItemsPatch, S["QuoteItemsUpdate"]>,
   TaskCreate: true as Fits<T.TaskCreate, S["TaskCreate"]>,
   TaskUpdate: true as Fits<T.TaskUpdate, S["TaskUpdate"]>,

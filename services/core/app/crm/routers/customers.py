@@ -27,7 +27,7 @@ from app.crm.schemas.dashboard import (
     FollowupItem,
     PhoneOut,
 )
-from app.crm.schemas.task import CustomerTransfer, TransferResult
+from app.crm.schemas.task import CustomerTransfer, HandoverIn, HandoverResult, TransferResult
 from app.crm.services import (
     contact_service,
     customer_service,
@@ -59,6 +59,18 @@ def transfer_customers(
     body: CustomerTransfer, user: CurrentUserDep, db: DbDep
 ) -> ApiResponse[TransferResult]:
     return ok(transfer_service.transfer_customers(db, user, body))
+
+
+@router.get("/handover/preview", response_model=ApiResponse[HandoverResult])
+def preview_handover(
+    from_user_id: uuid.UUID, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[HandoverResult]:
+    return ok(transfer_service.preview_handover(db, user, from_user_id))
+
+
+@router.post("/handover", response_model=ApiResponse[HandoverResult])
+def handover(body: HandoverIn, user: CurrentUserDep, db: DbDep) -> ApiResponse[HandoverResult]:
+    return ok(transfer_service.handover(db, user, body))
 
 
 @router.get("/pool", response_model=ApiResponse[Page[CustomerListItem]])

@@ -54,3 +54,20 @@ describe("格式化", () => {
     expect(specText({ vram_gb: 48, nvlink: false })).toBe("vram_gb: 48，nvlink: 否")
   })
 })
+
+describe("describeRules · 软件外包", () => {
+  it("档位枚举和比例转中文，模块库显示人天，缺省键不出行", () => {
+    const rows = describeRules({
+      pack: {
+        tiers: { economy: { scope: "must", platforms: "first", handover: false, ratios: { qa: 0.15 } } },
+        modules: { booking: { name: "在线预约排期", days: [4, 7, 12] } },
+        tensor_parallel_sizes: undefined,
+      },
+    })
+    expect(rows.map((r) => r.label)).toEqual(["方案档位 · 经济版", "模块库 · 在线预约排期"])
+    expect(rows[0].value).toBe(
+      "功能范围 只做首期必须的功能 · 交付端 只做第一个客户端 · 源码交付与培训 否 · 比例调整 测试 15%",
+    )
+    expect(rows[1].value).toBe("简单 4 / 中等 7 / 复杂 12 人天")
+  })
+})

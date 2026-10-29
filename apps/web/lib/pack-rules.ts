@@ -68,7 +68,8 @@ const RULE_LABELS: Record<string, [string, Fmt]> = {
   "pack.economy_discount_ladder": ["经济版折扣阶梯（逐级回退）", "percent"],
 }
 
-const TIER_NAMES: Record<string, string> = { economy: "经济版", standard: "标准版", premium: "旗舰版" }
+// 与 core 的 TIER_NAMES 一致
+const TIER_NAMES: Record<string, string> = { economy: "经济版", standard: "标准版", premium: "高配版" }
 
 const TIER_FIELDS: Record<string, string> = {
   gpu: "GPU",
@@ -80,6 +81,36 @@ const TIER_FIELDS: Record<string, string> = {
   design: "设计机型",
   monitor_for_design: "设计岗配显示器",
   warranty: "延保",
+  scope: "功能范围",
+  platforms: "交付端",
+  ops_months: "运维月数",
+  handover: "源码交付与培训",
+  ratios: "比例调整",
+}
+
+/** 档位里的枚举值 / 比例名（软件外包） */
+const TIER_VALUES: Record<string, string> = {
+  "scope.must": "只做首期必须的功能",
+  "scope.all": "全部功能",
+  "platforms.first": "只做第一个客户端",
+  "platforms.all": "全部端",
+}
+const RATIO_NAMES: Record<string, string> = {
+  analysis: "需求分析",
+  ui: "UI 设计",
+  qa: "测试",
+  pm: "项目管理",
+  buffer: "风险预留",
+}
+
+function tierValue(k: string, v: unknown): string {
+  const named = TIER_VALUES[`${k}.${String(v)}`]
+  if (named) return named
+  if (k === "ratios" && typeof v === "object" && v !== null)
+    return Object.entries(v as Record<string, unknown>)
+      .map(([r, x]) => `${RATIO_NAMES[r] ?? r} ${fmtScalar(x, "percent")}`)
+      .join("、")
+  return formatRuleValue(v)
 }
 
 function fmtScalar(v: unknown, fmt: Fmt): string {
@@ -122,7 +153,7 @@ export interface RuleRow {
 function tierText(spec: unknown): string {
   if (typeof spec !== "object" || spec === null) return formatRuleValue(spec)
   return Object.entries(spec as Record<string, unknown>)
-    .map(([k, v]) => `${TIER_FIELDS[k] ?? k} ${formatRuleValue(v)}`)
+    .map(([k, v]) => `${TIER_FIELDS[k] ?? k} ${tierValue(k, v)}`)
     .join(" · ")
 }
 
@@ -134,6 +165,21 @@ export function describeRules(rules: Record<string, unknown>, prefix = ""): Rule
   const rows: RuleRow[] = []
   for (const [k, v] of Object.entries(rules)) {
     const key = prefix ? `${prefix}.${k}` : k
+    if (v === undefined) continue
+    // 软件外包模块库：{name, days: [简单, 中等, 复杂]}
+    if ((key === "pack.modules" || key === "pack.custom_module") && isPlainObject(v)) {
+      const entries = key === "pack.modules" ? Object.entries(v) : [["custom", v] as const]
+      for (const [mod, spec] of entries) {
+        const m = spec as { name?: string; days?: number[] }
+        const [s, md, c] = m.days ?? []
+        rows.push({
+          key: `${key}.${mod}`,
+          label: `模块库 · ${m.name ?? mod}`,
+          value: `简单 ${s} / 中等 ${md} / 复杂 ${c} 人天`,
+        })
+      }
+      continue
+    }
     if (key === "pack.tiers" && isPlainObject(v)) {
       for (const [tier, spec] of Object.entries(v))
         rows.push({ key: `${key}.${tier}`, label: `方案档位 · ${TIER_NAMES[tier] ?? tier}`, value: tierText(spec) })

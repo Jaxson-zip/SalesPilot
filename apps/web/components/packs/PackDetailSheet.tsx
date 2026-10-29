@@ -166,7 +166,14 @@ function Catalog({ packId, items }: { packId: string; items: PackDetail["catalog
 function Rules({ packId, rules }: { packId: string; rules: PackDetail["rules"] }) {
   const q = useSettings(packId)
   const pack = (rules.pack ?? {}) as Record<string, unknown>
-  const fixed = describeRules({ pack: { tiers: pack.tiers, tensor_parallel_sizes: pack.tensor_parallel_sizes } })
+  const fixed = describeRules({
+    pack: {
+      tiers: pack.tiers,
+      tensor_parallel_sizes: pack.tensor_parallel_sizes,
+      modules: pack.modules,
+      custom_module: pack.custom_module,
+    },
+  })
   return (
     <div className="space-y-4">
       <p className="text-xs text-zinc-500">
@@ -186,7 +193,7 @@ function Rules({ packId, rules }: { packId: string; rules: PackDetail["rules"] }
       {fixed.length ? (
         <section aria-label="方案档位" className="rounded-lg border border-zinc-200">
           <div className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 border-b border-zinc-100 px-4 py-2">
-            <h3 className="font-medium">方案档位</h3>
+            <h3 className="font-medium">{pack.modules ? "方案档位与模块人天" : "方案档位"}</h3>
             <span className="text-xs text-zinc-400">与配置器选型逻辑绑定，由开发维护</span>
           </div>
           <dl className="divide-y divide-zinc-100">

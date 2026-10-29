@@ -94,3 +94,41 @@ def test_deadline_and_budget() -> None:
 def test_extract_hint_lists_library() -> None:
     hint = cfg().extract_hint()
     assert "booking=在线预约排期" in hint and "custom" in hint and "不要估算人天" in hint
+
+
+def test_solo_fullstack_pricing() -> None:
+    """个人全栈：全栈单价、研发人天 × 提效系数、不计项目管理，工期按 1 人算。"""
+    team = {t.tier: t for t in cfg().configure(req())}["standard"]
+    solo = {t.tier: t for t in cfg().configure(req(team_size=1))}["standard"]
+    skus = {i.sku for i in solo.items}
+    assert "SVC-PM" not in skus and "SVC-PM" in {i.sku for i in team.items}
+    assert {i.unit_price for i in solo.items if i.unit == "人天"} == {150_000}
+    assert solo.specs["delivery"] == "solo" and solo.specs["team_size"] == 1
+    assert solo.specs["person_days"] < team.specs["person_days"]
+    assert solo.specs["weeks"] > team.specs["weeks"]
+    assert "个人全栈" in solo.summary
+
+
+def test_solo_words_and_cost_breakdown() -> None:
+    assert cfg().draft_requirement("我一个人全栈做，" + TEXT)["team_size"] == 1
+    tier = {t.tier: t for t in cfg().configure(req())}["standard"]
+    cb = tier.specs["cost_breakdown"]
+    days = sum(i.qty for i in tier.items if i.unit == "人天")
+    assert cb["ai_tools"] == days * 3000
+    assert sum(cb.values()) == sum(i.total_cost for i in tier.items)
+    # 第三方费用按成本代采，小程序要认证费
+    tp = [i for i in tier.items if i.sku.startswith("TP-")]
+    assert {i.sku for i in tp} == {"TP-CLOUD-1Y", "TP-DOMAIN-SSL", "TP-MP-CERT"}
+    assert all(i.unit_cost == i.unit_price for i in tp)
+    assert cb["third_party"] == sum(i.total_cost for i in tp)
+
+
+def test_ai_feature_monthly_cost() -> None:
+    """交付的软件带 AI 功能：估算上线后每月的大模型调用费，不计入报价。"""
+    plain = {t.tier: t for t in cfg().configure(req())}["standard"]
+    assert plain.specs["ai_monthly_cost"] == 0
+    mods = [{"key": "ai", "name": "智能客服", "complexity": "medium"}]
+    tier = {t.tier: t for t in cfg().configure(req(modules=mods))}["standard"]
+    assert tier.specs["ai_monthly_cost"] > 0
+    assert "AI 调用费" in tier.summary
+    assert tier.total_price == sum(i.total_price for i in tier.items)

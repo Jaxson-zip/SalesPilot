@@ -25,6 +25,26 @@ export interface CoreSolutionTier {
   total_price: number
   margin_rate: number
   recommended?: boolean
+  /** 行业包附加信息；软件外包带 cost_breakdown（分）和 ai_monthly_cost（分/月） */
+  specs?: Record<string, unknown>
+}
+
+/** 成本构成（软件外包）：人工 / AI 编码工具 / 第三方代采 / 部署运维等服务，单位分 */
+const COST_LABELS: [string, string][] = [
+  ["labor", "其中人工"],
+  ["ai_tools", "其中 AI 编码工具"],
+  ["third_party", "其中第三方代采"],
+  ["services", "其中部署运维"],
+]
+
+function costTotals(specs: Record<string, unknown> | undefined): { label: string; value: string }[] {
+  const out: { label: string; value: string }[] = []
+  const cb = specs?.cost_breakdown
+  if (isObj(cb))
+    for (const [k, label] of COST_LABELS) if (typeof cb[k] === "number") out.push({ label, value: formatFen(cb[k]) })
+  const ai = specs?.ai_monthly_cost
+  if (typeof ai === "number" && ai > 0) out.push({ label: "上线后 AI 调用费（客户付）", value: `${formatFen(ai)}/月` })
+  return out
 }
 
 /** generate_quote 写入成功后推送的报价单（core QuoteOut 的子集） */
@@ -88,6 +108,7 @@ export function toBomData(t: CoreSolutionTier): BomData {
       { label: "成本合计", value: formatFen(t.total_cost) },
       { label: "报价合计", value: formatFen(t.total_price) },
       { label: "毛利率", value: formatPercent(t.margin_rate) },
+      ...costTotals(t.specs),
     ],
   }
 }

@@ -70,3 +70,23 @@ describe("toBomData", () => {
     ])
   })
 })
+
+describe("toBomData · 软件外包成本构成", () => {
+  it("cost_breakdown 和上线后 AI 调用费追加在汇总行后", () => {
+    const tier = {
+      ...standard,
+      specs: {
+        cost_breakdown: { labor: 6690000, ai_tools: 228000, third_party: 340000, services: 500000 },
+        ai_monthly_cost: 10500,
+      },
+    }
+    expect(toBomData(tier).totals.slice(3)).toEqual([
+      { label: "其中人工", value: "¥66,900" },
+      { label: "其中 AI 编码工具", value: "¥2,280" },
+      { label: "其中第三方代采", value: "¥3,400" },
+      { label: "其中部署运维", value: "¥5,000" },
+      { label: "上线后 AI 调用费（客户付）", value: "¥105/月" },
+    ])
+    expect(toBomData(standard).totals).toHaveLength(3)
+  })
+})

@@ -45,6 +45,13 @@ class SoftwareRequirement(BaseModel):
     modules: list[Module] = Field(min_length=1, description="功能模块拆解清单")
     deadline_weeks: int | None = Field(default=None, gt=0, le=104, description="期望工期（周）")
     budget: int | None = Field(default=None, ge=0, description="预算（分）")
+    team_size: int | None = Field(
+        default=None,
+        ge=1,
+        le=30,
+        description="交付人数：销售说自己一个人做 / 个人全栈 / 独立开发时为 1；"
+        "没说留空（用默认团队）",
+    )
 
 
 # 追问时展示给用户的字段名

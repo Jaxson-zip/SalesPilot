@@ -25,6 +25,10 @@ from app.rules.loader import load_raw_rules
 
 PACK_DIR = Path(__file__).parent
 CLIENT_PLATFORMS = ("web", "mini_program", "app")
+# 各角色用哪个人天单价：团队按角色分开；个人全栈只有一个全栈单价
+TEAM_ROLES = {"dev": "DAY-DEV", "ui": "DAY-UI", "qa": "DAY-QA", "pm": "DAY-PM"}
+SOLO_ROLES = dict.fromkeys(TEAM_ROLES, "DAY-FULLSTACK")
+_SOLO_WORDS = ("一个人", "个人全栈", "独立开发", "我自己做", "自己一个人", "单人")
 _PLATFORM_WORDS: dict[str, tuple[str, ...]] = {
     "mini_program": ("小程序",),
     "app": ("app", "安卓", "android", "ios", "苹果"),
@@ -82,6 +86,8 @@ class SoftwareOutsourcingConfigurator:
         ]
         if modules:
             draft["modules"] = modules
+        if any(w in text for w in _SOLO_WORDS):
+            draft["team_size"] = 1
         if m := _WEEKS_RE.search(text):
             n = int(m.group(1))
             draft["deadline_weeks"] = n * 4 if "月" in m.group(2) else n
@@ -117,72 +123,80 @@ class SoftwareOutsourcingConfigurator:
     def _build_tier(self, tier_id: str, r: SoftwareRequirement) -> SolutionTier:
         p = self.params
         cfg = p["tiers"][tier_id]
+        team = r.team_size or p["team_size"]
+        solo = team == 1
+        roles = SOLO_ROLES if solo else TEAM_ROLES
         clients = [x for x in r.platforms if x in CLIENT_PLATFORMS]
         if cfg["platforms"] == "first":
             clients = clients[:1]
         platforms = clients + (["admin"] if "admin" in r.platforms else [])
-        # 多端：每多一个客户端，模块工作量 × (1 + 系数)
+        # 多端：每多一个客户端，模块工作量 × (1 + 系数)；个人全栈用 AI 编码再乘提效系数
         factor = 1 + p["extra_platform_factor"] * max(len(clients) - 1, 0)
+        ai_factor = p["solo_ai_factor"] if solo else 1.0
 
         mods = _dedupe(r.modules)
         if cfg["scope"] == "must":
             mods = [m for m in mods if m.must] or mods
 
-        dev = self.catalog.get("DAY-DEV")
         items: list[BomItem] = [
-            self._days("SVC-ARCH", "技术架构与数据库设计", "DAY-DEV", p["base_days"])
+            self._days("SVC-ARCH", "技术架构与数据库设计", roles["dev"], p["base_days"] * ai_factor)
         ]
         if "admin" in platforms:
-            items.append(self._days("SVC-ADMIN", "管理后台基础框架", "DAY-DEV", p["admin_days"]))
+            items.append(
+                self._days(
+                    "SVC-ADMIN", "管理后台基础框架", roles["dev"], p["admin_days"] * ai_factor
+                )
+            )
         for i, m in enumerate(mods):
             sku = f"MOD-{m.key.upper()}" if m.key != "custom" else f"MOD-CUSTOM-{i + 1}"
+            name = f"{m.name}（{COMPLEXITY_NAMES[m.complexity]}）"
             items.append(
-                BomItem(
-                    sku=sku,
-                    name=f"{m.name}（{COMPLEXITY_NAMES[m.complexity]}）",
-                    category="service",
-                    unit="人天",
-                    qty=math.ceil(self.module_days(m) * factor),
-                    unit_cost=dev.cost,
-                    unit_price=dev.price,
-                )
+                self._days(sku, name, roles["dev"], self.module_days(m) * factor * ai_factor)
             )
         dev_days = sum(i.qty for i in items)
         ratios = {**p["ratios"], **cfg.get("ratios", {})}
         items.insert(
             0,
             self._days(
-                "SVC-ANALYSIS", "需求分析与原型设计", "DAY-PM", dev_days * ratios["analysis"]
+                "SVC-ANALYSIS", "需求分析与原型设计", roles["pm"], dev_days * ratios["analysis"]
             ),
         )
         if clients:
-            items.append(self._days("SVC-UI", "UI 设计", "DAY-UI", dev_days * ratios["ui"]))
-        items.append(self._days("SVC-QA", "测试与验收", "DAY-QA", dev_days * ratios["qa"]))
-        items.append(self._days("SVC-PM", "项目管理", "DAY-PM", dev_days * ratios["pm"]))
+            items.append(self._days("SVC-UI", "UI 设计", roles["ui"], dev_days * ratios["ui"]))
+        items.append(self._days("SVC-QA", "测试与验收", roles["qa"], dev_days * ratios["qa"]))
+        if not solo:  # 一个人做不需要单独的项目管理
+            items.append(self._days("SVC-PM", "项目管理", roles["pm"], dev_days * ratios["pm"]))
         items.append(
-            self._days("SVC-BUFFER", "需求变更与风险预留", "DAY-DEV", dev_days * ratios["buffer"])
+            self._days(
+                "SVC-BUFFER", "需求变更与风险预留", roles["dev"], dev_days * ratios["buffer"]
+            )
         )
         items.append(self.catalog.line("SVC-DEPLOY", 1))
         if cfg["ops_months"]:
             items.append(self.catalog.line("SVC-OPS", cfg["ops_months"]))
         if cfg["handover"]:
             items.append(self.catalog.line("SVC-HANDOVER", 1))
+        items += [self.catalog.line(sku, 1) for sku in third_party_skus(platforms)]
 
         person_days = sum(i.qty for i in items if i.unit == "人天")
-        weeks = math.ceil(person_days / p["team_size"] / 5)
+        weeks = math.ceil(person_days / team / 5)
         names = "、".join(PLATFORM_NAMES[x] for x in platforms)
-        summary = (
-            f"{len(mods)} 个功能模块 · {names} · 约 {person_days} 人天，"
-            f"{p['team_size']} 人约 {weeks} 周"
-        )
+        who = "个人全栈" if solo else f"{team} 人团队"
+        summary = f"{len(mods)} 个功能模块 · {names} · 约 {person_days} 人天，{who}约 {weeks} 周"
         if r.deadline_weeks and weeks > r.deadline_weeks:
-            summary += f"（比期望工期多 {weeks - r.deadline_weeks} 周，需加人或分期）"
+            advice = "建议分期上线或找人协作" if solo else "需加人或分期"
+            summary += f"（比期望工期多 {weeks - r.deadline_weeks} 周，{advice}）"
+        ai_monthly = self.ai_monthly_cost(mods)
+        if ai_monthly:
+            summary += f"；上线后 AI 调用费约 ¥{ai_monthly / 100:,.0f}/月（客户另付）"
         return SolutionTier(
             tier=tier_id,  # type: ignore[arg-type]
             name=TIER_NAMES[tier_id],
             summary=summary,
             items=items,
             specs={
+                "delivery": "solo" if solo else "team",
+                "team_size": team,
                 "platforms": platforms,
                 "modules": [
                     {
@@ -195,11 +209,16 @@ class SoftwareOutsourcingConfigurator:
                 ],
                 "person_days": person_days,
                 "weeks": weeks,
+                "cost_breakdown": self._cost_breakdown(items),
+                "ai_monthly_cost": ai_monthly,
             },
         )
 
     def _days(self, sku: str, name: str, rate_sku: str, days: float) -> BomItem:
-        """按某个角色的人天单价生成一行（人天向上取整，至少 1 天）。"""
+        """按某个角色的人天单价生成一行（人天向上取整，至少 1 天）。
+
+        成本 = 人工成本 + 每人天的 AI 编码工具 / token 分摊（不单列给客户）。
+        """
         rate = self.catalog.get(rate_sku)
         return BomItem(
             sku=sku,
@@ -207,9 +226,51 @@ class SoftwareOutsourcingConfigurator:
             category="service",
             unit="人天",
             qty=max(1, math.ceil(days)),
-            unit_cost=rate.cost,
+            unit_cost=rate.cost + int(self.params["ai_tool_cost_per_day"]),
             unit_price=rate.price,
         )
+
+    def _cost_breakdown(self, items: list[BomItem]) -> dict[str, int]:
+        """成本构成（分）：人工 / AI 编码工具 / 第三方代采 / 部署运维等服务。"""
+        ai_per_day = int(self.params["ai_tool_cost_per_day"])
+        days = [i for i in items if i.unit == "人天"]
+        ai_tools = sum(i.qty for i in days) * ai_per_day
+        third = sum(i.total_cost for i in items if i.sku.startswith("TP-"))
+        services = sum(
+            i.total_cost for i in items if i.unit != "人天" and not i.sku.startswith("TP-")
+        )
+        return {
+            "labor": sum(i.total_cost for i in days) - ai_tools,
+            "ai_tools": ai_tools,
+            "third_party": third,
+            "services": services,
+        }
+
+    def ai_monthly_cost(self, mods: list[Module]) -> int:
+        """交付的软件带 AI 功能时，上线后每月的大模型调用费（分，客户承担，不计入报价）。
+
+        调用量和每次 token 数是行业包参数；单价沿用「AI 用量」的输入 / 输出单价，输入输出按 3:1 估。
+        """
+        if not any(m.key == "ai" for m in mods):
+            return 0
+        p = self.params
+        usage = load_rules().ai_usage
+        tokens = p["ai_daily_calls"] * 30 * p["ai_tokens_per_call"]
+        yuan = (
+            tokens * 0.75 * usage.input_price_per_million
+            + tokens * 0.25 * usage.output_price_per_million
+        ) / 1_000_000
+        return round(yuan * 100)
+
+
+def third_party_skus(platforms: list[str]) -> list[str]:
+    """上线必需的第三方费用（按成本代采，不赚差价）。"""
+    skus = ["TP-CLOUD-1Y", "TP-DOMAIN-SSL"]
+    if "mini_program" in platforms:
+        skus.append("TP-MP-CERT")
+    if "app" in platforms:
+        skus.append("TP-APPLE-DEV")
+    return skus
 
 
 def _dedupe(modules: list[Module]) -> list[Module]:

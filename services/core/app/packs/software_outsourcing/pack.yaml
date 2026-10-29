@@ -6,6 +6,10 @@ version: 1.0.0
 # 管理员可以在「行业包配置 → 业务规则」里修改的参数（默认值在 rules.yaml 的 pack 段）
 settings:
   - {key: pack.team_size, label: 项目团队人数, group: 工期, kind: int, unit: 人, min: 1, max: 30, help: 用总人天估算工期：人天 ÷ 人数 ÷ 5}
+  - {key: pack.solo_ai_factor, label: 个人全栈 AI 编码提效系数, group: 个人全栈, kind: float, unit: 倍, min: 0.3, max: 1, help: 一个人用 AI 写代码时研发人天按此比例计；销售说「一个人做 / 个人全栈」时生效}
+  - {key: pack.ai_tool_cost_per_day, label: AI 编码工具成本（每人天）, group: 成本, kind: money, min: 0, max: 100000, help: 开发时 AI 工具订阅或 token 费分摊到每个人天，只计入成本、不单列给客户}
+  - {key: pack.ai_daily_calls, label: 上线后 AI 功能日调用量, group: 成本, kind: int, unit: 次, min: 0, max: 1000000, help: 交付的软件带 AI 功能时估算客户每月的大模型调用费}
+  - {key: pack.ai_tokens_per_call, label: 每次调用 token 数, group: 成本, kind: int, unit: tokens, min: 0, max: 200000}
   - {key: pack.base_days, label: 技术架构与数据库设计, group: 估算, kind: int, unit: 人天, min: 0, max: 60, help: 每个项目都有的基础工作量}
   - {key: pack.admin_days, label: 管理后台基础框架, group: 估算, kind: int, unit: 人天, min: 0, max: 60, help: 需要管理后台时加上}
   - {key: pack.extra_platform_factor, label: 每多一个客户端的工作量系数, group: 估算, kind: float, unit: 倍, min: 0, max: 1, help: 例如小程序 + App 两端时，模块人天 × (1 + 系数)}

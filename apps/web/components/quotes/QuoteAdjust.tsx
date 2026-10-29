@@ -57,7 +57,7 @@ export function QuoteAdjust({ q }: { q: QuoteDetail }) {
         <tbody>
           {q.items.map((it) => (
             <tr key={it.sku} className="h-10 border-t border-zinc-100">
-              <td className="truncate px-3.5" title={it.name}>
+              <td className="px-3.5 py-1.5 break-words sm:truncate" title={it.name}>
                 {it.name}
               </td>
               <td className="hidden px-2 text-right text-zinc-500 tabular-nums sm:table-cell">

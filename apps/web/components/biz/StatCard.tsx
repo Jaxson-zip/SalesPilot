@@ -27,7 +27,7 @@ export function StatCard({
       ) : (
         <div className="mt-1.5 truncate text-[22px] font-semibold tabular-nums">{value}</div>
       )}
-      {hint ? <div className="truncate text-xs text-zinc-500">{hint}</div> : null}
+      {hint ? <div className="text-xs text-zinc-500 max-sm:line-clamp-2 sm:truncate">{hint}</div> : null}
     </div>
   )
 }

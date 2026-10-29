@@ -127,7 +127,8 @@ export function AiMessage({
     <div className="flex gap-3">
       <span
         className={cn(
-          "text-ai inline-flex shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white",
+          // 手机上不占一列，方案卡和物料清单用满宽度
+          "text-ai inline-flex shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white max-sm:hidden",
           compact ? "size-6" : "size-7",
         )}
       >

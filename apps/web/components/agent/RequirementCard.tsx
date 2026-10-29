@@ -191,7 +191,7 @@ export function RequirementCard({
                 onChange={(e) => setAdding(e.target.value)}
                 placeholder="补充功能，例如「会员积分」"
                 aria-label="补充功能"
-                className="h-8 text-sm"
+                className="h-8 text-base md:text-sm"
               />
               <Button type="submit" variant="outline" size="sm" disabled={!adding.trim()}>
                 <Plus />

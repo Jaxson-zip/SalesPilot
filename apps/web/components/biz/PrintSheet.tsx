@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 
 import { formatFen } from "@/lib/format"
@@ -17,10 +17,29 @@ export function PrintPortal({ children }: { children: ReactNode }) {
   )
 }
 
+/** A4 宽度（210mm ≈ 794px）加左右各 8px 留白 */
+const PAPER_PX = 794 + 16
+
+/** 屏幕比 A4 窄（手机）时整体缩小纸面，保持和打印出来一样的排版；打印时 print CSS 恢复为 1 */
+function usePaperZoom(): number {
+  const [zoom, setZoom] = useState(1)
+  useEffect(() => {
+    const fit = () => setZoom(Math.min(1, window.innerWidth / PAPER_PX))
+    fit()
+    window.addEventListener("resize", fit)
+    return () => window.removeEventListener("resize", fit)
+  }, [])
+  return zoom
+}
+
 /** A4 纸面 */
 export function PrintPaper({ children }: { children: ReactNode }) {
+  const zoom = usePaperZoom()
   return (
-    <div className="print-sheet mx-auto my-6 min-h-[297mm] w-[210mm] max-w-full bg-white p-[16mm] text-[12px] leading-relaxed text-zinc-900 shadow-sm">
+    <div
+      className="print-sheet mx-auto my-6 min-h-[297mm] w-[210mm] [zoom:var(--paper-zoom)] bg-white p-[16mm] text-[12px] leading-relaxed text-zinc-900 shadow-sm"
+      style={{ "--paper-zoom": zoom } as CSSProperties}
+    >
       {children}
     </div>
   )

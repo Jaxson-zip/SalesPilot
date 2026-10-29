@@ -207,13 +207,13 @@ function PackChip({ pack }: { pack: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="inline-flex h-8 min-w-0 cursor-help items-center gap-1.5 rounded-full bg-zinc-100 px-3 text-xs text-zinc-600">
+        <span className="inline-flex h-8 min-w-0 cursor-help items-center gap-1.5 rounded-full bg-zinc-100 px-3 text-xs text-zinc-600 max-sm:shrink-0 max-sm:px-2.5">
           <Boxes className="size-3.5 shrink-0" />
-          <span className="truncate">
+          <span className="truncate max-sm:overflow-visible">
             {pack}
             <span className="max-sm:hidden"> · 按商机产品线自动匹配</span>
           </span>
-          <Lock className="size-3 shrink-0 text-zinc-400" />
+          <Lock className="size-3 shrink-0 text-zinc-400 max-sm:hidden" />
         </span>
       </TooltipTrigger>
       <TooltipContent>行业包由管理员配置，根据商机的产品线自动匹配，销售无需也不能切换</TooltipContent>
@@ -366,7 +366,7 @@ export function Composer(props: ComposerProps) {
               ? `可以补充说明，例如：报关单据，每天约 200 票，审核后导出（不填则「${SAMPLE_DEFAULT_ASK}」）`
               : (placeholder ?? "给 SalesPilot 发消息，例如：给明理律所出一份 Qwen3-32B 私有化方案")
         }
-        className="w-full resize-none bg-transparent px-4 pt-3.5 text-[14px] outline-none placeholder:text-zinc-400"
+        className="w-full resize-none bg-transparent px-4 pt-3.5 text-base outline-none placeholder:text-zinc-400 md:text-[14px]"
       />
       <div className="flex min-w-0 items-center gap-1.5 px-3 pb-3">
         {!compact && pack ? <PackChip pack={pack} /> : null}

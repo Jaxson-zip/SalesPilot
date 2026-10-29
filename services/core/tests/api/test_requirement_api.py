@@ -8,6 +8,8 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from app.agent import service
 from app.agent.deps import AgentDeps
+from app.agent.graph import build_graph
+from app.agent.history import build_messages
 from app.agent.sse import iter_graph_events
 from app.agent.tools import ToolContext
 from app.common.auth import Role
@@ -31,12 +33,16 @@ def _opp(client: TestClient, tracker: Tracker) -> str:
 
 
 def _run(
-    thread: str, opp_id: str, message: str, requirement: dict[str, Any] | None = None
+    thread: str, opp_id: str | None, message: str, requirement: dict[str, Any] | None = None
 ) -> list[dict[str, Any]]:
     ctx = ToolContext(user=DEMO_USERS[Role.SALES], session=session_scope, thread_id=thread)
     deps = AgentDeps(ctx=ctx, resolve_pack=lambda _o: "software_outsourcing", llm=None)
     run = service.prepare_chat(
-        deps, message, uuid.UUID(opp_id), checkpointer=SAVER, requirement=requirement
+        deps,
+        message,
+        uuid.UUID(opp_id) if opp_id else None,
+        checkpointer=SAVER,
+        requirement=requirement,
     )
     return list(iter_graph_events(run.graph, run.payload, run.config, run.thread_id))
 
@@ -68,3 +74,20 @@ def test_requirement_saved_confirmed_and_reused(client: TestClient, tracker: Tra
     events = _run(f"req-{uuid.uuid4().hex[:8]}", opp_id, "按之前的需求出方案")
     arts = [e["data"]["type"] for e in events if e["event"] == "artifact"]
     assert "requirement" not in arts and "solution_tiers" in arts
+
+
+def test_reopened_thread_keeps_opportunity(client: TestClient, tracker: Tracker) -> None:
+    """从历史记录重新打开的会话不再带 opportunity_id：仍关联原商机，确认的需求存回商机。"""
+    opp_id = _opp(client, tracker)
+    thread = f"req-{uuid.uuid4().hex[:8]}"
+    card = next(e for e in _run(thread, opp_id, MSG) if e["event"] == "artifact")["data"]["data"]
+    assert card["opportunity_id"] == opp_id
+
+    ctx = ToolContext(user=DEMO_USERS[Role.SALES], session=session_scope, thread_id=thread)
+    deps = AgentDeps(ctx=ctx, resolve_pack=lambda _o: "software_outsourcing", llm=None)
+    graph_values = build_graph(deps, SAVER).get_state({"configurable": {"thread_id": thread}})
+    assert build_messages(thread, graph_values).opportunity_id == opp_id
+
+    _run(thread, None, "需求已确认", card["requirement"])
+    saved = client.get(f"/api/opportunities/{opp_id}/requirement", headers=SALES_H).json()
+    assert saved["data"]["confirmed"]

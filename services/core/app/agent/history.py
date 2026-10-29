@@ -54,6 +54,7 @@ class ThreadMessages(BaseModel):
     thread_id: str
     messages: list[HistoryMessage]
     pending: dict[str, Any] | None = None  # 待确认操作（interrupt 的 value），没有为 null
+    opportunity_id: str | None = None  # 会话关联的商机（从商机出方案或识别出唯一商机）
     # 这一轮还在后台生成：messages 是本轮开始前的内容，页面接着订阅 /stream 重放本轮
     running: "RunningInfo | None" = None
 
@@ -126,7 +127,12 @@ def build_messages(thread_id: str, snapshot: StateSnapshot) -> ThreadMessages:
     if pending is not None and not explained:
         arts = [Artifact.model_validate(a) for a in turn_artifacts(values)]
         messages.append(HistoryMessage(role="assistant", text=PENDING_TEXT, artifacts=arts))
-    return ThreadMessages(thread_id=thread_id, messages=messages, pending=pending)
+    return ThreadMessages(
+        thread_id=thread_id,
+        messages=messages,
+        pending=pending,
+        opportunity_id=values.get("opportunity_id"),
+    )
 
 
 def _read_only_graph(user: CurrentUser, thread_id: str, saver: BaseCheckpointSaver) -> Any:

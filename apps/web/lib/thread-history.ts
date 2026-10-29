@@ -34,6 +34,8 @@ export interface ThreadMessages {
   pending?: { action?: unknown; preview?: unknown } | null
   /** 这一轮还在后台生成：messages 是本轮开始前的内容，接着订阅 /stream 重放本轮 */
   running?: ThreadRunning | null
+  /** 会话关联的商机：重新打开后继续带上（行业包、需求清单都跟着它） */
+  opportunity_id?: string | null
 }
 
 export interface ThreadRunning {

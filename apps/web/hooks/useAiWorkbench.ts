@@ -87,6 +87,7 @@ export function useAiWorkbench() {
         staleTime: 0,
       })
       const turns = messagesToTurns(data)
+      setOpportunityId(data.opportunity_id ?? null)
       // 这一轮还在后台生成（例如刷新了页面）：先显示之前的内容，再接上本轮
       if (data.running) stream.attach(id, turns, data.running, model)
       else stream.load(id, turns, lastUserText(turns), model)

@@ -113,14 +113,16 @@ def prepare_chat(
     if material is not None:
         extra["material"] = {"name": material.name, "chars": len(material.text)}
         content = compose(message, material)
-    payload = {
+    payload: dict[str, Any] = {
         "messages": [HumanMessage(content=content, additional_kwargs=extra)],
         "user_id": str(deps.ctx.user.id),
         "user_message": message,
         "material": material.name if material else None,
-        "opportunity_id": str(opportunity_id) if opportunity_id else None,
         "confirmed_requirement": requirement,
     }
+    # 没带商机（例如从历史记录重新打开的会话）时不覆盖：会话之前关联的商机继续有效
+    if opportunity_id:
+        payload["opportunity_id"] = str(opportunity_id)
     touch_thread(deps.ctx.session, deps.ctx.user, thread_id, message, opportunity_id)
     return PreparedRun(
         graph, payload, config, thread_id, "chat", message, build_messages(thread_id, snapshot)

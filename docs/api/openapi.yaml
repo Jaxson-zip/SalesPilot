@@ -10423,6 +10423,11 @@ components:
             type: object
           - type: 'null'
           title: Pending
+        opportunity_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Opportunity Id
         running:
           anyOf:
           - $ref: '#/components/schemas/RunningInfo'
@@ -10432,6 +10437,7 @@ components:
       - thread_id
       - messages
       - pending
+      - opportunity_id
       - running
       title: ThreadMessages
     ThreadPage:

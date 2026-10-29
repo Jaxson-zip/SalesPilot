@@ -85,6 +85,7 @@ def test_messages_empty_thread(client: TestClient, threads: list[str]) -> None:
         "messages": [],
         "pending": None,
         "running": None,
+        "opportunity_id": None,
     }
 
 

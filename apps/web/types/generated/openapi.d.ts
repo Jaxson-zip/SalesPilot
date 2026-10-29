@@ -5203,6 +5203,8 @@ export interface components {
       pending: {
         [key: string]: unknown
       } | null
+      /** Opportunity Id */
+      opportunity_id: string | null
       running: components["schemas"]["RunningInfo"] | null
     }
     /** ThreadPage */

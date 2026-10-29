@@ -1,0 +1,16 @@
+id: software_outsourcing
+name: 软件外包
+description: 小程序 / App / 网站 / 管理后台定制开发：功能模块拆解、人天估算、分档报价
+version: 1.0.0
+
+# 管理员可以在「行业包配置 → 业务规则」里修改的参数（默认值在 rules.yaml 的 pack 段）
+settings:
+  - {key: pack.team_size, label: 项目团队人数, group: 工期, kind: int, unit: 人, min: 1, max: 30, help: 用总人天估算工期：人天 ÷ 人数 ÷ 5}
+  - {key: pack.base_days, label: 技术架构与数据库设计, group: 估算, kind: int, unit: 人天, min: 0, max: 60, help: 每个项目都有的基础工作量}
+  - {key: pack.admin_days, label: 管理后台基础框架, group: 估算, kind: int, unit: 人天, min: 0, max: 60, help: 需要管理后台时加上}
+  - {key: pack.extra_platform_factor, label: 每多一个客户端的工作量系数, group: 估算, kind: float, unit: 倍, min: 0, max: 1, help: 例如小程序 + App 两端时，模块人天 × (1 + 系数)}
+  - {key: pack.ratios.analysis, label: 需求分析与原型占比, group: 估算, kind: percent, min: 0, max: 0.5, help: 占研发人天的比例，按产品经理单价}
+  - {key: pack.ratios.ui, label: UI 设计占比, group: 估算, kind: percent, min: 0, max: 0.5, help: 有网站 / 小程序 / App 时计入}
+  - {key: pack.ratios.qa, label: 测试占比, group: 估算, kind: percent, min: 0, max: 0.6, help: 标准版的比例；经济版、高配版在档位里单独设置}
+  - {key: pack.ratios.pm, label: 项目管理占比, group: 估算, kind: percent, min: 0, max: 0.5}
+  - {key: pack.ratios.buffer, label: 需求变更与风险预留, group: 估算, kind: percent, min: 0, max: 0.5, help: 外包项目需求常有变化，按研发单价预留}

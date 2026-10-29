@@ -10,7 +10,9 @@ import { Composer } from "@/components/agent/Composer"
 import { HistorySheet } from "@/components/agent/HistorySheet"
 import { Welcome } from "@/components/agent/Welcome"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
+import { useOpportunity } from "@/hooks/useOpportunities"
 import { usePermissions } from "@/hooks/usePermissions"
+import { usePackName } from "@/hooks/useProductLines"
 import { DEFAULT_PACK_LABEL } from "@/lib/agent-labels"
 import { aiThreadHref } from "@/lib/thread-history"
 
@@ -66,6 +68,10 @@ function AiWorkbench() {
   const { stream, input, setInput, model, setModel, title, send } = w
   const { canAiWrite } = usePermissions()
   const goNew = useThreadUrl(w)
+  // 从商机进入：显示该商机产品线对应的行业包；否则显示团队默认行业包
+  const opp = useOpportunity(w.opportunityId)
+  const packName = usePackName()
+  const pack = opp.data?.product_line ? packName(opp.data.product_line.pack) : DEFAULT_PACK_LABEL
   const [historyOpen, setHistoryOpen] = useState(false)
 
   const composer = (welcome: boolean) => (
@@ -81,7 +87,7 @@ function AiWorkbench() {
       streaming={stream.isStreaming}
       model={model}
       onModelChange={setModel}
-      pack={DEFAULT_PACK_LABEL}
+      pack={pack}
       rows={welcome ? 3 : 2}
       placeholder={
         !canAiWrite

@@ -104,6 +104,7 @@ export function useAiWorkbench() {
     send,
     newChat,
     openThread,
+    opportunityId,
     setOpportunityId,
   }
 }

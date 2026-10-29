@@ -1,0 +1,39 @@
+# 软件外包行业包规则（覆盖通用规则中的同名项；下面 pack 段是本行业专属参数）
+# 毛利底线沿用通用规则；某个行业要单独设置时，在「行业包配置 → 业务规则」里改
+
+pack:
+  team_size: 4                # 估工期用：人天 ÷ 人数 ÷ 5
+  base_days: 5                # 技术架构与数据库设计（每个项目都有）
+  admin_days: 4               # 管理后台基础框架（需要后台时）
+  extra_platform_factor: 0.5  # 每多一个客户端，模块人天 × (1 + 0.5)
+  ratios:                     # 占研发人天的比例
+    analysis: 0.10
+    ui: 0.15
+    qa: 0.20
+    pm: 0.10
+    buffer: 0.10
+  tiers:
+    # scope: must 只做首期必须的模块 / all 全部；platforms: first 只做第一个客户端 / all
+    economy:  {scope: must, platforms: first, ops_months: 0, handover: false, ratios: {qa: 0.15, buffer: 0.05}}
+    standard: {scope: all,  platforms: all,   ops_months: 1, handover: false}
+    premium:  {scope: all,  platforms: all,   ops_months: 6, handover: true,  ratios: {qa: 0.30, buffer: 0.15}}
+  # 标准模块库：研发人天 [简单, 中等, 复杂]；keywords 用于大模型不可用时的规则识别
+  modules:
+    account:     {name: 用户注册登录, days: [3, 5, 8], keywords: [登录, 注册, 账号, 会员]}
+    profile:     {name: 个人中心, days: [2, 4, 6], keywords: [个人中心, 我的页面]}
+    catalog:     {name: 商品 / 服务展示, days: [3, 6, 10], keywords: [商品, 商城, 产品展示, 服务展示, 菜单]}
+    booking:     {name: 在线预约排期, days: [4, 7, 12], keywords: [预约, 排班, 挂号, 预订]}
+    order:       {name: 订单管理, days: [4, 7, 12], keywords: [订单, 下单, 购物车]}
+    payment:     {name: 在线支付, days: [3, 5, 8], keywords: [支付, 付款, 收款]}
+    content:     {name: 内容资讯发布, days: [2, 4, 7], keywords: [资讯, 文章, 公告, 新闻]}
+    message:     {name: 消息通知, days: [2, 4, 6], keywords: [通知, 推送, 提醒]}
+    im:          {name: 在线客服 / 聊天, days: [4, 8, 14], keywords: [聊天, 客服, 即时通讯]}
+    search:      {name: 搜索筛选, days: [2, 4, 6], keywords: [搜索, 筛选]}
+    map:         {name: 地图定位, days: [2, 4, 7], keywords: [地图, 定位, 导航, 附近]}
+    file:        {name: 文件上传与管理, days: [2, 4, 6], keywords: [上传, 附件, 文件管理]}
+    workflow:    {name: 审批流程, days: [5, 9, 15], keywords: [审批, 工作流]}
+    report:      {name: 数据统计报表, days: [3, 6, 10], keywords: [报表, 统计, 数据看板, 大屏]}
+    rbac:        {name: 角色权限管理, days: [3, 5, 8], keywords: [权限, 角色]}
+    integration: {name: 第三方系统对接, days: [4, 8, 15], keywords: [对接, ERP, OA, 集成]}
+    ai:          {name: AI 能力接入, days: [4, 8, 15], keywords: [AI, 智能问答, 大模型, 识别]}
+  custom_module: {name: 定制功能, days: [3, 6, 10]}

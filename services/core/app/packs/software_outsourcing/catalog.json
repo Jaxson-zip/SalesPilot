@@ -1,0 +1,12 @@
+{
+  "_note": "所有价格均为模拟数据，单位：分。人天单价参考一线城市中小外包团队行情。",
+  "items": [
+    {"sku": "DAY-DEV", "name": "研发工程师", "category": "service", "unit": "人天", "cost": 90000, "price": 160000, "specs": {"role": "前后端开发"}},
+    {"sku": "DAY-UI", "name": "UI 设计师", "category": "service", "unit": "人天", "cost": 80000, "price": 140000, "specs": {"role": "界面与交互设计"}},
+    {"sku": "DAY-QA", "name": "测试工程师", "category": "service", "unit": "人天", "cost": 70000, "price": 120000, "specs": {"role": "功能 / 兼容 / 回归测试"}},
+    {"sku": "DAY-PM", "name": "产品 / 项目经理", "category": "service", "unit": "人天", "cost": 100000, "price": 180000, "specs": {"role": "需求分析、原型、项目管理"}},
+    {"sku": "SVC-DEPLOY", "name": "部署上线（服务器环境、域名备案协助、小程序 / 应用商店提审）", "category": "service", "unit": "次", "cost": 200000, "price": 500000, "specs": {}},
+    {"sku": "SVC-OPS", "name": "运维与维保（故障响应、小修改、安全更新）", "category": "service", "unit": "月", "cost": 300000, "price": 600000, "specs": {}},
+    {"sku": "SVC-HANDOVER", "name": "源码交付与技术培训", "category": "service", "unit": "次", "cost": 300000, "price": 800000, "specs": {}}
+  ]
+}

@@ -167,3 +167,16 @@ def test_knowledge_upload_and_delete(
     builtin = detail["knowledge"][0]["doc_name"]
     res = client.delete(f"/api/packs/it_office/knowledge/{builtin}", headers=ADMIN_H).json()
     assert res["code"] == 40401
+
+
+def test_software_pack_settings_nested_ratio(client: TestClient) -> None:
+    """软件外包：嵌套参数（pack.ratios.qa）可改，改完配置器立即按新比例估算。"""
+    data = client.get("/api/packs/software_outsourcing/settings", headers=ADMIN_H).json()["data"]
+    keys = {f["key"] for f in data["fields"]}
+    assert {"pack.team_size", "pack.ratios.qa", "pack.extra_platform_factor"} <= keys
+    body = {"values": {"pack.ratios.qa": 0.4, "pack.team_size": 2}}
+    res = client.put("/api/packs/software_outsourcing/settings", json=body, headers=ADMIN_H).json()
+    assert res["code"] == 0
+    cfg = get_configurator("software_outsourcing")
+    assert cfg.params["ratios"]["qa"] == 0.4 and cfg.params["ratios"]["ui"] == 0.15
+    assert cfg.params["team_size"] == 2

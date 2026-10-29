@@ -29,14 +29,20 @@ def optional_model(model: type[BaseModel]) -> type[BaseModel]:
     return create_model(f"{model.__name__}Extract", __doc__=model.__doc__, **fields)
 
 
-def extract_with_llm(deps: AgentDeps, model: type[BaseModel], text: str) -> dict[str, Any]:
-    """返回模型抽到的非空字段；没有模型或抽取失败返回空 dict（只用规则抽取）。"""
+def extract_with_llm(
+    deps: AgentDeps, model: type[BaseModel], text: str, hint: str = ""
+) -> dict[str, Any]:
+    """返回模型抽到的非空字段；没有模型或抽取失败返回空 dict（只用规则抽取）。
+
+    hint：行业包补充的抽取说明（例如软件外包需要把业务拆解成功能模块）。
+    """
     if deps.llm is None or not text.strip():
         return {}
     try:
         schema = optional_model(model)
         extractor = deps.llm.with_structured_output(schema, method="function_calling")
-        out = extractor.invoke([SystemMessage(EXTRACT_PROMPT), HumanMessage(text)])
+        system = f"{EXTRACT_PROMPT}\n{hint}" if hint else EXTRACT_PROMPT
+        out = extractor.invoke([SystemMessage(system), HumanMessage(text)])
     except Exception:
         logger.warning("parse_requirement: llm extract failed, use rules only", exc_info=True)
         return {}

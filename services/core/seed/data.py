@@ -15,9 +15,11 @@ TEAM: dict[str, Any] = {"id": TEAM_SOUTH_ID, "name": "华南销售组"}
 
 PL_LLM = demo_id("product_line:llm")
 PL_IT = demo_id("product_line:it")
+PL_SOFTWARE = demo_id("product_line:software")
 PRODUCT_LINES: list[dict[str, Any]] = [
     {"id": PL_LLM, "name": "大模型私有化部署", "pack": "llm_deploy", "enabled": True},
     {"id": PL_IT, "name": "企业办公设备", "pack": "it_office", "enabled": True},
+    {"id": PL_SOFTWARE, "name": "软件定制开发", "pack": "software_outsourcing", "enabled": True},
 ]
 
 C_MINGLI = demo_id("customer:mingli")

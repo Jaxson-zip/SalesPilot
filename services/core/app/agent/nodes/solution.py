@@ -80,12 +80,14 @@ def make_parse_requirement(deps: AgentDeps) -> Node:
         except BizError as exc:
             return {"error": {"code": exc.code, "message": exc.message}}
         text = state.get("user_message", "")
-        model = get_configurator(pack_id).requirement_model
+        configurator = get_configurator(pack_id)
+        hint_fn = getattr(configurator, "extract_hint", None)  # 可选：行业包补充的抽取说明
+        hint = hint_fn() if callable(hint_fn) else ""
         args = {
             "pack_id": pack_id,
             "text": text,
             "draft": state.get("requirement", {}),
-            "extracted": extract_with_llm(deps, model, text),
+            "extracted": extract_with_llm(deps, configurator.requirement_model, text, hint),
         }
         result = call_tool(deps, "parse_requirement", args)
         if not result.ok:

@@ -9,6 +9,7 @@ import { fetchThreadMessages, threadKeys } from "@/hooks/useAgentThreads"
 import { useAgentStream } from "@/hooks/useAgentStream"
 import { requirementKey } from "@/hooks/useRequirement"
 import { DEFAULT_MODEL } from "@/lib/agent-labels"
+import type { AgentMode } from "@/lib/agent-mode"
 import { extractMaterial, type MaterialOut } from "@/lib/materials"
 import {
   MAX_SAMPLES,
@@ -38,6 +39,9 @@ export function useAiWorkbench() {
   const sampleBatch = useRef(0)
   // 从商机「出方案」进入时关联的商机；新对话 / 打开历史会话时清空
   const [opportunityId, setOpportunityId] = useState<string | null>(null)
+  // 做方案 / 学习问答：新对话时选，会话开始后固定（打开历史会话时跟着会话走）
+  const [mode, setMode] = useState<AgentMode>("work")
+  const learning = mode === "learn"
 
   /** 上传材料：服务端解析成文字（不入库），发送时随消息一起交给 AI */
   const attach = async (file: File) => {
@@ -117,10 +121,11 @@ export function useAiWorkbench() {
 
   const send = (text: string) => {
     const msg = text.trim()
-    const sampleSet = toSamplesIn(samples)
-    if ((!msg && !material && !sampleSet) || stream.isStreaming || samplesBusy(samples)) return
-    const mat = material ? { name: material.name, text: material.text } : null
-    stream.send(msg, model, mat, opportunityId, null, sampleSet)
+    // 学习问答只问不做：不带材料、样例和商机
+    const sampleSet = learning ? null : toSamplesIn(samples)
+    const mat = material && !learning ? { name: material.name, text: material.text } : null
+    if ((!msg && !mat && !sampleSet) || stream.isStreaming || samplesBusy(samples)) return
+    stream.send(msg, model, mat, learning ? null : opportunityId, null, sampleSet, mode)
     setInput("")
     setMaterial(null)
     clearSamples()
@@ -129,7 +134,7 @@ export function useAiWorkbench() {
   /** 需求卡片「确认需求，出报价」：把核对后的需求随消息提交 */
   const confirmRequirement = (requirement: Record<string, unknown>) => {
     if (stream.isStreaming) return
-    stream.send("需求已确认，出正式报价", model, null, opportunityId, requirement)
+    stream.send("需求已确认，出正式报价", model, null, opportunityId, requirement, null, mode)
   }
 
   const newChat = () => {
@@ -138,6 +143,18 @@ export function useAiWorkbench() {
     setMaterial(null)
     clearSamples()
     setOpportunityId(null)
+  }
+
+  /** 切换模式：当前会话已经开始时另起一个新对话（模式随会话固定） */
+  const switchMode = (next: AgentMode) => {
+    if (next === mode || stream.isStreaming) return
+    if (stream.turns.length > 0) newChat()
+    if (next === "learn") {
+      setMaterial(null)
+      clearSamples()
+      setOpportunityId(null)
+    }
+    setMode(next)
   }
 
   const openThread = async (id: string) => {
@@ -152,6 +169,7 @@ export function useAiWorkbench() {
       })
       const turns = messagesToTurns(data)
       setOpportunityId(data.opportunity_id ?? null)
+      setMode(data.mode ?? "work")
       // 这一轮还在后台生成（例如刷新了页面）：先显示之前的内容，再接上本轮
       if (data.running) stream.attach(id, turns, data.running, model)
       else stream.load(id, turns, lastUserText(turns), model)
@@ -190,5 +208,7 @@ export function useAiWorkbench() {
     openThread,
     opportunityId,
     setOpportunityId,
+    mode,
+    switchMode,
   }
 }

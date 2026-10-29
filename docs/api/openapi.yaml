@@ -8050,6 +8050,13 @@ components:
           anyOf:
           - $ref: '#/components/schemas/SamplesIn'
           - type: 'null'
+        mode:
+          type: string
+          enum:
+          - work
+          - learn
+          title: Mode
+          default: work
       type: object
       required:
       - thread_id
@@ -10943,6 +10950,10 @@ components:
         version:
           type: string
           title: Version
+        sample_data:
+          type: boolean
+          title: Sample Data
+          default: false
         catalog:
           items:
             $ref: '#/components/schemas/CatalogRow'
@@ -10966,6 +10977,7 @@ components:
       - catalog
       - rules
       - knowledge
+      - sample_data
       title: PackDetail
     PackOut:
       properties:
@@ -10981,12 +10993,17 @@ components:
         version:
           type: string
           title: Version
+        sample_data:
+          type: boolean
+          title: Sample Data
+          default: false
       type: object
       required:
       - id
       - name
       - description
       - version
+      - sample_data
       title: PackOut
     Page_ActivityOut_:
       properties:
@@ -12742,6 +12759,12 @@ components:
             $ref: '#/components/schemas/PromptTemplate'
           type: array
           title: Ai Prompts
+        learn_prompts:
+          items:
+            $ref: '#/components/schemas/PromptTemplate'
+          type: array
+          title: Learn Prompts
+          default: []
         rule_notes:
           $ref: '#/components/schemas/RuleNotes'
       type: object
@@ -12755,6 +12778,7 @@ components:
       - contract_terms
       - ai_prompts
       - rule_notes
+      - learn_prompts
       title: Templates
     TenderItem:
       properties:
@@ -12813,6 +12837,13 @@ components:
             format: uuid
           - type: 'null'
           title: Opportunity Id
+        mode:
+          type: string
+          enum:
+          - work
+          - learn
+          title: Mode
+          default: work
         running:
           type: boolean
           title: Running
@@ -12823,6 +12854,7 @@ components:
       - title
       - updated_at
       - opportunity_id
+      - mode
       - running
       title: ThreadItem
     ThreadMessages:
@@ -12846,6 +12878,13 @@ components:
           - type: string
           - type: 'null'
           title: Opportunity Id
+        mode:
+          type: string
+          enum:
+          - work
+          - learn
+          title: Mode
+          default: work
         running:
           anyOf:
           - $ref: '#/components/schemas/RunningInfo'
@@ -12856,6 +12895,7 @@ components:
       - messages
       - pending
       - opportunity_id
+      - mode
       - running
       title: ThreadMessages
     ThreadPage:

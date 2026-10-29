@@ -29,6 +29,7 @@ function useThreadUrl(w: AiSession): () => void {
   const prompt = params.get("prompt")
   const opp = params.get("opp")
   const paste = params.get("paste") === "1"
+  const mode = params.get("mode")
   const router = useRouter()
   const latest = useRef({ w, t })
   const mounted = useRef(false)
@@ -51,6 +52,7 @@ function useThreadUrl(w: AiSession): () => void {
   useEffect(() => {
     if (prompt === null) return
     latest.current.w.newChat()
+    latest.current.w.switchMode("work")
     latest.current.w.setInput(prompt)
     latest.current.w.setOpportunityId(opp)
     // &paste=1：写跟进处粘贴的纪要，作为材料带进来（不自动发送，销售看一眼再发）
@@ -58,6 +60,13 @@ function useThreadUrl(w: AiSession): () => void {
     if (pasted) latest.current.w.loadMaterial(pasted)
     router.replace("/ai", { scroll: false })
   }, [prompt, opp, paste, router])
+
+  // ?mode=learn：直接打开学习问答（新对话）
+  useEffect(() => {
+    if (mode !== "learn") return
+    latest.current.w.switchMode("learn")
+    router.replace("/ai", { scroll: false })
+  }, [mode, router])
 
   const threadId = w.stream.threadId
   useEffect(() => {
@@ -78,6 +87,8 @@ function AiWorkbench() {
   const packName = usePackName()
   const pack = opp.data?.product_line ? packName(opp.data.product_line.pack) : DEFAULT_PACK_LABEL
   const [historyOpen, setHistoryOpen] = useState(false)
+  const learn = w.mode === "learn"
+  const canAttach = canAiWrite && !learn
 
   const composer = (welcome: boolean) => (
     <Composer
@@ -85,25 +96,27 @@ function AiWorkbench() {
       onChange={setInput}
       onSubmit={() => send(input)}
       onStop={stream.stop}
-      material={canAiWrite ? w.material : undefined}
+      material={canAttach ? w.material : undefined}
       uploading={w.uploading}
-      onAttach={canAiWrite ? (f) => void w.attach(f) : undefined}
+      onAttach={canAttach ? (f) => void w.attach(f) : undefined}
       onClearMaterial={w.clearMaterial}
-      samples={canAiWrite ? w.samples : undefined}
-      onAttachSamples={canAiWrite ? w.attachSamples : undefined}
+      samples={canAttach ? w.samples : undefined}
+      onAttachSamples={canAttach ? w.attachSamples : undefined}
       onRetrySamples={w.retrySamples}
       onClearSamples={w.clearSamples}
       streaming={stream.isStreaming}
       model={model}
       onModelChange={setModel}
-      pack={pack}
+      pack={learn ? null : pack}
       rows={welcome ? 3 : 2}
       placeholder={
-        !canAiWrite
-          ? "查询业务数据，例如：本月全公司销售漏斗怎么样"
-          : welcome
-            ? undefined
-            : "继续追问，例如：换成 DeepSeek-V3 再算一版"
+        learn
+          ? "问问公司的产品、报价方式、制度和竞品，例如：销售提成怎么算？"
+          : !canAiWrite
+            ? "查询业务数据，例如：本月全公司销售漏斗怎么样"
+            : welcome
+              ? undefined
+              : "继续追问，例如：换成 DeepSeek-V3 再算一版"
       }
     />
   )
@@ -127,6 +140,8 @@ function AiWorkbench() {
             onRetry={stream.retry}
             onNew={goNew}
             onConfirmRequirement={w.confirmRequirement}
+            mode={w.mode}
+            onAsk={send}
           />
         ) : w.loadingId ? (
           <div className="flex flex-1 items-center justify-center gap-2 text-sm text-zinc-400">
@@ -134,7 +149,13 @@ function AiWorkbench() {
             正在加载会话…
           </div>
         ) : (
-          <Welcome composer={composer(true)} onPick={send} readOnly={!canAiWrite} />
+          <Welcome
+            composer={composer(true)}
+            onPick={send}
+            readOnly={!canAiWrite}
+            mode={w.mode}
+            onModeChange={w.switchMode}
+          />
         )}
       </div>
     </PageFrame>

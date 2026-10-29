@@ -39,7 +39,9 @@ def run_rule_plan(deps: AgentDeps, state: AgentState) -> dict[str, Any]:
     text = state.get("user_message", "")
     log = list(state.get("tool_log", []))
     found: list[dict[str, Any]] = []
-    for name in plan_tools(text)[: deps.max_tool_calls]:
+    # 学习问答模式只查知识库，不碰客户数据
+    names = ["search_policy"] if state.get("mode") == "learn" else plan_tools(text)
+    for name in names[: deps.max_tool_calls]:
         args = _args_for(name, text, state, found)
         if args is None:
             continue

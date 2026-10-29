@@ -38,7 +38,14 @@ function PackCard({
         <span className="inline-flex size-9 items-center justify-center rounded-lg bg-zinc-100">
           <Boxes className="size-4" />
         </span>
-        <Tag color="green">已安装</Tag>
+        <span className="flex items-center gap-1.5">
+          {pack.sample_data ? (
+            <span title="产品目录价格和知识库是演示用的示例资料，换成公司真实资料后在 pack.yaml 里关掉">
+              <Tag color="orange">示例资料</Tag>
+            </span>
+          ) : null}
+          <Tag color="green">已安装</Tag>
+        </span>
       </div>
       <div className="mt-3 truncate font-medium">{pack.name}</div>
       <p className="mt-1 line-clamp-2 min-h-[38px] text-zinc-500">{pack.description}</p>
@@ -75,6 +82,12 @@ function PacksContent() {
         销售创建商机时选择「产品线」，系统按下方映射自动匹配行业包；AI
         出方案时直接使用该行业包的产品目录、规则和知识库。产品价格、本行业参数和知识库文档都可以在卡片里直接修改，保存后立即生效。
       </Alert>
+      {packs.data?.some((p) => p.sample_data) ? (
+        <Alert tone="warn" title="标「示例资料」的行业包还在用演示数据">
+          产品目录的成本和售价、知识库文档都是内置的示例内容，AI「学习问答」
+          回答时会提醒是示例。正式使用前请改成公司真实的价格，并上传真实的制度和产品资料。
+        </Alert>
+      ) : null}
       <div>
         <div className="mb-2 font-medium">已安装的行业包</div>
         {packs.isError ? (

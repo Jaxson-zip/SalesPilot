@@ -3883,6 +3883,12 @@ export interface components {
       model?: string | null
       material?: components["schemas"]["MaterialIn"] | null
       samples?: components["schemas"]["SamplesIn"] | null
+      /**
+       * Mode
+       * @default work
+       * @enum {string}
+       */
+      mode?: "work" | "learn"
     }
     /** ChatModelOut */
     ChatModelOut: {
@@ -5388,6 +5394,11 @@ export interface components {
       description: string
       /** Version */
       version: string
+      /**
+       * Sample Data
+       * @default false
+       */
+      sample_data: boolean
       /** Catalog */
       catalog: components["schemas"]["CatalogRow"][]
       /** Rules */
@@ -5407,6 +5418,11 @@ export interface components {
       description: string
       /** Version */
       version: string
+      /**
+       * Sample Data
+       * @default false
+       */
+      sample_data: boolean
     }
     /** Page[ActivityOut] */
     Page_ActivityOut_: {
@@ -6341,6 +6357,11 @@ export interface components {
       contract_terms: string[]
       /** Ai Prompts */
       ai_prompts: components["schemas"]["PromptTemplate"][]
+      /**
+       * Learn Prompts
+       * @default []
+       */
+      learn_prompts: components["schemas"]["PromptTemplate"][]
       rule_notes: components["schemas"]["RuleNotes"]
     }
     /** TenderItem */
@@ -6381,6 +6402,12 @@ export interface components {
       /** Opportunity Id */
       opportunity_id: string | null
       /**
+       * Mode
+       * @default work
+       * @enum {string}
+       */
+      mode: "work" | "learn"
+      /**
        * Running
        * @default false
        */
@@ -6398,6 +6425,12 @@ export interface components {
       } | null
       /** Opportunity Id */
       opportunity_id: string | null
+      /**
+       * Mode
+       * @default work
+       * @enum {string}
+       */
+      mode: "work" | "learn"
       running: components["schemas"]["RunningInfo"] | null
     }
     /** ThreadPage */

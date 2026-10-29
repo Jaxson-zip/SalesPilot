@@ -41,7 +41,7 @@ def test_list_only_own_threads(client: TestClient, threads: list[str]) -> None:
     assert ids.index(threads[1]) < ids.index(threads[0])  # updated_at 倒序
     first = next(t for t in data["items"] if t["thread_id"] == threads[0])
     assert first["title"].startswith("第一条会话") and len(first["title"]) == 30
-    assert set(first) == {"thread_id", "title", "updated_at", "opportunity_id", "running"}
+    assert set(first) == {"thread_id", "title", "updated_at", "opportunity_id", "mode", "running"}
     assert first["running"] is False
     assert data["total"] >= 2
 
@@ -94,6 +94,7 @@ def test_messages_empty_thread(client: TestClient, threads: list[str]) -> None:
         "pending": None,
         "running": None,
         "opportunity_id": None,
+        "mode": "work",
     }
 
 

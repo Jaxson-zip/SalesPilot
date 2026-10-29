@@ -58,5 +58,7 @@ export interface Templates {
   contract_terms: string[]
   /** 当前角色的 AI 示例问题 */
   ai_prompts: PromptTemplate[]
+  /** 学习问答模式的引导问题（所有角色一样） */
+  learn_prompts: PromptTemplate[]
   rule_notes: Record<RuleNoteKey, RuleNote>
 }

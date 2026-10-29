@@ -10,13 +10,22 @@ from app.agent.tools.base import (
 )
 from app.agent.tools.context_tools import CONTEXT_TOOLS
 from app.agent.tools.crm_tools import CRM_TOOLS
+from app.agent.tools.learn_tools import LEARN_TOOLS
 from app.agent.tools.material_tools import MATERIAL_TOOLS
 from app.agent.tools.policy_tools import POLICY_TOOLS
 from app.agent.tools.solution_tools import SOLUTION_TOOLS
 from app.common.auth import Role
 
 TOOLS: dict[str, ToolSpec] = {
-    t.name: t for t in [*CRM_TOOLS, *MATERIAL_TOOLS, *CONTEXT_TOOLS, *SOLUTION_TOOLS, *POLICY_TOOLS]
+    t.name: t
+    for t in [
+        *CRM_TOOLS,
+        *MATERIAL_TOOLS,
+        *CONTEXT_TOOLS,
+        *SOLUTION_TOOLS,
+        *POLICY_TOOLS,
+        *LEARN_TOOLS,
+    ]
 }
 
 # 对话里交给模型自主调用（function calling）的工具；出方案链路的工具由状态图按固定顺序调用
@@ -34,6 +43,7 @@ CHAT_TOOL_NAMES: tuple[str, ...] = (
     "pipeline_summary",
     "calc_commission",
     "search_policy",
+    "get_business_overview",
     "list_pending_approvals",
     "decide_approval",
 )
@@ -48,8 +58,11 @@ READ_ONLY_TOOLS = frozenset(
         "pipeline_summary",
         "calc_commission",
         "search_policy",
+        "get_business_overview",
     }
 )
+# 学习问答模式（新人带教）：只能查公司业务、制度知识库和竞品战卡，不碰客户数据、不写任何东西
+LEARN_TOOL_NAMES: tuple[str, ...] = ("get_business_overview", "search_policy", "get_battlecard")
 
 
 MANAGER_ONLY_TOOLS = frozenset({"list_pending_approvals", "decide_approval"})
@@ -62,6 +75,13 @@ def chat_tools_for(role: Role) -> list[ToolSpec]:
     return [TOOLS[n] for n in names]
 
 
+def tools_for(role: Role, mode: str | None = None) -> list[ToolSpec]:
+    """对话可用的工具：学习问答模式所有角色一样，只有只读的知识类工具。"""
+    if mode == "learn":
+        return [TOOLS[n] for n in LEARN_TOOL_NAMES]
+    return chat_tools_for(role)
+
+
 __all__ = [
     "INJECTED_ARGS",
     "TOOLS",
@@ -71,4 +91,5 @@ __all__ = [
     "chat_tools_for",
     "inject_system_args",
     "run_tool",
+    "tools_for",
 ]

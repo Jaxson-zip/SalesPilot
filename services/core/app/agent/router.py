@@ -34,6 +34,8 @@ class ChatIn(BaseModel):
     material: materials.MaterialIn | None = None
     # 客户样例图片的逐张识别结果（先调 /samples）；有样例时直接走出方案
     samples: sample_lib.SamplesIn | None = None
+    # learn：学习问答（新人带教），只用知识类只读工具；会话新建时确定，之后沿用
+    mode: Literal["work", "learn"] = "work"
 
 
 class ResumeIn(BaseModel):
@@ -59,6 +61,7 @@ async def chat(body: ChatIn, user: CurrentUserDep, request: Request) -> EventSou
         body.material,
         requirement=body.requirement,
         samples=body.samples,
+        mode=body.mode,
     )
     return EventSourceResponse(follow_run(service.start_run(run, user)))
 

@@ -12,6 +12,7 @@ import {
   type AssistantTurn,
   type ChatTurn,
 } from "@/lib/agent-reducer"
+import type { AgentMode } from "@/lib/agent-mode"
 import { api, isAbortError, isApiError } from "@/lib/api"
 import { MATERIAL_DEFAULT_ASK, type MaterialIn } from "@/lib/materials"
 import { SAMPLE_DEFAULT_ASK, sampleChipName, type SamplesIn } from "@/lib/samples"
@@ -56,6 +57,8 @@ export interface UseAgentStream {
     opportunityId?: string | null,
     requirement?: Record<string, unknown> | null,
     samples?: SamplesIn | null,
+    /** 会话模式：服务端以会话第一轮为准 */
+    mode?: AgentMode,
   ) => void
   /** tier：确认生成报价单时另选的档位 */
   resume: (decision: ResumeDecision, tier?: string) => void
@@ -132,6 +135,7 @@ export function useAgentStream(): UseAgentStream {
     opportunity_id?: string
     requirement?: Record<string, unknown>
     samples?: SamplesIn
+    mode?: AgentMode
   } | null>(null)
 
   const patch = useCallback<Patch>((fn) => setTurns((ts) => updateLastAssistant(ts, fn)), [])
@@ -157,6 +161,7 @@ export function useAgentStream(): UseAgentStream {
       opportunityId?: string | null,
       req?: Record<string, unknown> | null,
       sampleSet?: SamplesIn | null,
+      mode?: AgentMode,
     ) => {
       const fallback = material ? MATERIAL_DEFAULT_ASK : sampleSet ? SAMPLE_DEFAULT_ASK : ""
       const text = message.trim() || fallback
@@ -164,7 +169,7 @@ export function useAgentStream(): UseAgentStream {
       const opportunity_id = opportunityId ?? undefined
       const requirement = req ?? undefined
       const samples = sampleSet ?? undefined
-      lastChat.current = { message: text, model, material, opportunity_id, requirement, samples }
+      lastChat.current = { message: text, model, material, opportunity_id, requirement, samples, mode }
       const thread_id = ensureThread()
       const meta = material
         ? { name: material.name, chars: material.text.length }
@@ -175,7 +180,16 @@ export function useAgentStream(): UseAgentStream {
       void run((o) =>
         postSSE(
           CHAT_PATH,
-          { thread_id, message: text, model, material: material ?? undefined, opportunity_id, requirement, samples },
+          {
+            thread_id,
+            message: text,
+            model,
+            material: material ?? undefined,
+            opportunity_id,
+            requirement,
+            samples,
+            mode,
+          },
           o,
         ),
       )
@@ -209,6 +223,7 @@ export function useAgentStream(): UseAgentStream {
           opportunity_id: last.opportunity_id,
           requirement: last.requirement,
           samples: last.samples,
+          mode: last.mode,
         },
         o,
       ),

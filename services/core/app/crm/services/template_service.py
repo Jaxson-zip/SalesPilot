@@ -64,6 +64,7 @@ class Templates(BaseModel):
     quote_terms: list[str]
     contract_terms: list[str]  # 合同要素确认单的说明
     ai_prompts: list[PromptTemplate]
+    learn_prompts: list[PromptTemplate] = []  # 学习问答模式的引导问题
     # 规则说明（悬浮提示）：commission / quote / expense，数字来自 rules.yaml
     rule_notes: RuleNotes
 
@@ -136,4 +137,5 @@ def get_templates(role: Role) -> Templates:
         ai_prompts=[
             PromptTemplate.model_validate(p) for p in raw.get("ai_prompts", {}).get(role, [])
         ],
+        learn_prompts=[PromptTemplate.model_validate(p) for p in raw.get("learn_prompts", [])],
     )

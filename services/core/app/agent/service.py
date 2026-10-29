@@ -20,6 +20,7 @@ from app.agent.materials import MaterialIn, compose
 from app.agent.nodes.common import now_iso
 from app.agent.runs import Run, RunKind, registry
 from app.agent.sse import iter_graph_events
+from app.agent.state import Mode
 from app.agent.threads import touch_thread
 from app.agent.tools.base import ToolContext
 from app.common.auth import CurrentUser
@@ -104,12 +105,17 @@ def prepare_chat(
     checkpointer: BaseCheckpointSaver | None = None,
     requirement: dict[str, Any] | None = None,
     samples: sample_lib.SamplesIn | None = None,
+    mode: Mode = "work",
 ) -> PreparedRun:
     thread_id = deps.ctx.thread_id
     graph = build_graph(deps, checkpointer or get_checkpointer())
     config = _config(thread_id)
     snapshot = _check_owner(graph, config, deps.ctx.user)
     _ensure_idle(thread_id)
+    existing = snapshot.values or {}
+    if existing.get("user_id"):
+        # 模式在会话第一轮确定，之后沿用：学习问答的会话不会被切到能写数据的模式
+        mode = "learn" if existing.get("mode") == "learn" else "work"
     extra: dict[str, Any] = {"created_at": now_iso()}
     content = message
     if material is not None:
@@ -126,11 +132,12 @@ def prepare_chat(
         "material": material.name if material else None,
         "confirmed_requirement": requirement,
         "samples": summary.model_dump() if summary else None,
+        "mode": mode,
     }
     # 没带商机（例如从历史记录重新打开的会话）时不覆盖：会话之前关联的商机继续有效
     if opportunity_id:
         payload["opportunity_id"] = str(opportunity_id)
-    touch_thread(deps.ctx.session, deps.ctx.user, thread_id, message, opportunity_id)
+    touch_thread(deps.ctx.session, deps.ctx.user, thread_id, message, opportunity_id, mode)
     return PreparedRun(
         graph, payload, config, thread_id, "chat", message, build_messages(thread_id, snapshot)
     )

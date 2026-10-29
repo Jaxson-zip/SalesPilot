@@ -6,7 +6,7 @@ import uuid
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -28,6 +28,7 @@ class ThreadItem(BaseModel):
     title: str
     updated_at: datetime
     opportunity_id: uuid.UUID | None = None
+    mode: Literal["work", "learn"] = "work"
     running: bool = False  # 还在后台生成
 
 
@@ -64,6 +65,7 @@ def upsert_thread(
     thread_id: str,
     message: str,
     opportunity_id: uuid.UUID | None = None,
+    mode: str = "work",
 ) -> AgentThread:
     """新会话写入（标题取首条消息）；已有会话只刷新 updated_at，并补上关联商机。"""
     row = find_thread(db, thread_id)
@@ -71,7 +73,11 @@ def upsert_thread(
     opp = _valid_opportunity(db, opportunity_id)
     if row is None:
         row = AgentThread(
-            thread_id=thread_id, user_id=user.id, title=make_title(message), opportunity_id=opp
+            thread_id=thread_id,
+            user_id=user.id,
+            title=make_title(message),
+            opportunity_id=opp,
+            mode=mode,
         )
         db.add(row)
     else:
@@ -88,13 +94,14 @@ def touch_thread(
     thread_id: str,
     message: str,
     opportunity_id: uuid.UUID | None,
+    mode: str = "work",
 ) -> None:
     """chat 入口调用：登记会话。数据库不可用时只记日志，不影响对话本身。"""
     try:
         with session() as db:
             if db is None:  # 单元测试的空会话
                 return
-            upsert_thread(db, user, thread_id, message, opportunity_id)
+            upsert_thread(db, user, thread_id, message, opportunity_id, mode)
     except BizError:
         raise
     except Exception:
@@ -118,6 +125,7 @@ def list_threads(db: Session, user: CurrentUser, limit: int) -> ThreadPage:
             title=r.title,
             updated_at=r.updated_at,
             opportunity_id=r.opportunity_id,
+            mode=r.mode,  # type: ignore[arg-type]
             running=r.thread_id in running,
         )
         for r in db.scalars(stmt).all()
@@ -142,6 +150,7 @@ def rename_thread(db: Session, user: CurrentUser, thread_id: str, title: str) ->
         title=row.title,
         updated_at=row.updated_at,
         opportunity_id=row.opportunity_id,
+        mode=row.mode,  # type: ignore[arg-type]
     )
 
 

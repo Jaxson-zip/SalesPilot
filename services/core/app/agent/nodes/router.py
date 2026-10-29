@@ -61,6 +61,8 @@ def make_router(deps: AgentDeps) -> Callable[[AgentState], dict[str, Any]]:
         node_start("router")
         pending = bool(state.get("missing"))
         text = state.get("user_message", "")
+        if state.get("mode") == "learn":
+            return {**turn_reset(), "intent": "crm_action"}  # 学习问答：只走知识类工具
         if state.get("confirmed_requirement"):
             return {**turn_reset(), "intent": "solution"}  # 需求卡片确认：直接出方案
         if state.get("samples"):

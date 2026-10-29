@@ -4,12 +4,15 @@
  */
 import { nextId, type AssistantTurn, type ChatTurn } from "@/lib/agent-reducer"
 import { actionTitle } from "@/lib/agent-labels"
+import type { AgentMode } from "@/lib/agent-mode"
 
 export interface ThreadSummary {
   thread_id: string
   title: string
   updated_at: string
   opportunity_id: string | null
+  /** 会话模式：做方案 / 学习问答 */
+  mode?: AgentMode
   /** 还在后台生成 */
   running?: boolean
 }
@@ -36,6 +39,8 @@ export interface ThreadMessages {
   running?: ThreadRunning | null
   /** 会话关联的商机：重新打开后继续带上（行业包、需求清单都跟着它） */
   opportunity_id?: string | null
+  /** 会话模式（新建时确定，之后沿用） */
+  mode?: AgentMode
 }
 
 export interface ThreadRunning {
@@ -51,6 +56,8 @@ export interface HistoryItem {
   /** 毫秒时间戳，用于「今天 / 7 天内」分组 */
   updatedAt: number
   running: boolean
+  /** 学习问答模式的会话 */
+  learn: boolean
 }
 
 export function toHistoryItems(items: ThreadSummary[]): HistoryItem[] {
@@ -61,6 +68,7 @@ export function toHistoryItems(items: ThreadSummary[]): HistoryItem[] {
       title: t.title || "新对话",
       updatedAt: Number.isNaN(ts) ? 0 : ts,
       running: Boolean(t.running),
+      learn: t.mode === "learn",
     }
   })
 }

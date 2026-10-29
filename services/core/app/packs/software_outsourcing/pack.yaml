@@ -2,6 +2,8 @@ id: software_outsourcing
 name: 软件外包
 description: 小程序 / App / 网站 / 管理后台定制开发：功能模块拆解、人天估算、分档报价
 version: 1.0.0
+# 产品目录价格、知识库为演示用示例资料；换成真实资料后改为 false
+sample_data: true
 
 # 管理员可以在「行业包配置 → 业务规则」里修改的参数（默认值在 rules.yaml 的 pack 段）
 settings:

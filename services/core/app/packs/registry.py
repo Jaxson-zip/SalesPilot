@@ -21,6 +21,9 @@ class PackInfo(BaseModel):
     name: str
     description: str = ""
     version: str = "0.1.0"
+    # 产品目录价格和知识库是演示用的示例资料：页面标「示例」，AI 回答时说明；
+    # 换成真实资料后在 pack.yaml 里改为 false
+    sample_data: bool = False
     path: Path
 
     @property

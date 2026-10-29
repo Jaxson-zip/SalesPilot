@@ -1,6 +1,6 @@
 "use client"
 
-import { Loader2, MoreHorizontal, Pencil, Search, SquarePen, Trash2 } from "lucide-react"
+import { GraduationCap, Loader2, MoreHorizontal, Pencil, Search, SquarePen, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
@@ -80,6 +80,7 @@ function HistoryRow({
         aria-current={active ? "page" : undefined}
         className="flex h-full min-w-0 flex-1 items-center gap-2 pl-2.5"
       >
+        {it.learn ? <GraduationCap className="size-3.5 shrink-0 text-zinc-400" aria-label="学习问答" /> : null}
         <span className="flex-1 truncate" title={it.title}>
           {it.title}
         </span>

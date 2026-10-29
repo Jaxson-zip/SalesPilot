@@ -28,9 +28,9 @@ from langgraph.types import interrupt
 from app.agent.deps import AgentDeps
 from app.agent.nodes.common import call_tool, emit, log_tool, node_start
 from app.agent.nodes.crm import run_rule_plan
-from app.agent.prompts import system_prompt
+from app.agent.prompts import learn_prompt, system_prompt
 from app.agent.state import AgentState
-from app.agent.tools import TOOLS, ToolResult, chat_tools_for, inject_system_args
+from app.agent.tools import TOOLS, ToolResult, inject_system_args, tools_for
 from app.agent.tools.previews import confirm_preview
 from app.rules.crm_calc import LOCAL_TZ
 
@@ -70,6 +70,8 @@ def _system(deps: AgentDeps, state: AgentState) -> SystemMessage:
     rules = TOOL_RULES.format(
         today=datetime.now(LOCAL_TZ).date().isoformat(), user=user.name, role=user.role.value
     )
+    if state.get("mode") == "learn":
+        return SystemMessage(content=f"{learn_prompt()}\n\n{rules}")
     return SystemMessage(content=f"{system_prompt(state.get('pack_id'))}\n\n{rules}")
 
 
@@ -78,10 +80,10 @@ def _tool_content(result: ToolResult) -> str:
     return json.dumps(result.model_dump(mode="json"), ensure_ascii=False, default=str)
 
 
-def _stream_round(deps: AgentDeps, messages: list[BaseMessage]) -> AIMessage:
+def _stream_round(deps: AgentDeps, state: AgentState, messages: list[BaseMessage]) -> AIMessage:
     """调用一次模型（流式），正文实时推送 message.delta，工具调用片段累积成完整的 tool_calls。"""
     assert deps.llm is not None
-    schemas = [t.openai_schema() for t in chat_tools_for(deps.ctx.user.role)]
+    schemas = [t.openai_schema() for t in tools_for(deps.ctx.user.role, state.get("mode"))]
     acc: AIMessageChunk | None = None
     for chunk in deps.llm.bind_tools(schemas).stream(messages):
         if not isinstance(chunk, AIMessageChunk):
@@ -95,8 +97,8 @@ def _stream_round(deps: AgentDeps, messages: list[BaseMessage]) -> AIMessage:
     return AIMessage(content=content, tool_calls=acc.tool_calls, id=acc.id)
 
 
-def _allowed(deps: AgentDeps) -> set[str]:
-    return {t.name for t in chat_tools_for(deps.ctx.user.role)}
+def _allowed(deps: AgentDeps, state: AgentState) -> set[str]:
+    return {t.name for t in tools_for(deps.ctx.user.role, state.get("mode"))}
 
 
 def _system_args(deps: AgentDeps, state: AgentState, call_id: str) -> dict[str, Any]:
@@ -116,7 +118,7 @@ def _run_calls(
 ) -> tuple[dict[str, Any] | None, list]:
     """执行一轮 tool_calls：只读直接执行；遇到需要确认的写工具就停下（返回 pending）。"""
     pending: dict[str, Any] | None = None
-    allowed = _allowed(deps)
+    allowed = _allowed(deps, state)
     for call in ai.tool_calls:
         call_id = call.get("id") or ""
         name = call["name"]
@@ -150,7 +152,7 @@ def _llm_loop(deps: AgentDeps, state: AgentState) -> dict[str, Any]:
     rounds = state.get("tool_rounds", 0)
     said = [state["agent_reply"]] if state.get("agent_reply") else []
     while rounds < deps.max_tool_calls:
-        ai = _stream_round(deps, messages)
+        ai = _stream_round(deps, state, messages)
         messages.append(ai)
         if isinstance(ai.content, str) and ai.content:
             said.append(ai.content)

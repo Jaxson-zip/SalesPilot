@@ -1,6 +1,6 @@
 "use client"
 
-import { CircleAlert, RotateCcw, Sparkles } from "lucide-react"
+import { CircleAlert, CornerDownRight, RotateCcw, Sparkles } from "lucide-react"
 import { useState } from "react"
 
 import { ArtifactView } from "@/components/agent/ArtifactView"
@@ -10,6 +10,7 @@ import { MsgActions } from "@/components/agent/MsgActions"
 import { ThinkBlock } from "@/components/agent/ThinkBlock"
 import { Button } from "@/components/ui/button"
 import { useSmoothText } from "@/hooks/useSmoothText"
+import { splitFollowUps } from "@/lib/agent-mode"
 import type { AgentArtifact, AssistantTurn } from "@/lib/agent-reducer"
 import { isCoreTiers, type CoreSolutionTier } from "@/lib/artifacts"
 import { previewRows } from "@/lib/interrupt-preview"
@@ -53,6 +54,7 @@ export function AiMessage({
   onDecide,
   onRetry,
   onConfirmRequirement,
+  onAsk,
   readonly,
 }: {
   turn: AssistantTurn
@@ -64,6 +66,8 @@ export function AiMessage({
   onDecide: (decision: ResumeDecision, tier?: string) => void
   onRetry: () => void
   onConfirmRequirement?: (requirement: Record<string, unknown>) => void
+  /** 学习问答：回答末尾「可以接着问」拆成按钮，点击直接发送 */
+  onAsk?: (question: string) => void
 }) {
   const live = turn.status === "streaming"
   // 生成报价单前可以在三档里另选：物料清单和确认卡跟着切换，确认时把选中档带给后端
@@ -87,15 +91,17 @@ export function AiMessage({
   const decide = (decision: ResumeDecision) =>
     onDecide(decision, decision === "approve" && pickedTier && !pickedTier.recommended ? pickedTier.tier : undefined)
   const [animate] = useState(live)
-  const text = useSmoothText(turn.text, animate)
+  const smooth = useSmoothText(turn.text, animate)
+  const followUps = onAsk ? splitFollowUps(smooth) : null
+  const text = followUps ? followUps.body : smooth
   const afterText = useSmoothText(turn.afterText, animate || turn.afterText === "")
-  const typing = text.length < turn.text.length || afterText.length < turn.afterText.length
+  const typing = smooth.length < turn.text.length || afterText.length < turn.afterText.length
   const seconds = Math.max(1, Math.round(((turn.endedAt ?? Date.now()) - turn.startedAt) / 1000))
   const showCaret = (live || typing) && (turn.text.length > 0 || turn.steps.length > 0)
   // 确认后的续写在卡片下面；光标跟着正在输出的那一段
   const caretAfter = showCaret && turn.afterText.length > 0
   // 生成中：卡片等前面的说明打完、后端停下（等确认或已结束）再出现
-  const showCards = !(live || typing) || (Boolean(turn.interrupt) && text.length >= turn.text.length)
+  const showCards = !(live || typing) || (Boolean(turn.interrupt) && smooth.length >= turn.text.length)
   return (
     <div className="flex gap-3">
       <span
@@ -156,6 +162,22 @@ export function AiMessage({
           <ErrorBanner error={turn.error} onRetry={onRetry} disabled={busy || readonly} />
         ) : null}
         {turn.status === "stopped" ? <div className="text-xs text-zinc-400">已停止生成</div> : null}
+        {followUps?.questions.length && turn.status === "done" && !typing && !readonly ? (
+          <div className="flex flex-col items-start gap-1.5" aria-label="可以接着问">
+            {followUps.questions.map((q) => (
+              <button
+                key={q}
+                type="button"
+                disabled={busy}
+                onClick={() => onAsk?.(q)}
+                className="inline-flex max-w-full items-start gap-1.5 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-left text-sm text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                <CornerDownRight className="mt-0.5 size-3.5 shrink-0 text-zinc-400" />
+                {q}
+              </button>
+            ))}
+          </div>
+        ) : null}
         {turn.status === "done" && !typing ? (
           <MsgActions
             text={[turn.text, turn.afterText].filter(Boolean).join("\n\n")}

@@ -6,12 +6,15 @@ from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
 
 Intent = Literal["chitchat", "crm_action", "solution"]
+# work：做方案 / 操作 CRM（默认）；learn：学习问答（新人带教，只读知识类工具）
+Mode = Literal["work", "learn"]
 
 
 class AgentState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     user_id: str  # 会话归属，resume 时校验
     user_message: NotRequired[str]
+    mode: NotRequired[Mode]  # 会话模式，跨轮次保留
     material: NotRequired[str | None]  # 本轮上传的材料名（材料原文在用户消息里）
     samples: NotRequired[dict[str, Any] | None]  # 本轮上传的客户样例识别汇总（SampleSummary）
     opportunity_id: NotRequired[str | None]

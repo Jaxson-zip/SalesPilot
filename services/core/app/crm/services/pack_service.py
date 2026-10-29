@@ -26,11 +26,18 @@ class PackOut(BaseModel):
     name: str
     description: str
     version: str
+    sample_data: bool = False  # 目录价格和知识库是示例资料
 
 
 def list_installed_packs() -> list[PackOut]:
     return [
-        PackOut(id=p.id, name=p.name, description=p.description, version=p.version)
+        PackOut(
+            id=p.id,
+            name=p.name,
+            description=p.description,
+            version=p.version,
+            sample_data=p.sample_data,
+        )
         for p in list_packs().values()
     ]
 
@@ -97,6 +104,7 @@ def get_pack_detail(pack_id: str, db: Session | None = None) -> PackDetail:
         name=pack.name,
         description=pack.description,
         version=pack.version,
+        sample_data=pack.sample_data,
         catalog=settings_service.catalog_rows(pack),
         rules=load_raw_rules(pack.rules_file, scope=pack.id),
         knowledge=_knowledge(pack, counts),

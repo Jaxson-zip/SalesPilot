@@ -1,10 +1,11 @@
 "use client"
 
-import { SquarePen } from "lucide-react"
+import { GraduationCap, SquarePen } from "lucide-react"
 import { useEffect, useRef, type ReactNode } from "react"
 
 import { AiMessage } from "@/components/agent/AiMessage"
 import { UserMsg } from "@/components/agent/UserMsg"
+import { MODE_LABEL, type AgentMode } from "@/lib/agent-mode"
 import type { ChatTurn } from "@/lib/agent-reducer"
 import { cn } from "@/lib/utils"
 import type { ResumeDecision } from "@/types/api"
@@ -12,9 +13,15 @@ import type { ResumeDecision } from "@/types/api"
 const ICON_BTN = "inline-flex size-7 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100"
 
 /** 会话标题栏：标题 + 新对话（会话记录在页面标题行的「历史记录」面板里） */
-function ChatHeader({ title, onNew }: { title: string; onNew: () => void }) {
+function ChatHeader({ title, onNew, learn }: { title: string; onNew: () => void; learn?: boolean }) {
   return (
     <div className="flex h-11 shrink-0 items-center gap-2 border-b border-zinc-100 px-3 sm:px-4">
+      {learn ? (
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600">
+          <GraduationCap className="size-3.5" />
+          {MODE_LABEL.learn}
+        </span>
+      ) : null}
       <span className="min-w-0 flex-1 truncate font-medium" title={title}>
         {title}
       </span>
@@ -36,6 +43,8 @@ export function ChatView({
   onRetry,
   onNew,
   onConfirmRequirement,
+  mode = "work",
+  onAsk,
 }: {
   title: string
   turns: ChatTurn[]
@@ -47,7 +56,11 @@ export function ChatView({
   onRetry: () => void
   onNew: () => void
   onConfirmRequirement?: (requirement: Record<string, unknown>) => void
+  mode?: AgentMode
+  /** 学习问答：点回答末尾的追问建议直接发送 */
+  onAsk?: (question: string) => void
 }) {
+  const learn = mode === "learn"
   const scrollRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   // 停在底部附近时跟随新内容（正文是逐字显示的，内容高度一直在变）；用户往上翻看时不打扰
@@ -91,7 +104,7 @@ export function ChatView({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <ChatHeader title={title} onNew={onNew} />
+      <ChatHeader title={title} onNew={onNew} learn={learn} />
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div
           ref={contentRef}
@@ -112,6 +125,7 @@ export function ChatView({
                 onDecide={onDecide}
                 onRetry={onRetry}
                 onConfirmRequirement={onConfirmRequirement}
+                onAsk={learn ? onAsk : undefined}
                 readonly={i !== turns.length - 1}
               />
             ),
@@ -121,7 +135,11 @@ export function ChatView({
       <div className="shrink-0 px-3 pb-3 sm:px-6 sm:pb-4">
         <div className="mx-auto max-w-[760px]">
           {composer}
-          <p className="mt-2 text-center text-[11px] text-zinc-400">内容由 AI 生成，价格与毛利以报价引擎计算为准</p>
+          <p className="mt-2 text-center text-[11px] text-zinc-400">
+            {learn
+              ? "内容由 AI 根据知识库和系统配置整理，以公司正式制度为准"
+              : "内容由 AI 生成，价格与毛利以报价引擎计算为准"}
+          </p>
         </div>
       </div>
     </div>

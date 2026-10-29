@@ -41,6 +41,8 @@ export interface PackDetail {
   name: string
   description: string
   version: string
+  /** 产品目录价格和知识库是演示用的示例资料 */
+  sample_data: boolean
   catalog: PackCatalogItem[]
   rules: Record<string, unknown>
   knowledge: PackKnowledgeDoc[]

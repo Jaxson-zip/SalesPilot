@@ -10,6 +10,10 @@ pack:
   ai_tool_cost_per_day: 3000  # AI 编码工具 / token 分摊到每个人天的成本（分），计入成本不单列
   ai_daily_calls: 500         # 交付的软件带 AI 功能时，预计每天调用次数（估上线后月费）
   ai_tokens_per_call: 2000    # 每次调用的 token 数（输入 + 输出）
+  ocr_monthly_pages: 3000     # 有图片识别、客户没说业务量时，按每月这么多张估月费
+  ocr_cost_per_page: 3        # 视觉大模型识别一张图片的费用（分），按所选模型价格填
+  sop_days: 5                 # 客户没有 SOP：业务调研与流程梳理（访谈、流程图、字段定义），按产品经理单价
+  poc_days: 8                 # 有图片识别时建议先做的样例验证（研发人天），单独报价，不计入三档
   ratios:                     # 占研发人天的比例
     analysis: 0.10
     ui: 0.15
@@ -39,5 +43,6 @@ pack:
     report:      {name: 数据统计报表, days: [3, 6, 10], keywords: [报表, 统计, 数据看板, 大屏]}
     rbac:        {name: 角色权限管理, days: [3, 5, 8], keywords: [权限, 角色]}
     integration: {name: 第三方系统对接, days: [4, 8, 15], keywords: [对接, ERP, OA, 集成]}
-    ai:          {name: AI 能力接入, days: [4, 8, 15], keywords: [AI, 智能问答, 大模型, 识别]}
+    ai:          {name: AI 能力接入, days: [4, 8, 15], keywords: [AI, 智能问答, 智能客服]}
+    ocr:         {name: 图片 / 单据识别（大模型 OCR）, days: [5, 10, 18], keywords: [OCR, 图片识别, 单据识别, 票据识别, 拍照识别]}
   custom_module: {name: 定制功能, days: [3, 6, 10]}

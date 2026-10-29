@@ -13,6 +13,8 @@ import {
   addModule,
   canConfirm,
   confirmedRequirement,
+  hasOcr,
+  parsePages,
   removeModule,
   togglePlatform,
   updateModule,
@@ -102,6 +104,16 @@ export function RequirementCard({
       </div>
 
       <div className="space-y-3 px-3.5 py-3">
+        {data.notes?.length ? (
+          <ul
+            aria-label="提醒"
+            className="space-y-1 rounded-md bg-amber-50 px-2.5 py-2 text-xs leading-5 text-amber-900"
+          >
+            {data.notes.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        ) : null}
         <div>
           <div className="mb-1.5 text-xs text-zinc-500">交付端</div>
           <div className="flex flex-wrap gap-1.5">
@@ -202,6 +214,36 @@ export function RequirementCard({
             onChange={(v) => setReq((r) => ({ ...r, team_size: v === "solo" ? 1 : null }))}
           />
         </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-zinc-500">流程文档</span>
+          <Segmented
+            label="流程文档"
+            value={req.no_sop ? "none" : "has"}
+            options={[
+              ["has", "客户已有"],
+              ["none", "没有，需要梳理"],
+            ]}
+            disabled={locked}
+            onChange={(v) => setReq((r) => ({ ...r, no_sop: v === "none" ? true : null }))}
+          />
+        </div>
+
+        {hasOcr(req) ? (
+          <label className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-zinc-500">每月识别量</span>
+            <Input
+              inputMode="numeric"
+              disabled={locked}
+              value={req.ocr_monthly_pages ?? ""}
+              onChange={(e) => setReq((r) => ({ ...r, ocr_monthly_pages: parsePages(e.target.value) }))}
+              placeholder="不填按默认月量估"
+              aria-label="每月识别量（张）"
+              className="h-7 w-36 text-sm"
+            />
+            <span className="text-xs text-zinc-500">张 / 月</span>
+          </label>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 px-3.5 py-2.5">

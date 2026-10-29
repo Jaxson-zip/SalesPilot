@@ -6,7 +6,8 @@
 #   - ~关键词：任意模块名称里包含这个词即可（用于模块库没有的自定义功能）
 # later：客户说二期 / 以后再做的模块（期望 must=false），写法同 required
 # vague: true：信息太少，期望系统追问（缺交付端或功能），而不是硬拆
-# team_size / budget（元）/ deadline_weeks：期望抽到的数值，没写就不检查
+# team_size / budget（元）/ deadline_weeks / no_sop / ocr_monthly_pages：期望抽到的值；
+#   没写的不能凭空出现（例如样例张数不能当成每月识别量）
 
 cases:
   - id: gym-booking
@@ -70,7 +71,7 @@ cases:
   - id: iot
     text: 农业大棚监控系统，网页上看温湿度传感器数据和历史曲线，超标短信报警，要对接现有的传感器网关
     platforms: [web]
-    required: ["integration|~传感器", report, message]
+    required: ["integration|~传感器", report, "message|~报警|~短信"]
 
   - id: map-delivery
     text: 同城跑腿 App，用户下单、骑手抢单、地图实时显示骑手位置、在线支付，后台管理骑手
@@ -121,12 +122,20 @@ cases:
   - id: ocr-terse
     text: 客户给了30张图片，需要做一个结构化工作流，要用大模型OCR识别，没有SOP文档
     platforms: [web]
-    required: ["file|~上传|~图片", "ai|~OCR|~识别", "workflow|~流程"]
+    required: ["file|~上传|~图片", "ocr", "workflow|~流程"]
+    no_sop: true
 
   - id: ocr-customs
     text: 我们是做报关的，客户先发了30张单据照片当样例（发票、装箱单、提单），想做个系统，上传图片后用大模型OCR识别成结构化数据，再走审核、导出的流程。现在没有SOP文档，流程都在老员工脑子里。
     platforms: [web]
-    required: ["file|~上传", "ai|~OCR|~识别", "workflow|~审核", "~导出|report"]
+    required: ["file|~上传", "ocr", "workflow|~审核", "~导出|report"]
+    no_sop: true
+
+  - id: ocr-invoice
+    text: 财务每天大概要处理300张发票，想做个网页系统拍照识别发票信息，自动填进报销单，财务再审核
+    platforms: [web]
+    required: ["file|~上传|~拍照", "ocr", "workflow|~审核"]
+    ocr_monthly_pages: 9000
 
   # 信息太少：期望追问，而不是硬拆
   - id: vague-1

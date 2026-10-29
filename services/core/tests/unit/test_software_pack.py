@@ -157,3 +157,71 @@ def test_extract_hint_includes_current_draft() -> None:
     draft = {"platforms": ["app"], "modules": [{"key": "map", "name": "门店地图"}]}
     with_draft = cfg().extract_hint(draft)
     assert "门店地图" in with_draft and "门店地图" not in plain
+
+
+OCR = [
+    {"key": "file", "name": "单据上传"},
+    {"key": "ocr", "name": "单据识别", "complexity": "complex"},
+    {"key": "workflow", "name": "审核流程"},
+]
+
+
+def test_no_sop_adds_discovery_work() -> None:
+    """客户没有 SOP：三档都加业务调研与流程梳理，按产品经理单价、不按研发比例。"""
+    plain = cfg().configure(req())
+    tiers = cfg().configure(req(no_sop=True))
+    for a, b in zip(plain, tiers, strict=True):
+        sop = next(i for i in b.items if i.sku == "SVC-SOP")
+        assert sop.qty == cfg().params["sop_days"] and sop.unit_price == 180000
+        assert b.total_price == a.total_price + sop.total_price
+    assert "SOP" in cfg().clarify(req(no_sop=True))["notes"][0]
+    assert cfg().clarify(req())["notes"] == []
+
+
+def test_ocr_monthly_cost_by_pages() -> None:
+    """图片识别按每月张数估月费；客户没说量按默认月量，并写明按多少张估。"""
+    p = cfg().params
+    std = {t.tier: t for t in cfg().configure(req(modules=OCR))}["standard"]
+    assert std.specs["ocr_monthly_pages"] == p["ocr_monthly_pages"]
+    assert std.specs["ai_monthly_cost"] == p["ocr_monthly_pages"] * p["ocr_cost_per_page"]
+    assert f"按每月 {p['ocr_monthly_pages']:,} 张估" in std.summary
+    big = {t.tier: t for t in cfg().configure(req(modules=OCR, ocr_monthly_pages=60000))}
+    assert big["standard"].specs["ai_monthly_cost"] == 60000 * p["ocr_cost_per_page"]
+    assert big["standard"].total_price == std.total_price  # 月费不计入一次性报价
+
+
+def test_ocr_suggests_poc_on_recommended_tier() -> None:
+    tiers = cfg().configure(req(modules=OCR))
+    rec = next(t for t in tiers if t.recommended)
+    assert "识别验证" in rec.summary
+    assert all("识别验证" not in t.summary for t in tiers if not t.recommended)
+    poc = cfg().poc(req(modules=OCR))
+    assert poc and poc["price"] == cfg().params["poc_days"] * 160000
+    assert cfg().poc(req()) is None
+    assert any("识别验证" in n for n in cfg().clarify(req(modules=OCR))["notes"])
+
+
+def test_rule_draft_no_sop_and_ocr_volume() -> None:
+    d = cfg().draft_requirement("单据拍照OCR识别，每天大概200票，现在没有SOP文档")
+    assert d["no_sop"] is True and d["ocr_monthly_pages"] == 6000
+    assert any(m["key"] == "ocr" for m in d["modules"])
+    sample = cfg().draft_requirement("客户先给了30张图片样例，要做图片识别")
+    assert "ocr_monthly_pages" not in sample and "no_sop" not in sample
+
+
+def test_clarify_text_shows_notes() -> None:
+    from app.agent.nodes.solution import clarify_text
+
+    r = req(modules=OCR, no_sop=True)
+    card = {"requirement": r.model_dump(mode="json"), **cfg().clarify(r)}
+    text = clarify_text(card)
+    assert "> 客户没有现成的 SOP" in text and "识别验证" in text
+
+
+def test_fill_defaults_platform_only_when_missing() -> None:
+    """拆出了功能但没说端：默认网站；已有端（含上一轮草稿的）不覆盖；没有功能不补。"""
+    mods = [{"key": "ocr", "name": "单据识别"}]
+    assert cfg().fill_defaults({"modules": mods})["platforms"] == ["web"]
+    kept = cfg().fill_defaults({"modules": mods, "platforms": ["mini_program"]})
+    assert kept["platforms"] == ["mini_program"]
+    assert "platforms" not in cfg().fill_defaults({"budget": 100})

@@ -10,6 +10,10 @@ settings:
   - {key: pack.ai_tool_cost_per_day, label: AI 编码工具成本（每人天）, group: 成本, kind: money, min: 0, max: 100000, help: 开发时 AI 工具订阅或 token 费分摊到每个人天，只计入成本、不单列给客户}
   - {key: pack.ai_daily_calls, label: 上线后 AI 功能日调用量, group: 成本, kind: int, unit: 次, min: 0, max: 1000000, help: 交付的软件带 AI 功能时估算客户每月的大模型调用费}
   - {key: pack.ai_tokens_per_call, label: 每次调用 token 数, group: 成本, kind: int, unit: tokens, min: 0, max: 200000}
+  - {key: pack.ocr_monthly_pages, label: 图片识别默认月量, group: 成本, kind: int, unit: 张, min: 0, max: 10000000, help: 有图片 / 单据识别、客户没说业务量时按此估算上线后的识别费}
+  - {key: pack.ocr_cost_per_page, label: 每张图片识别费用, group: 成本, kind: money, min: 0, max: 10000, help: 视觉大模型识别一张图片的费用，按所选模型价格填；由客户承担，不计入报价}
+  - {key: pack.sop_days, label: 业务调研与 SOP 梳理, group: 估算, kind: int, unit: 人天, min: 0, max: 60, help: 客户没有流程文档时加上，按产品经理单价}
+  - {key: pack.poc_days, label: 图片识别样例验证, group: 估算, kind: int, unit: 人天, min: 0, max: 60, help: 有图片识别时建议先做的验证，单独报价，不计入三档}
   - {key: pack.base_days, label: 技术架构与数据库设计, group: 估算, kind: int, unit: 人天, min: 0, max: 60, help: 每个项目都有的基础工作量}
   - {key: pack.admin_days, label: 管理后台基础框架, group: 估算, kind: int, unit: 人天, min: 0, max: 60, help: 需要管理后台时加上}
   - {key: pack.extra_platform_factor, label: 每多一个客户端的工作量系数, group: 估算, kind: float, unit: 倍, min: 0, max: 1, help: 例如小程序 + App 两端时，模块人天 × (1 + 系数)}

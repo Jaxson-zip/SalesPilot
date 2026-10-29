@@ -36,6 +36,10 @@ _PLATFORM_WORDS: dict[str, tuple[str, ...]] = {
     "web": ("网站", "官网", "h5", "网页", "web"),
     "admin": ("后台", "管理端", "管理系统"),
 }
+_NO_SOP_WORDS = ("没有sop", "没sop", "无sop", "没有流程文档", "没有文档", "脑子里", "没有成文")
+_OCR_VOLUME_RE = re.compile(
+    r"每(天|日|月)\s*(?:约|大概|大约|差不多)?\s*(\d+(?:\.\d+)?)\s*(万)?\s*(?:张|票|单|份|页)"
+)
 _WEEKS_RE = re.compile(r"(\d+)\s*(个月|月|周|星期)")
 _BUDGET_RE = re.compile(r"预算\s*(?:在|约|为)?\s*(\d+(?:\.\d+)?)\s*(万|元)?")
 
@@ -90,8 +94,21 @@ class SoftwareOutsourcingConfigurator:
             "（面向消费者 / 学员 / 会员的优先 mini_program，企业内部办公优先 web），"
             "不要同时加多个。"
             "客户只说了要做 App / 小程序 / 系统、没说是什么业务时，modules 留空（交给销售追问），"
-            "不要凭空拆解。不要估算人天和价格。"
+            "不要凭空拆解。"
+            "图片 / 单据 / 票据的 OCR 识别用 key=ocr（不是 ai）；ai 只用于对话、问答、内容生成。"
+            "客户说没有 SOP、没有流程文档、流程在老员工脑子里时 no_sop=true；"
+            "ocr_monthly_pages 只填客户说的业务量，样例张数不算。不要估算人天和价格。"
         )
+
+    def fill_defaults(self, merged: dict[str, Any]) -> dict[str, Any]:
+        """合并上一轮草稿、规则、模型结果之后补默认值。
+
+        拆出了功能但没人说做什么端（模型也偶尔漏填）时默认网站 / H5，而不是回头追问：
+        需求卡片上会显示，销售核对时可以改。放在合并之后，不会覆盖上一轮已有的交付端。
+        """
+        if merged.get("modules") and not merged.get("platforms"):
+            return {**merged, "platforms": ["web"]}
+        return merged
 
     def draft_requirement(self, text: str) -> dict[str, Any]:
         """规则兜底：按关键词识别端和标准模块（大模型不可用时也能出一版）。"""
@@ -109,6 +126,11 @@ class SoftwareOutsourcingConfigurator:
             draft["modules"] = modules
         if any(w in text for w in _SOLO_WORDS):
             draft["team_size"] = 1
+        if any(w in low.replace(" ", "") for w in _NO_SOP_WORDS):
+            draft["no_sop"] = True
+        if m := _OCR_VOLUME_RE.search(text):
+            n = float(m.group(2)) * (10000 if m.group(3) else 1)
+            draft["ocr_monthly_pages"] = round(n * (1 if m.group(1) == "月" else 30))
         if m := _WEEKS_RE.search(text):
             n = int(m.group(1))
             draft["deadline_weeks"] = n * 4 if "月" in m.group(2) else n
@@ -127,6 +149,10 @@ class SoftwareOutsourcingConfigurator:
         ]
         pick = self._recommend(tiers, r.budget)
         out = [t.model_copy(update={"recommended": t.tier == pick}) for t in tiers]
+        if poc := self.poc(r):
+            # 识别准确率是这类项目最大的风险：建议先做样例验证，单独报价，不计入三档
+            i = next(i for i, t in enumerate(out) if t.recommended)
+            out[i] = out[i].model_copy(update={"summary": out[i].summary + "；" + poc["advice"]})
         if r.budget and r.budget < out[0].total_price:
             # 预算连经济版都不够：提示砍功能或分期，不自动压价
             gap = (out[0].total_price - r.budget) / 1_000_000
@@ -156,7 +182,35 @@ class SoftwareOutsourcingConfigurator:
             "price_high": high,
             "inferred": len(r.modules) - len(mentioned),
             "questions": (r.questions or default_questions(r))[:5],
+            "notes": self.notes(r),
         }
+
+    def notes(self, r: SoftwareRequirement) -> list[str]:
+        """粗估时要提醒销售的事：额外的工作量、报价外的费用和建议。"""
+        out = []
+        if r.no_sop:
+            out.append(
+                f"客户没有现成的 SOP：报价已含 {self.params['sop_days']} 人天业务调研与流程梳理"
+                "（访谈老员工、画流程图、定字段），梳理结果作为验收依据。"
+            )
+        if poc := self.poc(r):
+            out.append(poc["advice"] + "。")
+        return out
+
+    def poc(self, r: SoftwareRequirement) -> dict[str, Any] | None:
+        """有图片识别时建议先做的样例验证：人天和价格（按研发单价，单独报价）。"""
+        if not any(m.key == "ocr" for m in r.modules):
+            return None
+        days = int(self.params["poc_days"])
+        if not days:
+            return None
+        rate = self.catalog.get("DAY-FULLSTACK" if r.team_size == 1 else "DAY-DEV")
+        price = days * rate.price
+        advice = (
+            f"建议先用客户样例做识别验证（约 {days} 人天 ¥{price / 100:,.0f}，1–2 周）："
+            "测出各类单据的识别准确率再签正式合同，验收写明「样例集准确率不低于约定值」"
+        )
+        return {"days": days, "price": price, "advice": advice}
 
     def module_days(self, m: Module) -> int:
         lib = self.params["modules"]
@@ -204,6 +258,10 @@ class SoftwareOutsourcingConfigurator:
                 "SVC-ANALYSIS", "需求分析与原型设计", roles["pm"], dev_days * ratios["analysis"]
             ),
         )
+        if r.no_sop and p["sop_days"]:
+            # 没有流程文档：先访谈、梳理，不按研发人天比例算，也不打 AI 提效折扣
+            name = "业务调研与 SOP 梳理（访谈、流程图、字段定义）"
+            items.insert(1, self._days("SVC-SOP", name, roles["pm"], p["sop_days"]))
         if clients:
             items.append(self._days("SVC-UI", "UI 设计", roles["ui"], dev_days * ratios["ui"]))
         items.append(self._days("SVC-QA", "测试与验收", roles["qa"], dev_days * ratios["qa"]))
@@ -229,9 +287,10 @@ class SoftwareOutsourcingConfigurator:
         if r.deadline_weeks and weeks > r.deadline_weeks:
             advice = "建议分期上线或找人协作" if solo else "需加人或分期"
             summary += f"（比期望工期多 {weeks - r.deadline_weeks} 周，{advice}）"
-        ai_monthly = self.ai_monthly_cost(mods)
+        ai_monthly, ocr_pages = self.ai_monthly_cost(mods, r.ocr_monthly_pages)
         if ai_monthly:
-            summary += f"；上线后 AI 调用费约 ¥{ai_monthly / 100:,.0f}/月（客户另付）"
+            basis = f"，其中图片识别按每月 {ocr_pages:,} 张估" if ocr_pages else ""
+            summary += f"；上线后 AI 调用费约 ¥{ai_monthly / 100:,.0f}/月（客户另付{basis}）"
         return SolutionTier(
             tier=tier_id,  # type: ignore[arg-type]
             name=TIER_NAMES[tier_id],
@@ -254,6 +313,7 @@ class SoftwareOutsourcingConfigurator:
                 "weeks": weeks,
                 "cost_breakdown": self._cost_breakdown(items),
                 "ai_monthly_cost": ai_monthly,
+                "ocr_monthly_pages": ocr_pages,
             },
         )
 
@@ -289,21 +349,29 @@ class SoftwareOutsourcingConfigurator:
             "services": services,
         }
 
-    def ai_monthly_cost(self, mods: list[Module]) -> int:
+    def ai_monthly_cost(self, mods: list[Module], ocr_pages: int | None = None) -> tuple[int, int]:
         """交付的软件带 AI 功能时，上线后每月的大模型调用费（分，客户承担，不计入报价）。
 
-        调用量和每次 token 数是行业包参数；单价沿用「AI 用量」的输入 / 输出单价，输入输出按 3:1 估。
+        - 对话类（key=ai）：日调用量 × 每次 token 数，单价沿用「AI 用量」，输入输出按 3:1 估；
+        - 图片识别（key=ocr）：每月张数 × 每张费用；客户没说量时按默认月量估。
+        返回（月费，按多少张估的识别量；没有识别为 0）。
         """
-        if not any(m.key == "ai" for m in mods):
-            return 0
         p = self.params
-        usage = load_rules().ai_usage
-        tokens = p["ai_daily_calls"] * 30 * p["ai_tokens_per_call"]
-        yuan = (
-            tokens * 0.75 * usage.input_price_per_million
-            + tokens * 0.25 * usage.output_price_per_million
-        ) / 1_000_000
-        return round(yuan * 100)
+        keys = {m.key for m in mods}
+        cost = 0.0
+        if "ai" in keys:
+            usage = load_rules().ai_usage
+            tokens = p["ai_daily_calls"] * 30 * p["ai_tokens_per_call"]
+            yuan = (
+                tokens * 0.75 * usage.input_price_per_million
+                + tokens * 0.25 * usage.output_price_per_million
+            ) / 1_000_000
+            cost += yuan * 100
+        pages = 0
+        if "ocr" in keys:
+            pages = ocr_pages if ocr_pages is not None else int(p["ocr_monthly_pages"])
+            cost += pages * p["ocr_cost_per_page"]
+        return round(cost), pages
 
 
 def default_questions(r: SoftwareRequirement) -> list[str]:

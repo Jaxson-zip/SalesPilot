@@ -223,6 +223,8 @@ def clarify_text(card: dict[str, Any]) -> str:
     lines = [
         f"{head}，粗估 **{low:.1f}–{high:.1f} 万**，可以先给客户这个区间。",
         "",
+        *[f"> {n}" for n in card.get("notes") or []],
+        *([""] if card.get("notes") else []),
         "正式报价前，建议先和客户确认：",
         *[f"{i}. {q}" for i, q in enumerate(card.get("questions") or [], 1)],
         "",

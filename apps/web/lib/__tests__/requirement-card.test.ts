@@ -4,7 +4,9 @@ import {
   addModule,
   canConfirm,
   confirmedRequirement,
+  hasOcr,
   isRequirementCard,
+  parsePages,
   removeModule,
   togglePlatform,
   updateModule,
@@ -59,5 +61,22 @@ describe("requirement-card", () => {
     expect(canConfirm(req)).toBe(true)
     expect(canConfirm({ ...req, platforms: [] })).toBe(false)
     expect(canConfirm({ ...req, modules: [] })).toBe(false)
+  })
+})
+
+describe("图片识别月量", () => {
+  it("有 ocr 模块才需要填；输入允许千分位，空或非法按默认", () => {
+    const r = {
+      platforms: ["web"],
+      modules: [
+        { key: "ocr", name: "单据识别", complexity: "complex" as const, must: true, source: "mentioned" as const },
+      ],
+    }
+    expect(hasOcr(r)).toBe(true)
+    expect(hasOcr({ ...r, modules: [] })).toBe(false)
+    expect(parsePages("6,000")).toBe(6000)
+    expect(parsePages("")).toBeNull()
+    expect(parsePages("很多")).toBeNull()
+    expect(parsePages("-5")).toBeNull()
   })
 })

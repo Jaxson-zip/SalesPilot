@@ -80,3 +80,57 @@ test("需求卡片：删模块、改个人全栈后确认，请求带上核对�
   // 确认后上一张卡片变为只读
   await expect(cardEl.getByRole("button", { name: "确认需求，出报价" })).toHaveCount(0)
 })
+
+test("图片识别需求：卡片显示提醒，改「没有 SOP」并填每月识别量后确认", async ({ page }) => {
+  await loginAs(page, "sales")
+  const ocrCard = {
+    ...card,
+    requirement: {
+      project: "报关单据识别系统",
+      platforms: ["web"],
+      modules: [
+        { key: "file", name: "单据图片上传", complexity: "medium", must: true, source: "mentioned" },
+        { key: "ocr", name: "单据识别（大模型 OCR）", complexity: "complex", must: true, source: "mentioned" },
+        { key: "workflow", name: "单据审核流程", complexity: "complex", must: true, source: "mentioned" },
+      ],
+      team_size: null,
+      no_sop: null,
+      questions: [],
+    },
+    inferred: 0,
+    notes: ["建议先用客户样例做识别验证（约 8 人天 ¥12,800，1–2 周）。"],
+  }
+  const bodies: Record<string, unknown>[] = []
+  await page.route("**/api/agent/chat", async (route) => {
+    bodies.push(route.request().postDataJSON() as Record<string, unknown>)
+    await route.fulfill({
+      status: 200,
+      headers: { "content-type": "text/event-stream" },
+      body:
+        bodies.length === 1
+          ? sse([
+              ["artifact", { type: "requirement", data: ocrCard }],
+              ["message.delta", { text: "根据描述初步拆出 3 个功能模块。" }],
+              ["done", {}],
+            ])
+          : sse([
+              ["message.delta", { text: "好的。" }],
+              ["done", {}],
+            ]),
+    })
+  })
+  await page.goto("/ai")
+  await page.getByRole("textbox").first().fill("报关单据拍照识别，再走审核")
+  await page.keyboard.press("Enter")
+  const cardEl = page.getByRole("region", { name: "需求清单" })
+  await expect(cardEl.getByRole("list", { name: "提醒" })).toContainText("识别验证")
+
+  await cardEl.getByRole("radio", { name: "没有，需要梳理" }).click()
+  await cardEl.getByRole("textbox", { name: "每月识别量（张）" }).fill("6000")
+  await cardEl.getByRole("button", { name: "确认需求，出报价" }).click()
+
+  await expect.poll(() => bodies.length).toBe(2)
+  const req = bodies[1].requirement as { no_sop: boolean; ocr_monthly_pages: number }
+  expect(req.no_sop).toBe(true)
+  expect(req.ocr_monthly_pages).toBe(6000)
+})

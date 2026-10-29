@@ -34,6 +34,8 @@ def missing_fields(model: type[BaseModel], data: dict[str, Any]) -> list[str]:
 def parse_requirement(ctx: ToolContext, args: ParseRequirementArgs) -> ToolResult:
     configurator = get_configurator(args.pack_id)
     merged = {**args.draft, **configurator.draft_requirement(args.text), **args.extracted}
+    if fill := getattr(configurator, "fill_defaults", None):  # 可选：行业包在合并后补默认值
+        merged = fill(merged)
     missing = missing_fields(configurator.requirement_model, merged)
     summary = "需求完整" if not missing else f"缺少：{', '.join(missing)}"
     return ToolResult(ok=True, summary=summary, data={"requirement": merged, "missing": missing})

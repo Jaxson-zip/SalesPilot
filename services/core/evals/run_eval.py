@@ -113,6 +113,8 @@ def trace_numbers(answer: str, source: str) -> dict[str, list[str]]:
 
 
 NUMBER_KINDS = ("exact", "approx", "derived", "unknown")
+# 标注了就要抽对；没标注的不能凭空出现（no_sop 为 false 也算没出现）
+VALUE_KEYS = ("team_size", "budget", "deadline_weeks", "no_sop", "ocr_monthly_pages")
 
 
 def extract(
@@ -187,7 +189,7 @@ def eval_case(
         failed.model_failed, failed.error = True, f"模型调用失败：{failure}"
         failed.seconds = round(time.perf_counter() - start, 1)
         return failed
-    merged = {**cfg.draft_requirement(text), **ext}
+    merged = cfg.fill_defaults({**cfg.draft_requirement(text), **ext})
     missing = missing_fields(cfg.requirement_model, merged)
     r = CaseResult(
         id=case["id"],
@@ -236,14 +238,13 @@ def eval_case(
     r.questions = len(req.questions)
 
     # 数值：标注了的要抽对；没提到的不能凭空出现
-    checks = {"team_size": None, "budget": None, "deadline_weeks": None}
     ok = True
-    for key in checks:
+    for key in VALUE_KEYS:
         got = getattr(req, key)
         if key in case:
             expect = case[key] * 100 if key == "budget" else case[key]
             ok &= got == expect
-        elif got is not None:
+        elif got not in (None, False):
             r.invented_values.append(f"{key}={got}")
             ok = False
     r.values_ok = ok

@@ -62,6 +62,17 @@ class SoftwareRequirement(BaseModel):
         description="交付人数：销售说自己一个人做 / 个人全栈 / 独立开发时为 1；"
         "没说留空（用默认团队）",
     )
+    no_sop: bool | None = Field(
+        default=None,
+        description="客户没有现成的 SOP / 流程文档、流程靠老员工经验时为 true"
+        "（需要我们先调研梳理）；客户有文档或没提到时留空",
+    )
+    ocr_monthly_pages: int | None = Field(
+        default=None,
+        ge=0,
+        description="上线后每月要识别的图片 / 单据张数（「每天 200 票」= 6000）；"
+        "客户发来的样例张数（如「先给了 30 张」）不是业务量，不要填；没说留空",
+    )
 
 
 # 追问时展示给用户的字段名

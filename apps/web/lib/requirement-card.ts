@@ -20,6 +20,10 @@ export interface Requirement {
   deadline_weeks?: number | null
   budget?: number | null
   team_size?: number | null
+  /** 客户没有 SOP / 流程文档：报价含业务调研与流程梳理 */
+  no_sop?: boolean | null
+  /** 上线后每月识别的图片张数（有图片识别模块时用来估月费；空 = 按默认月量） */
+  ocr_monthly_pages?: number | null
   questions?: string[]
   [key: string]: unknown
 }
@@ -32,6 +36,8 @@ export interface RequirementCardData {
   price_high: number
   inferred: number
   questions: string[]
+  /** 配置器给销售的提醒：额外工作量、报价外的费用、建议先做验证等 */
+  notes?: string[]
 }
 
 export const PLATFORMS: [string, string][] = [
@@ -88,6 +94,17 @@ export function addModule(r: Requirement, name: string): Requirement {
 /** 确认提交：销售核对过的模块都算客户确认的，不再带 AI 生成的问题 */
 export function confirmedRequirement(r: Requirement): Record<string, unknown> {
   return { ...r, questions: [], modules: r.modules.map((m) => ({ ...m, source: "mentioned" })) }
+}
+
+/** 有图片 / 单据识别模块时才需要填每月识别量 */
+export function hasOcr(r: Requirement): boolean {
+  return r.modules.some((m) => m.key === "ocr")
+}
+
+/** 每月识别量输入框：空或非法 → null（按默认月量估），否则取非负整数 */
+export function parsePages(text: string): number | null {
+  const n = Number(text.replace(/[,，\s]/g, ""))
+  return text.trim() && Number.isFinite(n) && n >= 0 ? Math.round(n) : null
 }
 
 export function canConfirm(r: Requirement): boolean {

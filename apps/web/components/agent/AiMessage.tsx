@@ -10,7 +10,8 @@ import { MsgActions } from "@/components/agent/MsgActions"
 import { ThinkBlock } from "@/components/agent/ThinkBlock"
 import { Button } from "@/components/ui/button"
 import { useSmoothText } from "@/hooks/useSmoothText"
-import type { AssistantTurn } from "@/lib/agent-reducer"
+import type { AgentArtifact, AssistantTurn } from "@/lib/agent-reducer"
+import { isCoreTiers, type CoreSolutionTier } from "@/lib/artifacts"
 import { previewRows } from "@/lib/interrupt-preview"
 import { cn } from "@/lib/utils"
 import type { ResumeDecision } from "@/types/api"
@@ -59,11 +60,32 @@ export function AiMessage({
   busy?: boolean
   /** 历史消息：不再响应确认 / 重试 */
   readonly?: boolean
-  onDecide: (decision: ResumeDecision) => void
+  /** tier：确认生成报价单时另选的档位 */
+  onDecide: (decision: ResumeDecision, tier?: string) => void
   onRetry: () => void
   onConfirmRequirement?: (requirement: Record<string, unknown>) => void
 }) {
   const live = turn.status === "streaming"
+  // 生成报价单前可以在三档里另选：物料清单和确认卡跟着切换，确认时把选中档带给后端
+  const [picked, setPicked] = useState<string | null>(null)
+  const tiers = coreTiers(turn.artifacts)
+  const pending = turn.interrupt?.action === "generate_quote" && !turn.interrupt.decision
+  const canPick = pending && !readonly && !busy && tiers.length > 1
+  const pickedTier = picked ? tiers.find((t) => t.tier === picked) : undefined
+  const preview = turn.interrupt
+    ? pickedTier && turn.interrupt.action === "generate_quote"
+      ? {
+          ...turn.interrupt.preview,
+          tier: pickedTier.tier,
+          name: pickedTier.name,
+          summary: pickedTier.summary,
+          total_price: pickedTier.total_price,
+          margin_rate: pickedTier.margin_rate,
+        }
+      : turn.interrupt.preview
+    : {}
+  const decide = (decision: ResumeDecision) =>
+    onDecide(decision, decision === "approve" && pickedTier && !pickedTier.recommended ? pickedTier.tier : undefined)
   const [animate] = useState(live)
   const text = useSmoothText(turn.text, animate)
   const afterText = useSmoothText(turn.afterText, animate || turn.afterText === "")
@@ -106,17 +128,23 @@ export function AiMessage({
                 data-scroll-anchor={!readonly && a.type === "solution_tiers" ? "" : undefined}
                 className={cn(animate && "animate-in fade-in slide-in-from-bottom-1 duration-300")}
               >
-                <ArtifactView artifact={a} onConfirmRequirement={onConfirmRequirement} readonly={readonly || busy} />
+                <ArtifactView
+                  artifact={a.type === "bom" && pickedTier ? { ...a, data: pickedTier } : a}
+                  onConfirmRequirement={onConfirmRequirement}
+                  readonly={readonly || busy}
+                  selectedTier={pickedTier?.tier}
+                  onSelectTier={canPick ? setPicked : undefined}
+                />
               </div>
             ))
           : null}
         {showCards && turn.interrupt ? (
           <ConfirmCard
             title={turn.interrupt.title}
-            rows={previewRows(turn.interrupt.preview)}
+            rows={previewRows(preview)}
             decision={turn.interrupt.decision}
             busy={busy || readonly}
-            onDecide={onDecide}
+            onDecide={decide}
           />
         ) : null}
         {afterText ? (
@@ -137,4 +165,10 @@ export function AiMessage({
       </div>
     </div>
   )
+}
+
+/** 本条回复里最新一份三档方案（core 结构）；没有返回空数组 */
+function coreTiers(artifacts: AgentArtifact[]): CoreSolutionTier[] {
+  const a = [...artifacts].reverse().find((x) => x.type === "solution_tiers")
+  return a && isCoreTiers(a.data) ? a.data : []
 }

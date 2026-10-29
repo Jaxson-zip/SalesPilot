@@ -9866,6 +9866,12 @@ components:
           - approve
           - reject
           title: Decision
+        tier:
+          anyOf:
+          - type: string
+            maxLength: 30
+          - type: 'null'
+          title: Tier
       type: object
       required:
       - thread_id

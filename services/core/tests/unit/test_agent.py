@@ -151,6 +151,23 @@ class TestSolutionFlow:
         text = "".join(e["data"]["text"] for e in resumed if e["event"] == "message.delta")
         assert "Q-2026-001" in text and "372,000" in text
 
+    def test_approve_with_another_tier(self, tool_ctx: ToolContext, fake_quotes: None) -> None:
+        """销售在卡片上另选经济版：报价单按经济版生成；档位不存在则 40001。"""
+        saver, deps = InMemorySaver(), make_deps(tool_ctx)
+        events = run_chat(deps, saver, SOLUTION_MSG)
+        # 毛利回退后会重新推送方案卡片，以最后一次为准
+        cards = [e["data"] for e in events if e["event"] == "artifact"]
+        tiers = [c for c in cards if c["type"] == "solution_tiers"][-1]["data"]
+        economy = next(t for t in tiers if not t.get("recommended"))
+        with pytest.raises(BizError) as exc:
+            service.prepare_resume(deps, "approve", saver, "no-such-tier")
+        assert exc.value.code == 40001
+        run = service.prepare_resume(deps, "approve", saver, economy["tier"])
+        resumed = list(iter_graph_events(run.graph, run.payload, run.config, run.thread_id))
+        quote = next(e for e in resumed if e["event"] == "artifact")["data"]["data"]
+        assert quote["total_price"] == economy["total_price"]
+        assert quote["total_price"] != next(t for t in tiers if t.get("recommended"))["total_price"]
+
     def test_reject_does_not_write(self, tool_ctx: ToolContext, fake_quotes: None) -> None:
         saver, deps = InMemorySaver(), make_deps(tool_ctx)
         run_chat(deps, saver, SOLUTION_MSG)

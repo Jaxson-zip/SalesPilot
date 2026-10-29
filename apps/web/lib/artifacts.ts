@@ -92,6 +92,7 @@ export function toTierCards(tiers: CoreSolutionTier[]): SolutionTier[] {
     price: t.total_price,
     margin: t.margin_rate,
     recommended: t.recommended ?? false,
+    key: t.tier,
   }))
 }
 

@@ -57,7 +57,8 @@ export interface UseAgentStream {
     requirement?: Record<string, unknown> | null,
     samples?: SamplesIn | null,
   ) => void
-  resume: (decision: ResumeDecision) => void
+  /** tier：确认生成报价单时另选的档位 */
+  resume: (decision: ResumeDecision, tier?: string) => void
   stop: () => void
   retry: () => void
   reset: () => void
@@ -183,11 +184,11 @@ export function useAgentStream(): UseAgentStream {
   )
 
   const resume = useCallback(
-    (decision: ResumeDecision) => {
+    (decision: ResumeDecision, tier?: string) => {
       const thread_id = threadRef.current
       if (!thread_id || abortRef.current) return
       patch((t) => applyDecision(t, decision))
-      void run((o) => postSSE(RESUME_PATH, { thread_id, decision }, o))
+      void run((o) => postSSE(RESUME_PATH, { thread_id, decision, tier }, o))
     },
     [abortRef, patch, run],
   )

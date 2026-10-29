@@ -287,6 +287,13 @@ def recommended_tier(tiers: list[dict[str, Any]]) -> dict[str, Any]:
     return next((t for t in tiers if t.get("recommended")), tiers[0])
 
 
+def chosen_tier(state: AgentState) -> dict[str, Any]:
+    """销售确认时在卡片上另选的档位；没选（或找不到）按推荐档。"""
+    tiers = state.get("tiers", [])
+    key = state.get("chosen_tier")
+    return next((t for t in tiers if key and t.get("tier") == key), None) or recommended_tier(tiers)
+
+
 def make_price(deps: AgentDeps) -> Node:
     def price(state: AgentState) -> dict[str, Any]:
         """价格已由行业包配置器按目录和规则算好；这里推送方案卡片和推荐档位的物料清单。"""
@@ -357,8 +364,11 @@ def make_confirm(deps: AgentDeps) -> Node:
             "total_price": tier.get("total_price"),
             "margin_rate": tier.get("margin_rate"),
         }
-        decision = interrupt({"action": "generate_quote", "preview": preview})
-        return {"decision": str(decision)}
+        value = interrupt({"action": "generate_quote", "preview": preview})
+        # 恢复值：只有决定，或带上另选的档位 {"decision": "approve", "tier": "economy"}
+        if isinstance(value, dict):
+            return {"decision": str(value.get("decision")), "chosen_tier": value.get("tier")}
+        return {"decision": str(value), "chosen_tier": None}
 
     return confirm
 
@@ -370,7 +380,7 @@ def route_after_confirm(state: AgentState) -> str:
 def make_save_quote(deps: AgentDeps) -> Node:
     def save_quote(state: AgentState) -> dict[str, Any]:
         node_start("save_quote")
-        tier = recommended_tier(state.get("tiers", []))
+        tier = chosen_tier(state)
         key = f"agent:{deps.ctx.thread_id}:{tier['tier']}:{tier['total_price']}"
         args = {
             "pack_id": state["pack_id"],

@@ -106,6 +106,8 @@ export interface ChatModels {
 export interface AgentResumeRequest {
   thread_id: string
   decision: ResumeDecision
+  /** 确认生成报价单时另选的档位（tier 键）；不传按推荐档 */
+  tier?: string
 }
 
 /** §8.3 SSE 事件 */
@@ -137,6 +139,8 @@ export interface SolutionTier {
   /** 0–1 */
   margin: number
   recommended?: boolean
+  /** 档位键（core 的 tier，如 economy）；有键才能在对话里点选 */
+  key?: string
 }
 
 export interface BomItem {

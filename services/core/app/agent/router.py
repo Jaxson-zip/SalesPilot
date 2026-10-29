@@ -39,6 +39,8 @@ class ChatIn(BaseModel):
 class ResumeIn(BaseModel):
     thread_id: str = Field(min_length=1, max_length=100)
     decision: Literal["approve", "reject"]
+    # 生成报价单时销售在三档里另选的档位（tier 键，如 economy）；不传按推荐档
+    tier: str | None = Field(default=None, max_length=30)
 
 
 def _request_id(request: Request) -> str:
@@ -64,7 +66,7 @@ async def chat(body: ChatIn, user: CurrentUserDep, request: Request) -> EventSou
 @router.post("/resume")
 async def resume(body: ResumeIn, user: CurrentUserDep, request: Request) -> EventSourceResponse:
     deps = service.build_deps(user, body.thread_id, _request_id(request), None)
-    run = await run_in_threadpool(service.prepare_resume, deps, body.decision)
+    run = await run_in_threadpool(service.prepare_resume, deps, body.decision, None, body.tier)
     return EventSourceResponse(follow_run(service.start_run(run, user)))
 
 

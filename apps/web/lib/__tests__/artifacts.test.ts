@@ -51,9 +51,16 @@ describe("isCoreQuote", () => {
 })
 
 describe("toTierCards", () => {
-  it("映射为方案卡片：价格为分、毛利为 0–1、保留推荐标记", () => {
+  it("映射为方案卡片：价格为分、毛利为 0–1、保留推荐标记和档位键", () => {
     expect(toTierCards([standard])).toEqual([
-      { name: "标准版", spec: "4× L20 48G · FP8 · vLLM", price: 29200000, margin: 0.2449, recommended: true },
+      {
+        name: "标准版",
+        spec: "4× L20 48G · FP8 · vLLM",
+        price: 29200000,
+        margin: 0.2449,
+        recommended: true,
+        key: "standard",
+      },
     ])
   })
 })

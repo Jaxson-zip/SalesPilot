@@ -43,7 +43,7 @@ export function ChatView({
   /** 正在切换到另一个会话 */
   loading?: boolean
   composer: ReactNode
-  onDecide: (decision: ResumeDecision) => void
+  onDecide: (decision: ResumeDecision, tier?: string) => void
   onRetry: () => void
   onNew: () => void
   onConfirmRequirement?: (requirement: Record<string, unknown>) => void

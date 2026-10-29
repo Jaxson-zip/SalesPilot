@@ -137,7 +137,10 @@ def prepare_chat(
 
 
 def prepare_resume(
-    deps: AgentDeps, decision: str, checkpointer: BaseCheckpointSaver | None = None
+    deps: AgentDeps,
+    decision: str,
+    checkpointer: BaseCheckpointSaver | None = None,
+    tier: str | None = None,
 ) -> PreparedRun:
     thread_id = deps.ctx.thread_id
     graph = build_graph(deps, checkpointer or get_checkpointer())
@@ -147,7 +150,22 @@ def prepare_resume(
         raise BizError(ErrorCode.NOT_FOUND, "没有待确认的操作")
     _ensure_idle(thread_id)
     base = build_messages(thread_id, snapshot)
-    return PreparedRun(graph, Command(resume=decision), config, thread_id, "resume", decision, base)
+    value: str | dict[str, str] = decision
+    if tier and decision == "approve":
+        keys = {t.get("tier") for t in snapshot.values.get("tiers") or []}
+        if _pending_action(snapshot) != "generate_quote" or tier not in keys:
+            raise BizError(ErrorCode.VALIDATION, "没有这个方案档位，请在方案卡片里重新选择")
+        value = {"decision": decision, "tier": tier}
+    return PreparedRun(graph, Command(resume=value), config, thread_id, "resume", decision, base)
+
+
+def _pending_action(snapshot: Any) -> str | None:
+    """当前等待确认的写操作（interrupt 的 action）。"""
+    for task in snapshot.tasks or ():
+        for it in task.interrupts or ():
+            if isinstance(it.value, dict):
+                return it.value.get("action")
+    return None
 
 
 def _ensure_idle(thread_id: str) -> None:

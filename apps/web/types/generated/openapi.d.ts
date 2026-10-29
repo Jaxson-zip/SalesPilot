@@ -4905,6 +4905,8 @@ export interface components {
        * @enum {string}
        */
       decision: "approve" | "reject"
+      /** Tier */
+      tier?: string | null
     }
     /** RiskItem */
     RiskItem: {

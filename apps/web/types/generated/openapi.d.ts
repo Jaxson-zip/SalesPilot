@@ -629,6 +629,46 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/customers/import/preview": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Preview Import
+     * @description 批量导入预览：逐行校验、查重，不写入。
+     */
+    post: operations["preview_import_api_customers_import_preview_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/customers/import": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Run Import
+     * @description 确认导入：重新解析同一个文件，有问题的行跳过，其余一次写入。
+     */
+    post: operations["run_import_api_customers_import_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/customers/pool": {
     parameters: {
       query?: never
@@ -2409,6 +2449,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[ImportResult] */
+    ApiResponse_ImportResult_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["ImportResult"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[JobItem] */
     ApiResponse_JobItem_: {
       /**
@@ -3684,6 +3743,16 @@ export interface components {
       /** File */
       file: string
     }
+    /** Body_preview_import_api_customers_import_preview_post */
+    Body_preview_import_api_customers_import_preview_post: {
+      /** File */
+      file: string
+    }
+    /** Body_run_import_api_customers_import_post */
+    Body_run_import_api_customers_import_post: {
+      /** File */
+      file: string
+    }
     /** Body_upload_attachment_api_expenses__expense_id__attachments_post */
     Body_upload_attachment_api_expenses__expense_id__attachments_post: {
       /** File */
@@ -4708,6 +4777,44 @@ export interface components {
       artifacts: components["schemas"]["Artifact"][]
       /** Created At */
       created_at: string | null
+    }
+    /** ImportResult */
+    ImportResult: {
+      /** Total */
+      total: number
+      /** Ok */
+      ok: number
+      /** Skipped */
+      skipped: number
+      /** Created */
+      created: boolean
+      /** Columns */
+      columns: string[]
+      /** Ignored Columns */
+      ignored_columns: string[]
+      /** Rows */
+      rows: components["schemas"]["ImportRow"][]
+    }
+    /** ImportRow */
+    ImportRow: {
+      /** Line */
+      line: number
+      /** Name */
+      name: string
+      /** Owner Name */
+      owner_name: string | null
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "ok" | "duplicate" | "error"
+      /** Message */
+      message: string | null
+      /**
+       * Warnings
+       * @default []
+       */
+      warnings: string[]
     }
     /**
      * InvoiceIn
@@ -7799,6 +7906,76 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_HandoverResult_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  preview_import_api_customers_import_preview_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_preview_import_api_customers_import_preview_post"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ImportResult_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  run_import_api_customers_import_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "multipart/form-data": components["schemas"]["Body_run_import_api_customers_import_post"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ImportResult_"]
         }
       }
       /** @description Validation Error */

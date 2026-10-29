@@ -22,6 +22,7 @@ import type * as W from "@/hooks/useWecom"
 import type * as Acc from "@/hooks/useAccounts"
 import type * as LV from "@/lib/list-view"
 import type * as Jobs from "@/hooks/useJobs"
+import type * as Imp from "@/lib/customer-import"
 
 type S = components["schemas"]
 /** A 能赋给 B 时为 true；不能时类型为 false，下面的 `= true` 就会报错 */
@@ -44,6 +45,8 @@ export const responses = {
   FacetOption: true as Fits<S["FacetOption"], LV.FilterOption>,
   JobItem: true as Fits<S["JobItem"], Jobs.JobItem>,
   JobRunOut: true as Fits<S["JobRunOut"], Jobs.JobRun>,
+  ImportResult: true as Fits<S["ImportResult"], Imp.ImportResult>,
+  ImportRow: true as Fits<S["ImportRow"], Imp.ImportRow>,
   TempPassword: true as Fits<S["TempPassword"], Acc.TempPassword>,
   TeamItem: true as Fits<S["TeamItem"], Acc.TeamItem>,
   TaskItem: true as Fits<S["TaskItem"], T.TaskItem>,

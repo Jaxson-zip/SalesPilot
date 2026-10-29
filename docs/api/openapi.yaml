@@ -1595,6 +1595,76 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/import/preview:
+    post:
+      tags:
+      - customers
+      summary: Preview Import
+      description: 批量导入预览：逐行校验、查重，不写入。
+      operationId: preview_import_api_customers_import_preview_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_preview_import_api_customers_import_preview_post'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ImportResult_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/import:
+    post:
+      tags:
+      - customers
+      summary: Run Import
+      description: 确认导入：重新解析同一个文件，有问题的行跳过，其余一次写入。
+      operationId: run_import_api_customers_import_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_run_import_api_customers_import_post'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ImportResult_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/customers/pool:
     get:
       tags:
@@ -5898,6 +5968,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_ImportResult_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ImportResult'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ImportResult]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_JobItem_:
       properties:
         code:
@@ -7692,6 +7787,26 @@ components:
       required:
       - file
       title: Body_extract_material_api_agent_materials_post
+    Body_preview_import_api_customers_import_preview_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_preview_import_api_customers_import_preview_post
+    Body_run_import_api_customers_import_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_run_import_api_customers_import_post
     Body_upload_attachment_api_expenses__expense_id__attachments_post:
       properties:
         file:
@@ -9662,6 +9777,85 @@ components:
       - artifacts
       - created_at
       title: HistoryMessage
+    ImportResult:
+      properties:
+        total:
+          type: integer
+          title: Total
+        ok:
+          type: integer
+          title: Ok
+        skipped:
+          type: integer
+          title: Skipped
+        created:
+          type: boolean
+          title: Created
+        columns:
+          items:
+            type: string
+          type: array
+          title: Columns
+        ignored_columns:
+          items:
+            type: string
+          type: array
+          title: Ignored Columns
+        rows:
+          items:
+            $ref: '#/components/schemas/ImportRow'
+          type: array
+          title: Rows
+      type: object
+      required:
+      - total
+      - ok
+      - skipped
+      - created
+      - columns
+      - ignored_columns
+      - rows
+      title: ImportResult
+    ImportRow:
+      properties:
+        line:
+          type: integer
+          title: Line
+        name:
+          type: string
+          title: Name
+        owner_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Owner Name
+        status:
+          type: string
+          enum:
+          - ok
+          - duplicate
+          - error
+          title: Status
+        message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Message
+        warnings:
+          items:
+            type: string
+          type: array
+          title: Warnings
+          default: []
+      type: object
+      required:
+      - line
+      - name
+      - status
+      - owner_name
+      - message
+      - warnings
+      title: ImportRow
     InvoiceIn:
       properties:
         action:

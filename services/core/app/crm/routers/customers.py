@@ -3,7 +3,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 
 from app.common.auth import CurrentUserDep
 from app.common.response import ApiResponse, ok
@@ -36,6 +36,7 @@ from app.crm.services import (
     pool_service,
     transfer_service,
 )
+from app.crm.services.customer_import import ImportResult, import_customers
 from app.crm.services.customer_service import CustomerFilter
 from app.crm.services.intel_service import CompanyIntel
 from app.crm.services.listing import FacetOption, SortKey, clean, uuids
@@ -97,6 +98,22 @@ def preview_handover(
 @router.post("/handover", response_model=ApiResponse[HandoverResult])
 def handover(body: HandoverIn, user: CurrentUserDep, db: DbDep) -> ApiResponse[HandoverResult]:
     return ok(transfer_service.handover(db, user, body))
+
+
+@router.post("/import/preview", response_model=ApiResponse[ImportResult])
+def preview_import(
+    user: CurrentUserDep, db: DbDep, file: Annotated[UploadFile, File()]
+) -> ApiResponse[ImportResult]:
+    """批量导入预览：逐行校验、查重，不写入。"""
+    return ok(import_customers(db, user, file.filename or "", file.file, commit=False))
+
+
+@router.post("/import", response_model=ApiResponse[ImportResult])
+def run_import(
+    user: CurrentUserDep, db: DbDep, file: Annotated[UploadFile, File()]
+) -> ApiResponse[ImportResult]:
+    """确认导入：重新解析同一个文件，有问题的行跳过，其余一次写入。"""
+    return ok(import_customers(db, user, file.filename or "", file.file, commit=True))
 
 
 @router.get("/pool", response_model=ApiResponse[Page[CustomerListItem]])

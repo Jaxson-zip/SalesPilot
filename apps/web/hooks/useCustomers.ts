@@ -7,6 +7,7 @@ import { notifyError } from "@/hooks/notify"
 import { useDebounced } from "@/hooks/useDebounced"
 import { activityKeys } from "@/hooks/useDashboard"
 import { api } from "@/lib/api"
+import type { ImportResult } from "@/lib/customer-import"
 import { serverQuery, type ServerListParams } from "@/lib/list-view"
 import type {
   Customer,
@@ -175,6 +176,34 @@ export function useHandover() {
           qc.invalidateQueries({ queryKey }),
         ),
       ),
+    onError: notifyError,
+  })
+}
+
+function importForm(file: File): FormData {
+  const form = new FormData()
+  form.append("file", file)
+  return form
+}
+
+/** POST /api/customers/import/preview：逐行校验、查重，不写入 */
+export function usePreviewImport() {
+  return useMutation({
+    mutationFn: (file: File) => api.upload<ImportResult>("/api/customers/import/preview", importForm(file)),
+    onError: notifyError,
+  })
+}
+
+/** POST /api/customers/import：有问题的行跳过，其余一次写入 */
+export function useImportCustomers() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => api.upload<ImportResult>("/api/customers/import", importForm(file)),
+    onSuccess: (r) => {
+      toast.success(`已导入 ${r.ok} 个客户`, { description: r.skipped ? `跳过 ${r.skipped} 行` : undefined })
+      void qc.invalidateQueries({ queryKey: customerKeys.all })
+      void qc.invalidateQueries({ queryKey: activityKeys.all })
+    },
     onError: notifyError,
   })
 }

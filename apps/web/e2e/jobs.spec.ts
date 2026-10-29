@@ -11,8 +11,8 @@ const job = (extra: Record<string, unknown>) => ({
   enabled: true,
   run_at: "08:30",
   weekdays_only: false,
-  options: [],
-  last_run: null,
+  options: [] as { key: string; value: number }[],
+  last_run: null as unknown,
   ...extra,
 })
 

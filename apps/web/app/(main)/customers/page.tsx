@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRightLeft, Building2, Plus, UserRoundCog } from "lucide-react"
+import { ArrowRightLeft, Building2, FileUp, Plus, UserRoundCog } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import { BulkBar } from "@/components/biz/BulkBar"
@@ -9,6 +9,7 @@ import { EmptyState, ErrorState } from "@/components/biz/EmptyState"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { ViewBar, type ViewOption } from "@/components/biz/ViewBar"
 import { HandoverDialog } from "@/components/customers/HandoverDialog"
+import { ImportCustomersDialog } from "@/components/customers/ImportCustomersDialog"
 import { NewCustomerSheet } from "@/components/customers/NewCustomerSheet"
 import { TransferDialog } from "@/components/customers/TransferDialog"
 import { useSession } from "@/components/shell/SessionProvider"
@@ -43,6 +44,7 @@ export default function CustomersPage() {
   const { canCreate } = usePermissions()
   const [selected, setView] = useState<ListView | null>(null)
   const [creating, setCreating] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [transferring, setTransferring] = useState(false)
   const [handingOver, setHandingOver] = useState(false)
   const [handoverFrom, setHandoverFrom] = useState("")
@@ -110,6 +112,7 @@ export default function CustomersPage() {
           {role === "manager" ? (
             <FrameAction icon={UserRoundCog} label="按人交接" onClick={() => setHandingOver(true)} />
           ) : null}
+          {canCreate ? <FrameAction icon={FileUp} label="批量导入" onClick={() => setImporting(true)} /> : null}
           {canCreate ? <FrameAction icon={Plus} label="新建客户" primary onClick={() => setCreating(true)} /> : null}
         </>
       }
@@ -183,6 +186,9 @@ export default function CustomersPage() {
         />
       )}
       <NewCustomerSheet open={creating} onOpenChange={setCreating} />
+      {canCreate ? (
+        <ImportCustomersDialog open={importing} onOpenChange={setImporting} manager={role === "manager"} />
+      ) : null}
       {role === "manager" ? (
         <TransferDialog
           customers={sel.selected}

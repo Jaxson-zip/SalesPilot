@@ -4239,6 +4239,10 @@ export interface components {
        * @default false
        */
       stale: boolean
+      /** Meddic Risks */
+      meddic_risks: string[]
+      /** Competitors */
+      competitors: string[]
       /** Quotes */
       quotes: components["schemas"]["QuoteListItem"][]
       /** Activities */
@@ -4287,6 +4291,10 @@ export interface components {
        * @default false
        */
       stale: boolean
+      /** Meddic Risks */
+      meddic_risks: string[]
+      /** Competitors */
+      competitors: string[]
     }
     /**
      * OpportunityUpdate

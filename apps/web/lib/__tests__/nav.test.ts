@@ -64,6 +64,7 @@ describe("导航按角色分组（契约 §0）", () => {
   it("业务页面识别（管理员只读提示）", () => {
     expect(isBusinessPath("/customers/c1")).toBe(true)
     expect(isBusinessPath("/ai")).toBe(true)
+    expect(isBusinessPath("/reports")).toBe(true)
     expect(isBusinessPath("/settings/packs")).toBe(false)
     expect(isBusinessPath("/approvals")).toBe(false)
   })

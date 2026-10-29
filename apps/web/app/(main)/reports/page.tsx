@@ -4,6 +4,7 @@ import { BellRing, ChevronDown, ClipboardList, Copy, Loader2, Send, Sparkles } f
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { PageFrame } from "@/components/biz/PageFrame"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { LINE_TABS_LIST, LINE_TABS_TRIGGER } from "@/components/biz/RecordTabs"
@@ -27,6 +28,7 @@ import {
   type TeamMemberReport,
 } from "@/hooks/useReports"
 import { usePushFlags, usePushSummary, useRemindReports } from "@/hooks/useWecom"
+import { REDRAFT_REPORT_CONFIRM } from "@/lib/confirm-texts"
 import { cn } from "@/lib/utils"
 
 /** 本地日期 yyyy-mm-dd（服务端按北京时间算「当天」） */
@@ -135,15 +137,15 @@ function MyReport() {
   const setContent = (v: string) => setEdits((e) => ({ ...e, [date]: v }))
   const dirty = edits[date] !== undefined && edits[date] !== (q.data?.content ?? "")
 
-  const generate = () => {
-    if (content.trim() && !window.confirm("用新生成的草稿覆盖当前内容？")) return
+  const { ask, dialog } = useConfirmAction()
+  const runDraft = () =>
     draft.mutate(date, {
       onSuccess: (r) => {
         setContent(r.content)
         setSource(r.source)
       },
     })
-  }
+  const generate = () => (content.trim() ? ask({ ...REDRAFT_REPORT_CONFIRM, onConfirm: runDraft }) : runDraft())
   const submit = (asSubmit: boolean) =>
     save.mutate(
       { date, content: content.trim(), submit: asSubmit },
@@ -159,6 +161,7 @@ function MyReport() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-3 p-4 sm:p-5">
+      {dialog}
       <div className="flex flex-wrap items-center gap-2">
         <DateInput
           value={date}

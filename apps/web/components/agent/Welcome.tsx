@@ -1,6 +1,6 @@
 "use client"
 
-import { Sparkles } from "lucide-react"
+import { Paperclip, Sparkles } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { PromptCards } from "@/components/agent/PromptCards"
@@ -49,6 +49,12 @@ export function Welcome({
         <p className="mb-6 text-center text-zinc-500">{intro.desc}</p>
         {composer}
         <PromptCards onPick={onPick} />
+        {readOnly ? null : (
+          <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-zinc-500">
+            <Paperclip className="size-3.5 shrink-0" />
+            有会议纪要、聊天记录或名片？点输入框里的「上传材料」，AI 会整理成跟进、联系人和下一步
+          </p>
+        )}
       </div>
     </div>
   )

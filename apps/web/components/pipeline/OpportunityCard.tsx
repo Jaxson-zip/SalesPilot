@@ -1,7 +1,7 @@
 "use client"
 
 import { useDraggable, type DraggableAttributes, type DraggableSyntheticListeners } from "@dnd-kit/core"
-import { Building2, Calendar, CalendarClock, Coins, User } from "lucide-react"
+import { AlertTriangle, Building2, Calendar, CalendarClock, Coins, Swords, User } from "lucide-react"
 import type { KeyboardEvent } from "react"
 
 import { Chip } from "@/components/biz/Chip"
@@ -11,6 +11,38 @@ import { expectedCloseText, isFinalStage } from "@/lib/pipeline"
 import { nextStepView, staleText } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 import type { OpportunityItem } from "@/types/api"
+
+/** 风险与竞争：缺的赢单要素（琥珀 + 图标）、遇到的竞品（中性灰）；都没有时不占位 */
+function RiskLine({ opp }: { opp: OpportunityItem }) {
+  const risks = opp.meddic_risks ?? []
+  const rivals = opp.competitors ?? []
+  if (!risks.length && !rivals.length) return null
+  return (
+    <div className="mt-2 flex flex-wrap gap-1 text-xs">
+      {risks.length ? (
+        <span
+          className="inline-flex max-w-full items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-amber-800"
+          title={`当前阶段还没确认：${risks.join("、")}`}
+        >
+          <AlertTriangle className="size-3 shrink-0" />
+          <span className="truncate">
+            缺{risks.length > 2 ? `${risks.slice(0, 2).join("、")} 等 ${risks.length} 项` : risks.join("、")}
+          </span>
+        </span>
+      ) : null}
+      {rivals.map((name) => (
+        <span
+          key={name}
+          className="inline-flex max-w-full items-center gap-1 rounded bg-zinc-100 px-1.5 py-0.5 text-zinc-600"
+          title={`竞品：${name}`}
+        >
+          <Swords className="size-3 shrink-0" />
+          <span className="truncate">{name}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
 
 /** 下一步（v3 §12）：有任务显示「下一步：xxx · 明天」，逾期红色；未终态且没有任务显示淡黄色提示 */
 function NextStepLine({ opp }: { opp: OpportunityItem }) {
@@ -105,6 +137,7 @@ export function OpportunityCardBody({
         ) : null}
       </div>
       <NextStepLine opp={opp} />
+      <RiskLine opp={opp} />
       {stale ? (
         <div className="mt-2">
           <Tag color="orange">{stale}</Tag>

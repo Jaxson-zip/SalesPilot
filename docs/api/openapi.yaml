@@ -8582,6 +8582,16 @@ components:
           type: boolean
           title: Stale
           default: false
+        meddic_risks:
+          items:
+            type: string
+          type: array
+          title: Meddic Risks
+        competitors:
+          items:
+            type: string
+          type: array
+          title: Competitors
         quotes:
           items:
             $ref: '#/components/schemas/QuoteListItem'
@@ -8611,6 +8621,8 @@ components:
       - last_activity_at
       - idle_days
       - stale
+      - meddic_risks
+      - competitors
       title: OpportunityDetail
     OpportunityItem:
       properties:
@@ -8680,6 +8692,16 @@ components:
           type: boolean
           title: Stale
           default: false
+        meddic_risks:
+          items:
+            type: string
+          type: array
+          title: Meddic Risks
+        competitors:
+          items:
+            type: string
+          type: array
+          title: Competitors
       type: object
       required:
       - id
@@ -8697,6 +8719,8 @@ components:
       - last_activity_at
       - idle_days
       - stale
+      - meddic_risks
+      - competitors
       title: OpportunityItem
     OpportunityUpdate:
       properties:

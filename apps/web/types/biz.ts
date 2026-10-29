@@ -96,6 +96,10 @@ export interface OpportunityItem {
   last_activity_at?: string | null
   idle_days?: number
   stale?: boolean
+  /** 看板卡片：当前阶段应确认却没确认的赢单要素 */
+  meddic_risks?: string[]
+  /** 看板卡片：标注的竞品名称 */
+  competitors?: string[]
 }
 
 export interface OpportunityDetail extends OpportunityItem {

@@ -96,3 +96,17 @@ def test_battlecard_tool_matches_customer_words() -> None:
     result = spec.func(ctx, spec.args_model(keyword="客户说他们 IT 想自己搭"))
     assert result.ok and result.data[0]["name"] == "客户自建（开源 + 自有团队）"
     assert result.data[0]["objections"]
+
+
+def test_board_card_shows_competitors_and_meddic_risks(
+    client: TestClient, tracker: Tracker, card: dict
+) -> None:
+    """看板卡片字段：标注的竞品名称；推进到方案报价后缺的赢单要素。"""
+    opp = new_opp(client, tracker)
+    oid = opp["id"]
+    client.put(f"/api/opportunities/{oid}/competitors", json={"ids": [card["id"]]}, headers=SALES_H)
+    client.patch(f"/api/opportunities/{oid}/stage", json={"stage": "proposal"}, headers=SALES_H)
+    items = client.get("/api/opportunities", params={"view": "mine"}, headers=SALES_H).json()
+    item = next(i for i in items["data"]["items"] if i["id"] == oid)
+    assert item["competitors"] == [card["name"]]
+    assert item["meddic_risks"] == ["痛点", "量化收益", "决策标准"]

@@ -10,7 +10,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.crm.models import Activity, Followup, Opportunity, Task
+from app.crm.models import Activity, Competitor, Followup, Opportunity, Task
 from app.crm.schemas.task import NextTask
 from app.rules import RuleSet, load_rules
 from app.rules.crm_calc import idle_days_of, is_stale, is_task_overdue
@@ -77,11 +77,16 @@ def last_activity(db: Session, opps: list[Opportunity]) -> dict[uuid.UUID, datet
 def insights(
     db: Session, opps: list[Opportunity], rules: RuleSet | None = None
 ) -> dict[uuid.UUID, dict[str, Any]]:
-    """商机 id → {next_task, last_activity_at, idle_days, stale}。"""
+    """商机 id → {next_task, last_activity_at, idle_days, stale, meddic_risks, competitors}。"""
+    from app.crm.services.meddic_service import (
+        meddic_risks,
+    )  # meddic_service 依赖商机服务，延迟导入
+
     now = datetime.now(UTC)
     cfg = rules or load_rules()
     tasks = next_tasks(db, [o.id for o in opps], now)
     lasts = last_activity(db, opps)
+    names = competitor_names(db, opps)
     out: dict[uuid.UUID, dict[str, Any]] = {}
     for o in opps:
         idle = idle_days_of(lasts[o.id], now)
@@ -90,5 +95,18 @@ def insights(
             "last_activity_at": lasts[o.id],
             "idle_days": idle,
             "stale": is_stale(o.stage, idle, cfg),
+            "meddic_risks": meddic_risks(o),
+            "competitors": [names[i] for i in o.competitor_ids or [] if i in names],
         }
     return out
+
+
+def competitor_names(db: Session, opps: list[Opportunity]) -> dict[str, str]:
+    """一次查出这批商机标注过的竞品名称（已停用的不显示）。"""
+    ids = {uuid.UUID(str(i)) for o in opps for i in o.competitor_ids or []}
+    if not ids:
+        return {}
+    rows = db.execute(
+        select(Competitor.id, Competitor.name).where(Competitor.id.in_(ids), Competitor.enabled)
+    )
+    return {str(cid): name for cid, name in rows}

@@ -40,6 +40,9 @@ class OpportunityItem(BaseModel):
     last_activity_at: datetime | None = None
     idle_days: int = 0
     stale: bool = False
+    # 看板卡片：当前阶段应确认却没确认的赢单要素、标注的竞品名称
+    meddic_risks: list[str] = Field(default_factory=list)
+    competitors: list[str] = Field(default_factory=list)
 
 
 class OpportunityDetail(OpportunityItem):

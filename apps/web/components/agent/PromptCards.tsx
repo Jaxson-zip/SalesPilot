@@ -9,6 +9,8 @@ import {
   Receipt,
   ScrollText,
   Sparkles,
+  Swords,
+  Target,
   type LucideIcon,
 } from "lucide-react"
 
@@ -24,6 +26,8 @@ export interface PromptCard {
 
 /** 按标题关键词配图标；没匹配上用通用图标 */
 const ICON_RULES: [RegExp, LucideIcon][] = [
+  [/竞品/, Swords],
+  [/赢单要素/, Target],
   [/方案|报价/, Sparkles],
   [/报销/, Receipt],
   [/漏斗/, ChartNoAxesColumn],

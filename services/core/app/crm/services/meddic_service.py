@@ -143,6 +143,19 @@ def required_keys(stage: str) -> set[str]:
     return keys
 
 
+def meddic_risks(opp: Opportunity) -> list[str]:
+    """看板卡片用：当前阶段应确认却没确认的项（与 to_out().risks 相同，不组装完整结构）。"""
+    if opp.stage in ("won", "lost"):
+        return []
+    saved: dict[str, Any] = dict(opp.meddic or {})
+    required = required_keys(opp.stage)
+    return [
+        ITEMS[k][0]
+        for k in ORDER
+        if k in required and (saved.get(k) or {}).get("status", "missing") != "confirmed"
+    ]
+
+
 def to_out(opp: Opportunity) -> MeddicOut:
     saved: dict[str, Any] = dict(opp.meddic or {})
     required = required_keys(opp.stage) if opp.stage not in ("won", "lost") else set()

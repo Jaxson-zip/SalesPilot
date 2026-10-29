@@ -3,6 +3,7 @@
 import { ChevronRight, Pencil, Plus, Search, Swords, Trash2 } from "lucide-react"
 import { useState } from "react"
 
+import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { EmptyState } from "@/components/biz/EmptyState"
 import { PageFrame } from "@/components/biz/PageFrame"
 import { QueryError } from "@/components/biz/QueryStatus"
@@ -14,6 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useDebounced } from "@/hooks/useDebounced"
 import { useCompetitors, useDeleteCompetitor, type Competitor } from "@/hooks/useCompetitors"
+import { deleteCompetitorConfirm } from "@/lib/confirm-texts"
 import { cn } from "@/lib/utils"
 
 /** 一行战卡：名称 + 简介 + 战绩，点开在行内展开话术（与列表页的行样式一致） */
@@ -31,8 +33,10 @@ function Row({
   onEdit: () => void
 }) {
   const del = useDeleteCompetitor()
+  const { ask, dialog } = useConfirmAction()
   return (
     <li className="border-b border-zinc-100">
+      {dialog}
       <div className="flex items-start gap-2 px-4 py-3 sm:px-5">
         <button
           type="button"
@@ -60,9 +64,7 @@ function Row({
               variant="ghost"
               aria-label={`删除 ${c.name}`}
               disabled={del.isPending}
-              onClick={() => {
-                if (window.confirm(`删除「${c.name}」战卡？已标注的商机会移除这个竞品。`)) del.mutate(c.id)
-              }}
+              onClick={() => ask({ ...deleteCompetitorConfirm(c.name), onConfirm: () => del.mutate(c.id) })}
             >
               <Trash2 />
             </Button>

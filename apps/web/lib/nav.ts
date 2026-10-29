@@ -116,5 +116,7 @@ export function isForbiddenPath(pathname: string, role: Role): boolean {
 
 /** 业务页面（管理员打开时显示「只读」提示） */
 export function isBusinessPath(pathname: string): boolean {
-  return [AI, DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES].some((i) => isActivePath(pathname, i.href))
+  return [AI, DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, REPORTS].some((i) =>
+    isActivePath(pathname, i.href),
+  )
 }

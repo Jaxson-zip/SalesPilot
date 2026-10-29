@@ -83,6 +83,21 @@ export function transferConfirm(count: number, toName: string | null): ConfirmCo
   }
 }
 
+export function deleteCompetitorConfirm(name: string): ConfirmCopy {
+  return {
+    title: `删除「${name}」战卡？`,
+    description: "已标注这个竞品的商机会移除标注；历史输赢战绩不再显示。",
+    confirmLabel: "确认删除",
+    destructive: true,
+  }
+}
+
+export const REDRAFT_REPORT_CONFIRM: ConfirmCopy = {
+  title: "重新生成日报草稿？",
+  description: "AI 会按今天的操作重新写一版，覆盖输入框里的当前内容（已提交的版本不受影响，直到你再次提交）。",
+  confirmLabel: "覆盖并生成",
+}
+
 export function deleteContactConfirm(name: string): ConfirmCopy {
   return {
     title: `删除联系人「${name}」？`,

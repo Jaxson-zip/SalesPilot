@@ -62,6 +62,7 @@ class Templates(BaseModel):
     task: list[TaskTemplate]
     lost_reasons: list[str]
     quote_terms: list[str]
+    contract_terms: list[str]  # 合同要素确认单的说明
     ai_prompts: list[PromptTemplate]
     # 规则说明（悬浮提示）：commission / quote / expense，数字来自 rules.yaml
     rule_notes: RuleNotes
@@ -130,6 +131,7 @@ def get_templates(role: Role) -> Templates:
         task=[TaskTemplate.model_validate(t) for t in raw.get("task", [])],
         lost_reasons=[str(r) for r in raw.get("lost_reasons", [])],
         quote_terms=[str(t).format(**values) for t in raw.get("quote_terms", [])],
+        contract_terms=[str(t).format(**values) for t in raw.get("contract_terms", [])],
         rule_notes=RuleNotes.model_validate(rule_notes(rules)),
         ai_prompts=[
             PromptTemplate.model_validate(p) for p in raw.get("ai_prompts", {}).get(role, [])

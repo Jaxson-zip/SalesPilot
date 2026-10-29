@@ -6337,6 +6337,8 @@ export interface components {
       lost_reasons: string[]
       /** Quote Terms */
       quote_terms: string[]
+      /** Contract Terms */
+      contract_terms: string[]
       /** Ai Prompts */
       ai_prompts: components["schemas"]["PromptTemplate"][]
       rule_notes: components["schemas"]["RuleNotes"]

@@ -12732,6 +12732,11 @@ components:
             type: string
           type: array
           title: Quote Terms
+        contract_terms:
+          items:
+            type: string
+          type: array
+          title: Contract Terms
         ai_prompts:
           items:
             $ref: '#/components/schemas/PromptTemplate'
@@ -12747,6 +12752,7 @@ components:
       - task
       - lost_reasons
       - quote_terms
+      - contract_terms
       - ai_prompts
       - rule_notes
       title: Templates

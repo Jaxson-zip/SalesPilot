@@ -54,6 +54,8 @@ export interface Templates {
   task: TaskTemplate[]
   lost_reasons: string[]
   quote_terms: string[]
+  /** 合同要素确认单的说明 */
+  contract_terms: string[]
   /** 当前角色的 AI 示例问题 */
   ai_prompts: PromptTemplate[]
   rule_notes: Record<RuleNoteKey, RuleNote>

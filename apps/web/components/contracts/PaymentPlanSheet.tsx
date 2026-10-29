@@ -1,6 +1,7 @@
 "use client"
 
-import { CalendarClock, Plus, Trash2 } from "lucide-react"
+import { CalendarClock, Plus, Printer, Trash2 } from "lucide-react"
+import Link from "next/link"
 import { Fragment, useState } from "react"
 
 import { Alert } from "@/components/biz/Alert"
@@ -266,6 +267,16 @@ export function PaymentPlanSheet({
       open={contract !== null}
       onOpenChange={(o) => !o && close()}
       title={`回款计划 · ${contract?.code ?? ""}`}
+      footer={
+        contract ? (
+          <Button variant="outline" asChild>
+            <Link href={`/contracts/${encodeURIComponent(contract.id)}/print`}>
+              <Printer />
+              打印合同要素确认单
+            </Link>
+          </Button>
+        ) : null
+      }
     >
       {body}
       {contract ? (

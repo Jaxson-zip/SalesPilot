@@ -3,9 +3,18 @@
 import { ArrowLeft, Printer } from "lucide-react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { useEffect, useState, type ReactNode } from "react"
-import { createPortal } from "react-dom"
+import { useState } from "react"
 
+import {
+  ItemsTable,
+  Meta,
+  PrintHeader,
+  PrintPaper,
+  PrintPortal,
+  Signatures,
+  TermsList,
+  useDocTitle,
+} from "@/components/biz/PrintSheet"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -21,40 +30,10 @@ import type { QuoteDetail } from "@/types/api"
 
 const DEFAULT_NOTE = "以上报价以人民币计价。如需调整配置或数量，请联系您的客户经理。"
 
-/** 打印页铺满视口盖住应用外壳（屏幕上是 A4 预览）；打印时 print CSS 只输出 .print-root */
-function PrintPortal({ children }: { children: ReactNode }) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-  if (!mounted) return null
-  return createPortal(
-    <div className="print-root fixed inset-0 z-50 overflow-y-auto bg-zinc-100">{children}</div>,
-    document.body,
-  )
-}
-
-function Meta({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="flex gap-2">
-      <span className="w-16 shrink-0 text-zinc-500">{label}</span>
-      <span className="min-w-0 break-words">{value}</span>
-    </div>
-  )
-}
-
 /** 条款与说明：来自 /api/templates（有效期天数由后端按 rules.yaml 填入），管理员改 templates.yaml 即可调整 */
 function QuoteTerms() {
   const terms = useTemplates().data?.quote_terms ?? []
-  if (terms.length === 0) return null
-  return (
-    <section className="mt-6" aria-label="条款与说明">
-      <div className="font-medium">条款与说明</div>
-      <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-zinc-700">
-        {terms.map((t) => (
-          <li key={t}>{t}</li>
-        ))}
-      </ol>
-    </section>
-  )
+  return <TermsList title="条款与说明" terms={terms} />
 }
 
 /** 项目范围：只在商机上有「已确认」的需求清单时显示（软件外包），说明交付端、交付方式和本期不含的功能 */
@@ -79,11 +58,8 @@ function QuoteSheet({ q, showUpper }: { q: QuoteDetail; showUpper: boolean }) {
   const [note, setNote] = useState(DEFAULT_NOTE)
   const t = printTotals(q)
   return (
-    <div className="print-sheet mx-auto my-6 min-h-[297mm] w-[210mm] max-w-full bg-white p-[16mm] text-[12px] leading-relaxed text-zinc-900 shadow-sm">
-      <div className="flex items-end justify-between border-b-2 border-zinc-900 pb-3">
-        <div className="text-lg font-semibold">{PRINT_COMPANY}</div>
-        <div className="text-2xl font-semibold tracking-[0.3em]">报价单</div>
-      </div>
+    <PrintPaper>
+      <PrintHeader company={PRINT_COMPANY} title="报价单" />
       <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-1.5">
         <Meta label="客户" value={q.customer?.name ?? "—"} />
         <Meta label="报价编号" value={q.code} />
@@ -93,32 +69,9 @@ function QuoteSheet({ q, showUpper }: { q: QuoteDetail; showUpper: boolean }) {
         <Meta label="有效期至" value={q.valid_until ? q.valid_until.slice(0, 10) : "—"} />
       </div>
       <ProjectScope q={q} />
-      <table className="mt-5 w-full table-fixed border-collapse">
-        <thead>
-          <tr className="bg-zinc-100 text-left">
-            <th className="w-10 border border-zinc-300 px-2 py-1.5 font-medium">序号</th>
-            <th className="border border-zinc-300 px-2 py-1.5 font-medium">项目</th>
-            <th className="w-12 border border-zinc-300 px-2 py-1.5 font-medium">单位</th>
-            <th className="w-14 border border-zinc-300 px-2 py-1.5 text-right font-medium">数量</th>
-            <th className="w-24 border border-zinc-300 px-2 py-1.5 text-right font-medium">单价</th>
-            <th className="w-28 border border-zinc-300 px-2 py-1.5 text-right font-medium">金额</th>
-          </tr>
-        </thead>
-        <tbody>
-          {q.items.map((it, i) => (
-            <tr key={it.sku}>
-              <td className="border border-zinc-300 px-2 py-1.5 tabular-nums">{i + 1}</td>
-              <td className="border border-zinc-300 px-2 py-1.5 break-words">{it.name}</td>
-              <td className="border border-zinc-300 px-2 py-1.5">{it.unit}</td>
-              <td className="border border-zinc-300 px-2 py-1.5 text-right tabular-nums">{it.qty}</td>
-              <td className="border border-zinc-300 px-2 py-1.5 text-right tabular-nums">{formatFen(it.unit_price)}</td>
-              <td className="border border-zinc-300 px-2 py-1.5 text-right tabular-nums">
-                {formatFen(it.subtotal_price)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="mt-5">
+        <ItemsTable items={q.items} />
+      </div>
       <div className="mt-3 ml-auto w-72 space-y-1">
         <div className="flex justify-between">
           <span className="text-zinc-500">小计</span>
@@ -154,16 +107,8 @@ function QuoteSheet({ q, showUpper }: { q: QuoteDetail; showUpper: boolean }) {
           className="mt-1 resize-none text-[12px] print:border-0 print:p-0 print:shadow-none"
         />
       </div>
-      <div className="mt-12 grid grid-cols-2 gap-10">
-        {["报价方（盖章）", "客户确认（盖章）"].map((who) => (
-          <div key={who} className="space-y-6">
-            <div className="font-medium">{who}</div>
-            <div className="border-b border-zinc-400 pb-1 text-zinc-500">签字：</div>
-            <div className="border-b border-zinc-400 pb-1 text-zinc-500">日期：</div>
-          </div>
-        ))}
-      </div>
-    </div>
+      <Signatures parties={["报价方（盖章）", "客户确认（盖章）"]} />
+    </PrintPaper>
   )
 }
 
@@ -175,15 +120,7 @@ export default function QuotePrintPage() {
   const [showUpper, setShowUpper] = useState(true)
   const q = query.data
 
-  // 浏览器「存为 PDF」默认用页面标题作文件名
-  useEffect(() => {
-    if (!q) return
-    const prev = document.title
-    document.title = printDocTitle(q)
-    return () => {
-      document.title = prev
-    }
-  }, [q])
+  useDocTitle(q ? printDocTitle(q) : null)
 
   let body
   if (query.isPending) body = <Skeleton className="mx-auto my-6 h-[600px] w-[210mm] max-w-full" />

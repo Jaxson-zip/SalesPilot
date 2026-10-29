@@ -100,6 +100,10 @@ def classify_exception(exc: BaseException) -> GatewayError:
         return GatewayError(400, CODE_INVALID_PARAM, msg, "invalid_request_error", "context_length_exceeded")
     if "contentpolicy" in name or "content_filter" in text or "data_inspection" in text:
         return GatewayError(400, CODE_INVALID_PARAM, msg, "invalid_request_error", "content_filter")
+    # 余额不足 / 欠费：DeepSeek 返回 402，LiteLLM 包成 BadRequestError；DashScope 返回 Arrearage。
+    # 单独归类，日志和报错直接说明原因（否则会被当成「请求参数错误」），并允许切到下一个模型
+    if status == 402 or any(w in text for w in ("insufficient balance", "insufficient_balance", "arrearage")):
+        return GatewayError(502, CODE_UPSTREAM, msg, "api_error", "insufficient_balance")
     if "authentication" in name or status in (401, 403):
         return GatewayError(401, CODE_UNAUTHORIZED, msg, "authentication_error", "upstream_auth")
     if "ratelimit" in name or status == 429:

@@ -38,3 +38,6 @@ Thumbs.db
 # 课程材料（不进仓库）
 *.pdf
 /.audit/
+
+# AI 评估输出（每次运行重新生成；需要留档的报告复制到 docs/eval/）
+services/core/evals/reports/

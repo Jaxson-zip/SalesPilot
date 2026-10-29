@@ -1,0 +1,131 @@
+# 软件外包 AI 拆解评估用例（人工标注的期望）
+#
+# platforms：期望识别出的交付端（集合完全一致才算对）
+# required：必须拆出的模块。每项可写多个候选，用 | 分隔：
+#   - 模块库 key（account / booking / payment …）
+#   - ~关键词：任意模块名称里包含这个词即可（用于模块库没有的自定义功能）
+# later：客户说二期 / 以后再做的模块（期望 must=false），写法同 required
+# vague: true：信息太少，期望系统追问（缺交付端或功能），而不是硬拆
+# team_size / budget（元）/ deadline_weeks：期望抽到的数值，没写就不检查
+
+cases:
+  - id: gym-booking
+    text: 健身房想做个会员约课的小程序，会员能看课程表、约课、取消，店长在后台排课
+    platforms: [mini_program, admin]
+    required: [booking, "catalog|~课程", account]
+
+  - id: chain-store
+    text: 做个连锁门店预约小程序，要会员登录、在线预约和微信支付，还要管理后台看报表，2个月上线，预算15万
+    platforms: [mini_program, admin]
+    required: [account, booking, payment, report]
+    budget: 150000
+    deadline_weeks: 8
+
+  - id: driving-school
+    text: 我们是一家驾校，想做个学员练车预约的系统，教练和学员都要用，教练能排班，学员能约车和评价教练
+    platforms: [mini_program, admin]
+    required: [booking, "~评价", "rbac|account"]
+
+  - id: hospital-app
+    text: 帮社区医院做一个App，患者挂号、看检验报告、在线问诊，要对接医院现有的HIS系统，安卓苹果都要
+    platforms: [app]
+    required: [booking, "~报告", "im|~问诊", "integration|~HIS"]
+
+  - id: expense
+    text: 做一个企业内部的报销审批系统，网页版就行，要多级审批、对接用友财务，带数据统计
+    platforms: [web, admin]
+    required: [workflow, "integration|~用友", report]
+
+  - id: mall
+    text: 给一家母婴店做线上商城小程序，商品展示、购物车下单、微信支付、订单物流查询，后台管理商品和订单
+    platforms: [mini_program, admin]
+    required: [catalog, order, payment]
+
+  - id: canteen
+    text: 工厂食堂要个点餐小程序，员工提前订餐，刷工卡扣费，食堂后台看每天订餐数量
+    platforms: [mini_program, admin]
+    required: ["order|booking|~订餐", "integration|~工卡|payment", report]
+
+  - id: property
+    text: 物业公司做一个业主服务小程序：报修、缴物业费、小区公告，物业人员要能接单处理报修
+    platforms: [mini_program, admin]
+    required: ["workflow|~报修", payment, content]
+
+  - id: training
+    text: 培训机构想做在线课程平台，网站和小程序都要，视频课程播放、购买课程、学习进度，二期再做直播
+    platforms: [web, mini_program, admin]
+    required: ["content|catalog|~课程", payment]
+    later: ["~直播"]
+
+  - id: crm-lite
+    text: 我们销售团队想要个简单的客户管理系统，网页用，记录客户、跟进记录、销售漏斗报表、按部门分权限
+    platforms: [web]
+    required: ["~客户", report, rbac]
+
+  - id: ai-service
+    text: 做一个带 AI 智能客服的电商小程序，客户问问题 AI 先回答，答不了转人工，还要商品和订单
+    platforms: [mini_program]
+    required: [ai, "im|~人工", catalog, order]
+
+  - id: iot
+    text: 农业大棚监控系统，网页上看温湿度传感器数据和历史曲线，超标短信报警，要对接现有的传感器网关
+    platforms: [web]
+    required: ["integration|~传感器", report, message]
+
+  - id: map-delivery
+    text: 同城跑腿 App，用户下单、骑手抢单、地图实时显示骑手位置、在线支付，后台管理骑手
+    platforms: [app, admin]
+    required: [order, map, payment, "rbac|~骑手"]
+
+  - id: recruit
+    text: 招聘小程序，企业发布职位，求职者搜索职位、投简历上传附件，企业和求职者能在线聊天
+    platforms: [mini_program]
+    required: [search, file, im]
+
+  - id: solo-blog
+    text: 我一个人全栈做，给客户做个企业官网，展示公司介绍、产品和新闻，后台能发文章
+    platforms: [web, admin]
+    required: [content]
+    team_size: 1
+
+  - id: solo-budget
+    text: 这个活我自己一个人做，宠物医院预约小程序，预约挂号和疫苗提醒，预算5万
+    platforms: [mini_program]
+    required: [booking, message]
+    team_size: 1
+    budget: 50000
+
+  - id: phase-two
+    text: 社区团购小程序，首期只做商品团购下单和支付，会员积分和分销以后再说
+    platforms: [mini_program]
+    required: [order, payment]
+    later: ["~积分", "~分销"]
+
+  - id: deadline
+    text: 会议签到系统，手机网页扫码签到，后台导出签到名单，下个月10号开会，大概3周时间
+    platforms: [web, admin]
+    required: ["~签到", "file|report|~导出"]
+    deadline_weeks: 3
+
+  - id: approval-oa
+    text: 公司 OA，请假、用印、采购三种审批流程，钉钉登录，网页和手机都能用
+    platforms: [web]
+    required: [workflow, "integration|account|~钉钉"]
+
+  - id: school
+    text: 学校家校通 App，老师发作业和通知，家长查看成绩、请假，和老师私信
+    platforms: [app]
+    required: [content, "~成绩", "workflow|~请假", im]
+
+  # 信息太少：期望追问，而不是硬拆
+  - id: vague-1
+    text: 帮我给客户做个系统
+    vague: true
+
+  - id: vague-2
+    text: 客户想做个 App，具体做什么还没说
+    vague: true
+
+  - id: vague-3
+    text: 有个客户预算 20 万左右，想搞点数字化
+    vague: true

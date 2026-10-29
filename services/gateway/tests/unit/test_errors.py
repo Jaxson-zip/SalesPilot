@@ -66,3 +66,20 @@ def test_single_model_error_passthrough_and_failover_policy() -> None:
     assert aggregate_errors([("m", original)], is_group=False) is original
     assert should_failover(original)
     assert not should_failover(_err(400, "content_filter"))
+
+
+@pytest.mark.parametrize(
+    ("exc", "status", "message"),
+    [
+        ("BadRequestError", 402, "Insufficient Balance (request_id: x)"),
+        (
+            "BadRequestError",
+            400,
+            "Arrearage: Access denied, please make sure your account is in good standing.",
+        ),
+    ],
+)
+def test_insufficient_balance_is_not_bad_request(exc: str, status: int, message: str) -> None:
+    err = classify_exception(upstream_error(exc, status, message))
+    assert (err.status, err.code) == (502, "insufficient_balance")
+    assert should_failover(err)

@@ -22,6 +22,7 @@ describe("导航按角色分组（契约 §0）", () => {
   it("管理员：业务总览（只读）+ 系统设置", () => {
     expect(labels("admin")).toEqual(["", "业务总览（只读）", "系统设置"])
     expect(navGroupsFor("admin")[2].items.map((i) => i.href)).toEqual([
+      "/settings/accounts",
       "/settings/rules",
       "/settings/packs",
       "/battlecards",
@@ -47,6 +48,9 @@ describe("导航按角色分组（契约 §0）", () => {
   it("切换角色后无权页面需要跳回", () => {
     expect(isForbiddenPath("/approvals", "sales")).toBe(true)
     expect(isForbiddenPath("/approvals", "admin")).toBe(true)
+    // 成员与团队只给管理员
+    expect(isForbiddenPath("/settings/accounts", "manager")).toBe(true)
+    expect(isForbiddenPath("/settings/accounts", "sales")).toBe(true)
     expect(isForbiddenPath("/approvals", "manager")).toBe(false)
     expect(isForbiddenPath("/settings/packs", "manager")).toBe(true)
     expect(isForbiddenPath("/settings/audit", "sales")).toBe(true)

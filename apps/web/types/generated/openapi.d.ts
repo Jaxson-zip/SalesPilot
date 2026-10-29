@@ -21,6 +21,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/auth/login": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Login */
+    post: operations["login_api_auth_login_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/auth/mock-login": {
     parameters: {
       query?: never
@@ -32,6 +49,23 @@ export interface paths {
     put?: never
     /** Mock Login */
     post: operations["mock_login_api_auth_mock_login_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/auth/password": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Change Password */
+    post: operations["change_password_api_auth_password_post"]
     delete?: never
     options?: never
     head?: never
@@ -53,6 +87,93 @@ export interface paths {
     options?: never
     head?: never
     patch?: never
+    trace?: never
+  }
+  "/api/admin/users": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Accounts */
+    get: operations["list_accounts_api_admin_users_get"]
+    put?: never
+    /** Create Account */
+    post: operations["create_account_api_admin_users_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/admin/users/{user_id}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    /** Update Account */
+    patch: operations["update_account_api_admin_users__user_id__patch"]
+    trace?: never
+  }
+  "/api/admin/users/{user_id}/reset-password": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Reset Password */
+    post: operations["reset_password_api_admin_users__user_id__reset_password_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/admin/teams": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List Teams */
+    get: operations["list_teams_api_admin_teams_get"]
+    put?: never
+    /** Create Team */
+    post: operations["create_team_api_admin_teams_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/admin/teams/{team_id}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    /** Rename Team */
+    patch: operations["rename_team_api_admin_teams__team_id__patch"]
     trace?: never
   }
   "/api/audit-logs": {
@@ -1652,6 +1773,51 @@ export interface paths {
 export type webhooks = Record<string, never>
 export interface components {
   schemas: {
+    /** AccountCreate */
+    AccountCreate: {
+      /** Username */
+      username: string
+      /** Name */
+      name: string
+      role: components["schemas"]["Role"]
+      /** Team Id */
+      team_id?: string | null
+    }
+    /** AccountItem */
+    AccountItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Username */
+      username: string | null
+      /** Name */
+      name: string
+      role: components["schemas"]["Role"]
+      /** Team Id */
+      team_id: string | null
+      /** Team Name */
+      team_name: string | null
+      /** Active */
+      active: boolean
+      /** Must Change Password */
+      must_change_password: boolean
+      /** Last Login At */
+      last_login_at: string | null
+      /** Customers */
+      customers: number
+    }
+    /** AccountUpdate */
+    AccountUpdate: {
+      /** Name */
+      name?: string | null
+      role?: components["schemas"]["Role"] | null
+      /** Team Id */
+      team_id?: string | null
+      /** Active */
+      active?: boolean | null
+    }
     /** ActivityOut */
     ActivityOut: {
       /**
@@ -1681,6 +1847,25 @@ export interface components {
        * Format: date-time
        */
       created_at: string
+    }
+    /** ApiResponse[AccountItem] */
+    ApiResponse_AccountItem_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["AccountItem"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
     }
     /** ApiResponse[ApprovalItem] */
     ApiResponse_ApprovalItem_: {
@@ -2728,6 +2913,44 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[TeamItem] */
+    ApiResponse_TeamItem_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["TeamItem"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[TempPassword] */
+    ApiResponse_TempPassword_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["TempPassword"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[Templates] */
     ApiResponse_Templates_: {
       /**
@@ -2921,6 +3144,26 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[list[AccountItem]] */
+    ApiResponse_list_AccountItem__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: components["schemas"]["AccountItem"][] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[list[CatalogRow]] */
     ApiResponse_list_CatalogRow__: {
       /**
@@ -2995,6 +3238,26 @@ export interface components {
       message: string
       /** Data */
       data: components["schemas"]["SimilarCustomer"][] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[list[TeamItem]] */
+    ApiResponse_list_TeamItem__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: components["schemas"]["TeamItem"][] | null
       /**
        * Request Id
        * @default
@@ -3165,6 +3428,8 @@ export interface components {
     AuthOptions: {
       /** Access Code Required */
       access_code_required: boolean
+      /** Demo Login */
+      demo_login: boolean
     }
     /** Body_analyze_sample_api_agent_samples_post */
     Body_analyze_sample_api_agent_samples_post: {
@@ -4241,6 +4506,15 @@ export interface components {
       /** Chunks */
       chunks: number
     }
+    /** LoginIn */
+    LoginIn: {
+      /** Username */
+      username: string
+      /** Password */
+      password: string
+      /** Access Code */
+      access_code?: string | null
+    }
     /** LoginResult */
     LoginResult: {
       /** Token */
@@ -4351,7 +4625,10 @@ export interface components {
         [key: string]: components["schemas"]["MeddicPatch"]
       }
     }
-    /** MockLoginIn */
+    /**
+     * MockLoginIn
+     * @description 演示账户登录（DEMO_LOGIN 开启时可用）。
+     */
     MockLoginIn: {
       role: components["schemas"]["Role"]
       /** Access Code */
@@ -4729,6 +5006,13 @@ export interface components {
       items: components["schemas"]["UserListItem"][]
       /** Total */
       total: number
+    }
+    /** PasswordChange */
+    PasswordChange: {
+      /** Old Password */
+      old_password: string
+      /** New Password */
+      new_password: string
     }
     /** PaymentIn */
     PaymentIn: {
@@ -5426,6 +5710,25 @@ export interface components {
       /** Members */
       members: components["schemas"]["TeamMemberReport"][]
     }
+    /** TeamIn */
+    TeamIn: {
+      /** Name */
+      name: string
+    }
+    /** TeamItem */
+    TeamItem: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Name */
+      name: string
+      /** Members */
+      members: number
+      /** Managers */
+      managers: string[]
+    }
     /** TeamMemberReport */
     TeamMemberReport: {
       /**
@@ -5445,6 +5748,15 @@ export interface components {
       /** Submitted At */
       submitted_at: string | null
       stats: components["schemas"]["DailyStats"]
+    }
+    /**
+     * TempPassword
+     * @description 新建成员 / 重置密码后的临时密码：只在这次响应里出现一次，首次登录必须修改。
+     */
+    TempPassword: {
+      account: components["schemas"]["AccountItem"]
+      /** Temp Password */
+      temp_password: string
     }
     /** Templates */
     Templates: {
@@ -5621,6 +5933,11 @@ export interface components {
       /** Name */
       name: string
       role: components["schemas"]["Role"]
+      /**
+       * Active
+       * @default true
+       */
+      active: boolean
     }
     /** UserOut */
     UserOut: {
@@ -5634,6 +5951,15 @@ export interface components {
       role: components["schemas"]["Role"]
       /** Team Id */
       team_id: string | null
+      /** Team Name */
+      team_name: string | null
+      /** Username */
+      username: string | null
+      /**
+       * Must Change Password
+       * @default false
+       */
+      must_change_password: boolean
     }
     /** ValidationError */
     ValidationError: {
@@ -5757,6 +6083,39 @@ export interface operations {
       }
     }
   }
+  login_api_auth_login_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["LoginIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_LoginResult_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
   mock_login_api_auth_mock_login_post: {
     parameters: {
       query?: never
@@ -5769,6 +6128,41 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["MockLoginIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_LoginResult_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  change_password_api_auth_password_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PasswordChange"]
       }
     }
     responses: {
@@ -5810,6 +6204,245 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_UserOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  list_accounts_api_admin_users_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_AccountItem__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  create_account_api_admin_users_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AccountCreate"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_TempPassword_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  update_account_api_admin_users__user_id__patch: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        user_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AccountUpdate"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_AccountItem_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  reset_password_api_admin_users__user_id__reset_password_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        user_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_TempPassword_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  list_teams_api_admin_teams_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_TeamItem__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  create_team_api_admin_teams_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TeamIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_TeamItem_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  rename_team_api_admin_teams__team_id__patch: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        team_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TeamIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_TeamItem_"]
         }
       }
       /** @description Validation Error */
@@ -9050,6 +9683,7 @@ export interface operations {
     parameters: {
       query?: {
         scope?: "team" | "all"
+        include_inactive?: boolean
       }
       header?: {
         authorization?: string | null

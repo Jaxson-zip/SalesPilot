@@ -3,7 +3,9 @@
 import { useState, type CSSProperties, type ReactNode } from "react"
 
 import { AppSidebar } from "@/components/shell/AppSidebar"
+import { ChangePasswordDialog } from "@/components/shell/ChangePasswordDialog"
 import { CommandMenu } from "@/components/shell/CommandMenu"
+import { useSession } from "@/components/shell/SessionProvider"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { useSidebarPreference } from "@/hooks/useSidebarPreference"
 
@@ -14,6 +16,7 @@ const SIDEBAR_VARS = { "--sidebar-width": "220px", "--sidebar-width-icon": "56px
 export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useSidebarPreference()
   const [searchOpen, setSearchOpen] = useState(false)
+  const { mustChangePassword } = useSession()
   return (
     <SidebarProvider
       open={open}
@@ -24,6 +27,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <AppSidebar onSearch={() => setSearchOpen(true)} />
       <SidebarInset className="bg-app h-dvh min-w-0 overflow-hidden p-2 sm:p-3 lg:pl-0">{children}</SidebarInset>
       <CommandMenu open={searchOpen} onOpenChange={setSearchOpen} />
+      {/* 临时密码首次登录：必须先改密码 */}
+      <ChangePasswordDialog open={mustChangePassword} forced />
     </SidebarProvider>
   )
 }

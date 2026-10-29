@@ -14,10 +14,14 @@ from app.crm.schemas.task import UserListItem
 ROLE_ORDER = {Role.MANAGER.value: 0, Role.SALES.value: 1, Role.ADMIN.value: 2}
 
 
-def list_users(db: Session, user: CurrentUser) -> Page[UserListItem]:
+def list_users(
+    db: Session, user: CurrentUser, include_inactive: bool = False
+) -> Page[UserListItem]:
     stmt = select(User)
     if user.role is not Role.ADMIN:
         stmt = stmt.where(User.team_id == user.team_id) if user.team_id else stmt.where(false())
+    if not include_inactive:
+        stmt = stmt.where(User.active.is_(True))
     rows = sorted(db.scalars(stmt).all(), key=lambda u: (ROLE_ORDER.get(u.role, 9), u.name))
-    items = [UserListItem(id=u.id, name=u.name, role=u.role) for u in rows]
+    items = [UserListItem(id=u.id, name=u.name, role=u.role, active=u.active) for u in rows]
     return Page[UserListItem](items=items, total=len(items))

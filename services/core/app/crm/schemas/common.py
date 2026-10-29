@@ -23,6 +23,10 @@ class UserOut(BaseModel):
     name: str
     role: Role
     team_id: uuid.UUID | None = None
+    team_name: str | None = None
+    username: str | None = None
+    # 管理员新建 / 重置密码后为 true：登录后先改密码
+    must_change_password: bool = False
 
 
 class PageParams(BaseModel):

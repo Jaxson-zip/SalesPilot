@@ -16,6 +16,7 @@ from app.common.request_id import RequestIdMiddleware
 from app.common.response import ApiResponse, ok, register_exception_handlers
 from app.crm.audit_middleware import AuditMiddleware
 from app.crm.routers import (
+    accounts,
     approvals,
     audit,
     auth,
@@ -66,6 +67,7 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
     routers = (
         auth.router,
+        accounts.router,
         audit.router,
         competitors.router,
         integrations.router,

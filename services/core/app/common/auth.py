@@ -1,8 +1,13 @@
 """JWT 签发 / 校验与 CurrentUser 依赖。
 
-演示用假登录：token 里携带 user_id / name / role / team_id。
+token 里带 user_id / name / role / team_id / ver。每个请求按 user_id 查库（短时缓存）：
+账号停用、改密码（ver 变了）立即失效；角色、团队、姓名以库里为准，管理员改了马上生效。
+数据库暂时连不上时退回 token 里的信息，不让整个系统跟着不可用。
 """
 
+import logging
+import threading
+import time
 import uuid
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
@@ -31,7 +36,53 @@ class CurrentUser(BaseModel):
     team_id: uuid.UUID | None = None
 
 
-def issue_token(user: CurrentUser, expire_minutes: int | None = None) -> str:
+logger = logging.getLogger(__name__)
+CACHE_SECONDS = 15
+_cache: dict[uuid.UUID, tuple[float, "_Account"]] = {}
+_cache_lock = threading.Lock()
+
+
+class _Account(BaseModel):
+    name: str
+    role: Role
+    team_id: uuid.UUID | None
+    active: bool
+    token_version: int
+
+
+def forget_user(user_id: uuid.UUID | None = None) -> None:
+    """管理员改了成员（或改密码）后清缓存，下一个请求就按新状态校验。"""
+    with _cache_lock:
+        if user_id is None:
+            _cache.clear()
+        else:
+            _cache.pop(user_id, None)
+
+
+def _load_account(user_id: uuid.UUID) -> "_Account | None":
+    from sqlalchemy import text
+
+    from app.common.db import session_scope
+
+    now = time.monotonic()
+    with _cache_lock:
+        hit = _cache.get(user_id)
+        if hit and now - hit[0] < CACHE_SECONDS:
+            return hit[1]
+    with session_scope() as db:
+        row = db.execute(
+            text("select name, role, team_id, active, token_version from users where id = :id"),
+            {"id": user_id},
+        ).first()
+    if row is None:  # 不缓存「不存在」：刚建好的账号马上能用
+        return None
+    account = _Account(**row._mapping)
+    with _cache_lock:
+        _cache[user_id] = (now, account)
+    return account
+
+
+def issue_token(user: CurrentUser, expire_minutes: int | None = None, version: int = 0) -> str:
     settings = get_settings()
     minutes = expire_minutes if expire_minutes is not None else settings.jwt_expire_minutes
     payload = {
@@ -39,29 +90,49 @@ def issue_token(user: CurrentUser, expire_minutes: int | None = None) -> str:
         "name": user.name,
         "role": user.role.value,
         "team_id": str(user.team_id) if user.team_id else None,
+        "ver": version,
         "exp": datetime.now(UTC) + timedelta(minutes=minutes),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=JWT_ALGORITHM)
 
 
-def decode_token(token: str) -> CurrentUser:
+def _claims(token: str) -> tuple[CurrentUser, int]:
     try:
         payload = jwt.decode(token, get_settings().jwt_secret, algorithms=[JWT_ALGORITHM])
         team_id = payload.get("team_id")
-        return CurrentUser(
+        user = CurrentUser(
             id=uuid.UUID(payload["sub"]),
             name=payload["name"],
             role=Role(payload["role"]),
             team_id=uuid.UUID(team_id) if team_id else None,
         )
-    except (jwt.PyJWTError, KeyError, ValueError) as exc:
+        return user, int(payload.get("ver", 0))
+    except (jwt.PyJWTError, KeyError, ValueError, TypeError) as exc:
         raise BizError(ErrorCode.UNAUTHORIZED) from exc
+
+
+def decode_token(token: str) -> CurrentUser:
+    """只校验签名和有效期（不查库）：审计日志等内部场景用。"""
+    return _claims(token)[0]
+
+
+def verify_token(token: str) -> CurrentUser:
+    """校验 token 并按库里的账号状态返回当前用户：停用 / 已改密码 / 不存在都算失效。"""
+    claimed, version = _claims(token)
+    try:
+        account = _load_account(claimed.id)
+    except Exception:  # 数据库不可用：退回 token 里的信息
+        logger.warning("user lookup failed, falling back to token claims", exc_info=True)
+        return claimed
+    if account is None or not account.active or account.token_version != version:
+        raise BizError(ErrorCode.UNAUTHORIZED, "账号已停用或登录已失效，请重新登录")
+    return CurrentUser(id=claimed.id, name=account.name, role=account.role, team_id=account.team_id)
 
 
 def get_current_user(authorization: Annotated[str | None, Header()] = None) -> CurrentUser:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise BizError(ErrorCode.UNAUTHORIZED)
-    return decode_token(authorization.split(" ", 1)[1].strip())
+    return verify_token(authorization.split(" ", 1)[1].strip())
 
 
 CurrentUserDep = Annotated[CurrentUser, Depends(get_current_user)]

@@ -47,6 +47,12 @@ export interface UserBrief {
 
 export interface CurrentUser extends UserBrief {
   role: Role
+  team_id?: string | null
+  team_name?: string | null
+  /** 登录名（演示数据未导入时为空） */
+  username?: string | null
+  /** 管理员新建 / 重置密码后为 true：先改密码 */
+  must_change_password?: boolean
 }
 
 export interface MockLoginRequest {

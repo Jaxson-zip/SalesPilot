@@ -24,6 +24,8 @@ export interface UserItem {
   id: string
   name: string
   role: "sales" | "manager" | "admin"
+  /** 停用的成员只在 include_inactive 时返回 */
+  active?: boolean
 }
 
 /* ---------- v3 §12 任务与下一步 ---------- */

@@ -60,6 +60,8 @@ class UserListItem(BaseModel):
     id: uuid.UUID
     name: str
     role: Role
+    # 停用的成员默认不出现在列表里；按人交接时带 include_inactive 才返回
+    active: bool = True
 
 
 class NotificationItem(BaseModel):

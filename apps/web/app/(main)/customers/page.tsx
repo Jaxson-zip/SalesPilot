@@ -1,7 +1,7 @@
 "use client"
 
 import { ArrowRightLeft, Building2, Plus, UserRoundCog } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { BulkBar } from "@/components/biz/BulkBar"
 import { DataGrid } from "@/components/biz/DataGrid"
@@ -42,6 +42,15 @@ export default function CustomersPage() {
   const [creating, setCreating] = useState(false)
   const [transferring, setTransferring] = useState(false)
   const [handingOver, setHandingOver] = useState(false)
+  const [handoverFrom, setHandoverFrom] = useState("")
+  // 从「成员已停用」通知跳转过来：/customers?handover=<成员 id> 直接打开按人交接（不用 useSearchParams，避免整页需要 Suspense）
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("handover")
+    if (id) {
+      setHandoverFrom(id)
+      setHandingOver(true)
+    }
+  }, [])
   const views: ViewOption[] =
     role === "admin"
       ? [{ value: "all", label: "全部客户" }]
@@ -165,7 +174,14 @@ export default function CustomersPage() {
           onDone={sel.clear}
         />
       ) : null}
-      {role === "manager" ? <HandoverDialog open={handingOver} onOpenChange={setHandingOver} /> : null}
+      {role === "manager" ? (
+        <HandoverDialog
+          key={handoverFrom}
+          open={handingOver}
+          onOpenChange={setHandingOver}
+          initialFrom={handoverFrom}
+        />
+      ) : null}
     </PageFrame>
   )
 }

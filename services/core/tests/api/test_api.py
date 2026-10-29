@@ -30,7 +30,9 @@ def test_mock_login(client: TestClient, role: str) -> None:
     assert r.status_code == 200
     data = r.json()["data"]
     assert data["token"] and data["user"]["role"] == role
-    assert set(data["user"]) == {"id", "name", "role", "team_id"}
+    assert set(data["user"]) == {
+        "id", "name", "role", "team_id", "team_name", "username", "must_change_password",
+    }  # fmt: skip
 
 
 def test_mock_login_invalid_role(client: TestClient) -> None:

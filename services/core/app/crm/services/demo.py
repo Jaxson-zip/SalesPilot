@@ -27,3 +27,12 @@ DEMO_USERS: dict[Role, CurrentUser] = {
 EXTRA_SALES = CurrentUser(
     id=demo_id("user:sales2"), name="王磊", role=Role.SALES, team_id=TEAM_SOUTH_ID
 )
+
+
+# 演示账户的登录名（迁移 0019 和种子数据共用；初始密码见 DEMO_PASSWORD）
+DEMO_LOGINS: dict[uuid.UUID, str] = {
+    DEMO_USERS[Role.SALES].id: "zhangchen",
+    DEMO_USERS[Role.MANAGER].id: "liwei",
+    DEMO_USERS[Role.ADMIN].id: "zhoumin",
+    EXTRA_SALES.id: "wanglei",
+}

@@ -19,6 +19,7 @@ import type * as U from "@/app/(main)/settings/ai-usage/page"
 import type * as D from "@/hooks/useMeddic"
 import type * as R from "@/hooks/useReports"
 import type * as W from "@/hooks/useWecom"
+import type * as Acc from "@/hooks/useAccounts"
 
 type S = components["schemas"]
 /** A 能赋给 B 时为 true；不能时类型为 false，下面的 `= true` 就会报错 */
@@ -37,6 +38,9 @@ export const responses = {
   ChatModels: true as Fits<S["ChatModels"], T.ChatModels>,
   NextTask: true as Fits<S["NextTask"], T.NextTask>,
   UserItem: true as Fits<S["UserListItem"], T.UserItem>,
+  AccountItem: true as Fits<S["AccountItem"], Acc.AccountItem>,
+  TempPassword: true as Fits<S["TempPassword"], Acc.TempPassword>,
+  TeamItem: true as Fits<S["TeamItem"], Acc.TeamItem>,
   TaskItem: true as Fits<S["TaskItem"], T.TaskItem>,
   NotificationList: true as Fits<S["NotificationList"], T.NotificationList>,
   Templates: true as Fits<S["Templates"], T.Templates>,
@@ -82,6 +86,9 @@ export const requests = {
   CustomerCreate: true as Fits<T.CustomerCreate, S["CustomerCreate"]>,
   CustomerTransfer: true as Fits<T.CustomerTransferIn, S["CustomerTransfer"]>,
   HandoverIn: true as Fits<T.HandoverIn, S["HandoverIn"]>,
+  AccountCreate: true as Fits<Acc.AccountCreate, S["AccountCreate"]>,
+  AccountUpdate: true as Fits<Acc.AccountUpdate, S["AccountUpdate"]>,
+  TeamIn: true as Fits<Acc.TeamIn, S["TeamIn"]>,
   QuoteItemsPatch: true as Fits<T.QuoteItemsPatch, S["QuoteItemsUpdate"]>,
   TaskCreate: true as Fits<T.TaskCreate, S["TaskCreate"]>,
   TaskUpdate: true as Fits<T.TaskUpdate, S["TaskUpdate"]>,

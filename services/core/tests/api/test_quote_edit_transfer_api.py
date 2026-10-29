@@ -25,7 +25,8 @@ def patch_items(
 def test_users_team_and_admin(client: TestClient) -> None:
     team = client.get("/api/users?scope=team", headers=SALES_H).json()["data"]
     assert {u["name"] for u in team["items"]} == {"张晨", "李薇", "王磊"}
-    assert team["items"][0] == {"id": team["items"][0]["id"], "name": "李薇", "role": "manager"}
+    first = team["items"][0]
+    assert first == {"id": first["id"], "name": "李薇", "role": "manager", "active": True}
     # 销售传 scope=all 仍然只看本团队
     as_all = client.get("/api/users?scope=all", headers=SALES_H).json()["data"]
     assert as_all["total"] == 3

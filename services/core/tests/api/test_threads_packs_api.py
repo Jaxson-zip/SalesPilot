@@ -13,7 +13,7 @@ from app.agent.threads import upsert_thread
 from app.common.auth import CurrentUser, Role
 from app.common.db import session_scope
 from app.common.errors import BizError
-from app.crm.models import AgentThread
+from app.crm.models import AgentThread, User
 from app.crm.services.demo import DEMO_USERS, EXTRA_SALES
 from tests.api.conftest import ADMIN_H, MANAGER_H, SALES2_H, SALES_H, token_header
 
@@ -63,8 +63,16 @@ def test_upsert_other_users_thread_rejected(threads: list[str]) -> None:
 
 def test_list_empty_for_new_user(client: TestClient) -> None:
     fresh = CurrentUser(id=uuid.uuid4(), name="新人", role=Role.SALES)
-    body = client.get("/api/agent/threads", headers=token_header(fresh)).json()
-    assert body["code"] == 0 and body["data"] == {"items": [], "total": 0}
+    # 不在库里的用户：token 签名有效也不放行
+    assert client.get("/api/agent/threads", headers=token_header(fresh)).status_code == 401
+    with session_scope() as db:
+        db.add(User(id=fresh.id, name=fresh.name, role="sales"))
+    try:
+        body = client.get("/api/agent/threads", headers=token_header(fresh)).json()
+        assert body["code"] == 0 and body["data"] == {"items": [], "total": 0}
+    finally:
+        with session_scope() as db:
+            db.execute(delete(User).where(User.id == fresh.id))
 
 
 def test_list_limit_validation(client: TestClient) -> None:

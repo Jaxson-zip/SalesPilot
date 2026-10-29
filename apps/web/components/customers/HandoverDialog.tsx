@@ -22,14 +22,25 @@ import { errorMessage } from "@/lib/errors"
  * 按人一键交接（仅主管）：选交接人 → 预览名下客户和进行中的业务 → 选接手人 →「确认交接」。
  * 已成交的商机和报价、提成、报销不转；回款中的合同交给接手人跟进，提成仍归原负责人。
  */
-export function HandoverDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
-  const [from, setFrom] = useState("")
+export function HandoverDialog({
+  open,
+  onOpenChange,
+  initialFrom = "",
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  /** 从「成员已停用」通知进来时预选交接人 */
+  initialFrom?: string
+}) {
+  const [from, setFrom] = useState(initialFrom)
   const [to, setTo] = useState("")
-  const users = useTeamUsers(open)
+  // 交接人可以是已停用的成员；接手人只能选启用的
+  const users = useTeamUsers(open, "team", true)
   const preview = useHandoverPreview(open ? from : "")
   const handover = useHandover()
   const members = (users.data?.items ?? []).filter((u) => u.role === "sales" || u.role === "manager")
   const name = (id: string) => members.find((u) => u.id === id)?.name ?? ""
+  const label = (u: { name: string; active?: boolean }) => (u.active === false ? `${u.name}（已停用）` : u.name)
   const summary = preview.data ? handoverSummary(preview.data) : ""
   const empty = preview.isSuccess && !summary
 
@@ -72,7 +83,7 @@ export function HandoverDialog({ open, onOpenChange }: { open: boolean; onOpenCh
               setFrom(v)
               if (v === to) setTo("")
             }}
-            options={members.map((u) => ({ value: u.id, label: u.name }))}
+            options={members.map((u) => ({ value: u.id, label: label(u) }))}
             placeholder={users.isPending ? "加载团队成员…" : "选择离职 / 调岗的成员"}
             ariaLabel="交接人"
           />
@@ -85,7 +96,9 @@ export function HandoverDialog({ open, onOpenChange }: { open: boolean; onOpenCh
             id="handover-to"
             value={to}
             onChange={setTo}
-            options={members.filter((u) => u.id !== from).map((u) => ({ value: u.id, label: u.name }))}
+            options={members
+              .filter((u) => u.id !== from && u.active !== false)
+              .map((u) => ({ value: u.id, label: u.name }))}
             placeholder="选择本团队成员"
             ariaLabel="接手人"
           />

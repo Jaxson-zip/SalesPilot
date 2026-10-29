@@ -48,6 +48,11 @@ def _target(db: Session, user: CurrentUser, user_id: uuid.UUID) -> User:
         or target.role not in ASSIGNABLE_ROLES
     ):
         raise forbidden("只能转给本团队的销售或主管", RULE_NOT_TEAM)
+    if not target.active:
+        raise BizError(
+            ErrorCode.RULE_VIOLATION, f"{target.name} 的账号已停用，不能接手客户",
+            {"rule": "user_inactive"},
+        )  # fmt: skip
     return target
 
 

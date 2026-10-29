@@ -21,12 +21,12 @@ def code(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
 
 def test_options_without_code(client: TestClient) -> None:
     r = client.get("/api/auth/options").json()
-    assert r["data"] == {"access_code_required": False}
+    assert r["data"] == {"access_code_required": False, "demo_login": True}
     assert client.post(URL, json={"role": "sales"}).json()["code"] == 0
 
 
 def test_login_requires_code(client: TestClient, code: str) -> None:
-    assert client.get("/api/auth/options").json()["data"] == {"access_code_required": True}
+    assert client.get("/api/auth/options").json()["data"]["access_code_required"] is True
     missing = client.post(URL, json={"role": "sales"})
     assert missing.status_code == 401
     assert missing.json()["code"] == 40101 and missing.json()["message"] == "请输入访问口令"

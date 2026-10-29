@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24
     # 访问口令：公网演示时设置，登录页要先输入口令才能进入；为空表示不需要（本地开发）
     access_code: str | None = None
+    # 登录页显示演示账户（一键进入、左下角切换）；正式使用时关掉，只能账号密码登录
+    demo_login: bool = True
+    # 演示账户的初始密码（迁移 0019 和种子数据写入）
+    demo_password: str = "demo2026"
     llm_gateway_base: str = "http://localhost:8100/v1"
     llm_gateway_key: str = "change-me"
     llm_default_group: str = "chat-agent"

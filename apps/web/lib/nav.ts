@@ -15,6 +15,7 @@ import {
   Stamp,
   Swords,
   Target,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react"
 
@@ -48,6 +49,7 @@ const BATTLE: NavItem = { href: "/battlecards", label: "竞品战卡", icon: Swo
 const PUSH: NavItem = { href: "/settings/integrations", label: "消息推送", icon: BellRing }
 const USAGE: NavItem = { href: "/settings/ai-usage", label: "AI 用量", icon: Gauge }
 const AUDIT: NavItem = { href: "/settings/audit", label: "操作日志", icon: ScrollText }
+const ACCOUNTS: NavItem = { href: "/settings/accounts", label: "成员与团队", icon: UsersRound }
 /** 使用说明：所有角色可见，放在侧栏底部（不属于任何业务分组） */
 export const HELP: NavItem = { href: "/help", label: "使用说明", icon: BookOpen }
 
@@ -67,7 +69,7 @@ export function navGroupsFor(role: Role): NavGroup[] {
     return [
       top,
       { label: "业务总览（只读）", items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, EXPENSES, REPORTS] },
-      { label: "系统设置", items: [RULES, PACKS, BATTLE, PUSH, USAGE, AUDIT] },
+      { label: "系统设置", items: [ACCOUNTS, RULES, PACKS, BATTLE, PUSH, USAGE, AUDIT] },
     ]
   if (role === "manager")
     return [
@@ -102,6 +104,7 @@ const ALL_ITEMS: NavItem[] = [
   PUSH,
   USAGE,
   AUDIT,
+  ACCOUNTS,
 ]
 
 export function isActivePath(pathname: string, href: string): boolean {

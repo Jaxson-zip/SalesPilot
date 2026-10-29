@@ -11,9 +11,12 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
+from app.common.config import get_settings
 from app.common.db import session_scope
 from app.common.errors import BizError
+from app.common.passwords import hash_password
 from app.crm.models import Customer, Followup, Opportunity, ProductLine, Team, User
+from app.crm.services.demo import DEMO_LOGINS
 from seed import data
 from seed.business import seed_business
 
@@ -72,8 +75,12 @@ def seed_org(db: Session) -> None:
         db.merge(ProductLine(**line))
     db.merge(Team(id=data.TEAM["id"], name=data.TEAM["name"], default_product_line_id=data.PL_LLM))
     db.flush()
+    password = hash_password(get_settings().demo_password)
     for u in data.USERS:
-        db.merge(User(id=u.id, name=u.name, role=u.role.value, team_id=u.team_id))
+        user = db.merge(User(id=u.id, name=u.name, role=u.role.value, team_id=u.team_id))
+        # 账号：已有登录名和密码的不覆盖（管理员可能改过）
+        user.username = user.username or DEMO_LOGINS[u.id]
+        user.password_hash = user.password_hash or password
     db.flush()
     team = db.get(Team, data.TEAM["id"])
     assert team is not None

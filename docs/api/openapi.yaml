@@ -18,6 +18,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_AuthOptions_'
+  /api/auth/login:
+    post:
+      tags:
+      - auth
+      summary: Login
+      operationId: login_api_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginIn'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_LoginResult_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/auth/mock-login:
     post:
       tags:
@@ -39,6 +64,40 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MockLoginIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_LoginResult_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/password:
+    post:
+      tags:
+      - auth
+      summary: Change Password
+      operationId: change_password_api_auth_password_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
       responses:
         '200':
           description: Successful Response
@@ -74,6 +133,245 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_UserOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/users:
+    get:
+      tags:
+      - accounts
+      summary: List Accounts
+      operationId: list_accounts_api_admin_users_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_AccountItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - accounts
+      summary: Create Account
+      operationId: create_account_api_admin_users_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_TempPassword_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/users/{user_id}:
+    patch:
+      tags:
+      - accounts
+      summary: Update Account
+      operationId: update_account_api_admin_users__user_id__patch
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: User Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_AccountItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/users/{user_id}/reset-password:
+    post:
+      tags:
+      - accounts
+      summary: Reset Password
+      operationId: reset_password_api_admin_users__user_id__reset_password_post
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: User Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_TempPassword_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/teams:
+    get:
+      tags:
+      - accounts
+      summary: List Teams
+      operationId: list_teams_api_admin_teams_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_TeamItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - accounts
+      summary: Create Team
+      operationId: create_team_api_admin_teams_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_TeamItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/teams/{team_id}:
+    patch:
+      tags:
+      - accounts
+      summary: Rename Team
+      operationId: rename_team_api_admin_teams__team_id__patch
+      parameters:
+      - name: team_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Team Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeamIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_TeamItem_'
         '422':
           description: Validation Error
           content:
@@ -3880,6 +4178,13 @@ paths:
           type: string
           default: team
           title: Scope
+      - name: include_inactive
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Inactive
       - name: authorization
         in: header
         required: false
@@ -4379,6 +4684,112 @@ paths:
                 $ref: '#/components/schemas/ApiResponse_Health_'
 components:
   schemas:
+    AccountCreate:
+      properties:
+        username:
+          type: string
+          pattern: ^[a-zA-Z][a-zA-Z0-9_.-]{2,29}$
+          title: Username
+        name:
+          type: string
+          maxLength: 50
+          minLength: 1
+          title: Name
+        role:
+          $ref: '#/components/schemas/Role'
+        team_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Team Id
+      type: object
+      required:
+      - username
+      - name
+      - role
+      title: AccountCreate
+    AccountItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        username:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Username
+        name:
+          type: string
+          title: Name
+        role:
+          $ref: '#/components/schemas/Role'
+        team_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Team Id
+        team_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Team Name
+        active:
+          type: boolean
+          title: Active
+        must_change_password:
+          type: boolean
+          title: Must Change Password
+        last_login_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Login At
+        customers:
+          type: integer
+          title: Customers
+      type: object
+      required:
+      - id
+      - username
+      - name
+      - role
+      - team_id
+      - team_name
+      - active
+      - must_change_password
+      - last_login_at
+      - customers
+      title: AccountItem
+    AccountUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 50
+            minLength: 1
+          - type: 'null'
+          title: Name
+        role:
+          anyOf:
+          - $ref: '#/components/schemas/Role'
+          - type: 'null'
+        team_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Team Id
+        active:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Active
+      type: object
+      title: AccountUpdate
     ActivityOut:
       properties:
         id:
@@ -4425,6 +4836,31 @@ components:
       - content
       - created_at
       title: ActivityOut
+    ApiResponse_AccountItem_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/AccountItem'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[AccountItem]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_ApprovalItem_:
       properties:
         code:
@@ -5799,6 +6235,56 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_TeamItem_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/TeamItem'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[TeamItem]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_TempPassword_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/TempPassword'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[TempPassword]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_Templates_:
       properties:
         code:
@@ -6052,6 +6538,34 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_list_AccountItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/AccountItem'
+            type: array
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[list[AccountItem]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_list_CatalogRow__:
       properties:
         code:
@@ -6159,6 +6673,34 @@ components:
           default: ''
       type: object
       title: ApiResponse[list[SimilarCustomer]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_list_TeamItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/TeamItem'
+            type: array
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[list[TeamItem]]
       required:
       - code
       - message
@@ -6474,9 +7016,13 @@ components:
         access_code_required:
           type: boolean
           title: Access Code Required
+        demo_login:
+          type: boolean
+          title: Demo Login
       type: object
       required:
       - access_code_required
+      - demo_login
       title: AuthOptions
     Body_analyze_sample_api_agent_samples_post:
       properties:
@@ -8547,6 +9093,29 @@ components:
       - doc_name
       - chunks
       title: KnowledgeUploadOut
+    LoginIn:
+      properties:
+        username:
+          type: string
+          maxLength: 50
+          minLength: 1
+          title: Username
+        password:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Password
+        access_code:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Access Code
+      type: object
+      required:
+      - username
+      - password
+      title: LoginIn
     LoginResult:
       properties:
         token:
@@ -8776,6 +9345,7 @@ components:
       required:
       - role
       title: MockLoginIn
+      description: 演示账户登录（DEMO_LOGIN 开启时可用）。
     NewsItem:
       properties:
         date:
@@ -9506,6 +10076,23 @@ components:
       - items
       - total
       title: Page[UserListItem]
+    PasswordChange:
+      properties:
+        old_password:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Old Password
+        new_password:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: New Password
+      type: object
+      required:
+      - old_password
+      - new_password
+      title: PasswordChange
     PaymentIn:
       properties:
         amount:
@@ -10796,6 +11383,41 @@ components:
       - total
       - members
       title: TeamDailyOut
+    TeamIn:
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Name
+      type: object
+      required:
+      - name
+      title: TeamIn
+    TeamItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        members:
+          type: integer
+          title: Members
+        managers:
+          items:
+            type: string
+          type: array
+          title: Managers
+      type: object
+      required:
+      - id
+      - name
+      - members
+      - managers
+      title: TeamItem
     TeamMemberReport:
       properties:
         user_id:
@@ -10834,6 +11456,19 @@ components:
       - content
       - submitted_at
       title: TeamMemberReport
+    TempPassword:
+      properties:
+        account:
+          $ref: '#/components/schemas/AccountItem'
+        temp_password:
+          type: string
+          title: Temp Password
+      type: object
+      required:
+      - account
+      - temp_password
+      title: TempPassword
+      description: 新建成员 / 重置密码后的临时密码：只在这次响应里出现一次，首次登录必须修改。
     Templates:
       properties:
         expense_templates:
@@ -11164,11 +11799,16 @@ components:
           title: Name
         role:
           $ref: '#/components/schemas/Role'
+        active:
+          type: boolean
+          title: Active
+          default: true
       type: object
       required:
       - id
       - name
       - role
+      - active
       title: UserListItem
     UserOut:
       properties:
@@ -11187,12 +11827,29 @@ components:
             format: uuid
           - type: 'null'
           title: Team Id
+        team_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Team Name
+        username:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Username
+        must_change_password:
+          type: boolean
+          title: Must Change Password
+          default: false
       type: object
       required:
       - id
       - name
       - role
       - team_id
+      - team_name
+      - username
+      - must_change_password
       title: UserOut
     ValidationError:
       properties:

@@ -21,11 +21,14 @@ router = APIRouter(prefix="/api", tags=["notifications"])
 
 @router.get("/users", response_model=ApiResponse[Page[UserListItem]])
 def list_users(
-    user: CurrentUserDep, db: DbDep, scope: Literal["team", "all"] = "team"
+    user: CurrentUserDep,
+    db: DbDep,
+    scope: Literal["team", "all"] = "team",
+    include_inactive: bool = False,
 ) -> ApiResponse[Page[UserListItem]]:
     """销售 / 主管始终返回本团队；管理员不属于任何团队，始终返回全部（scope 仅为兼容保留）。"""
     del scope
-    return ok(user_service.list_users(db, user))
+    return ok(user_service.list_users(db, user, include_inactive))
 
 
 @router.get("/notifications", response_model=ApiResponse[NotificationList])

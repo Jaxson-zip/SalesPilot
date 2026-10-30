@@ -1,6 +1,6 @@
 "use client"
 
-import { Clock, LayoutDashboard, Plus, Sparkles, Target, Trophy, Wallet } from "lucide-react"
+import { Clock, GraduationCap, LayoutDashboard, Plus, Sparkles, Target, Trophy, Wallet } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { QueryError } from "@/components/biz/QueryStatus"
@@ -91,8 +91,14 @@ export default function DashboardPage() {
       icon={LayoutDashboard}
       actions={
         <>
-          <FrameAction icon={Sparkles} label="问 AI" href="/ai" />
-          {canAiWrite ? <FrameAction icon={Plus} label="出方案" href="/ai" primary /> : null}
+          {canAiWrite ? (
+            <>
+              <FrameAction icon={GraduationCap} label="学习问答" href="/ai?mode=learn" />
+              <FrameAction icon={Plus} label="出方案" href="/ai?mode=work" primary />
+            </>
+          ) : (
+            <FrameAction icon={Sparkles} label="问 AI" href="/ai" />
+          )}
         </>
       }
     >

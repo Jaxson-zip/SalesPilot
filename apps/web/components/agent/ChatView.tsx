@@ -1,11 +1,12 @@
 "use client"
 
-import { GraduationCap, SquarePen } from "lucide-react"
+import { SquarePen } from "lucide-react"
 import { useEffect, useRef, type ReactNode } from "react"
 
 import { AiMessage } from "@/components/agent/AiMessage"
+import { ModeSwitch } from "@/components/agent/ModeSwitch"
 import { UserMsg } from "@/components/agent/UserMsg"
-import { MODE_LABEL, type AgentMode } from "@/lib/agent-mode"
+import type { AgentMode } from "@/lib/agent-mode"
 import type { ChatTurn } from "@/lib/agent-reducer"
 import type { QtyEdits } from "@/lib/bom-adjust"
 import { cn } from "@/lib/utils"
@@ -13,16 +14,26 @@ import type { ResumeDecision } from "@/types/api"
 
 const ICON_BTN = "inline-flex size-7 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100"
 
-/** 会话标题栏：标题 + 新对话（会话记录在页面标题行的「历史记录」面板里） */
-function ChatHeader({ title, onNew, learn }: { title: string; onNew: () => void; learn?: boolean }) {
+/**
+ * 会话标题栏：模式切换 + 标题 + 新对话（会话记录在页面标题行的「历史记录」面板里）。
+ * 模式随会话固定：对话中切换会另起一个该模式的新对话，当前对话留在历史记录里
+ */
+function ChatHeader({
+  title,
+  onNew,
+  mode,
+  onModeChange,
+  busy,
+}: {
+  title: string
+  onNew: () => void
+  mode: AgentMode
+  onModeChange?: (mode: AgentMode) => void
+  busy?: boolean
+}) {
   return (
     <div className="flex h-11 shrink-0 items-center gap-2 border-b border-zinc-100 px-3 sm:px-4">
-      {learn ? (
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-zinc-100 px-1.5 py-0.5 text-xs text-zinc-600">
-          <GraduationCap className="size-3.5" />
-          {MODE_LABEL.learn}
-        </span>
-      ) : null}
+      {onModeChange ? <ModeSwitch mode={mode} onChange={onModeChange} disabled={busy} compact /> : null}
       <span className="min-w-0 flex-1 truncate font-medium" title={title}>
         {title}
       </span>
@@ -45,6 +56,7 @@ export function ChatView({
   onNew,
   onConfirmRequirement,
   mode = "work",
+  onModeChange,
   onAsk,
   prdOpportunity,
 }: {
@@ -59,6 +71,8 @@ export function ChatView({
   onNew: () => void
   onConfirmRequirement?: (requirement: Record<string, unknown>) => void
   mode?: AgentMode
+  /** 切换模式（另起新对话）；管理员只能查询，不显示 */
+  onModeChange?: (mode: AgentMode) => void
   /** 学习问答：点回答末尾的追问建议直接发送 */
   onAsk?: (question: string) => void
   prdOpportunity?: { id: string; name: string; canGenerate: boolean }
@@ -107,7 +121,7 @@ export function ChatView({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <ChatHeader title={title} onNew={onNew} learn={learn} />
+      <ChatHeader title={title} onNew={onNew} mode={mode} onModeChange={onModeChange} busy={busy} />
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div
           ref={contentRef}

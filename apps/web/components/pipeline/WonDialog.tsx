@@ -79,7 +79,7 @@ export function WonDialog({
                       按报价 {q.code} 成交 · <span className="tabular-nums">{formatFen(q.total_price)}</span>
                       <span className="ml-1.5 text-xs text-zinc-400">{labelOf(QUOTE_STATUS_META, q.status).label}</span>
                     </span>
-                    <span className="block text-xs text-zinc-500">自动生成合同、30/60/10 回款计划和预估提成</span>
+                    <span className="block text-xs text-zinc-500">自动生成合同、回款计划和预估提成</span>
                   </span>
                 ) : (
                   <span className="min-w-0">

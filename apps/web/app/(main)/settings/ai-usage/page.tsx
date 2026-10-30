@@ -283,7 +283,7 @@ function UsageContent() {
 /** AI 用量与成本：管理员看全公司，主管看本团队 */
 export default function AiUsagePage() {
   return (
-    <PageFrame title="AI 用量" icon={Gauge}>
+    <PageFrame title="AI 用量" icon={Gauge} bodyClassName="overflow-y-auto">
       <RoleGate roles={["admin", "manager"]} lockedText="AI 用量统计仅主管和管理员可以查看">
         <UsageContent />
       </RoleGate>

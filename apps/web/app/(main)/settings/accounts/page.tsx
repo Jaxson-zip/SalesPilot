@@ -4,7 +4,7 @@ import { Pencil, Plus, UsersRound } from "lucide-react"
 import { useState } from "react"
 
 import { useConfirmAction } from "@/components/biz/ConfirmAction"
-import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
+import { PageFrame } from "@/components/biz/PageFrame"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { Tag } from "@/components/biz/Tag"
 import { MemberDialog, TeamDialog, TempPasswordDialog } from "@/components/settings/AccountDialogs"
@@ -69,16 +69,24 @@ function Members({
   onEdit,
   onReset,
   onToggle,
+  onCreate,
 }: {
   accounts: AccountItem[]
   me: string | null
   onEdit: (a: AccountItem) => void
   onReset: (a: AccountItem) => void
   onToggle: (a: AccountItem) => void
+  onCreate: () => void
 }) {
   return (
     <section aria-label="成员" className="space-y-2">
-      <h2 className="text-sm font-medium text-zinc-700">成员</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-medium text-zinc-700">成员</h2>
+        <Button size="xs" onClick={onCreate}>
+          <Plus />
+          新建成员
+        </Button>
+      </div>
       <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
         <table className="w-full min-w-[720px] text-left text-sm" aria-label="成员列表">
           <thead className="border-b border-zinc-200 text-xs text-zinc-500">
@@ -197,11 +205,15 @@ function AccountsBody() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <FrameAction icon={Plus} label="新建成员" primary onClick={() => setEditing("new")} />
-      </div>
       <Teams teams={teams.data} onEdit={(t) => setTeamOf(t ?? "new")} />
-      <Members accounts={accounts.data} me={userId} onEdit={setEditing} onReset={onReset} onToggle={onToggle} />
+      <Members
+        accounts={accounts.data}
+        me={userId}
+        onEdit={setEditing}
+        onReset={onReset}
+        onToggle={onToggle}
+        onCreate={() => setEditing("new")}
+      />
       {editing ? (
         <MemberDialog
           key={editing === "new" ? "new" : editing.id}
@@ -234,7 +246,10 @@ export default function AccountsPage() {
   return (
     <PageFrame title="成员与团队" icon={UsersRound}>
       <RoleGate roles={["admin"]} lockedText="成员和团队由系统管理员维护">
-        <AccountsBody />
+        {/* 面板内留边距；内容多时在面板内滚动（PageFrame 面板本身不滚动） */}
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+          <AccountsBody />
+        </div>
       </RoleGate>
     </PageFrame>
   )

@@ -103,7 +103,10 @@ function Facts({ facts }: { facts: DailyFacts }) {
   ]
   const empty = !facts.actions.length && !facts.followups.length && !facts.tomorrow.length
   return (
-    <section aria-label="当天记录" className="space-y-3 rounded-lg border border-zinc-200 p-4 text-sm">
+    <section
+      aria-label="当天记录"
+      className="space-y-3 rounded-lg border border-zinc-200 p-4 text-sm lg:h-full lg:overflow-y-auto"
+    >
       <div className="grid grid-cols-4 gap-2">
         {tiles.map((t) => (
           <div key={t.label} className="rounded-md bg-zinc-50 px-2 py-1.5 text-center">
@@ -160,7 +163,7 @@ function MyReport() {
     )
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-3 p-4 sm:p-5">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 sm:p-5">
       {dialog}
       <div className="flex flex-wrap items-center gap-2">
         <DateInput
@@ -182,9 +185,9 @@ function MyReport() {
       ) : q.isError ? (
         <QueryError error={q.error} onRetry={() => void q.refetch()} feature="日报" />
       ) : (
-        <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <Facts facts={q.data.facts} />
-          <section aria-label="日报内容" className="space-y-2">
+          <section aria-label="日报内容" className="flex min-h-0 flex-col gap-2">
             <div className="flex items-center gap-2">
               <h3 className="font-medium">日报</h3>
               {source === "ai" ? (
@@ -204,7 +207,7 @@ function MyReport() {
               onChange={(e) => setContent(e.target.value)}
               placeholder="点「AI 生成草稿」根据今天的跟进、报价、任务自动写一版，改完再提交。"
               aria-label="日报正文"
-              className="min-h-72"
+              className="min-h-72 flex-1 resize-none"
             />
             <div className="flex items-center justify-end gap-2">
               {dirty ? <span className="mr-auto text-xs text-amber-600">有未保存的修改</span> : null}
@@ -307,7 +310,7 @@ function TeamReports() {
   const remind = useRemindReports()
   const canRemind = flags.data?.report_remind === true && q.data && q.data.submitted < q.data.total
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-3 p-4 sm:p-5">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
         <DateInput value={date} onChange={setDate} />
         {q.data ? (
@@ -374,10 +377,10 @@ export default function ReportsPage() {
               团队日报
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="mine" className="min-h-0 flex-1 overflow-y-auto">
+          <TabsContent value="mine" className="flex min-h-0 flex-1 flex-col">
             <MyReport />
           </TabsContent>
-          <TabsContent value="team" className="min-h-0 flex-1 overflow-y-auto">
+          <TabsContent value="team" className="flex min-h-0 flex-1 flex-col">
             <TeamReports />
           </TabsContent>
         </Tabs>

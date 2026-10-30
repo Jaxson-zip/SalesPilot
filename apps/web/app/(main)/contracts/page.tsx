@@ -83,7 +83,11 @@ export default function ContractsPage() {
   const scope = defaultScope(role)
   const status = toStatus(view)
   // 登记回款只给主管（契约 §0）；列内再按合同状态判断
-  const allColumns = useMemo(() => contractColumns(payable ? setPaying : undefined, setPlanOf), [payable])
+  const withOwner = role !== "sales"
+  const allColumns = useMemo(
+    () => contractColumns(payable ? setPaying : undefined, setPlanOf, withOwner),
+    [payable, withOwner],
+  )
   // 从开票通知跳转过来：/contracts?plan=<合同 id> 直接打开回款计划（不用 useSearchParams，避免整页需要 Suspense）
   const [linked, setLinked] = useState<string | null>(null)
   useEffect(() => {
@@ -104,7 +108,7 @@ export default function ContractsPage() {
     rows: [],
     filters,
     csv: contractCsv,
-    columns: TOGGLEABLE,
+    columns: withOwner ? TOGGLEABLE : TOGGLEABLE.filter((c) => c.id !== "owner"),
     exportName: "合同",
     server: {
       total: () => query.data?.total,

@@ -155,7 +155,7 @@ function WecomForm({ cfg }: { cfg: WecomConfig }) {
 export default function IntegrationsPage() {
   const q = useWecomConfig()
   return (
-    <PageFrame title="消息推送" icon={BellRing}>
+    <PageFrame title="消息推送" icon={BellRing} bodyClassName="overflow-y-auto">
       <RoleGate roles={["admin"]} lockedText="消息推送由系统管理员配置">
         {q.isPending ? (
           <div className="p-5">

@@ -1,4 +1,14 @@
-import { Banknote, Building2, CalendarClock, ChartNoAxesColumn, CircleDot, Coins, Hash, Wallet } from "lucide-react"
+import {
+  Banknote,
+  Building2,
+  CalendarClock,
+  ChartNoAxesColumn,
+  CircleDot,
+  Coins,
+  Hash,
+  User,
+  Wallet,
+} from "lucide-react"
 import Link from "next/link"
 
 import { Chip } from "@/components/biz/Chip"
@@ -30,17 +40,21 @@ function NextPaymentCell({ c }: { c: ContractItem }) {
   )
 }
 
-/** 合同网格列（与原型 ContractGrid 一致）；canPay 时追加「登记回款」操作列；点合同编号看回款计划 */
+/**
+ * 合同网格列（与原型 ContractGrid 一致）；canPay 时追加「登记回款」操作列；点合同编号看回款计划。
+ * withOwner：主管 / 财务看团队合同时显示负责人（销售只看自己的，不需要）。
+ */
 export function contractColumns(
   onPay?: (c: ContractItem) => void,
   onOpenPlan?: (c: ContractItem) => void,
+  withOwner = true,
 ): GridColumn<ContractItem>[] {
   const cols: GridColumn<ContractItem>[] = [
     {
       id: "code",
       label: "合同编号",
       icon: Hash,
-      width: "w-[170px]",
+      width: "w-[150px]",
       cell: (c) =>
         onOpenPlan ? (
           <span className="inline-flex min-w-0 items-center gap-1.5">
@@ -66,6 +80,17 @@ export function contractColumns(
       width: "w-[14%]",
       cell: (c) => (c.customer ? <Chip name={c.customer.name} logo={c.customer.name.slice(0, 1)} /> : "—"),
     },
+    ...(withOwner
+      ? [
+          {
+            id: "owner",
+            label: "负责人",
+            icon: User,
+            width: "w-[96px]",
+            cell: (c: ContractItem) => <Chip name={ownerName(c.owner)} />,
+          },
+        ]
+      : []),
     { id: "amount", label: "合同金额", icon: Coins, align: "right", cell: (c) => formatFen(c.amount) },
     {
       id: "progress",
@@ -77,7 +102,7 @@ export function contractColumns(
       id: "next_payment",
       label: "下期回款",
       icon: CalendarClock,
-      width: "w-[230px]",
+      width: "w-[210px]",
       cell: (c) => <NextPaymentCell c={c} />,
     },
     {
@@ -95,19 +120,18 @@ export function contractColumns(
         ),
     },
     {
-      id: "estimated",
-      label: "预估提成",
+      id: "commission",
+      label: "提成",
       icon: Wallet,
       align: "right",
-      cell: (c) => formatFen(c.commission.estimated),
-    },
-    {
-      id: "confirmed",
-      label: "已确认提成",
-      icon: Wallet,
-      align: "right",
-      secondary: "wide",
-      cell: (c) => formatFen(c.commission.confirmed),
+      width: "w-[150px]",
+      // 已确认 / 预估：两列合成一列，给负责人列腾出位置
+      cell: (c) => (
+        <span title="已确认 / 预估" className="tabular-nums">
+          {formatFen(c.commission.confirmed)}
+          <span className="text-zinc-400"> / {formatFen(c.commission.estimated)}</span>
+        </span>
+      ),
     },
     {
       id: "status",
@@ -126,6 +150,7 @@ export function contractColumns(
       id: "pay",
       label: "回款",
       icon: Banknote,
+      width: "w-[96px]",
       cell: (c) =>
         c.status === "active" ? (
           <Button size="xs" variant="outline" onClick={() => onPay(c)}>

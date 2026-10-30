@@ -240,7 +240,10 @@ export default function JobsPage() {
   return (
     <PageFrame title="定时任务" icon={AlarmClock}>
       <RoleGate roles={["admin"]} lockedText="定时任务由系统管理员配置">
-        <JobsBody />
+        {/* 面板内留边距；内容多时在面板内滚动（PageFrame 面板本身不滚动） */}
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+          <JobsBody />
+        </div>
       </RoleGate>
     </PageFrame>
   )

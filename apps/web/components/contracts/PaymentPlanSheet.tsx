@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useInvoice, usePaymentPlan, useSavePaymentPlan } from "@/hooks/useContracts"
-import { formatFen } from "@/lib/format"
+import { formatFen, ownerName } from "@/lib/format"
 import { INVOICE_STATUS_META, invoiceActions, invoiceDetail } from "@/lib/invoice"
 import { PLAN_STATUS_META } from "@/lib/labels"
 import { checkPlan, rowsTotal, toRows, type PlanRow } from "@/lib/payment-plan"
@@ -228,6 +228,9 @@ export function PaymentPlanSheet({
     ]
     body = (
       <div className="space-y-4">
+        <div className="text-sm text-zinc-600">
+          {contract.customer?.name ?? "—"} · 负责人 {ownerName(contract.owner)}
+        </div>
         <div className="grid grid-cols-2 gap-3">
           {stats.map(([k, v, alert]) => (
             <div key={k} className="rounded-lg border border-zinc-200 px-3 py-2">

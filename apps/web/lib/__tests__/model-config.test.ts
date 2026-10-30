@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import type { BuiltinProvider, ModelCard, ModelConfig } from "@/hooks/useModelConfig"
+import type { ModelCard, ModelConfig } from "@/hooks/useModelConfig"
 import {
   aiStatus,
   candidates,
   customAlias,
   fromOption,
-  keySourceText,
   moveItem,
   suggestId,
   toOption,
@@ -25,23 +24,6 @@ const card = (alias: string, kind: ModelCard["kind"], extra: Partial<ModelCard> 
   provider: "测试",
   ...extra,
 })
-
-const builtin: BuiltinProvider = {
-  var: "DEEPSEEK_API_KEY",
-  label: "DeepSeek",
-  hint: "",
-  key_source: "web",
-  tail: "abcd",
-  saved_by: "周敏",
-  saved_at: "2026-10-30T08:00:00Z",
-  broken: false,
-  base: "",
-  default_base: "https://api.deepseek.com/v1",
-  protocol: "",
-  adapter: "",
-  available: true,
-  models: [],
-}
 
 describe("模型接入", () => {
   it("自定义模型别名与后端一致", () => {
@@ -88,13 +70,7 @@ describe("模型接入", () => {
     expect(fromOption("native")).toBe("native")
   })
 
-  it("Key 来源说明", () => {
-    expect(keySourceText(builtin)).toBe("已填写 · 末 4 位 abcd")
-    expect(keySourceText({ ...builtin, key_source: "env" })).toBe("用服务器配置的 Key")
-    expect(keySourceText({ ...builtin, key_source: "none" })).toBe("未填写")
-  })
-
-  it("顶部状态：按分组顺序取第一个可用的，其余可用的算备用", () => {
+  it("默认模型摘要：按分组顺序取第一个可用的，其余可用的算备用", () => {
     const config = {
       groups: { "chat-agent": ["a", "b", "c"], embed: ["e"], rerank: [] },
       models: [

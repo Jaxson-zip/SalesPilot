@@ -195,7 +195,7 @@ export function DefaultModels({ config }: { config: ModelConfig }) {
   const isDefault = sameList(chat, defaults.chat) && sameList(rerank, defaults.rerank)
 
   return (
-    <div className="space-y-5 rounded-lg border border-zinc-200 p-4">
+    <div className="space-y-5">
       <OrderedPicker
         title="对话"
         hint="出错时按顺序换下一个。只能选支持工具调用的模型。"

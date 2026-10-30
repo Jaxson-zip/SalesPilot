@@ -1,16 +1,15 @@
 "use client"
 
-import { Loader2, Pencil, PlugZap, Plus, Trash2, X } from "lucide-react"
+import { Loader2, PlugZap, Plus, X } from "lucide-react"
 import { useState } from "react"
 
-import { useConfirmAction } from "@/components/biz/ConfirmAction"
-import { FormField, SimpleSelect } from "@/components/biz/FormControls"
-import { AvailTag, ModelChip, Warn, time } from "@/components/model-config/shared"
+import { SimpleSelect } from "@/components/biz/FormControls"
+import { Field, MoreSettings } from "@/components/model-config/ProviderRows"
+import { Warn } from "@/components/model-config/shared"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import {
-  useDeleteCustom,
   useSaveCustom,
   useTestCustom,
   type CustomInput,
@@ -21,7 +20,7 @@ import {
   type ModelKind,
   type ModelTestResult,
 } from "@/hooks/useModelConfig"
-import { CUSTOM_PRESETS, CUSTOM_PROTOCOLS, LINK_LABELS, customAlias, suggestId, validId } from "@/lib/model-config"
+import { CUSTOM_PRESETS, CUSTOM_PROTOCOLS, customAlias, suggestId, validId } from "@/lib/model-config"
 
 interface Row extends CustomModelInput {
   /** 本次测试结果（不保存） */
@@ -151,22 +150,10 @@ function ModelRow({
   )
 }
 
-/** 自定义厂商：新建（p 为空）或修改。标识建好后不能改（模型别名以它为前缀） */
-function CustomForm({
-  p,
-  dims,
-  embedAlias,
-  onDone,
-}: {
-  p?: CustomProvider
-  dims: number
-  embedAlias: string | null
-  onDone: () => void
-}) {
+/** 其他厂商的编辑区：新建（p 为空）或修改。标识建好后不能改（模型别名以它为前缀） */
+export function CustomEditor({ p, dims, onDone }: { p?: CustomProvider; dims: number; onDone: () => void }) {
   const save = useSaveCustom()
   const test = useTestCustom()
-  const remove = useDeleteCustom()
-  const { ask, dialog } = useConfirmAction()
   const [form, setForm] = useState<Form>(() => initial(p))
   const [testing, setTesting] = useState<number | null>(null)
   const set = (patch: Partial<Form>) => setForm((f) => ({ ...f, ...patch }))
@@ -175,7 +162,6 @@ function CustomForm({
   const id = form.id.trim()
   const typed = form.key.trim()
   const preset = CUSTOM_PRESETS.find((x) => x.id === id && x.base === form.api_base)
-  const inUse = embedAlias && id && embedAlias.startsWith(`${id}-`)
   const named = form.models.filter((m) => m.model.trim())
   const canSave =
     validId(id) &&
@@ -225,94 +211,62 @@ function CustomForm({
   return (
     <div className="space-y-3">
       {isNew ? (
-        <FormField label="从常用厂商填入" hint={preset?.hint}>
+        <Field label="厂商">
           <SimpleSelect
             ariaLabel="常用厂商"
             value={preset?.id ?? ""}
-            placeholder="选择厂商（可选）"
+            placeholder="选择常用厂商，或直接填写"
             onChange={(v) => {
               const hit = CUSTOM_PRESETS.find((x) => x.id === v)
               if (hit) set({ id: hit.id, name: hit.name, api_base: hit.base, protocol: "openai_compat" })
             }}
             options={CUSTOM_PRESETS.map((x) => ({ value: x.id, label: x.name }))}
           />
-        </FormField>
+        </Field>
       ) : null}
+      {isNew && preset?.hint ? <p className="text-xs text-zinc-400">{preset.hint}</p> : null}
       <div className="grid gap-3 sm:grid-cols-2">
-        <FormField label="名称" required htmlFor="custom-name">
+        <Field label="名称">
           <Input
-            id="custom-name"
             value={form.name}
             onChange={(e) =>
               set({ name: e.target.value, ...(isNew && !form.id ? { id: suggestId(e.target.value) } : {}) })
             }
             placeholder="例如 Kimi"
           />
-        </FormField>
-        <FormField
-          label="标识"
-          required
-          htmlFor="custom-id"
-          hint="英文小写，建好后不能改"
-          error={id && !validId(id) ? "2～24 位，小写字母开头，只能有小写字母、数字和短横线" : undefined}
-        >
+        </Field>
+        <Field label="API Key">
           <Input
-            id="custom-id"
-            value={form.id}
-            disabled={!isNew}
-            onChange={(e) => set({ id: e.target.value.toLowerCase() })}
-            placeholder="kimi"
-          />
-        </FormField>
-        <FormField label="协议">
-          <SimpleSelect
-            ariaLabel="协议"
-            value={form.protocol}
-            onChange={(v) => set({ protocol: v })}
-            options={CUSTOM_PROTOCOLS}
-          />
-        </FormField>
-        {form.protocol === "native" ? (
-          <FormField label="适配名" htmlFor="custom-adapter" hint="LiteLLM 的厂商名，例如 moonshot、zhipuai、ollama">
-            <Input
-              id="custom-adapter"
-              value={form.adapter}
-              onChange={(e) => set({ adapter: e.target.value })}
-              placeholder="moonshot"
-            />
-          </FormField>
-        ) : null}
-        <FormField
-          label="接口地址"
-          required={form.protocol === "openai_compat"}
-          htmlFor="custom-base"
-          hint={form.protocol === "native" ? "原生适配一般不用填" : undefined}
-        >
-          <Input
-            id="custom-base"
-            value={form.api_base}
-            onChange={(e) => set({ api_base: e.target.value })}
-            placeholder="https://…/v1"
-          />
-        </FormField>
-        <FormField label="API Key" htmlFor="custom-key">
-          <Input
-            id="custom-key"
             type="password"
             autoComplete="off"
             value={form.key}
             onChange={(e) => set({ key: e.target.value })}
             placeholder={
               p?.has_key && !p.broken
-                ? `已保存${p.tail ? `（末 4 位 ${p.tail}）` : ""}，如需更换粘贴新的`
-                : "粘贴 API Key"
+                ? `已配置${p.tail ? `（末 4 位 ${p.tail}）` : ""}，输入新值可替换`
+                : "输入 API Key"
             }
           />
-        </FormField>
+        </Field>
       </div>
+      {isNew ? (
+        <Field label="标识（英文小写，建好后不能改）">
+          <Input value={form.id} onChange={(e) => set({ id: e.target.value.toLowerCase() })} placeholder="例如 kimi" />
+          {id && !validId(id) ? (
+            <span className="text-xs text-red-600">2～24 位，小写字母开头，只能有小写字母、数字和短横线</span>
+          ) : null}
+        </Field>
+      ) : null}
+      <Field label="接口地址">
+        <Input
+          value={form.api_base}
+          onChange={(e) => set({ api_base: e.target.value })}
+          placeholder={form.protocol === "native" ? "原生适配一般不用填" : "https://…/v1"}
+        />
+      </Field>
       {p?.broken ? <Warn>之前保存的 Key 解不开了（服务器的加密密钥换过），请重新填写。</Warn> : null}
       <div className="space-y-2">
-        <p className="text-sm font-medium">模型</p>
+        <p className="text-xs text-zinc-500">模型</p>
         {form.models.map((row, i) => (
           <ModelRow
             key={i}
@@ -339,28 +293,24 @@ function CustomForm({
           添加模型
         </Button>
       </div>
-      <div className="flex flex-wrap justify-end gap-2">
-        {p ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mr-auto text-red-600"
-            disabled={remove.isPending || Boolean(inUse)}
-            title={inUse ? "知识库正在用这个厂商的向量模型，先换掉再删除" : undefined}
-            onClick={() =>
-              ask({
-                title: `删除「${p.name}」？`,
-                description: "它的模型会从主备顺序里去掉。",
-                confirmLabel: "删除",
-                destructive: true,
-                onConfirm: () => remove.mutate(p.id, { onSuccess: onDone }),
-              })
-            }
-          >
-            <Trash2 />
-            删除厂商
-          </Button>
-        ) : null}
+      <MoreSettings>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="协议">
+            <SimpleSelect
+              ariaLabel="协议"
+              value={form.protocol}
+              onChange={(v) => set({ protocol: v })}
+              options={CUSTOM_PROTOCOLS}
+            />
+          </Field>
+          {form.protocol === "native" ? (
+            <Field label="适配名">
+              <Input value={form.adapter} onChange={(e) => set({ adapter: e.target.value })} placeholder="moonshot" />
+            </Field>
+          ) : null}
+        </div>
+      </MoreSettings>
+      <div className="flex justify-end gap-2">
         <Button variant="ghost" size="sm" onClick={onDone}>
           取消
         </Button>
@@ -368,63 +318,6 @@ function CustomForm({
           保存
         </Button>
       </div>
-      {dialog}
     </div>
-  )
-}
-
-export function CustomProviderCard({
-  p,
-  dims,
-  embedAlias,
-  onClose,
-}: {
-  p?: CustomProvider
-  dims: number
-  embedAlias: string | null
-  /** 新建表单的「取消」/ 保存后关闭 */
-  onClose?: () => void
-}) {
-  const [editing, setEditing] = useState(!p)
-  const done = () => (p ? setEditing(false) : onClose?.())
-  return (
-    <section aria-label={p ? p.name : "新增厂商"} className="space-y-3 rounded-lg border border-zinc-200 p-4 text-sm">
-      <div className="flex flex-wrap items-center gap-2">
-        <h3 className="font-medium">{p ? p.name : "新增厂商"}</h3>
-        {p ? (
-          <>
-            <AvailTag available={p.available} configured={p.has_key && !p.broken} />
-            <span className="text-xs text-zinc-400">
-              {p.id} · {LINK_LABELS[p.protocol]}
-              {p.adapter ? `（${p.adapter}）` : ""}
-              {p.saved_by && p.saved_at ? ` · ${p.saved_by} ${time(p.saved_at)} 保存` : ""}
-            </span>
-          </>
-        ) : null}
-        {p && !editing ? (
-          <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setEditing(true)}>
-            <Pencil />
-            编辑
-          </Button>
-        ) : null}
-      </div>
-      {p && !editing ? (
-        <div className="space-y-1 text-xs text-zinc-500">
-          {p.api_base ? <p className="break-all">接口地址：{p.api_base}</p> : null}
-          <div className="flex flex-wrap gap-1">
-            {p.models.map((m) => (
-              <ModelChip
-                key={m.alias}
-                m={{ alias: m.alias, kind: m.kind, available: m.available ?? false, tools: m.capabilities.tools }}
-              />
-            ))}
-          </div>
-          {p.broken ? <Warn>保存的 Key 解不开了（服务器的加密密钥换过），请编辑后重新填写。</Warn> : null}
-          {!p.has_key ? <p>还没有填写 Key</p> : null}
-        </div>
-      ) : (
-        <CustomForm p={p} dims={dims} embedAlias={embedAlias} onDone={done} />
-      )}
-    </section>
   )
 }

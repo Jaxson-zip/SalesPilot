@@ -1,18 +1,4 @@
-import type {
-  BuiltinProvider,
-  LinkType,
-  ModelCard,
-  ModelConfig,
-  ModelKind,
-  ProtocolChoice,
-} from "@/hooks/useModelConfig"
-
-export const KIND_LABELS: Record<ModelKind, string> = { chat: "对话", embedding: "向量", rerank: "重排" }
-
-export const LINK_LABELS: Record<string, string> = {
-  openai_compat: "OpenAI 兼容",
-  native: "LiteLLM 原生",
-}
+import type { LinkType, ModelCard, ModelConfig, ModelKind, ProtocolChoice } from "@/hooks/useModelConfig"
 
 /** 下拉框不能用空字符串当值：「按模型清单」用 default 表示，保存时换回空 */
 export type ProtocolOption = "default" | LinkType
@@ -101,13 +87,6 @@ export function moveItem<T>(list: T[], index: number, delta: -1 | 1): T[] {
 
 export function sameList(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i])
-}
-
-/** Key 来自哪里，一句话 */
-export function keySourceText(p: BuiltinProvider): string {
-  if (p.key_source === "web") return p.tail ? `已填写 · 末 4 位 ${p.tail}` : "已填写"
-  if (p.key_source === "env") return "用服务器配置的 Key"
-  return "未填写"
 }
 
 /** 「通义千问（阿里云百炼）」→「通义千问」 */

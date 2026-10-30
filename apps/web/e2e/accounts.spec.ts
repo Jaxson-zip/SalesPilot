@@ -3,7 +3,15 @@ import { expect, test, type Page } from "@playwright/test"
 import { loginAs } from "./helpers"
 
 const ok = (data: unknown) => ({ json: { code: 0, message: "ok", data } })
-const TEAM = { id: "t-south", name: "华南销售组", members: 3, managers: ["李薇"] }
+const TEAM = {
+  id: "t-south",
+  name: "华南销售组",
+  members: 3,
+  managers: ["李薇"],
+  default_product_line_id: null,
+  default_product_line: null,
+  pack: null,
+}
 
 const member = (extra: Record<string, unknown>) => ({
   id: "u-1",
@@ -119,4 +127,26 @@ test("销售和主管看不到成员与团队", async ({ page }) => {
   await loginAs(page, "manager")
   await page.goto("/settings/accounts")
   await expect(page.getByText("成员和团队由系统管理员维护")).toBeVisible()
+})
+
+test("管理员给团队指定默认行业包（模拟接口）", async ({ page }) => {
+  await loginAs(page, "admin")
+  await mockAdmin(page)
+  const lines = [
+    { id: "pl-llm", name: "大模型一体机", pack: "llm_deploy", enabled: true },
+    { id: "pl-soft", name: "软件定制开发", pack: "software_outsourcing", enabled: true },
+  ]
+  await page.route(/\/api\/product-lines$/, (r) => r.fulfill(ok({ items: lines, total: 2 })))
+  let patched: unknown = null
+  await page.route(/\/api\/admin\/teams\/t-south$/, async (r) => {
+    patched = r.request().postDataJSON()
+    await r.fulfill(ok({ ...TEAM, default_product_line_id: "pl-soft", default_product_line: "软件定制开发" }))
+  })
+  await page.goto("/settings/accounts")
+  await expect(page.getByText("行业包：系统默认")).toBeVisible()
+  await page.getByRole("button", { name: "修改华南销售组" }).click()
+  await page.getByRole("combobox", { name: "默认产品线" }).click()
+  await page.getByRole("option", { name: /软件定制开发/ }).click()
+  await page.getByRole("button", { name: "保存" }).click()
+  await expect.poll(() => patched).toEqual({ name: "华南销售组", default_product_line_id: "pl-soft" })
 })

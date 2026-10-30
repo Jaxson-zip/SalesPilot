@@ -15,8 +15,10 @@ from app.agent.history import ThreadMessages, read_thread_messages
 from app.agent.runs import registry
 from app.agent.sse import follow_run
 from app.common.auth import CurrentUserDep
+from app.common.config import get_settings
 from app.common.errors import BizError, ErrorCode
 from app.common.response import ApiResponse, ok
+from app.crm.models import ProductLine, Team
 from app.crm.routers.deps import DbDep
 from app.crm.services import usage_service
 
@@ -95,6 +97,26 @@ def analyze_sample(
     usage_service.ensure_daily_quota(user)
     content = file.file.read(materials.MAX_BYTES + 1)
     return ok(sample_lib.analyze(file.filename or "", content, _request_id(request)))
+
+
+class DefaultPackOut(BaseModel):
+    pack: str  # 行业包 id
+    product_line: str | None  # 团队默认产品线；没设时为 None（用系统默认行业包）
+
+
+@router.get("/pack", response_model=ApiResponse[DefaultPackOut])
+def default_pack(user: CurrentUserDep, db: DbDep) -> ApiResponse[DefaultPackOut]:
+    """不从商机进入时 AI 用哪个行业包：团队默认产品线对应的，没设就用系统默认。"""
+    default = get_settings().default_pack
+    team = db.get(Team, user.team_id) if user.team_id else None
+    line = (
+        db.get(ProductLine, team.default_product_line_id)
+        if team and team.default_product_line_id
+        else None
+    )
+    if line is None or not line.enabled:
+        return ok(DefaultPackOut(pack=default, product_line=None))
+    return ok(DefaultPackOut(pack=line.pack, product_line=line.name))
 
 
 @router.get("/models", response_model=ApiResponse[models.ChatModels])

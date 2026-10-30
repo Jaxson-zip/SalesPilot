@@ -46,6 +46,20 @@ export function usePackName(): (id: string | null | undefined) => string {
   return (id) => (id ? (data?.find((p) => p.id === id)?.name ?? id) : "—")
 }
 
+export interface DefaultPack {
+  pack: string
+  /** 团队默认产品线；没设时为 null（用系统默认行业包） */
+  product_line: string | null
+}
+
+/** GET /api/agent/pack：不从商机进入时 AI 用哪个行业包（团队默认产品线，没设就用系统默认） */
+export function useDefaultPack() {
+  return useQuery({
+    queryKey: [...productLineKeys.packs, "default"],
+    queryFn: ({ signal }) => api.get<DefaultPack>("/api/agent/pack", undefined, signal),
+  })
+}
+
 /** PUT /api/product-lines/{id}（pack 必须是已安装行业包，否则 40001） */
 export function useUpdateProductLine() {
   const qc = useQueryClient()

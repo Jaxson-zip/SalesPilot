@@ -5432,6 +5432,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/agent/pack:
+    get:
+      tags:
+      - agent
+      summary: Default Pack
+      description: 不从商机进入时 AI 用哪个行业包：团队默认产品线对应的，没设就用系统默认。
+      operationId: default_pack_api_agent_pack_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_DefaultPackOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/agent/models:
     get:
       tags:
@@ -6217,6 +6246,31 @@ components:
           default: ''
       type: object
       title: ApiResponse[Dashboard]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_DefaultPackOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/DefaultPackOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[DefaultPackOut]
       required:
       - code
       - message
@@ -9970,6 +10024,21 @@ components:
       - tasks_overdue
       - target_month
       title: Dashboard
+    DefaultPackOut:
+      properties:
+        pack:
+          type: string
+          title: Pack
+        product_line:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Product Line
+      type: object
+      required:
+      - pack
+      - product_line
+      title: DefaultPackOut
     DraftIn:
       properties:
         date:
@@ -13726,6 +13795,12 @@ components:
           maxLength: 100
           minLength: 1
           title: Name
+        default_product_line_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Default Product Line Id
       type: object
       required:
       - name
@@ -13747,12 +13822,31 @@ components:
             type: string
           type: array
           title: Managers
+        default_product_line_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Default Product Line Id
+        default_product_line:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Default Product Line
+        pack:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pack
       type: object
       required:
       - id
       - name
       - members
       - managers
+      - default_product_line_id
+      - default_product_line
+      - pack
       title: TeamItem
     TeamMemberReport:
       properties:

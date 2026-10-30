@@ -2012,6 +2012,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/agent/pack": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Default Pack
+     * @description 不从商机进入时 AI 用哪个行业包：团队默认产品线对应的，没设就用系统默认。
+     */
+    get: operations["default_pack_api_agent_pack_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/agent/models": {
     parameters: {
       query?: never
@@ -2499,6 +2519,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["Dashboard"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[DefaultPackOut] */
+    ApiResponse_DefaultPackOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["DefaultPackOut"] | null
       /**
        * Request Id
        * @default
@@ -4917,6 +4956,13 @@ export interface components {
       /** Funnel */
       funnel: components["schemas"]["PipelineStage"][]
     }
+    /** DefaultPackOut */
+    DefaultPackOut: {
+      /** Pack */
+      pack: string
+      /** Product Line */
+      product_line: string | null
+    }
     /** DraftIn */
     DraftIn: {
       /** Date */
@@ -6905,6 +6951,8 @@ export interface components {
     TeamIn: {
       /** Name */
       name: string
+      /** Default Product Line Id */
+      default_product_line_id?: string | null
     }
     /** TeamItem */
     TeamItem: {
@@ -6919,6 +6967,12 @@ export interface components {
       members: number
       /** Managers */
       managers: string[]
+      /** Default Product Line Id */
+      default_product_line_id: string | null
+      /** Default Product Line */
+      default_product_line: string | null
+      /** Pack */
+      pack: string | null
     }
     /** TeamMemberReport */
     TeamMemberReport: {
@@ -11876,6 +11930,37 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_SampleItem_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  default_pack_api_agent_pack_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_DefaultPackOut_"]
         }
       }
       /** @description Validation Error */

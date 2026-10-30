@@ -21,6 +21,7 @@ import type * as R from "@/hooks/useReports"
 import type * as W from "@/hooks/useWecom"
 import type * as MK from "@/hooks/useModelConfig"
 import type * as Acc from "@/hooks/useAccounts"
+import type * as PL from "@/hooks/useProductLines"
 import type * as LV from "@/lib/list-view"
 import type * as Jobs from "@/hooks/useJobs"
 import type * as Imp from "@/lib/customer-import"
@@ -55,6 +56,7 @@ export const responses = {
   TargetRow: true as Fits<S["TargetRow"], Tg.TargetRow>,
   TempPassword: true as Fits<S["TempPassword"], Acc.TempPassword>,
   TeamItem: true as Fits<S["TeamItem"], Acc.TeamItem>,
+  DefaultPack: true as Fits<S["DefaultPackOut"], PL.DefaultPack>,
   TaskItem: true as Fits<S["TaskItem"], T.TaskItem>,
   NotificationList: true as Fits<S["NotificationList"], T.NotificationList>,
   Templates: true as Fits<S["Templates"], T.Templates>,

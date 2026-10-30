@@ -78,8 +78,9 @@ function PacksContent() {
   const [detail, setDetail] = useState<{ pack: PackOut; section: PackSection } | null>(null)
   return (
     <div className="flex-1 space-y-5 overflow-x-hidden overflow-y-auto p-4 sm:p-5">
-      <Alert tone="info" title="行业包由管理员统一配置，销售不能切换">
-        销售创建商机时选择「产品线」，系统按下方映射自动匹配行业包；AI
+      <Alert tone="info" title="行业包由管理员按团队和产品线分配，销售不用切换">
+        销售创建商机时选择「产品线」，系统按下方映射自动匹配行业包；没有商机时（直接在 AI
+        工作台出方案、学习问答）用成员所在团队的默认产品线，在「成员与团队」里给每个团队设置。AI
         出方案时直接使用该行业包的产品目录、规则和知识库。产品价格、本行业参数和知识库文档都可以在卡片里直接修改，保存后立即生效。
       </Alert>
       {packs.data?.some((p) => p.sample_data) ? (

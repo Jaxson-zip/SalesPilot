@@ -48,10 +48,17 @@ export interface TeamItem {
   name: string
   members: number
   managers: string[]
+  /** 团队默认产品线：成员不从商机进入 AI 时用它对应的行业包；没设时用系统默认行业包 */
+  default_product_line_id: string | null
+  default_product_line: string | null
+  /** 默认产品线对应的行业包 id */
+  pack: string | null
 }
 
 export interface TeamIn {
   name: string
+  /** 不传 = 不改；null = 改回系统默认行业包 */
+  default_product_line_id?: string | null
 }
 
 const KEYS = { users: ["admin", "users"] as const, teams: ["admin", "teams"] as const }
@@ -112,10 +119,10 @@ export function useResetPassword() {
 export function useSaveTeam() {
   const refresh = useRefresh()
   return useMutation({
-    mutationFn: ({ id, name }: { id?: string; name: string }) =>
-      id ? api.patch<TeamItem>(`/api/admin/teams/${id}`, { name }) : api.post<TeamItem>("/api/admin/teams", { name }),
+    mutationFn: ({ id, ...body }: TeamIn & { id?: string }) =>
+      id ? api.patch<TeamItem>(`/api/admin/teams/${id}`, body) : api.post<TeamItem>("/api/admin/teams", body),
     onSuccess: (team, { id }) => {
-      toast.success(id ? "已修改团队名称" : `已新建团队「${team.name}」`)
+      toast.success(id ? "已保存团队设置" : `已新建团队「${team.name}」`)
       return refresh()
     },
     onError: notifyError,

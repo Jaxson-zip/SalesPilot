@@ -21,6 +21,7 @@ import {
   type TeamItem,
   type TempPassword,
 } from "@/hooks/useAccounts"
+import { usePackName } from "@/hooks/useProductLines"
 import { formatRelative } from "@/lib/format"
 import { ROLE_TITLE } from "@/lib/session"
 import { cn } from "@/lib/utils"
@@ -32,6 +33,7 @@ function Status({ a }: { a: AccountItem }) {
 }
 
 function Teams({ teams, onEdit }: { teams: TeamItem[]; onEdit: (t: TeamItem | null) => void }) {
+  const packName = usePackName()
   return (
     <section aria-label="团队" className="space-y-2">
       <div className="flex items-center justify-between">
@@ -52,8 +54,11 @@ function Teams({ teams, onEdit }: { teams: TeamItem[]; onEdit: (t: TeamItem | nu
               <div className="text-xs text-zinc-500">
                 {t.members} 名成员 · 主管：{t.managers.length ? t.managers.join("、") : "未设置"}
               </div>
+              <div className="text-xs text-zinc-500">
+                行业包：{t.pack ? `${packName(t.pack)}（${t.default_product_line}）` : "系统默认"}
+              </div>
             </div>
-            <Button size="icon-xs" variant="ghost" aria-label={`修改${t.name}名称`} onClick={() => onEdit(t)}>
+            <Button size="icon-xs" variant="ghost" aria-label={`修改${t.name}`} onClick={() => onEdit(t)}>
               <Pencil />
             </Button>
           </li>

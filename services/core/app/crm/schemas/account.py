@@ -50,7 +50,13 @@ class TeamItem(BaseModel):
     name: str
     members: int
     managers: list[str]
+    # 团队默认产品线：成员没有从商机进入 AI 时用它对应的行业包；没设时用系统默认行业包
+    default_product_line_id: uuid.UUID | None = None
+    default_product_line: str | None = None
+    pack: str | None = None
 
 
 class TeamIn(BaseModel):
     name: str = Field(min_length=1, max_length=100)
+    # 不传 = 不改；传 null = 改回系统默认行业包
+    default_product_line_id: uuid.UUID | None = None

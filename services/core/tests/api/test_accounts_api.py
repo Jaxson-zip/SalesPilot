@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete, select
 
 from app.common.auth import forget_user
+from app.common.config import get_settings
 from app.common.db import session_scope
 from app.crm.models import Customer, Notification, Team, User
 from app.crm.services import auth_service
@@ -199,3 +200,29 @@ def test_teams(client: TestClient, cleanup: dict) -> None:
     teams = client.get("/api/admin/teams", headers=ADMIN_H).json()["data"]
     south = next(t for t in teams if t["id"] == str(TEAM_SOUTH_ID))
     assert "李薇" in south["managers"]
+
+
+def test_team_default_pack(client: TestClient, cleanup: dict) -> None:
+    """管理员给团队指定默认产品线：成员不从商机进入 AI 时用它对应的行业包。"""
+    lines = client.get("/api/product-lines", headers=ADMIN_H).json()["data"]["items"]
+    line = next(x for x in lines if x["enabled"] and x["pack"] != get_settings().default_pack)
+    name = f"测试团队-{uuid.uuid4().hex[:6]}"
+    body = {"name": name, "default_product_line_id": line["id"]}
+    team = client.post("/api/admin/teams", json=body, headers=ADMIN_H).json()["data"]
+    cleanup["teams"].append(uuid.UUID(team["id"]))
+    assert team["default_product_line"] == line["name"] and team["pack"] == line["pack"]
+    member = new_member(client, cleanup, team_id=team["id"])
+    token = login(client, member["account"]["username"], member["temp_password"])["data"]["token"]
+    pack = client.get("/api/agent/pack", headers=bearer(token)).json()["data"]
+    assert pack == {"pack": line["pack"], "product_line": line["name"]}
+    # 只改名：产品线不变；传 null：回到系统默认行业包
+    url = f"/api/admin/teams/{team['id']}"
+    renamed = client.patch(url, json={"name": name + "改"}, headers=ADMIN_H).json()["data"]
+    assert renamed["pack"] == line["pack"]
+    body = {"name": name, "default_product_line_id": None}
+    reset = client.patch(url, json=body, headers=ADMIN_H).json()["data"]
+    assert reset["pack"] is None
+    pack = client.get("/api/agent/pack", headers=bearer(token)).json()["data"]
+    assert pack == {"pack": get_settings().default_pack, "product_line": None}
+    bad = {"name": name, "default_product_line_id": str(uuid.uuid4())}
+    assert client.patch(url, json=bad, headers=ADMIN_H).status_code == 404

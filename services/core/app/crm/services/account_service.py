@@ -15,7 +15,7 @@ from app.common.auth import CurrentUser, Role, forget_user
 from app.common.errors import BizError, ErrorCode
 from app.common.passwords import hash_password, temp_password
 from app.common.permissions import ensure_role
-from app.crm.models import Customer, Team, User
+from app.crm.models import Customer, ProductLine, Team, User
 from app.crm.schemas.account import (
     AccountCreate,
     AccountItem,
@@ -199,12 +199,38 @@ def reset_password(db: Session, admin: CurrentUser, user_id: uuid.UUID) -> TempP
 def list_teams(db: Session, admin: CurrentUser) -> list[TeamItem]:
     ensure_admin(admin)
     users = db.scalars(select(User).where(User.active.is_(True))).all()
+    lines = {line.id: line for line in db.scalars(select(ProductLine)).all()}
     out = []
     for team in db.scalars(select(Team).order_by(Team.created_at)).all():
         members = [u for u in users if u.team_id == team.id]
         managers = [u.name for u in members if u.role == Role.MANAGER.value]
-        out.append(TeamItem(id=team.id, name=team.name, members=len(members), managers=managers))
+        line = lines.get(team.default_product_line_id) if team.default_product_line_id else None
+        out.append(
+            TeamItem(
+                id=team.id,
+                name=team.name,
+                members=len(members),
+                managers=managers,
+                default_product_line_id=line.id if line else None,
+                default_product_line=line.name if line else None,
+                pack=line.pack if line else None,
+            )
+        )
     return out
+
+
+def _set_default_line(db: Session, team: Team, data: TeamIn) -> None:
+    """请求里带了 default_product_line_id 才改；null 表示改回系统默认行业包。"""
+    if "default_product_line_id" not in data.model_fields_set:
+        return
+    line_id = data.default_product_line_id
+    if line_id is not None:
+        line = db.get(ProductLine, line_id)
+        if line is None:
+            raise BizError(ErrorCode.NOT_FOUND, "产品线不存在")
+        if not line.enabled:
+            raise BizError(ErrorCode.VALIDATION, f"产品线「{line.name}」已停用", {"rule": "pack"})
+    team.default_product_line_id = line_id
 
 
 def _team_item(db: Session, admin: CurrentUser, team_id: uuid.UUID) -> TeamItem:
@@ -217,6 +243,7 @@ def create_team(db: Session, admin: CurrentUser, data: TeamIn) -> TeamItem:
     if db.scalar(select(Team.id).where(Team.name == name)) is not None:
         raise BizError(ErrorCode.DUPLICATE, f"团队「{name}」已存在")
     team = Team(name=name)
+    _set_default_line(db, team, data)
     db.add(team)
     db.flush()
     return _team_item(db, admin, team.id)
@@ -232,6 +259,7 @@ def rename_team(db: Session, admin: CurrentUser, team_id: uuid.UUID, data: TeamI
     if clash is not None:
         raise BizError(ErrorCode.DUPLICATE, f"团队「{name}」已存在")
     team.name = name
+    _set_default_line(db, team, data)
     db.flush()
     forget_user()
     return _team_item(db, admin, team.id)

@@ -12,7 +12,7 @@ import { Welcome } from "@/components/agent/Welcome"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { useOpportunity } from "@/hooks/useOpportunities"
 import { usePermissions } from "@/hooks/usePermissions"
-import { usePackName } from "@/hooks/useProductLines"
+import { useDefaultPack, usePackName } from "@/hooks/useProductLines"
 import { DEFAULT_PACK_LABEL } from "@/lib/agent-labels"
 import { takePastedMaterial } from "@/lib/materials"
 import { aiThreadHref } from "@/lib/thread-history"
@@ -61,10 +61,11 @@ function useThreadUrl(w: AiSession): () => void {
     router.replace("/ai", { scroll: false })
   }, [prompt, opp, paste, router])
 
-  // ?mode=learn：直接打开学习问答（新对话）
+  // ?mode=learn / ?mode=work：开一个该模式的新对话（工作台按钮、对话中切换模式）
   useEffect(() => {
-    if (mode !== "learn") return
-    latest.current.w.switchMode("learn")
+    if (mode !== "learn" && mode !== "work") return
+    latest.current.w.newChat()
+    latest.current.w.switchMode(mode)
     router.replace("/ai", { scroll: false })
   }, [mode, router])
 
@@ -82,10 +83,16 @@ function AiWorkbench() {
   const { stream, input, setInput, model, setModel, title, send } = w
   const { canAiWrite } = usePermissions()
   const goNew = useThreadUrl(w)
-  // 从商机进入：显示该商机产品线对应的行业包；否则显示团队默认行业包
+  const router = useRouter()
+  // 从商机进入：显示该商机产品线对应的行业包；否则显示团队默认行业包（管理员在「成员与团队」里给团队设置）
   const opp = useOpportunity(w.opportunityId)
   const packName = usePackName()
-  const pack = opp.data?.product_line ? packName(opp.data.product_line.pack) : DEFAULT_PACK_LABEL
+  const teamPack = useDefaultPack()
+  const pack = opp.data?.product_line
+    ? packName(opp.data.product_line.pack)
+    : teamPack.data
+      ? packName(teamPack.data.pack)
+      : DEFAULT_PACK_LABEL
   const [historyOpen, setHistoryOpen] = useState(false)
   const learn = w.mode === "learn"
   const canAttach = canAiWrite && !learn
@@ -141,6 +148,7 @@ function AiWorkbench() {
             onNew={goNew}
             onConfirmRequirement={w.confirmRequirement}
             mode={w.mode}
+            onModeChange={canAiWrite ? (m) => router.push(`/ai?mode=${m}`) : undefined}
             onAsk={send}
             prdOpportunity={opp.data ? { id: opp.data.id, name: opp.data.name, canGenerate: canAiWrite } : undefined}
           />

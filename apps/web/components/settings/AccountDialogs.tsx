@@ -22,6 +22,7 @@ import {
   type TeamItem,
   type TempPassword,
 } from "@/hooks/useAccounts"
+import { useProductLines, usePackName } from "@/hooks/useProductLines"
 import { USERNAME_RE } from "@/lib/password"
 import { ROLE_TITLE } from "@/lib/session"
 import type { Role } from "@/types/api"
@@ -180,21 +181,35 @@ export function TempPasswordDialog({ result, onClose }: { result: TempPassword |
   )
 }
 
-/** 新建团队 / 改名 */
+const SYSTEM_DEFAULT = "system"
+
+/** 新建团队 / 修改团队名称和默认行业包 */
 export function TeamDialog({ open, team, onClose }: { open: boolean; team: TeamItem | null; onClose: () => void }) {
   const [name, setName] = useState(team?.name ?? "")
+  const [line, setLine] = useState(team?.default_product_line_id ?? SYSTEM_DEFAULT)
   const [error, setError] = useState<string>()
   const save = useSaveTeam()
+  const lines = useProductLines()
+  const packName = usePackName()
+  const lineOptions = [
+    { value: SYSTEM_DEFAULT, label: "系统默认行业包" },
+    ...(lines.data ?? [])
+      .filter((l) => l.enabled || l.id === line)
+      .map((l) => ({ value: l.id, label: `${l.name}（${packName(l.pack)}）` })),
+  ]
   const submit = () => {
     if (!name.trim()) return setError("请填写团队名称")
-    save.mutate({ id: team?.id, name: name.trim() }, { onSuccess: onClose })
+    save.mutate(
+      { id: team?.id, name: name.trim(), default_product_line_id: line === SYSTEM_DEFAULT ? null : line },
+      { onSuccess: onClose },
+    )
   }
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{team ? "修改团队名称" : "新建团队"}</DialogTitle>
-          <DialogDescription>团队决定主管能看到和审批哪些成员的数据。</DialogDescription>
+          <DialogTitle>{team ? "修改团队" : "新建团队"}</DialogTitle>
+          <DialogDescription>团队决定主管能看到和审批哪些成员的数据，以及成员默认用哪个行业包。</DialogDescription>
         </DialogHeader>
         <FormField label="团队名称" required error={error} htmlFor="team-name">
           <Input
@@ -207,6 +222,12 @@ export function TeamDialog({ open, team, onClose }: { open: boolean; team: TeamI
               setError(undefined)
             }}
           />
+        </FormField>
+        <FormField
+          label="默认产品线（行业包）"
+          hint="成员在 AI 工作台直接出方案、学习问答时用这个行业包；从商机进入时按商机的产品线。"
+        >
+          <SimpleSelect ariaLabel="默认产品线" value={line} onChange={setLine} options={lineOptions} />
         </FormField>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>

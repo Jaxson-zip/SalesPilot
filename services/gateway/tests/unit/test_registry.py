@@ -17,6 +17,13 @@ def test_expand_env_nested() -> None:
     assert expand_env(data, {"X": "http://h", "Y": "k"}) == {"a": "http://h/v1", "b": ["k", 3], "c": ""}
 
 
+def test_expand_env_default_when_unset_or_empty() -> None:
+    value = "${BASE:-https://api.example.com/v1}"
+    assert expand_env(value, {}) == "https://api.example.com/v1"
+    assert expand_env(value, {"BASE": ""}) == "https://api.example.com/v1"
+    assert expand_env(value, {"BASE": "http://proxy/v1"}) == "http://proxy/v1"
+
+
 def test_model_without_key_is_unavailable() -> None:
     reg = make_registry()
     assert reg.models["m-tools"].available

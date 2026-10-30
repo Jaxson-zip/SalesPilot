@@ -15,7 +15,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.compat.errors import GatewayError, capability_mismatch, model_not_found
 
-_ENV_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
+# ${VAR} 或 ${VAR:-默认值}（变量没设或为空时用默认值，与 shell 一致）
+_ENV_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")
 
 
 ModelKind = Literal["chat", "embedding", "rerank"]
@@ -137,9 +138,9 @@ def _fits(entry: ModelEntry, needs_tools: bool, kind: ModelKind) -> bool:
 
 
 def expand_env(value: Any, env: Mapping[str, str]) -> Any:
-    """递归展开字符串里的 ${VAR}；未定义的变量展开为空字符串。"""
+    """递归展开字符串里的 ${VAR} / ${VAR:-默认值}；未定义且无默认值的变量展开为空字符串。"""
     if isinstance(value, str):
-        return _ENV_PATTERN.sub(lambda m: env.get(m.group(1), ""), value)
+        return _ENV_PATTERN.sub(lambda m: env.get(m.group(1)) or m.group(2) or "", value)
     if isinstance(value, list):
         return [expand_env(v, env) for v in value]
     if isinstance(value, dict):

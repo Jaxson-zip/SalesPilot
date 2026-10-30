@@ -15,6 +15,7 @@ uv run ruff check . && uv run ruff format --check .
 
 环境变量（与根目录 `.env.example` 一致）：`HUNYUAN_API_BASE/KEY`、`DEEPSEEK_API_BASE/KEY`、`DASHSCOPE_API_BASE/KEY`、
 `GATEWAY_INTERNAL_KEY`、`GATEWAY_MODELS_FILE`、`GATEWAY_TIMEOUT_SECONDS`。本地开发会自动读取仓库根目录的 `.env`。
+`*_API_BASE` 可以不填：`models.yaml` 里用 `${VAR:-默认地址}` 写了各家官方地址，走代理或私有部署时再填。
 没有配 Key 的模型标记为 `unavailable`，服务照常启动，分组里自动跳过。
 
 ## 接口

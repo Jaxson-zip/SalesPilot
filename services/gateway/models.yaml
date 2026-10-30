@@ -3,7 +3,8 @@
 # - alias：对外别名，core 用它或分组名调用
 # - link：openai_compat（写 api_base + api_key 即可）| native（LiteLLM 原生适配，model 写成 provider/model）
 # - model：上游模型名。下面的名字都是示例占位，以各家官方文档为准
-# - api_base / api_key：一律用 ${ENV} 引用环境变量，禁止写真实 Key
+# - api_base / api_key：一律用 ${ENV} 引用环境变量，禁止写真实 Key；
+#   api_base 带官方默认地址（${ENV:-默认}），.env 里不填就用它，填了以 .env 为准
 # - capabilities：先按文档填写，以契约测试结果为准；不通过的能力改成 false，兼容层自动降级
 #   可用字段见 app/registry.py 的 Capabilities（未写的按保守默认值处理）
 #
@@ -13,7 +14,7 @@ models:
   - alias: hunyuan-turbo
     link: openai_compat
     model: hunyuan-turbo                 # 以官方文档为准
-    api_base: ${HUNYUAN_API_BASE}
+    api_base: ${HUNYUAN_API_BASE:-https://api.hunyuan.cloud.tencent.com/v1}
     api_key: ${HUNYUAN_API_KEY}
     capabilities:
       stream: true
@@ -28,7 +29,7 @@ models:
   - alias: deepseek-chat
     link: openai_compat
     model: deepseek-chat                 # 以官方文档为准
-    api_base: ${DEEPSEEK_API_BASE}
+    api_base: ${DEEPSEEK_API_BASE:-https://api.deepseek.com/v1}
     api_key: ${DEEPSEEK_API_KEY}
     capabilities:
       stream: true
@@ -57,7 +58,7 @@ models:
   - alias: qwen-plus
     link: openai_compat
     model: qwen-plus                     # 以官方文档为准
-    api_base: ${DASHSCOPE_API_BASE}
+    api_base: ${DASHSCOPE_API_BASE:-https://dashscope.aliyuncs.com/compatible-mode/v1}
     api_key: ${DASHSCOPE_API_KEY}
     capabilities:
       stream: true
@@ -71,7 +72,7 @@ models:
   - alias: qwen-vl
     link: openai_compat
     model: qwen-vl-max                   # 以官方文档为准
-    api_base: ${DASHSCOPE_API_BASE}
+    api_base: ${DASHSCOPE_API_BASE:-https://dashscope.aliyuncs.com/compatible-mode/v1}
     api_key: ${DASHSCOPE_API_KEY}
     capabilities:
       stream: true
@@ -82,7 +83,7 @@ models:
   - alias: embed-qwen
     link: openai_compat
     model: text-embedding-v4             # 通义 Embedding，默认 1024 维；以官方文档为准
-    api_base: ${DASHSCOPE_API_BASE}
+    api_base: ${DASHSCOPE_API_BASE:-https://dashscope.aliyuncs.com/compatible-mode/v1}
     api_key: ${DASHSCOPE_API_KEY}
     capabilities:
       stream: false
@@ -92,7 +93,7 @@ models:
   - alias: embed-default
     link: openai_compat
     model: hunyuan-embedding             # 以官方文档为准
-    api_base: ${HUNYUAN_API_BASE}
+    api_base: ${HUNYUAN_API_BASE:-https://api.hunyuan.cloud.tencent.com/v1}
     api_key: ${HUNYUAN_API_KEY}
     capabilities:
       stream: false
@@ -102,7 +103,7 @@ models:
   - alias: rerank-qwen
     link: native
     model: dashscope/qwen3-rerank        # LiteLLM 的 dashscope 适配，兼容地址自动映射到 /compatible-api/v1/reranks
-    api_base: ${DASHSCOPE_API_BASE}
+    api_base: ${DASHSCOPE_API_BASE:-https://dashscope.aliyuncs.com/compatible-mode/v1}
     api_key: ${DASHSCOPE_API_KEY}
     capabilities:
       stream: false

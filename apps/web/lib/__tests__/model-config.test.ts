@@ -1,16 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { ModelCard, ModelConfig } from "@/hooks/useModelConfig"
-import {
-  aiStatus,
-  candidates,
-  customAlias,
-  fromOption,
-  moveItem,
-  suggestId,
-  toOption,
-  validId,
-} from "@/lib/model-config"
+import { aiStatus, candidates, customAlias, fromOption, suggestId, toOption, validId } from "@/lib/model-config"
 
 const card = (alias: string, kind: ModelCard["kind"], extra: Partial<ModelCard> = {}): ModelCard => ({
   alias,
@@ -56,12 +47,6 @@ describe("模型接入", () => {
     expect(candidates(config, "chat").map((m) => m.alias)).toEqual(["a"])
     expect(candidates(config, "embedding").map((m) => m.alias)).toEqual(["e1", "e3"])
     expect(candidates(config, "rerank").map((m) => m.alias)).toEqual(["r"])
-  })
-
-  it("调整顺序：越界不动", () => {
-    expect(moveItem(["a", "b", "c"], 1, -1)).toEqual(["b", "a", "c"])
-    expect(moveItem(["a", "b"], 0, -1)).toEqual(["a", "b"])
-    expect(moveItem(["a", "b"], 1, 1)).toEqual(["a", "b"])
   })
 
   it("协议选项：空字符串和 default 互转", () => {

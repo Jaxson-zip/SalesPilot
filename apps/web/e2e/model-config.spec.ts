@@ -49,7 +49,9 @@ const CONFIG = {
   allow_private_base: false,
 }
 
-test("模型接入：一家厂商一行，编辑在原地展开，只填 Key 就能保存（模拟接口）", async ({ page }) => {
+test("模型接入：左边一家厂商一行，右边选用哪个模型；，编辑在原地展开，只填 Key 就能保存（模拟接口）", async ({
+  page,
+}) => {
   await loginAs(page, "admin")
   let saved: unknown = null
   await page.route(/\/api\/integrations\/models$/, (r) => r.fulfill(ok(CONFIG)))
@@ -61,7 +63,7 @@ test("模型接入：一家厂商一行，编辑在原地展开，只填 Key 就
 
   await expect(page.getByRole("listitem", { name: "腾讯混元" }).getByRole("img", { name: "不可用" })).toBeVisible()
   await expect(page.getByRole("listitem", { name: "DeepSeek" }).getByRole("img", { name: "可用" })).toBeVisible()
-  await expect(page.getByRole("listitem", { name: "默认模型" })).toContainText("对话 DeepSeek")
+  await expect(page.getByRole("combobox", { name: "对话模型" })).toContainText("DeepSeek · deepseek-chat")
   // 收起时不显示输入框
   await expect(page.getByPlaceholder("输入 API Key")).toHaveCount(0)
 

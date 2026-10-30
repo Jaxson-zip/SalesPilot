@@ -7,19 +7,20 @@ import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { PageFrame } from "@/components/biz/PageFrame"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { CustomEditor } from "@/components/model-config/CustomEditor"
-import { DefaultModels } from "@/components/model-config/DefaultModels"
+import { ModelUsage } from "@/components/model-config/ModelUsage"
 import { BuiltinEditor, RowCard } from "@/components/model-config/ProviderRows"
 import { RoleGate } from "@/components/shell/RoleGate"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useDeleteCustom, useModelConfig, type ModelConfig } from "@/hooks/useModelConfig"
 import { aiStatus } from "@/lib/model-config"
+import { cn } from "@/lib/utils"
 
 /** 一家厂商的状态：有 Key 才看网关结果；网关连不上为 null */
 const usable = (configured: boolean, available: boolean | null) => (configured ? available : false)
 
 function Providers({ config }: { config: ModelConfig }) {
-  // 同一时间只展开一张：内置用变量名，其他厂商用标识，"new" 是新增，"defaults" 是默认模型
+  // 同一时间只展开一张：内置用变量名，其他厂商用标识，"new" 是新增
   const [open, setOpen] = useState<string | null>(null)
   const remove = useDeleteCustom()
   const { ask, dialog } = useConfirmAction()
@@ -27,10 +28,6 @@ function Providers({ config }: { config: ModelConfig }) {
   const close = () => setOpen(null)
   const status = aiStatus(config)
   const embedAlias = config.groups.embed?.[0] ?? null
-  const summary = status
-    .filter((l) => l.value)
-    .map((l) => `${l.label} ${l.value}`)
-    .join(" · ")
   const editButton = (id: string, name: string) => (
     <Button variant="outline" size="sm" aria-label={`编辑${name}`} onClick={() => toggle(id)}>
       {open === id ? "收起" : "编辑"}
@@ -38,7 +35,7 @@ function Providers({ config }: { config: ModelConfig }) {
   )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {!config.gateway_ok ? (
         <p className="text-sm text-amber-700">模型服务暂时连不上，保存的配置会在恢复后生效。</p>
       ) : !status[0].value ? (
@@ -110,27 +107,12 @@ function Providers({ config }: { config: ModelConfig }) {
         </Button>
       ) : null}
 
-      <ul className="text-sm">
-        <RowCard
-          label="默认模型"
-          title="默认模型"
-          summary={summary || "未配置"}
-          actions={editButton("defaults", "默认模型")}
-          open={open === "defaults"}
-        >
-          {config.gateway_ok ? (
-            <DefaultModels key={JSON.stringify(config.groups)} config={config} />
-          ) : (
-            <p className="text-xs text-zinc-400">模型服务连上后才能调整。</p>
-          )}
-        </RowCard>
-      </ul>
       {dialog}
     </div>
   )
 }
 
-/** 模型接入：一家厂商一行，点「编辑」在原地展开；默认模型单独一行 */
+/** 模型接入：左边填各家厂商的 Key，右边选用哪个模型 */
 export default function ModelConfigPage() {
   const q = useModelConfig()
   return (
@@ -143,9 +125,25 @@ export default function ModelConfigPage() {
         ) : q.isError ? (
           <QueryError error={q.error} onRetry={() => void q.refetch()} feature="模型接入" />
         ) : (
-          <div className="w-full max-w-3xl space-y-4 p-4 sm:p-6">
-            <p className="text-sm text-zinc-500">填入厂商的 API Key 就能用它的模型。Key 加密保存。</p>
-            <Providers config={q.data} />
+          <div className="grid w-full max-w-6xl gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+            <section aria-label="厂商" className="space-y-3">
+              <div>
+                <h2 className="font-semibold">厂商</h2>
+                <p className="text-sm text-zinc-500">填入 API Key 就能用这家的模型，Key 加密保存。</p>
+              </div>
+              <Providers config={q.data} />
+            </section>
+            <section
+              aria-label="使用的模型"
+              className={cn("h-fit space-y-4 rounded-xl border border-zinc-200 p-4 lg:sticky lg:top-0")}
+            >
+              <h2 className="font-semibold">使用的模型</h2>
+              {q.data.gateway_ok ? (
+                <ModelUsage config={q.data} />
+              ) : (
+                <p className="text-sm text-zinc-400">模型服务连上后才能选择。</p>
+              )}
+            </section>
           </div>
         )}
       </RoleGate>

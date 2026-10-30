@@ -74,19 +74,7 @@ export function candidates(config: ModelConfig, kind: ModelKind): ModelCard[] {
 }
 
 export function modelLabel(card: ModelCard | undefined, alias: string): string {
-  return card ? `${card.provider} · ${card.alias}` : alias
-}
-
-export function moveItem<T>(list: T[], index: number, delta: -1 | 1): T[] {
-  const to = index + delta
-  if (to < 0 || to >= list.length) return list
-  const next = [...list]
-  ;[next[index], next[to]] = [next[to], next[index]]
-  return next
-}
-
-export function sameList(a: string[], b: string[]): boolean {
-  return a.length === b.length && a.every((v, i) => v === b[i])
+  return card ? `${shortName(card.provider)} · ${card.alias}` : alias
 }
 
 /** 「通义千问（阿里云百炼）」→「通义千问」 */

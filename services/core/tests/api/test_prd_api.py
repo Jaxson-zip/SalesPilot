@@ -84,12 +84,19 @@ def test_template_when_model_unavailable(client: TestClient, tracker: Tracker, n
     # 主管能看，不能生成
     assert client.get(_path(opp), headers=MANAGER_H).json()["data"]["confirmed"] is True
     assert client.post(_path(opp), headers=SALES2_H).status_code in (403, 404)
-    # 需求清单改过 → 过期提示
+    # 内容没变、只是重新保存 / 确认：不算过期
+    _save(opp, REQ)
+    assert client.get(_path(opp), headers=SALES_H).json()["data"]["stale"] is False
+    # 需求内容改过 → 过期提示
+    _save(opp, {**REQ, "deadline_weeks": 10})
+    assert client.get(_path(opp), headers=SALES_H).json()["data"]["stale"] is True
+
+
+def _save(opp: dict[str, Any], data: dict[str, Any]) -> None:
     with session_scope() as db:
         requirement_service.save_requirement(
-            db, SALES, uuid.UUID(opp["id"]), pack="software_outsourcing", data=REQ, confirmed=True
+            db, SALES, uuid.UUID(opp["id"]), pack="software_outsourcing", data=data, confirmed=True
         )
-    assert client.get(_path(opp), headers=SALES_H).json()["data"]["stale"] is True
 
 
 def test_rejects_other_pack_and_missing_requirement(

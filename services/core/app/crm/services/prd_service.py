@@ -2,9 +2,11 @@
 
 - 只有软件外包的需求清单可以生成（其他行业包的需求只是几个参数）；
 - 负责人本人生成 / 重新生成；能看到商机的人都能查看；
-- 需求清单之后改过（updated_at 变了）时标 stale，提示重新生成。
+- 需求清单的内容之后改过时标 stale，提示重新生成（只确认、内容没变不算）。
 """
 
+import hashlib
+import json
 import logging
 import uuid
 from collections.abc import Iterator
@@ -49,6 +51,21 @@ class PrdJob:
     messages: list[BaseMessage]
     requirement_at: datetime
     confirmed: bool
+    digest: str  # 需求内容指纹，判断之后有没有改过
+
+
+def _digest(data: dict[str, Any]) -> str:
+    raw = json.dumps(data, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+def _stale(prd: dict[str, Any], requirement: dict[str, Any]) -> bool:
+    if not requirement.get("data"):
+        return False
+    if prd.get("digest"):
+        return bool(prd["digest"] != _digest(requirement["data"]))
+    # 早期生成的没有指纹：按需求清单的更新时间判断
+    return bool(prd.get("requirement_at") != requirement.get("updated_at"))
 
 
 def get_prd(db: Session, user: CurrentUser, opportunity_id: uuid.UUID) -> PrdOut | None:
@@ -56,8 +73,7 @@ def get_prd(db: Session, user: CurrentUser, opportunity_id: uuid.UUID) -> PrdOut
     if not opp.prd:
         return None
     out = PrdOut.model_validate(opp.prd)
-    req_at = (opp.requirement or {}).get("updated_at")
-    out.stale = req_at is not None and datetime.fromisoformat(req_at) != out.requirement_at
+    out.stale = _stale(opp.prd, opp.requirement or {})
     return out
 
 
@@ -82,6 +98,7 @@ def prepare(db: Session, user: CurrentUser, opportunity_id: uuid.UUID) -> PrdJob
         messages=prd_generator.messages(req, template),
         requirement_at=datetime.fromisoformat(record["updated_at"]),
         confirmed=confirmed,
+        digest=_digest(record["data"]),
     )
 
 
@@ -97,7 +114,7 @@ def save(
         requirement_at=job.requirement_at,
         confirmed=job.confirmed,
     )
-    opp.prd = out.model_dump(mode="json", exclude={"stale"})
+    opp.prd = {**out.model_dump(mode="json", exclude={"stale"}), "digest": job.digest}
     db.flush()
     label = "AI 扩写" if source == "ai" else "模板版"
     activity_service.record(

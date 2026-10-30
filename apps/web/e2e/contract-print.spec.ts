@@ -49,22 +49,36 @@ test("合同要素确认单附带需求范围说明书（PRD），可以取消�
         code: 0,
         message: "ok",
         data: {
-          markdown: "# 预约小程序 需求规格说明书\n\n> AI 生成的草案，需确认。\n\n## 2 交付范围\n\n在线预约（首期）\n",
+          markdown:
+            "# 预约小程序 需求规格说明书\n\n> AI 生成的草案，需确认。\n\n## 2 交付范围\n\n在线预约（首期）——预约时段（待确认）\n",
           source: "ai",
           generated_at: "2026-10-29T08:00:00Z",
           generated_by: "张晨",
           requirement_at: "2026-10-29T08:00:00Z",
           confirmed: true,
-          stale: false,
+          stale: true,
         },
       },
     }),
   )
+  // 报价时单列的客户自付费用：合同里写明不含在合同金额内
+  await page.route(/\/api\/quotes\/[^/?]+$/, async (route) => {
+    const res = await route.fetch()
+    const body = await res.json()
+    body.data.client_costs = [{ name: "云服务器", amount: 300000, period: "year", note: "以客户主体开通" }]
+    await route.fulfill({ response: res, json: body })
+  })
   await loginAs(page, "sales")
   await page.goto(`/contracts/${target}/print`)
+  const costs = page.getByRole("region", { name: "客户自付费用" })
+  await expect(costs).toContainText("不含在合同金额内")
+  await expect(costs).toContainText("/年")
   const appendix = page.getByRole("region", { name: "附件一 需求范围说明书" })
   await expect(appendix).toContainText("在线预约（首期）")
   await expect(appendix).not.toContainText("AI 生成的草案")
+  // 打印前提示（不打印）：PRD 过期、还有待确认项
+  await expect(appendix.getByText("需求清单又改过")).toBeVisible()
+  await expect(appendix.getByText("还有 1 处「待确认」")).toBeVisible()
   await page.getByRole("checkbox", { name: "附带需求范围说明书" }).click()
   await expect(appendix).toHaveCount(0)
 })

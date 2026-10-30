@@ -36,3 +36,8 @@ export function prdForPrint(markdown: string): string {
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
 }
+
+/** 附件正文里还剩几处「待确认」（AI 推测、还没和客户核实的内容） */
+export function sowPending(markdown: string): number {
+  return markdown.split("待确认").length - 1
+}

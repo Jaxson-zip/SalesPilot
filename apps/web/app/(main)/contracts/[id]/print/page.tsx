@@ -6,6 +6,7 @@ import { useParams } from "next/navigation"
 import { useState } from "react"
 
 import {
+  ClientCostsTable,
   ItemsTable,
   Meta,
   PrintHeader,
@@ -27,9 +28,8 @@ import { usePrd } from "@/hooks/usePrd"
 import { useQuote } from "@/hooks/useQuotes"
 import { useOpportunityRequirement } from "@/hooks/useRequirement"
 import { useTemplates } from "@/hooks/useTemplates"
-import { contractDocTitle, planGap, planRatio } from "@/lib/contract-print"
+import { contractDocTitle, planGap, planRatio, prdForPrint, sowPending, sowScope } from "@/lib/contract-print"
 import { formatFen } from "@/lib/format"
-import { prdForPrint, sowScope } from "@/lib/contract-print"
 import { PRINT_COMPANY } from "@/lib/quote-print"
 import { fenToRmbUpper } from "@/lib/rmb"
 import type { ContractItem } from "@/types/api"
@@ -51,6 +51,17 @@ function Subject({ c }: { c: ContractItem }) {
         <Skeleton className="h-24 w-full" />
       )}
     </section>
+  )
+}
+
+/** 运营期客户自付费用：报价时单列的云服务器、域名、大模型调用费等，写明不含在合同金额内 */
+function ClientCostsOf({ c }: { c: ContractItem }) {
+  const quote = useQuote(c.quote?.id ?? "")
+  return (
+    <ClientCostsTable
+      costs={quote.data?.client_costs ?? []}
+      title="运营期客户自付费用预估（不含在合同金额内，由甲方按实际发生支付）"
+    />
   )
 }
 
@@ -109,6 +120,12 @@ function SowAppendix({ c }: { c: ContractItem }) {
   const req = useOpportunityRequirement(oppId || null)
   const scope = req.data?.confirmed ? sowScope(req.data.data) : null
   if (!prd.data && !scope) return null
+  const pending = prd.data ? sowPending(prdForPrint(prd.data.markdown)) : 0
+  const warnings = [
+    prd.data?.stale ? "PRD 生成之后需求清单又改过，附件可能不是最新的，建议在商机里重新生成" : "",
+    pending ? `附件里还有 ${pending} 处「待确认」，签约前请和客户逐项确认后重新生成` : "",
+    prd.data && !prd.data.confirmed ? "生成 PRD 时需求清单还没和客户确认" : "",
+  ].filter(Boolean)
   return (
     <PrintPaper>
       <section aria-label="附件一 需求范围说明书" className="break-before-page">
@@ -116,6 +133,13 @@ function SowAppendix({ c }: { c: ContractItem }) {
           附件一：需求范围说明书（SOW）
           <span className="ml-2 text-xs font-normal text-zinc-500">合同 {c.code} 的组成部分</span>
         </div>
+        {warnings.length ? (
+          <ul className="no-print mt-3 list-disc space-y-0.5 rounded-md bg-amber-50 py-2 pr-3 pl-7 text-amber-800">
+            {warnings.map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        ) : null}
         {prd.data ? (
           <div className="prose-chat mt-4 text-[12px] break-words">
             <ChatMarkdown text={prdForPrint(prd.data.markdown)} />
@@ -175,6 +199,7 @@ function ContractSheet({ c }: { c: ContractItem }) {
           <span className="text-right">{fenToRmbUpper(c.amount)}</span>
         </div>
       </div>
+      <ClientCostsOf c={c} />
       <Plan c={c} />
       <TermsList title="说明" label="确认单说明" terms={terms} />
       <div className="mt-4">

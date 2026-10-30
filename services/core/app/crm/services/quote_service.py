@@ -5,7 +5,7 @@ accept 时自动生成合同（C-YYYY-NNN）和提成，并把关联商机改为
 """
 
 import uuid
-from datetime import datetime, time, timedelta
+from datetime import UTC, datetime, time, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -14,7 +14,7 @@ from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_business_writer, ensure_owner
 from app.common.scope import View, ensure_visible
-from app.crm.models import Commission, Contract, Customer, Opportunity, Quote, QuoteItem
+from app.crm.models import Commission, Contract, Customer, Opportunity, Quote, QuoteItem, Task
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.opportunity import FINAL_STAGES, StageChange
 from app.crm.schemas.quote import (
@@ -269,6 +269,7 @@ def _accept(db: Session, user: CurrentUser, quote: Quote, source: str) -> str:
     )
     contract_service.create_default_plan(db, contract, rules_for(quote))
     _mark_won(db, user, quote.opportunity_id, source)
+    _close_followups(db, quote, "客户已接受报价")
     return f"客户接受报价，生成合同 {contract.code}"
 
 
@@ -313,6 +314,23 @@ def win_with_quote(
     activity_service.record(db, user, "quote", quote.id, "accept", content, source, quote)
 
 
+FOLLOWUP_TITLE = "跟进报价 {code}：确认客户意见"
+
+
+def _close_followups(db: Session, quote: Quote, reason: str) -> None:
+    """客户已答复：发送时建的跟进任务自动完成，不再按到期提醒。"""
+    tasks = db.scalars(
+        select(Task).where(
+            Task.done.is_(False),
+            Task.customer_id == quote.customer_id,
+            Task.title == FOLLOWUP_TITLE.format(code=quote.code),
+        )
+    )
+    for task in tasks:
+        task.done, task.done_at = True, datetime.now(UTC)
+        task.note = "\n".join(filter(None, [task.note, f"{reason}，自动完成"]))
+
+
 def _schedule_followup(db: Session, user: CurrentUser, quote: Quote) -> str:
     """发送报价后建一条电话跟进任务（N 天后上午 10 点到期），返回追加到动态里的说明。"""
     days = rules_for(quote).quote.followup_days
@@ -325,7 +343,7 @@ def _schedule_followup(db: Session, user: CurrentUser, quote: Quote) -> str:
         return ""
     due = datetime.combine(local_today() + timedelta(days=days), time(10), tzinfo=LOCAL_TZ)
     data = TaskCreate(
-        title=f"跟进报价 {quote.code}：确认客户意见",
+        title=FOLLOWUP_TITLE.format(code=quote.code),
         due_at=due,
         subject_type=subject_type,  # type: ignore[arg-type]
         subject_id=subject_id,
@@ -358,6 +376,10 @@ def transition(
         content = _submit(db, user, quote)
     elif action == "accept":
         content = _accept(db, user, quote, source)
+    elif action == "reject":
+        quote.status = "rejected"
+        content = f"报价单{ACTION_LABELS[action]}"
+        _close_followups(db, quote, "客户已拒绝报价")
     else:
         quote.status = TRANSITIONS[action][1]
         content = f"报价单{ACTION_LABELS[action]}"

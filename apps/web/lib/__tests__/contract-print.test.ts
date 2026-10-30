@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { contractDocTitle, planGap, planRatio, prdForPrint, sowScope } from "@/lib/contract-print"
+import { contractDocTitle, planGap, planRatio, prdForPrint, sowPending, sowScope } from "@/lib/contract-print"
 
 describe("合同要素确认单", () => {
   it("文件名带合同编号和客户", () => {
@@ -42,5 +42,10 @@ describe("合同附件：需求范围说明书", () => {
 
 ## 1 背景
 > 引用保留`)
+  })
+
+  it("统计附件里还剩几处「待确认」", () => {
+    expect(sowPending("- 功能说明：待确认；验收（待确认）")).toBe(2)
+    expect(sowPending("全部已确认")).toBe(0)
   })
 })

@@ -3,6 +3,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 
+import { costAmount, type ClientCost } from "@/lib/client-costs"
 import { formatFen } from "@/lib/format"
 import type { QuoteLine } from "@/types/api"
 
@@ -92,6 +93,34 @@ export function ItemsTable({ items }: { items: QuoteLine[] }) {
         ))}
       </tbody>
     </table>
+  )
+}
+
+/** 运营期客户自付费用（不含在报价 / 合同金额内）：报价单和合同打印页共用；没有时不渲染 */
+export function ClientCostsTable({ costs, title }: { costs: ClientCost[]; title: string }) {
+  if (costs.length === 0) return null
+  return (
+    <section className="mt-5" aria-label="客户自付费用">
+      <div className="mb-1.5 font-medium">{title}</div>
+      <table className="w-full table-fixed border-collapse">
+        <thead>
+          <tr className="bg-zinc-100 text-left">
+            <th className={`${TD} font-medium`}>项目</th>
+            <th className={`${TD} font-medium`}>说明</th>
+            <th className={`w-32 ${TD} text-right font-medium`}>预估金额</th>
+          </tr>
+        </thead>
+        <tbody>
+          {costs.map((c) => (
+            <tr key={c.name}>
+              <td className={TD}>{c.name}</td>
+              <td className={`${TD} text-zinc-600`}>{c.note || "—"}</td>
+              <td className={`${TD} text-right whitespace-nowrap tabular-nums`}>{costAmount(c)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
   )
 }
 

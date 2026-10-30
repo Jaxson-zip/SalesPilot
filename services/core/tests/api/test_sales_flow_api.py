@@ -77,6 +77,12 @@ def test_send_quote_schedules_followup_task(client: TestClient, tracker: Tracker
         due = task.due_at.astimezone(LOCAL_TZ)
         today = datetime.now(UTC).astimezone(LOCAL_TZ).date()
         assert (due.date() - today).days == 3 and due.hour == 10
+    # 客户答复后跟进任务自动完成，不再按到期提醒
+    r = client.post(f"/api/quotes/{quote.id}/reject", headers=SALES_H)
+    assert r.status_code == 200, r.text
+    with session_scope() as db:
+        task = db.get(Task, task.id)
+        assert task is not None and task.done and "客户已拒绝报价" in (task.note or "")
 
 
 @pytest.fixture

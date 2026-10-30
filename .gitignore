@@ -27,6 +27,10 @@ services/gateway/tests/contract/results.json
 data/
 uploads/
 *.log
+scratch/
+test-results/
+playwright-report/
+blob-report/
 
 # 系统与编辑器
 .DS_Store

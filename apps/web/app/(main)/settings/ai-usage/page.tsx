@@ -207,7 +207,7 @@ function UsageContent() {
     placeholderData: keepPreviousData,
   })
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-3 p-4 sm:p-5">
+    <div className="w-full space-y-3 p-4 sm:p-5">
       <div role="radiogroup" aria-label="统计时间" className="flex gap-1">
         {PERIODS.map((p) => (
           <button

@@ -21,7 +21,7 @@ function RulesContent() {
   if (q.isPending)
     return (
       <div className="p-4 sm:p-5">
-        <Skeleton className="mx-auto h-96 max-w-3xl rounded-lg" />
+        <Skeleton className="h-96 rounded-lg" />
       </div>
     )
   if (q.isError)
@@ -48,7 +48,7 @@ function RulesContent() {
         })}
       </TabsList>
       <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-5">
-        <div className="mx-auto max-w-3xl space-y-3">
+        <div className="space-y-3">
           <p className="text-xs text-zinc-500">
             保存后立即生效，只作用于之后的新单据；每项都可以恢复默认。
             {changed ? <span className="text-amber-700"> 当前共修改了 {changed} 项。</span> : null}

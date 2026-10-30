@@ -36,7 +36,7 @@ function WecomForm({ cfg }: { cfg: WecomConfig }) {
     setEvents((list) => (on ? [...list, key] : list.filter((k) => k !== key)))
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-5">
+    <div className="w-full space-y-4 p-4 sm:p-5">
       <section className="space-y-3 rounded-lg border border-zinc-200 p-4 text-sm">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-medium">企业微信群机器人</h3>

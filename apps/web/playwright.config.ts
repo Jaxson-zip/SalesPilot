@@ -8,6 +8,8 @@ import { defineConfig, devices } from "@playwright/test"
  */
 export default defineConfig({
   testDir: "./e2e",
+  // 企业微信推送开着时拒绝运行（测试数据会被推送到真实的群）
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: false,
   workers: 1,
   retries: 0,

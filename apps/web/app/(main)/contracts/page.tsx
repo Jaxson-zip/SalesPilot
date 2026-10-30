@@ -25,6 +25,7 @@ import { serverQuery } from "@/lib/list-view"
 import { contractsLabel } from "@/lib/nav"
 import { fetchAllPages, PAGE_SIZE } from "@/lib/paging"
 import { defaultScope, scopeLabel } from "@/lib/views"
+import { cn } from "@/lib/utils"
 import type { ContractItem, ContractStatus, ContractSummary } from "@/types/api"
 
 import { contractColumns, contractCsv, contractFilters } from "./columns"
@@ -51,19 +52,22 @@ function StatStrip({ s, loading }: { s: ContractSummary | undefined; loading: bo
       v: formatFen(s?.estimated_commission),
       sub: s ? `已确认 ${formatFen(s.confirmed_commission)}` : "",
     },
-    { k: "待回款", v: formatFen(s?.unpaid_amount), sub: "点合同编号查看回款计划" },
+    { k: "待回款", v: formatFen(s?.unpaid_amount), sub: "点合同编号查看回款计划", wideOnly: true },
   ]
   return (
-    <div className="grid shrink-0 grid-cols-1 divide-y divide-zinc-200 border-b border-zinc-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+    // 手机上也是一行三格（原来竖排三块占掉半屏）
+    <div className="grid shrink-0 grid-cols-3 divide-x divide-zinc-200 border-b border-zinc-200">
       {items.map((it) => (
-        <div key={it.k} className="min-w-0 px-5 py-4">
-          <div className="text-zinc-500">{it.k}</div>
+        <div key={it.k} className="min-w-0 px-3 py-3 sm:px-5 sm:py-4">
+          <div className="truncate text-zinc-500 max-sm:text-xs">{it.k}</div>
           {loading ? (
             <Skeleton className="mt-2 h-6 w-28" />
           ) : (
-            <div className="mt-1 truncate text-xl font-semibold tabular-nums">{it.v}</div>
+            <div className="mt-1 truncate text-base font-semibold tabular-nums sm:text-xl">{it.v}</div>
           )}
-          <div className="h-4 truncate text-xs text-zinc-500">{it.sub}</div>
+          <div className={cn("h-4 truncate text-xs text-zinc-500", "wideOnly" in it && "max-sm:invisible")}>
+            {it.sub}
+          </div>
         </div>
       ))}
     </div>

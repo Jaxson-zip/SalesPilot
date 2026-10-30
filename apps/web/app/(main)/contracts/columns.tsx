@@ -27,7 +27,8 @@ function NextPaymentCell({ c }: { c: ContractItem }) {
   const n = c.next_payment
   if (!n) return <span className="text-zinc-400">已收齐</span>
   return (
-    <span className="inline-flex items-center gap-1.5">
+    // 手机卡片里半宽放不下时「逾期 N 天」换到下一行（原来被截掉）
+    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
       <span>
         {n.name} {formatFen(n.amount)}
       </span>

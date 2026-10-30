@@ -85,6 +85,21 @@ class Registry(BaseModel):
     models: dict[str, ModelEntry]
     groups: dict[str, list[str]] = Field(default_factory=dict)
     settings: RegistrySettings = Field(default_factory=RegistrySettings)
+    # 展开 ${ENV} 之前的 YAML：换 Key 时按新的变量值重新解析
+    source: dict[str, Any] = Field(default_factory=dict, exclude=True)
+
+    def key_vars(self) -> dict[str, list[str]]:
+        """api_key 写成 ${VAR} 的变量 → 用它的模型别名（网页上可以填写的就是这些变量）。"""
+        out: dict[str, list[str]] = {}
+        for item in self.source.get("models") or []:
+            hit = _ENV_PATTERN.fullmatch(str(item.get("api_key") or "").strip())
+            if hit:
+                out.setdefault(hit.group(1), []).append(str(item["alias"]))
+        return out
+
+    def replace_with(self, other: Registry) -> None:
+        """原地替换内容：路由、后端都持有这个对象，换 Key 后不用重新组装应用。"""
+        self.models, self.groups, self.settings = other.models, other.groups, other.settings
 
     def is_group(self, name: str) -> bool:
         return name in self.groups
@@ -154,7 +169,7 @@ def parse_registry(raw: Mapping[str, Any], env: Mapping[str, str]) -> Registry:
         if unknown:
             raise ValueError(f"group '{group}' references unknown models: {unknown}")
     settings = RegistrySettings(**(data.get("settings") or {}))
-    return Registry(models=models, groups=groups, settings=settings)
+    return Registry(models=models, groups=groups, settings=settings, source=dict(raw))
 
 
 def load_registry(path: Path, env: Mapping[str, str]) -> Registry:

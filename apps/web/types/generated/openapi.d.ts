@@ -402,6 +402,41 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/integrations/model-keys": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Model Keys */
+    get: operations["get_model_keys_api_integrations_model_keys_get"]
+    /** Save Model Key */
+    put: operations["save_model_key_api_integrations_model_keys_put"]
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/integrations/model-keys/test": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Test Model Key */
+    post: operations["test_model_key_api_integrations_model_keys_test_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/reports/daily": {
     parameters: {
       query?: never
@@ -2572,6 +2607,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[KeyTestOut] */
+    ApiResponse_KeyTestOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["KeyTestOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[KnowledgeUploadOut] */
     ApiResponse_KnowledgeUploadOut_: {
       /**
@@ -2642,6 +2696,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["MeddicOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[ModelKeysOut] */
+    ApiResponse_ModelKeysOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["ModelKeysOut"] | null
       /**
        * Request Id
        * @default
@@ -5034,6 +5107,22 @@ export interface components {
         [key: string]: number
       } | null
     }
+    /** KeyTestIn */
+    KeyTestIn: {
+      /** Var */
+      var: string
+      /** Key */
+      key?: string | null
+    }
+    /** KeyTestOut */
+    KeyTestOut: {
+      /** Ok */
+      ok: boolean
+      /** Model */
+      model: string | null
+      /** Error */
+      error: string | null
+    }
     /** KnowledgeDoc */
     KnowledgeDoc: {
       /** Doc Name */
@@ -5189,6 +5278,20 @@ export interface components {
       role: components["schemas"]["Role"]
       /** Access Code */
       access_code?: string | null
+    }
+    /** ModelKeyIn */
+    ModelKeyIn: {
+      /** Var */
+      var: string
+      /** Key */
+      key: string
+    }
+    /** ModelKeysOut */
+    ModelKeysOut: {
+      /** Gateway Ok */
+      gateway_ok: boolean
+      /** Providers */
+      providers: components["schemas"]["ProviderKey"][]
     }
     /** NewsItem */
     NewsItem: {
@@ -5793,6 +5896,35 @@ export interface components {
       title: string
       /** Prompt */
       prompt: string
+    }
+    /** ProviderKey */
+    ProviderKey: {
+      /** Var */
+      var: string
+      /** Label */
+      label: string
+      /** Hint */
+      hint: string
+      /** Models */
+      models: string[]
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: "web" | "env" | "none"
+      /** Tail */
+      tail: string | null
+      /** Saved By */
+      saved_by: string | null
+      /** Saved At */
+      saved_at: string | null
+      /**
+       * Broken
+       * @default false
+       */
+      broken: boolean
+      /** Available */
+      available: boolean | null
     }
     /** PushIn */
     PushIn: {
@@ -7694,6 +7826,107 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_dict_str__bool__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  get_model_keys_api_integrations_model_keys_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ModelKeysOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  save_model_key_api_integrations_model_keys_put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ModelKeyIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ModelKeysOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  test_model_key_api_integrations_model_keys_test_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["KeyTestIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_KeyTestOut_"]
         }
       }
       /** @description Validation Error */

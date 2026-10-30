@@ -138,6 +138,23 @@ def list_models(request_id: str | None = None) -> list[dict[str, Any]]:
     return data if isinstance(data, list) else []
 
 
+def gateway_admin(method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
+    """网关管理接口 /v1/admin/*：厂商 Key 的状态、推送和测试连接（只给 model_keys_service 用）。"""
+    try:
+        with _client() as client:
+            resp = client.request(method, f"/admin/{path}", json=body)
+            resp.raise_for_status()
+    except httpx.HTTPError as exc:
+        raise _map_http_error(exc) from exc
+    data = resp.json()
+    return data if isinstance(data, dict) else {}
+
+
+def forget_availability() -> None:
+    """换了 Key：下次按网关的最新状态判断模型是否可用。"""
+    _AVAILABILITY.clear()
+
+
 # 模型可用性缓存：{别名或分组: (是否可用, 查询时间)}
 _AVAILABILITY: dict[str, tuple[bool, float]] = {}
 AVAILABILITY_TTL_SECONDS = 30.0

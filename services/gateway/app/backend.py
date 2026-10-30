@@ -11,7 +11,7 @@ import os
 from collections.abc import AsyncIterator
 from typing import Any, Protocol
 
-from app.registry import Registry
+from app.registry import ModelEntry, Registry
 
 ChatResult = dict[str, Any] | AsyncIterator[dict[str, Any]]
 
@@ -24,6 +24,14 @@ class Backend(Protocol):
     async def embed(self, alias: str, params: dict[str, Any]) -> dict[str, Any]: ...
 
     async def rerank(self, alias: str, params: dict[str, Any]) -> dict[str, Any]: ...
+
+    async def probe(self, entry: ModelEntry) -> None:
+        """用 entry 里的 Key 发一次最小请求（测试连接）；失败时抛出上游异常。"""
+        ...
+
+    def reset(self) -> None:
+        """注册表换了 Key：下次调用按新的注册表重建。"""
+        ...
 
 
 def to_dict(obj: Any) -> dict[str, Any]:
@@ -90,3 +98,18 @@ class LiteLLMBackend:
     async def embed(self, alias: str, params: dict[str, Any]) -> dict[str, Any]:
         resp = await self._get_router().aembedding(model=alias, **params)
         return to_dict(resp)
+
+    def reset(self) -> None:
+        self._router = None
+
+    async def probe(self, entry: ModelEntry) -> None:
+        self._get_router()  # 确保 litellm 已按上面的设置初始化
+        import litellm
+
+        params: dict[str, Any] = {"model": entry.litellm_model, "api_key": entry.api_key, "timeout": 20}
+        if entry.api_base:
+            params["api_base"] = entry.api_base
+        if entry.is_embedding:
+            await litellm.aembedding(input=["ping"], **params)
+        else:
+            await litellm.acompletion(messages=[{"role": "user", "content": "ping"}], max_tokens=1, **params)

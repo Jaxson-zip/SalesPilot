@@ -72,6 +72,8 @@ ROUTES: dict[tuple[str, str], tuple[str, str]] = {
     ("POST", "/api/reports/team/remind"): ("report.remind", "企业微信提醒未交日报"),
     ("PUT", "/api/integrations/wecom"): ("settings.wecom", "修改企业微信推送配置"),
     ("POST", "/api/integrations/wecom/test"): ("settings.wecom_test", "发送企业微信测试消息"),
+    ("PUT", "/api/integrations/model-keys"): ("settings.model_key", "修改模型厂商 Key"),
+    ("POST", "/api/integrations/model-keys/test"): ("settings.model_key_test", "测试模型厂商 Key"),
     ("PATCH", "/api/quotes/{id}/items"): ("quote.items", "修改报价明细"),
     ("POST", "/api/quotes/{id}/submit"): ("quote.submit", "提交报价审批"),
     ("POST", "/api/quotes/{id}/send"): ("quote.send", "发送报价"),

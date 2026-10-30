@@ -9,6 +9,7 @@ import {
   FileText,
   Flag,
   Gauge,
+  KeyRound,
   LayoutDashboard,
   Receipt,
   Scale,
@@ -49,6 +50,7 @@ const RULES: NavItem = { href: "/settings/rules", label: "业务规则", icon: S
 const REPORTS: NavItem = { href: "/reports", label: "日报", icon: ClipboardList }
 const BATTLE: NavItem = { href: "/battlecards", label: "竞品战卡", icon: Swords }
 const PUSH: NavItem = { href: "/settings/integrations", label: "消息推送", icon: BellRing }
+const MODELS: NavItem = { href: "/settings/models", label: "模型接入", icon: KeyRound }
 const USAGE: NavItem = { href: "/settings/ai-usage", label: "AI 用量", icon: Gauge }
 const AUDIT: NavItem = { href: "/settings/audit", label: "操作日志", icon: ScrollText }
 const ACCOUNTS: NavItem = { href: "/settings/accounts", label: "成员与团队", icon: UsersRound }
@@ -76,7 +78,7 @@ export function navGroupsFor(role: Role): NavGroup[] {
         label: "业务总览（只读）",
         items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, TARGETS, EXPENSES, REPORTS],
       },
-      { label: "系统设置", items: [ACCOUNTS, RULES, PACKS, BATTLE, PUSH, JOBS, USAGE, AUDIT] },
+      { label: "系统设置", items: [ACCOUNTS, MODELS, RULES, PACKS, BATTLE, PUSH, JOBS, USAGE, AUDIT] },
     ]
   if (role === "manager")
     return [
@@ -109,6 +111,7 @@ const ALL_ITEMS: NavItem[] = [
   PACKS,
   BATTLE,
   PUSH,
+  MODELS,
   USAGE,
   AUDIT,
   ACCOUNTS,

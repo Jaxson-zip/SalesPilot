@@ -1,6 +1,7 @@
 """网关 HTTP 入口：对外完全是 OpenAI 格式。
 
 POST /v1/chat/completions · POST /v1/embeddings · POST /v1/rerank · GET /v1/models · GET /health
+管理（只给 core 用）：GET /v1/admin/providers · PUT /v1/admin/keys · POST /v1/admin/keys/test
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.backend import Backend, LiteLLMBackend
 from app.compat.errors import GatewayError, classify_exception, error_body, invalid_param, unauthorized
 from app.config import Settings, get_settings, merged_env
+from app.keys import KeyManager
 from app.logging import LOGGER_NAME, CallLog, setup_logging
 from app.registry import Registry, load_registry
 from app.router import GatewayRouter
@@ -42,6 +44,18 @@ class EmbeddingRequest(BaseModel):
 
     model: str = Field(min_length=1)
     input: str | list[str] | list[int] | list[list[int]]
+
+
+class KeysUpdate(BaseModel):
+    """网页上保存的 Key（完整集合，没带的变量回到 .env）；version 用于 core 判断网关是否需要重新推送。"""
+
+    keys: dict[str, str] = Field(default_factory=dict)
+    version: str = Field(default="", max_length=64)
+
+
+class KeyTest(BaseModel):
+    var: str = Field(min_length=1, max_length=64)
+    key: str | None = Field(default=None, max_length=500)
 
 
 class RerankRequest(BaseModel):
@@ -204,15 +218,37 @@ def _install_routes(
         return resp
 
 
+def _install_admin_routes(app: FastAPI, keys: KeyManager, auth: Callable[..., None]) -> None:
+    def state() -> dict[str, Any]:
+        return {"version": keys.version, "providers": keys.providers()}
+
+    @app.get("/v1/admin/providers", dependencies=[Depends(auth)])
+    async def providers() -> dict[str, Any]:
+        return state()
+
+    @app.put("/v1/admin/keys", dependencies=[Depends(auth)])
+    async def update_keys(body: KeysUpdate) -> dict[str, Any]:
+        keys.update(body.keys, body.version)
+        logging.getLogger(LOGGER_NAME).info(
+            "provider keys updated", extra={"fields": {"overridden": sorted(keys.overrides)}}
+        )
+        return state()
+
+    @app.post("/v1/admin/keys/test", dependencies=[Depends(auth)])
+    async def test_key(body: KeyTest) -> dict[str, Any]:
+        return await keys.test(body.var, body.key)
+
+
 def create_app(
     registry: Registry | None = None,
     backend: Backend | None = None,
     settings: Settings | None = None,
+    env: dict[str, str] | None = None,
 ) -> FastAPI:
-    """应用工厂。测试时注入 registry / backend（Fake），不访问外网。"""
+    """应用工厂。测试时注入 registry / backend（Fake）和 env，不访问外网。"""
     settings = settings or get_settings()
     setup_logging(settings.gateway_log_level)
-    env = merged_env()
+    env = env if env is not None else merged_env()
     registry = registry or load_registry(settings.models_path(), env)
     backend = backend or LiteLLMBackend(registry, _effective_timeout(settings, registry, env))
     router = GatewayRouter(registry, backend)
@@ -228,6 +264,8 @@ def create_app(
     app.state.router = router
     _install_handlers(app)
     _install_routes(app, registry, router, auth)
+    app.state.keys = KeyManager(registry, backend, env)
+    _install_admin_routes(app, app.state.keys, auth)
     return app
 
 

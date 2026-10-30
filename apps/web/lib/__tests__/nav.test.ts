@@ -24,6 +24,7 @@ describe("导航按角色分组（契约 §0）", () => {
     expect(labels("admin")).toEqual(["", "业务总览（只读）", "系统设置"])
     expect(navGroupsFor("admin")[2].items.map((i) => i.href)).toEqual([
       "/settings/accounts",
+      "/settings/models",
       "/settings/rules",
       "/settings/packs",
       "/battlecards",
@@ -52,6 +53,7 @@ describe("导航按角色分组（契约 §0）", () => {
     expect(isForbiddenPath("/approvals", "admin")).toBe(true)
     // 成员与团队只给管理员
     expect(isForbiddenPath("/settings/accounts", "manager")).toBe(true)
+    expect(isForbiddenPath("/settings/models", "manager")).toBe(true)
     expect(isForbiddenPath("/settings/accounts", "sales")).toBe(true)
     expect(isForbiddenPath("/settings/jobs", "manager")).toBe(true)
     expect(isForbiddenPath("/targets", "admin")).toBe(false)

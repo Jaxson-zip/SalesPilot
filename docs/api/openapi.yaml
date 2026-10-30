@@ -1023,6 +1023,101 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/integrations/model-keys:
+    get:
+      tags:
+      - integrations
+      summary: Get Model Keys
+      operationId: get_model_keys_api_integrations_model_keys_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ModelKeysOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - integrations
+      summary: Save Model Key
+      operationId: save_model_key_api_integrations_model_keys_put
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelKeyIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ModelKeysOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/integrations/model-keys/test:
+    post:
+      tags:
+      - integrations
+      summary: Test Model Key
+      operationId: test_model_key_api_integrations_model_keys_test_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeyTestIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_KeyTestOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/reports/daily:
     get:
       tags:
@@ -6194,6 +6289,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_KeyTestOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/KeyTestOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[KeyTestOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_KnowledgeUploadOut_:
       properties:
         code:
@@ -6289,6 +6409,31 @@ components:
           default: ''
       type: object
       title: ApiResponse[MeddicOut]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_ModelKeysOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/ModelKeysOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[ModelKeysOut]
       required:
       - code
       - message
@@ -10264,6 +10409,44 @@ components:
           title: Options
       type: object
       title: JobUpdate
+    KeyTestIn:
+      properties:
+        var:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Var
+        key:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Key
+      type: object
+      required:
+      - var
+      title: KeyTestIn
+    KeyTestOut:
+      properties:
+        ok:
+          type: boolean
+          title: Ok
+        model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+      type: object
+      required:
+      - ok
+      - model
+      - error
+      title: KeyTestOut
     KnowledgeDoc:
       properties:
         doc_name:
@@ -10569,6 +10752,37 @@ components:
       - role
       title: MockLoginIn
       description: 演示账户登录（DEMO_LOGIN 开启时可用）。
+    ModelKeyIn:
+      properties:
+        var:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Var
+        key:
+          type: string
+          maxLength: 500
+          title: Key
+      type: object
+      required:
+      - var
+      - key
+      title: ModelKeyIn
+    ModelKeysOut:
+      properties:
+        gateway_ok:
+          type: boolean
+          title: Gateway Ok
+        providers:
+          items:
+            $ref: '#/components/schemas/ProviderKey'
+          type: array
+          title: Providers
+      type: object
+      required:
+      - gateway_ok
+      - providers
+      title: ModelKeysOut
     NewsItem:
       properties:
         date:
@@ -11708,6 +11922,67 @@ components:
       - title
       - prompt
       title: PromptTemplate
+    ProviderKey:
+      properties:
+        var:
+          type: string
+          title: Var
+        label:
+          type: string
+          title: Label
+        hint:
+          type: string
+          title: Hint
+        models:
+          items:
+            type: string
+          type: array
+          title: Models
+        source:
+          type: string
+          enum:
+          - web
+          - env
+          - none
+          title: Source
+        tail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tail
+        saved_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Saved By
+        saved_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Saved At
+        broken:
+          type: boolean
+          title: Broken
+          default: false
+        available:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Available
+      type: object
+      required:
+      - var
+      - label
+      - hint
+      - models
+      - source
+      - tail
+      - saved_by
+      - saved_at
+      - broken
+      - available
+      title: ProviderKey
     PushIn:
       properties:
         content:

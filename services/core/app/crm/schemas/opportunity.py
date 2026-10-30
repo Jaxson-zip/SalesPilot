@@ -45,9 +45,18 @@ class OpportunityItem(BaseModel):
     competitors: list[str] = Field(default_factory=list)
 
 
+class OpportunityExpenses(BaseModel):
+    """这单的跟单费用（报销关联到商机的），单位分。"""
+
+    approved: int = 0  # 已批准 + 已付款
+    pending: int = 0  # 审批中
+    count: int = 0  # 不含草稿和被驳回的
+
+
 class OpportunityDetail(OpportunityItem):
     quotes: list[QuoteListItem]
     activities: list[ActivityOut]
+    expenses: OpportunityExpenses = Field(default_factory=OpportunityExpenses)
 
 
 class OpportunityCreate(BaseModel):

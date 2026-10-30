@@ -11,6 +11,7 @@ import {
   NotebookPen,
   Package,
   Percent,
+  Receipt,
   Sparkles,
   Target,
   User,
@@ -145,7 +146,7 @@ function Fields({
   o,
   editable,
 }: {
-  o: OpportunityItem & Partial<Pick<OpportunityDetail, "quotes">>
+  o: OpportunityItem & Partial<Pick<OpportunityDetail, "quotes" | "expenses">>
   editable: boolean
 }) {
   const update = useUpdateOpportunity(o.id)
@@ -212,6 +213,20 @@ function Fields({
               </Link>
             ))}
           </span>
+        ) : (
+          "—"
+        )}
+      </FieldRow>
+      <FieldRow icon={Receipt} label="跟单费用">
+        {o.expenses?.count ? (
+          <Link href="/expenses" className="tabular-nums hover:underline">
+            {[
+              o.expenses.approved ? `已批 ${formatFen(o.expenses.approved)}` : "",
+              o.expenses.pending ? `审批中 ${formatFen(o.expenses.pending)}` : "",
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </Link>
         ) : (
           "—"
         )}

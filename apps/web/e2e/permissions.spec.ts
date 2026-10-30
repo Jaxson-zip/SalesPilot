@@ -34,12 +34,12 @@ test.describe("角色与操作权限", () => {
     const nav = page
     await expect(nav.getByText("工作区", { exact: true })).toBeVisible()
     await expect(nav.getByRole("link", { name: /审批/ })).toHaveCount(0)
-    await expect(nav.getByRole("link", { name: /行业包配置/ })).toHaveCount(0)
+    await expect(nav.getByRole("link", { name: /产品与定价/ })).toHaveCount(0)
 
     await loginAs(page, "admin")
     await page.goto("/dashboard")
     await expect(nav.getByText("系统设置", { exact: true })).toBeVisible()
-    await expect(nav.getByRole("link", { name: /行业包配置/ })).toBeVisible()
+    await expect(nav.getByRole("link", { name: /产品与定价/ })).toBeVisible()
     await expect(nav.getByRole("link", { name: /审批/ })).toHaveCount(0)
   })
 

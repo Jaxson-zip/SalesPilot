@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest"
 
-import { contractsLabel, isBusinessPath, isForbiddenPath, navGroupsFor, navItemsFor } from "@/lib/nav"
+import {
+  contractsLabel,
+  isBusinessPath,
+  isForbiddenPath,
+  isNavActive,
+  navGroupsFor,
+  navItemsFor,
+  navSiblings,
+} from "@/lib/nav"
 import type { Role } from "@/types/api"
 
 const labels = (role: Role) => navGroupsFor(role).map((g) => g.label ?? "")
@@ -22,17 +30,15 @@ describe("导航按角色分组（契约 §0）", () => {
 
   it("管理员：业务总览（只读）+ 系统设置", () => {
     expect(labels("admin")).toEqual(["", "业务总览（只读）", "系统设置"])
-    expect(navGroupsFor("admin")[2].items.map((i) => i.href)).toEqual([
-      "/settings/accounts",
-      "/settings/models",
-      "/settings/rules",
-      "/settings/packs",
-      "/battlecards",
-      "/settings/integrations",
-      "/settings/jobs",
-      "/settings/ai-usage",
-      "/settings/audit",
+    expect(navGroupsFor("admin")[2].items.map((i) => i.label)).toEqual([
+      "成员与团队",
+      "模型接入",
+      "产品与定价",
+      "竞品战卡",
+      "系统",
     ])
+    // 命令面板里仍能直接搜到合并入口下的每个页面
+    expect(hrefs("admin")).toEqual(expect.arrayContaining(["/settings/rules", "/settings/jobs", "/settings/audit"]))
     expect(hrefs("admin")).not.toContain("/approvals")
   })
 
@@ -69,6 +75,15 @@ describe("导航按角色分组（契约 §0）", () => {
       expect(isForbiddenPath("/battlecards", role)).toBe(false)
       expect(isForbiddenPath("/reports", role)).toBe(false)
     }
+  })
+
+  it("合并入口：子页面打开时侧边栏高亮，顶部显示同组标签页", () => {
+    const system = navGroupsFor("admin")[2].items[4]
+    expect(isNavActive("/settings/jobs", system)).toBe(true)
+    expect(isNavActive("/settings/models", system)).toBe(false)
+    expect(navSiblings("/settings/rules", "admin")?.map((i) => i.href)).toEqual(["/settings/packs", "/settings/rules"])
+    // 主管的 AI 用量是单独入口，没有标签页
+    expect(navSiblings("/settings/ai-usage", "manager")).toBeNull()
   })
 
   it("业务页面识别（管理员只读提示）", () => {

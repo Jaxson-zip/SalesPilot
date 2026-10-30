@@ -5910,6 +5910,28 @@ export interface components {
       quotes: components["schemas"]["QuoteListItem"][]
       /** Activities */
       activities: components["schemas"]["ActivityOut"][]
+      expenses: components["schemas"]["OpportunityExpenses"]
+    }
+    /**
+     * OpportunityExpenses
+     * @description 这单的跟单费用（报销关联到商机的），单位分。
+     */
+    OpportunityExpenses: {
+      /**
+       * Approved
+       * @default 0
+       */
+      approved: number
+      /**
+       * Pending
+       * @default 0
+       */
+      pending: number
+      /**
+       * Count
+       * @default 0
+       */
+      count: number
     }
     /** OpportunityItem */
     OpportunityItem: {

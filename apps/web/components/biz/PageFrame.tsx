@@ -9,7 +9,7 @@ import { NotificationBell } from "@/components/shell/NotificationBell"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { useSidebar } from "@/components/ui/sidebar"
-import { isBusinessPath } from "@/lib/nav"
+import { isActivePath, isBusinessPath, navSiblings } from "@/lib/nav"
 import { isReadOnlyRole } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
 
@@ -52,6 +52,8 @@ export function PageFrame({
   const { role } = useSession()
   const pathname = usePathname()
   const readOnly = isReadOnlyRole(role) && isBusinessPath(pathname)
+  // 合并入口里的页面（如「系统」）：标题行换成同组页面的标签页
+  const siblings = navSiblings(pathname, role)
   return (
     <div className="flex h-full min-w-0 flex-col">
       <div className="mb-1.5 flex h-10 min-w-0 shrink-0 items-center gap-2">
@@ -68,12 +70,33 @@ export function PageFrame({
           </Button>
         ) : null}
         <div className="min-w-0 truncate">
-          {crumb ?? (
-            <span className="inline-flex items-center gap-1.5 font-medium text-zinc-800">
-              {Icon ? <Icon className="size-4 text-zinc-500" /> : null}
-              {title}
-            </span>
-          )}
+          {crumb ??
+            (siblings ? (
+              <nav aria-label="页面切换" className="flex gap-1 overflow-x-auto">
+                {siblings.map((t) => {
+                  const on = isActivePath(pathname, t.href)
+                  return (
+                    <Link
+                      key={t.href}
+                      href={t.href}
+                      aria-current={on ? "page" : undefined}
+                      className={cn(
+                        "inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1 text-sm",
+                        on ? "bg-white font-medium text-zinc-900 shadow-xs" : "text-zinc-500 hover:text-zinc-800",
+                      )}
+                    >
+                      <t.icon className="size-4" />
+                      {t.label}
+                    </Link>
+                  )
+                })}
+              </nav>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 font-medium text-zinc-800">
+                {Icon ? <Icon className="size-4 text-zinc-500" /> : null}
+                {title}
+              </span>
+            ))}
         </div>
         <div className="flex-1" />
         <div className="flex shrink-0 items-center gap-1.5">

@@ -11831,6 +11831,8 @@ components:
             $ref: '#/components/schemas/ActivityOut'
           type: array
           title: Activities
+        expenses:
+          $ref: '#/components/schemas/OpportunityExpenses'
       type: object
       required:
       - id
@@ -11852,7 +11854,29 @@ components:
       - stale
       - meddic_risks
       - competitors
+      - expenses
       title: OpportunityDetail
+    OpportunityExpenses:
+      properties:
+        approved:
+          type: integer
+          title: Approved
+          default: 0
+        pending:
+          type: integer
+          title: Pending
+          default: 0
+        count:
+          type: integer
+          title: Count
+          default: 0
+      type: object
+      title: OpportunityExpenses
+      description: 这单的跟单费用（报销关联到商机的），单位分。
+      required:
+      - approved
+      - pending
+      - count
     OpportunityItem:
       properties:
         id:

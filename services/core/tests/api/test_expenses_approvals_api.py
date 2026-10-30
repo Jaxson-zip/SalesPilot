@@ -287,3 +287,21 @@ def test_owner_can_remind_manager_once_per_half_hour(client: TestClient, tracker
     assert any(n["type"] == "approval_remind" and e["code"] in n["title"] for n in notes)
     again = client.post("/api/approvals/remind", json=body, headers=SALES_H).json()
     assert again["code"] == 42201 and "分钟后可以再催" in again["message"]
+
+
+def test_opportunity_shows_its_expenses(client: TestClient, tracker: Tracker) -> None:
+    """报销关联到商机后，商机详情能看到这单花了多少：审批中和已批准分开，草稿不算。"""
+    from app.common.db import session_scope
+    from app.crm.models import Expense
+    from tests.api.test_opportunities_api import new_opp
+
+    opp = new_opp(client, tracker)
+    ids = [
+        new_expense(client, tracker, amount=a, opportunity_id=opp["id"])["id"]
+        for a in (30_000, 50_000, 7_000)
+    ]
+    with session_scope() as db:
+        for eid, status in zip(ids, ("approved", "pending_approval", "draft"), strict=True):
+            db.get(Expense, uuid.UUID(eid)).status = status  # type: ignore[union-attr]
+    detail = client.get(f"/api/opportunities/{opp['id']}", headers=SALES_H).json()["data"]
+    assert detail["expenses"] == {"approved": 30_000, "pending": 50_000, "count": 2}

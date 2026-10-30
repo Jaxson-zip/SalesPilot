@@ -11,7 +11,7 @@ from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_owner
 from app.common.scope import View, apply_scope, ensure_visible
-from app.crm.models import Customer, Opportunity, ProductLine, Team, User
+from app.crm.models import Customer, Expense, Opportunity, ProductLine, Team, User
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.opportunity import (
     FINAL_STAGES,
@@ -19,6 +19,7 @@ from app.crm.schemas.opportunity import (
     STAGES,
     OpportunityCreate,
     OpportunityDetail,
+    OpportunityExpenses,
     OpportunityItem,
     OpportunityUpdate,
     PipelineStage,
@@ -119,12 +120,31 @@ def get_item(db: Session, user: CurrentUser, opportunity_id: uuid.UUID) -> Oppor
     return to_items(db, [opp])[0]
 
 
+def expense_summary(db: Session, opportunity_id: uuid.UUID) -> OpportunityExpenses:
+    """关联到这单的报销：已批准（含已付款）和审批中的金额，草稿和被驳回的不算。"""
+    rows = db.execute(
+        select(Expense.status, func.count(), func.coalesce(func.sum(Expense.amount), 0))
+        .where(Expense.opportunity_id == opportunity_id)
+        .where(Expense.status.in_(("pending_approval", "approved", "paid")))
+        .group_by(Expense.status)
+    ).all()
+    out = OpportunityExpenses()
+    for status, n, total in rows:
+        out.count += n
+        if status == "pending_approval":
+            out.pending += int(total)
+        else:
+            out.approved += int(total)
+    return out
+
+
 def get_detail(db: Session, user: CurrentUser, opportunity_id: uuid.UUID) -> OpportunityDetail:
     item = get_item(db, user, opportunity_id)
     return OpportunityDetail(
         **item.model_dump(),
         quotes=quote_query.list_for_opportunity(db, user, opportunity_id),
         activities=activity_service.list_for_subject(db, opportunity_id),
+        expenses=expense_summary(db, opportunity_id),
     )
 
 

@@ -78,15 +78,12 @@ function PacksContent() {
   const [detail, setDetail] = useState<{ pack: PackOut; section: PackSection } | null>(null)
   return (
     <div className="flex-1 space-y-5 overflow-x-hidden overflow-y-auto p-4 sm:p-5">
-      <Alert tone="info" title="行业包由管理员按团队和产品线分配，销售不用切换">
-        销售创建商机时选择「产品线」，系统按下方映射自动匹配行业包；没有商机时（直接在 AI
-        工作台出方案、学习问答）用成员所在团队的默认产品线，在「成员与团队」里给每个团队设置。AI
-        出方案时直接使用该行业包的产品目录、规则和知识库。产品价格、本行业参数和知识库文档都可以在卡片里直接修改，保存后立即生效。
-      </Alert>
+      <p className="text-sm text-zinc-500">
+        商机选了产品线，AI 就用对应的行业包出方案；没有商机时用成员所在团队的默认产品线（在「成员与团队」里设置）。
+      </p>
       {packs.data?.some((p) => p.sample_data) ? (
-        <Alert tone="warn" title="标「示例资料」的行业包还在用演示数据">
-          产品目录的成本和售价、知识库文档都是内置的示例内容，AI「学习问答」
-          回答时会提醒是示例。正式使用前请改成公司真实的价格，并上传真实的制度和产品资料。
+        <Alert tone="warn" title="还在用示例资料">
+          标「示例资料」的行业包，价格和知识库都是演示内容，正式使用前改成公司真实的。
         </Alert>
       ) : null}
       <div>
@@ -107,15 +104,6 @@ function PacksContent() {
                     onOpen={(section) => setDetail({ pack: p, section })}
                   />
                 ))}
-            {/* 原来是带加号的虚线卡片，看起来能点；新增行业包需要开发，这里只说明怎么做 */}
-            <div className="flex flex-col justify-center rounded-lg bg-zinc-50 p-4 text-zinc-500">
-              <span className="font-medium text-zinc-700">如何新增行业包</span>
-              <span className="mt-1 text-xs leading-relaxed">
-                新行业需要编写配置器（把客户需求换算成物料清单），由开发在{" "}
-                <code className="rounded bg-white px-1">services/core/app/packs/</code>{" "}
-                下新建；已有行业包的价格、参数、文档在这里改即可。
-              </span>
-            </div>
           </div>
         )}
       </div>
@@ -137,7 +125,7 @@ function PacksContent() {
 export default function PacksPage() {
   const { role } = useSession()
   return (
-    <PageFrame title="行业包配置" icon={Boxes}>
+    <PageFrame title="行业包与产品" icon={Boxes}>
       <RoleGate roles={["admin"]} lockedText="行业包由系统管理员统一配置，可在左下角切换为「系统管理员」查看">
         {role === "admin" ? <PacksContent /> : null}
       </RoleGate>

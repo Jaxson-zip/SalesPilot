@@ -54,7 +54,7 @@ function RulesContent() {
             {changed ? <span className="text-amber-700"> 当前共修改了 {changed} 项。</span> : null}
             某个行业单独的毛利底线在{" "}
             <Link href="/settings/packs" className="text-zinc-700 underline">
-              行业包配置
+              行业包与产品
             </Link>
             里改。
           </p>

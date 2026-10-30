@@ -1,6 +1,6 @@
 "use client"
 
-import { GraduationCap, Images, Info, Paperclip, Sparkles } from "lucide-react"
+import { GraduationCap, Info, Sparkles } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { ModeSwitch } from "@/components/agent/ModeSwitch"
@@ -14,21 +14,21 @@ import type { Role } from "@/types/api"
 const INTRO: Record<Role, { title: string; desc: string }> = {
   sales: {
     title: "今天要给哪位客户出方案？",
-    desc: "我可以帮你出方案报价、记跟进、推进商机、安排下一步、对话报销，也可以查公司制度",
+    desc: "出方案报价、记跟进、推进商机、报销，直接说就行",
   },
   manager: {
     title: "今天先看看团队情况？",
-    desc: "我可以帮你看团队商机漏斗、列出待审批的报价和报销并协助处理，也可以查公司制度",
+    desc: "看团队漏斗、处理审批、查制度，直接说就行",
   },
   admin: {
     title: "想了解哪些业务数据？",
-    desc: "我可以帮你查客户和商机、看全公司商机漏斗、查公司制度（管理员只读，不能修改业务数据）",
+    desc: "查客户、商机和全公司漏斗（只读）",
   },
 }
 
 const LEARN_INTRO = {
   title: "刚入职？先了解公司业务",
-  desc: "按公司知识库、业务规则和竞品战卡回答，每条都标出处；查不到会直接说没找到，不会编",
+  desc: "按公司知识库和业务规则回答，标出处，查不到会直说",
 }
 
 /** 行业包还是示例资料时提醒：学习问答的回答基于示例内容 */
@@ -38,7 +38,7 @@ function SampleNotice() {
   return (
     <p className="mt-4 flex items-start justify-center gap-1.5 text-center text-xs text-amber-700">
       <Info className="mt-px size-3.5 shrink-0" />
-      当前产品目录和知识库是系统内置的示例资料，适合熟悉业务和系统；管理员可在「行业包配置」换成公司真实资料
+      现在是示例资料，适合熟悉业务和系统
     </p>
   )
 }
@@ -81,18 +81,6 @@ export function Welcome({
         {composer}
         <PromptCards onPick={onPick} learn={learn} />
         {learn ? <SampleNotice /> : null}
-        {readOnly || learn ? null : (
-          <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-zinc-500">
-            <Paperclip className="size-3.5 shrink-0" />
-            有会议纪要、聊天记录或名片？点输入框里的「上传材料」，AI 会整理成跟进、联系人和下一步
-          </p>
-        )}
-        {readOnly || learn ? null : (
-          <p className="mt-1.5 flex items-center justify-center gap-1.5 text-center text-xs text-zinc-500">
-            <Images className="size-3.5 shrink-0" />
-            客户发来单据或表单样例？点「样例图片」，AI 识别单据类型和字段后出方案
-          </p>
-        )}
       </div>
     </div>
   )

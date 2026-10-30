@@ -26,7 +26,7 @@ export const QUICK_START: Record<Role, { title: string; steps: string[] }> = {
   admin: {
     title: "管理员：负责配置，不改业务数据",
     steps: [
-      "在「行业包配置」为每条产品线指定行业包，销售出方案时会自动套用。",
+      "在「产品与定价」为每条产品线指定行业包，销售出方案时会自动套用。",
       "业务页面对管理员只读，可以查看全公司数据，但不能新建或修改。",
       "报销标准、毛利底线、提成比例等在 rules.yaml 中维护；报销模板、报价条款在 templates.yaml 中维护。",
     ],

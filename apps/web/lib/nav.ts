@@ -14,6 +14,7 @@ import {
   Receipt,
   Scale,
   ScrollText,
+  Settings2,
   Sparkles,
   Stamp,
   Swords,
@@ -30,6 +31,8 @@ export interface NavItem {
   icon: LucideIcon
   /** 显示待办数（审批：取待处理审批的真实数量） */
   pendingBadge?: boolean
+  /** 合并入口：侧边栏只占一行，页面顶部用标签页切换；href 是第一个子页面 */
+  children?: NavItem[]
 }
 
 export interface NavGroup {
@@ -45,7 +48,7 @@ const QUOTES: NavItem = { href: "/quotes", label: "报价单", icon: FileText }
 const CONTRACTS: NavItem = { href: "/contracts", label: "合同与提成", icon: FileSignature }
 const EXPENSES: NavItem = { href: "/expenses", label: "报销", icon: Receipt }
 const APPROVALS: NavItem = { href: "/approvals", label: "审批", icon: Stamp, pendingBadge: true }
-const PACKS: NavItem = { href: "/settings/packs", label: "行业包配置", icon: Boxes }
+const PACKS: NavItem = { href: "/settings/packs", label: "行业包与产品", icon: Boxes }
 const RULES: NavItem = { href: "/settings/rules", label: "业务规则", icon: Scale }
 const REPORTS: NavItem = { href: "/reports", label: "日报", icon: ClipboardList }
 const BATTLE: NavItem = { href: "/battlecards", label: "竞品战卡", icon: Swords }
@@ -57,6 +60,15 @@ const ACCOUNTS: NavItem = { href: "/settings/accounts", label: "成员与团队"
 const JOBS: NavItem = { href: "/settings/jobs", label: "定时任务", icon: AlarmClock }
 const TARGETS: NavItem = { href: "/targets", label: "业绩目标", icon: Flag }
 /** 使用说明：所有角色可见，放在侧栏底部（不属于任何业务分组） */
+/** 管理员的合并入口 */
+const PRICING: NavItem = {
+  href: PACKS.href,
+  label: "产品与定价",
+  icon: Boxes,
+  children: [PACKS, RULES],
+}
+const SYSTEM: NavItem = { href: PUSH.href, label: "系统", icon: Settings2, children: [PUSH, JOBS, USAGE, AUDIT] }
+
 export const HELP: NavItem = { href: "/help", label: "使用说明", icon: BookOpen }
 
 /** 合同页的名称：主管侧重回款登记，其他角色侧重提成 */
@@ -78,7 +90,7 @@ export function navGroupsFor(role: Role): NavGroup[] {
         label: "业务总览（只读）",
         items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, CONTRACTS, TARGETS, EXPENSES, REPORTS],
       },
-      { label: "系统设置", items: [ACCOUNTS, MODELS, RULES, PACKS, BATTLE, PUSH, JOBS, USAGE, AUDIT] },
+      { label: "系统设置", items: [ACCOUNTS, MODELS, PRICING, BATTLE, SYSTEM] },
     ]
   if (role === "manager")
     return [
@@ -92,9 +104,21 @@ export function navGroupsFor(role: Role): NavGroup[] {
   ]
 }
 
-/** 当前角色可见的全部导航项（命令面板用，含底部的使用说明） */
+/** 当前角色可见的全部页面（命令面板用，合并入口展开成子页面，含底部的使用说明） */
 export function navItemsFor(role: Role): NavItem[] {
-  return [...navGroupsFor(role).flatMap((g) => g.items), HELP]
+  return [...navGroupsFor(role).flatMap((g) => g.items.flatMap((i) => i.children ?? [i])), HELP]
+}
+
+/** 侧边栏高亮：合并入口的任一子页面打开时都算 */
+export function isNavActive(pathname: string, item: NavItem): boolean {
+  return item.children ? item.children.some((c) => isActivePath(pathname, c.href)) : isActivePath(pathname, item.href)
+}
+
+/** 当前页属于某个合并入口时，返回同组页面（页面顶部显示成标签页） */
+export function navSiblings(pathname: string, role: Role): NavItem[] | null {
+  for (const g of navGroupsFor(role))
+    for (const i of g.items) if (i.children && isNavActive(pathname, i)) return i.children
+  return null
 }
 
 const ALL_ITEMS: NavItem[] = [

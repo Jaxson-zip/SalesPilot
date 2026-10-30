@@ -106,9 +106,19 @@ export interface OpportunityItem {
   competitors?: string[]
 }
 
+/** 这单的跟单费用（关联到商机的报销，分） */
+export interface OpportunityExpenses {
+  /** 已批准 + 已付款 */
+  approved: number
+  /** 审批中 */
+  pending: number
+  count: number
+}
+
 export interface OpportunityDetail extends OpportunityItem {
   quotes: QuoteItem[]
   activities: Activity[]
+  expenses: OpportunityExpenses
 }
 
 export interface OpportunityCreate {

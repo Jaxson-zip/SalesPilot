@@ -1023,12 +1023,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /api/integrations/model-keys:
+  /api/integrations/models:
     get:
       tags:
       - integrations
-      summary: Get Model Keys
-      operationId: get_model_keys_api_integrations_model_keys_get
+      summary: Get Models
+      operationId: get_models_api_integrations_models_get
       parameters:
       - name: authorization
         in: header
@@ -1044,18 +1044,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse_ModelKeysOut_'
+                $ref: '#/components/schemas/ApiResponse_ModelConfigOut_'
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/integrations/models/builtin:
     put:
       tags:
       - integrations
-      summary: Save Model Key
-      operationId: save_model_key_api_integrations_model_keys_put
+      summary: Save Builtin
+      operationId: save_builtin_api_integrations_models_builtin_put
       parameters:
       - name: authorization
         in: header
@@ -1070,26 +1071,26 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ModelKeyIn'
+              $ref: '#/components/schemas/BuiltinIn'
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse_ModelKeysOut_'
+                $ref: '#/components/schemas/ApiResponse_ModelConfigOut_'
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /api/integrations/model-keys/test:
+  /api/integrations/models/builtin/test:
     post:
       tags:
       - integrations
-      summary: Test Model Key
-      operationId: test_model_key_api_integrations_model_keys_test_post
+      summary: Test Builtin
+      operationId: test_builtin_api_integrations_models_builtin_test_post
       parameters:
       - name: authorization
         in: header
@@ -1104,14 +1105,196 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/KeyTestIn'
+              $ref: '#/components/schemas/BuiltinTestIn'
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse_KeyTestOut_'
+                $ref: '#/components/schemas/ApiResponse_TestOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/integrations/models/custom/{provider_id}:
+    put:
+      tags:
+      - integrations
+      summary: Save Custom
+      operationId: save_custom_api_integrations_models_custom__provider_id__put
+      parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Provider Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ModelConfigOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - integrations
+      summary: Delete Custom
+      operationId: delete_custom_api_integrations_models_custom__provider_id__delete
+      parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Provider Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ModelConfigOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/integrations/models/custom/{provider_id}/test:
+    post:
+      tags:
+      - integrations
+      summary: Test Custom
+      operationId: test_custom_api_integrations_models_custom__provider_id__test_post
+      parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Provider Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomTestIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_TestOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/integrations/models/groups:
+    put:
+      tags:
+      - integrations
+      summary: Save Groups
+      operationId: save_groups_api_integrations_models_groups_put
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupsIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ModelConfigOut_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/integrations/models/embedding:
+    post:
+      tags:
+      - integrations
+      summary: Switch Embedding
+      description: 切换知识库向量模型：后台重建全部向量，完成后自动切换；进度在 GET /models 的 reindex 里。
+      operationId: switch_embedding_api_integrations_models_embedding_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbeddingIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ModelConfigOut_'
         '422':
           description: Validation Error
           content:
@@ -6289,31 +6472,6 @@ components:
       - message
       - data
       - request_id
-    ApiResponse_KeyTestOut_:
-      properties:
-        code:
-          type: integer
-          title: Code
-          default: 0
-        message:
-          type: string
-          title: Message
-          default: ok
-        data:
-          anyOf:
-          - $ref: '#/components/schemas/KeyTestOut'
-          - type: 'null'
-        request_id:
-          type: string
-          title: Request Id
-          default: ''
-      type: object
-      title: ApiResponse[KeyTestOut]
-      required:
-      - code
-      - message
-      - data
-      - request_id
     ApiResponse_KnowledgeUploadOut_:
       properties:
         code:
@@ -6414,7 +6572,7 @@ components:
       - message
       - data
       - request_id
-    ApiResponse_ModelKeysOut_:
+    ApiResponse_ModelConfigOut_:
       properties:
         code:
           type: integer
@@ -6426,14 +6584,14 @@ components:
           default: ok
         data:
           anyOf:
-          - $ref: '#/components/schemas/ModelKeysOut'
+          - $ref: '#/components/schemas/ModelConfigOut'
           - type: 'null'
         request_id:
           type: string
           title: Request Id
           default: ''
       type: object
-      title: ApiResponse[ModelKeysOut]
+      title: ApiResponse[ModelConfigOut]
       required:
       - code
       - message
@@ -7283,6 +7441,31 @@ components:
           default: ''
       type: object
       title: ApiResponse[Templates]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_TestOut_:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/TestOut'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[TestOut]
       required:
       - code
       - message
@@ -8181,6 +8364,191 @@ components:
       required:
       - file
       title: Body_upload_knowledge_api_packs__pack_id__knowledge_post
+    BuiltinIn:
+      properties:
+        var:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Var
+        key:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Key
+        base:
+          type: string
+          maxLength: 500
+          title: Base
+          default: ''
+        protocol:
+          type: string
+          enum:
+          - ''
+          - openai_compat
+          - native
+          title: Protocol
+          default: ''
+        adapter:
+          type: string
+          maxLength: 32
+          title: Adapter
+          default: ''
+      type: object
+      required:
+      - var
+      title: BuiltinIn
+    BuiltinOut:
+      properties:
+        var:
+          type: string
+          title: Var
+        label:
+          type: string
+          title: Label
+        hint:
+          type: string
+          title: Hint
+        key_source:
+          type: string
+          enum:
+          - web
+          - env
+          - none
+          title: Key Source
+        tail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tail
+        saved_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Saved By
+        saved_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Saved At
+        broken:
+          type: boolean
+          title: Broken
+          default: false
+        base:
+          type: string
+          title: Base
+          default: ''
+        default_base:
+          type: string
+          title: Default Base
+          default: ''
+        protocol:
+          type: string
+          enum:
+          - ''
+          - openai_compat
+          - native
+          title: Protocol
+          default: ''
+        adapter:
+          type: string
+          title: Adapter
+          default: ''
+        available:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Available
+        models:
+          items:
+            $ref: '#/components/schemas/ModelCard'
+          type: array
+          title: Models
+          default: []
+      type: object
+      required:
+      - var
+      - label
+      - hint
+      - key_source
+      - tail
+      - saved_by
+      - saved_at
+      - broken
+      - base
+      - default_base
+      - protocol
+      - adapter
+      - available
+      - models
+      title: BuiltinOut
+    BuiltinTestIn:
+      properties:
+        var:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Var
+        key:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Key
+        base:
+          type: string
+          maxLength: 500
+          title: Base
+          default: ''
+        protocol:
+          type: string
+          enum:
+          - ''
+          - openai_compat
+          - native
+          title: Protocol
+          default: ''
+        adapter:
+          type: string
+          maxLength: 32
+          title: Adapter
+          default: ''
+      type: object
+      required:
+      - var
+      title: BuiltinTestIn
+      description: 表单上的值；key 不填 = 测当前生效的 Key。
+    Capabilities:
+      properties:
+        tools:
+          type: boolean
+          title: Tools
+          default: false
+        stream:
+          type: boolean
+          title: Stream
+          default: true
+        stream_tools:
+          type: boolean
+          title: Stream Tools
+          default: false
+        json_mode:
+          type: boolean
+          title: Json Mode
+          default: false
+        dims:
+          anyOf:
+          - type: integer
+            maximum: 8192.0
+            minimum: 1.0
+          - type: 'null'
+          title: Dims
+      type: object
+      title: Capabilities
+      description: 自定义模型的能力：测试连接时自动检测，也可以手动改。
     CatalogEdit:
       properties:
         name:
@@ -8962,6 +9330,214 @@ components:
       - confirmed_commission
       - unpaid_amount
       title: ContractSummary
+    CustomIn:
+      properties:
+        name:
+          type: string
+          maxLength: 40
+          minLength: 1
+          title: Name
+        protocol:
+          type: string
+          enum:
+          - openai_compat
+          - native
+          title: Protocol
+          default: openai_compat
+        adapter:
+          type: string
+          maxLength: 32
+          title: Adapter
+          default: ''
+        api_base:
+          type: string
+          maxLength: 500
+          title: Api Base
+          default: ''
+        key:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Key
+        models:
+          items:
+            $ref: '#/components/schemas/CustomModelIn'
+          type: array
+          maxItems: 20
+          minItems: 1
+          title: Models
+      type: object
+      required:
+      - name
+      - models
+      title: CustomIn
+    CustomModelIn:
+      properties:
+        model:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Model
+        kind:
+          type: string
+          enum:
+          - chat
+          - embedding
+          - rerank
+          title: Kind
+          default: chat
+        capabilities:
+          $ref: '#/components/schemas/Capabilities'
+      type: object
+      required:
+      - model
+      title: CustomModelIn
+    CustomModelOut:
+      properties:
+        model:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Model
+        kind:
+          type: string
+          enum:
+          - chat
+          - embedding
+          - rerank
+          title: Kind
+          default: chat
+        capabilities:
+          $ref: '#/components/schemas/Capabilities'
+        alias:
+          type: string
+          title: Alias
+        available:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Available
+        unavailable_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Unavailable Reason
+      type: object
+      required:
+      - model
+      - alias
+      - kind
+      - capabilities
+      - available
+      - unavailable_reason
+      title: CustomModelOut
+    CustomOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        protocol:
+          type: string
+          enum:
+          - openai_compat
+          - native
+          title: Protocol
+        adapter:
+          type: string
+          title: Adapter
+          default: ''
+        api_base:
+          type: string
+          title: Api Base
+          default: ''
+        tail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tail
+        has_key:
+          type: boolean
+          title: Has Key
+          default: false
+        broken:
+          type: boolean
+          title: Broken
+          default: false
+        saved_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Saved By
+        saved_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Saved At
+        available:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Available
+        models:
+          items:
+            $ref: '#/components/schemas/CustomModelOut'
+          type: array
+          title: Models
+      type: object
+      required:
+      - id
+      - name
+      - protocol
+      - models
+      - adapter
+      - api_base
+      - tail
+      - has_key
+      - broken
+      - saved_by
+      - saved_at
+      - available
+      title: CustomOut
+    CustomTestIn:
+      properties:
+        protocol:
+          type: string
+          enum:
+          - openai_compat
+          - native
+          title: Protocol
+          default: openai_compat
+        adapter:
+          type: string
+          maxLength: 32
+          title: Adapter
+          default: ''
+        api_base:
+          type: string
+          maxLength: 500
+          title: Api Base
+          default: ''
+        key:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Key
+        model:
+          $ref: '#/components/schemas/CustomModelIn'
+        detect:
+          type: boolean
+          title: Detect
+          default: true
+      type: object
+      required:
+      - model
+      title: CustomTestIn
     CustomerBrief:
       properties:
         id:
@@ -9420,6 +9996,17 @@ components:
       - source
       - content
       title: DraftOut
+    EmbeddingIn:
+      properties:
+        alias:
+          type: string
+          maxLength: 160
+          minLength: 1
+          title: Alias
+      type: object
+      required:
+      - alias
+      title: EmbeddingIn
     ExpenseCheck:
       properties:
         per_person:
@@ -10058,6 +10645,25 @@ components:
       - type
       - content
       title: FollowupTemplate
+    GroupsIn:
+      properties:
+        chat:
+          items:
+            type: string
+          type: array
+          maxItems: 10
+          minItems: 1
+          title: Chat
+        rerank:
+          items:
+            type: string
+          type: array
+          maxItems: 10
+          title: Rerank
+      type: object
+      required:
+      - chat
+      title: GroupsIn
     HTTPValidationError:
       properties:
         detail:
@@ -10409,44 +11015,6 @@ components:
           title: Options
       type: object
       title: JobUpdate
-    KeyTestIn:
-      properties:
-        var:
-          type: string
-          maxLength: 64
-          minLength: 1
-          title: Var
-        key:
-          anyOf:
-          - type: string
-            maxLength: 500
-          - type: 'null'
-          title: Key
-      type: object
-      required:
-      - var
-      title: KeyTestIn
-    KeyTestOut:
-      properties:
-        ok:
-          type: boolean
-          title: Ok
-        model:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Model
-        error:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Error
-      type: object
-      required:
-      - ok
-      - model
-      - error
-      title: KeyTestOut
     KnowledgeDoc:
       properties:
         doc_name:
@@ -10752,37 +11320,114 @@ components:
       - role
       title: MockLoginIn
       description: 演示账户登录（DEMO_LOGIN 开启时可用）。
-    ModelKeyIn:
+    ModelCard:
       properties:
-        var:
+        alias:
           type: string
-          maxLength: 64
-          minLength: 1
-          title: Var
-        key:
+          title: Alias
+        model:
           type: string
-          maxLength: 500
-          title: Key
+          title: Model
+        link:
+          type: string
+          title: Link
+        kind:
+          type: string
+          enum:
+          - chat
+          - embedding
+          - rerank
+          title: Kind
+        tools:
+          type: boolean
+          title: Tools
+          default: false
+        dims:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Dims
+        available:
+          type: boolean
+          title: Available
+        unavailable_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Unavailable Reason
+        provider:
+          type: string
+          title: Provider
       type: object
       required:
-      - var
-      - key
-      title: ModelKeyIn
-    ModelKeysOut:
+      - alias
+      - model
+      - link
+      - kind
+      - available
+      - provider
+      - tools
+      - dims
+      - unavailable_reason
+      title: ModelCard
+    ModelConfigOut:
       properties:
         gateway_ok:
           type: boolean
           title: Gateway Ok
-        providers:
+        builtin:
           items:
-            $ref: '#/components/schemas/ProviderKey'
+            $ref: '#/components/schemas/BuiltinOut'
           type: array
-          title: Providers
+          title: Builtin
+        custom:
+          items:
+            $ref: '#/components/schemas/CustomOut'
+          type: array
+          title: Custom
+        groups:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          type: object
+          title: Groups
+        group_defaults:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          type: object
+          title: Group Defaults
+        models:
+          items:
+            $ref: '#/components/schemas/ModelCard'
+          type: array
+          title: Models
+        embedding_dims:
+          type: integer
+          title: Embedding Dims
+        kb_chunks:
+          type: integer
+          title: Kb Chunks
+        reindex:
+          $ref: '#/components/schemas/ReindexOut'
+        allow_private_base:
+          type: boolean
+          title: Allow Private Base
       type: object
       required:
       - gateway_ok
-      - providers
-      title: ModelKeysOut
+      - builtin
+      - custom
+      - groups
+      - group_defaults
+      - models
+      - embedding_dims
+      - kb_chunks
+      - reindex
+      - allow_private_base
+      title: ModelConfigOut
     NewsItem:
       properties:
         date:
@@ -11922,67 +12567,6 @@ components:
       - title
       - prompt
       title: PromptTemplate
-    ProviderKey:
-      properties:
-        var:
-          type: string
-          title: Var
-        label:
-          type: string
-          title: Label
-        hint:
-          type: string
-          title: Hint
-        models:
-          items:
-            type: string
-          type: array
-          title: Models
-        source:
-          type: string
-          enum:
-          - web
-          - env
-          - none
-          title: Source
-        tail:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Tail
-        saved_by:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Saved By
-        saved_at:
-          anyOf:
-          - type: string
-            format: date-time
-          - type: 'null'
-          title: Saved At
-        broken:
-          type: boolean
-          title: Broken
-          default: false
-        available:
-          anyOf:
-          - type: boolean
-          - type: 'null'
-          title: Available
-      type: object
-      required:
-      - var
-      - label
-      - hint
-      - models
-      - source
-      - tail
-      - saved_by
-      - saved_at
-      - broken
-      - available
-      title: ProviderKey
     PushIn:
       properties:
         content:
@@ -12282,6 +12866,56 @@ components:
       - owner
       - created_at
       title: QuoteListItem
+    ReindexOut:
+      properties:
+        status:
+          type: string
+          enum:
+          - idle
+          - running
+          - done
+          - failed
+          title: Status
+          default: idle
+        target:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target
+        done:
+          type: integer
+          title: Done
+          default: 0
+        total:
+          type: integer
+          title: Total
+          default: 0
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+        by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: By
+        at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: At
+      type: object
+      title: ReindexOut
+      required:
+      - status
+      - target
+      - done
+      - total
+      - error
+      - by
+      - at
     RemindOut:
       properties:
         notified:
@@ -13273,6 +13907,41 @@ components:
       - winner
       - opportunity
       title: TenderItem
+    TestOut:
+      properties:
+        ok:
+          type: boolean
+          title: Ok
+        model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Model
+        error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error
+        dims:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Dims
+        capabilities:
+          anyOf:
+          - additionalProperties:
+              type: boolean
+            type: object
+          - type: 'null'
+          title: Capabilities
+      type: object
+      required:
+      - ok
+      - model
+      - error
+      - dims
+      - capabilities
+      title: TestOut
     ThreadItem:
       properties:
         thread_id:

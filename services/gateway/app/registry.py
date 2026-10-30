@@ -56,6 +56,9 @@ class ModelEntry(BaseModel):
     capabilities: Capabilities = Field(default_factory=Capabilities)
     available: bool = True
     unavailable_reason: str | None = None
+    # builtin：models.yaml 里的；custom：管理员在网页上新增的。provider 为 Key 变量名或自定义厂商 id
+    origin: Literal["builtin", "custom"] = "builtin"
+    provider: str = ""
 
     @property
     def litellm_model(self) -> str:
@@ -93,9 +96,9 @@ class Registry(BaseModel):
         """api_key 写成 ${VAR} 的变量 → 用它的模型别名（网页上可以填写的就是这些变量）。"""
         out: dict[str, list[str]] = {}
         for item in self.source.get("models") or []:
-            hit = _ENV_PATTERN.fullmatch(str(item.get("api_key") or "").strip())
-            if hit:
-                out.setdefault(hit.group(1), []).append(str(item["alias"]))
+            var = key_var(item)
+            if var:
+                out.setdefault(var, []).append(str(item["alias"]))
         return out
 
     def replace_with(self, other: Registry) -> None:
@@ -137,6 +140,12 @@ def _fits(entry: ModelEntry, needs_tools: bool, kind: ModelKind) -> bool:
     return entry.capabilities.tools or not needs_tools
 
 
+def key_var(item: Mapping[str, Any]) -> str | None:
+    """api_key 恰好写成 ${VAR} 时返回变量名。"""
+    hit = _ENV_PATTERN.fullmatch(str(item.get("api_key") or "").strip())
+    return hit.group(1) if hit else None
+
+
 def expand_env(value: Any, env: Mapping[str, str]) -> Any:
     """递归展开字符串里的 ${VAR} / ${VAR:-默认值}；未定义且无默认值的变量展开为空字符串。"""
     if isinstance(value, str):
@@ -158,11 +167,17 @@ def _availability(entry: dict[str, Any]) -> tuple[bool, str | None]:
 
 def parse_registry(raw: Mapping[str, Any], env: Mapping[str, str]) -> Registry:
     """把 YAML 解析结果 + 环境变量转成 Registry（纯函数，便于测试）。"""
-    data = expand_env(dict(raw), env)
+    return registry_from_data(expand_env(dict(raw), env), raw)
+
+
+def registry_from_data(data: Mapping[str, Any], raw: Mapping[str, Any]) -> Registry:
+    """展开过变量（可能叠加了网页配置）的数据 → Registry；raw 是原始 YAML，换配置时据此重建。"""
     models: dict[str, ModelEntry] = {}
     for item in data.get("models") or []:
         available, reason = _availability(item)
         entry = ModelEntry(**item, available=available, unavailable_reason=reason)
+        if entry.alias in models:
+            raise ValueError(f"duplicate model alias: {entry.alias}")
         models[entry.alias] = entry
     groups = {str(k): [str(a) for a in v] for k, v in (data.get("groups") or {}).items()}
     for group, members in groups.items():

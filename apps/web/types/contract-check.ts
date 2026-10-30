@@ -19,7 +19,7 @@ import type * as U from "@/app/(main)/settings/ai-usage/page"
 import type * as D from "@/hooks/useMeddic"
 import type * as R from "@/hooks/useReports"
 import type * as W from "@/hooks/useWecom"
-import type * as MK from "@/hooks/useModelKeys"
+import type * as MK from "@/hooks/useModelConfig"
 import type * as Acc from "@/hooks/useAccounts"
 import type * as LV from "@/lib/list-view"
 import type * as Jobs from "@/hooks/useJobs"
@@ -88,8 +88,8 @@ export const responses = {
   DailyReportOut: true as Fits<S["DailyReportOut"], R.DailyReport>,
   TeamDailyOut: true as Fits<S["TeamDailyOut"], R.TeamDaily>,
   WecomConfigOut: true as Fits<S["WecomConfigOut"], W.WecomConfig>,
-  ModelKeysOut: true as Fits<S["ModelKeysOut"], MK.ModelKeys>,
-  KeyTestOut: true as Fits<S["KeyTestOut"], MK.KeyTestResult>,
+  ModelConfigOut: true as Fits<S["ModelConfigOut"], MK.ModelConfig>,
+  ModelTestOut: true as Fits<S["TestOut"], MK.ModelTestResult>,
   CompanyIntel: true as Fits<S["CompanyIntel"], I.CompanyIntel>,
   UsageStats: true as Fits<S["UsageStats"], U.UsageStats>,
   MeddicAssessOut: true as Fits<S["AssessOut"], D.MeddicAssessOut>,
@@ -107,7 +107,10 @@ export const requests = {
   AccountCreate: true as Fits<Acc.AccountCreate, S["AccountCreate"]>,
   AccountUpdate: true as Fits<Acc.AccountUpdate, S["AccountUpdate"]>,
   TeamIn: true as Fits<Acc.TeamIn, S["TeamIn"]>,
-  ModelKeyIn: true as Fits<MK.ModelKeyInput, S["ModelKeyIn"]>,
+  BuiltinIn: true as Fits<MK.BuiltinInput, S["BuiltinIn"]>,
+  CustomIn: true as Fits<MK.CustomInput, S["CustomIn"]>,
+  CustomTestIn: true as Fits<MK.CustomTestInput, S["CustomTestIn"]>,
+  GroupsIn: true as Fits<MK.GroupsInput, S["GroupsIn"]>,
   JobUpdate: true as Fits<Jobs.JobUpdate, S["JobUpdate"]>,
   TargetUpdate: true as Fits<Tg.TargetUpdate, S["TargetUpdate"]>,
   QuoteItemsPatch: true as Fits<T.QuoteItemsPatch, S["QuoteItemsUpdate"]>,

@@ -139,7 +139,7 @@ def list_models(request_id: str | None = None) -> list[dict[str, Any]]:
 
 
 def gateway_admin(method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
-    """网关管理接口 /v1/admin/*：厂商 Key 的状态、推送和测试连接（只给 model_keys_service 用）。"""
+    """网关管理接口 /v1/admin/*：模型配置的状态、推送和测试连接（只给 model_config_service 用）。"""
     try:
         with _client() as client:
             resp = client.request(method, f"/admin/{path}", json=body)

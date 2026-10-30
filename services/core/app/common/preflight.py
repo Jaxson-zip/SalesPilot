@@ -16,6 +16,8 @@ def problems(settings: Settings) -> list[str]:
     out = []
     if settings.jwt_secret in DEFAULT_SECRETS or len(settings.jwt_secret) < MIN_SECRET_LENGTH:
         out.append(f"JWT_SECRET 还是默认值或短于 {MIN_SECRET_LENGTH} 位")
+    if len(settings.model_keys_secret) < MIN_SECRET_LENGTH:
+        out.append(f"MODEL_KEYS_SECRET（模型 Key 加密密钥）没有设置或短于 {MIN_SECRET_LENGTH} 位")
     if settings.llm_gateway_key in DEFAULT_SECRETS:
         out.append("LLM_GATEWAY_KEY / GATEWAY_INTERNAL_KEY 还是默认值")
     try:

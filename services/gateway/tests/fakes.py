@@ -61,11 +61,15 @@ class FakeBackend:
     async def rerank(self, alias: str, params: dict[str, Any]) -> dict[str, Any]:
         return await self.embed(alias, params)
 
-    async def probe(self, entry: Any) -> None:
-        """测试连接：key 为 "bad" 时模拟上游 401（报错里回显 Key）。"""
-        self.calls.append((entry.alias, {"api_key": entry.api_key}))
+    async def probe(self, entry: Any) -> dict[str, Any]:
+        """测试连接：key 为 "bad" 时模拟上游 401（报错里回显 Key）；Embedding 按能力表返回维度。"""
+        self.calls.append((entry.alias, {"api_key": entry.api_key, "api_base": entry.api_base}))
         if entry.api_key == "bad":
             raise upstream_error("AuthenticationError", 401, "Incorrect API key provided: bad")
+        return {"dims": entry.capabilities.dims or 8} if entry.is_embedding else {}
+
+    async def detect(self, entry: Any) -> dict[str, bool]:
+        return {"tools": True, "stream": True, "stream_tools": False, "json_mode": False}
 
     def reset(self) -> None:
         self.resets = getattr(self, "resets", 0) + 1

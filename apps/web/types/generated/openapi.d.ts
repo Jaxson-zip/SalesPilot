@@ -402,17 +402,16 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  "/api/integrations/model-keys": {
+  "/api/integrations/models": {
     parameters: {
       query?: never
       header?: never
       path?: never
       cookie?: never
     }
-    /** Get Model Keys */
-    get: operations["get_model_keys_api_integrations_model_keys_get"]
-    /** Save Model Key */
-    put: operations["save_model_key_api_integrations_model_keys_put"]
+    /** Get Models */
+    get: operations["get_models_api_integrations_models_get"]
+    put?: never
     post?: never
     delete?: never
     options?: never
@@ -420,7 +419,24 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  "/api/integrations/model-keys/test": {
+  "/api/integrations/models/builtin": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Save Builtin */
+    put: operations["save_builtin_api_integrations_models_builtin_put"]
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/integrations/models/builtin/test": {
     parameters: {
       query?: never
       header?: never
@@ -429,8 +445,80 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Test Model Key */
-    post: operations["test_model_key_api_integrations_model_keys_test_post"]
+    /** Test Builtin */
+    post: operations["test_builtin_api_integrations_models_builtin_test_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/integrations/models/custom/{provider_id}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Save Custom */
+    put: operations["save_custom_api_integrations_models_custom__provider_id__put"]
+    post?: never
+    /** Delete Custom */
+    delete: operations["delete_custom_api_integrations_models_custom__provider_id__delete"]
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/integrations/models/custom/{provider_id}/test": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Test Custom */
+    post: operations["test_custom_api_integrations_models_custom__provider_id__test_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/integrations/models/groups": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /** Save Groups */
+    put: operations["save_groups_api_integrations_models_groups_put"]
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/integrations/models/embedding": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Switch Embedding
+     * @description 切换知识库向量模型：后台重建全部向量，完成后自动切换；进度在 GET /models 的 reindex 里。
+     */
+    post: operations["switch_embedding_api_integrations_models_embedding_post"]
     delete?: never
     options?: never
     head?: never
@@ -2607,25 +2695,6 @@ export interface components {
        */
       request_id: string
     }
-    /** ApiResponse[KeyTestOut] */
-    ApiResponse_KeyTestOut_: {
-      /**
-       * Code
-       * @default 0
-       */
-      code: number
-      /**
-       * Message
-       * @default ok
-       */
-      message: string
-      data: components["schemas"]["KeyTestOut"] | null
-      /**
-       * Request Id
-       * @default
-       */
-      request_id: string
-    }
     /** ApiResponse[KnowledgeUploadOut] */
     ApiResponse_KnowledgeUploadOut_: {
       /**
@@ -2702,8 +2771,8 @@ export interface components {
        */
       request_id: string
     }
-    /** ApiResponse[ModelKeysOut] */
-    ApiResponse_ModelKeysOut_: {
+    /** ApiResponse[ModelConfigOut] */
+    ApiResponse_ModelConfigOut_: {
       /**
        * Code
        * @default 0
@@ -2714,7 +2783,7 @@ export interface components {
        * @default ok
        */
       message: string
-      data: components["schemas"]["ModelKeysOut"] | null
+      data: components["schemas"]["ModelConfigOut"] | null
       /**
        * Request Id
        * @default
@@ -3368,6 +3437,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[TestOut] */
+    ApiResponse_TestOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["TestOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[ThreadItem] */
     ApiResponse_ThreadItem_: {
       /**
@@ -3946,6 +4034,136 @@ export interface components {
       /** File */
       file: string
     }
+    /** BuiltinIn */
+    BuiltinIn: {
+      /** Var */
+      var: string
+      /** Key */
+      key?: string | null
+      /**
+       * Base
+       * @default
+       */
+      base?: string
+      /**
+       * Protocol
+       * @default
+       * @enum {string}
+       */
+      protocol?: "" | "openai_compat" | "native"
+      /**
+       * Adapter
+       * @default
+       */
+      adapter?: string
+    }
+    /** BuiltinOut */
+    BuiltinOut: {
+      /** Var */
+      var: string
+      /** Label */
+      label: string
+      /** Hint */
+      hint: string
+      /**
+       * Key Source
+       * @enum {string}
+       */
+      key_source: "web" | "env" | "none"
+      /** Tail */
+      tail: string | null
+      /** Saved By */
+      saved_by: string | null
+      /** Saved At */
+      saved_at: string | null
+      /**
+       * Broken
+       * @default false
+       */
+      broken: boolean
+      /**
+       * Base
+       * @default
+       */
+      base: string
+      /**
+       * Default Base
+       * @default
+       */
+      default_base: string
+      /**
+       * Protocol
+       * @default
+       * @enum {string}
+       */
+      protocol: "" | "openai_compat" | "native"
+      /**
+       * Adapter
+       * @default
+       */
+      adapter: string
+      /** Available */
+      available: boolean | null
+      /**
+       * Models
+       * @default []
+       */
+      models: components["schemas"]["ModelCard"][]
+    }
+    /**
+     * BuiltinTestIn
+     * @description 表单上的值；key 不填 = 测当前生效的 Key。
+     */
+    BuiltinTestIn: {
+      /** Var */
+      var: string
+      /** Key */
+      key?: string | null
+      /**
+       * Base
+       * @default
+       */
+      base?: string
+      /**
+       * Protocol
+       * @default
+       * @enum {string}
+       */
+      protocol?: "" | "openai_compat" | "native"
+      /**
+       * Adapter
+       * @default
+       */
+      adapter?: string
+    }
+    /**
+     * Capabilities
+     * @description 自定义模型的能力：测试连接时自动检测，也可以手动改。
+     */
+    Capabilities: {
+      /**
+       * Tools
+       * @default false
+       */
+      tools?: boolean
+      /**
+       * Stream
+       * @default true
+       */
+      stream?: boolean
+      /**
+       * Stream Tools
+       * @default false
+       */
+      stream_tools?: boolean
+      /**
+       * Json Mode
+       * @default false
+       */
+      json_mode?: boolean
+      /** Dims */
+      dims?: number | null
+    }
     /** CatalogEdit */
     CatalogEdit: {
       /** Name */
@@ -4345,6 +4563,130 @@ export interface components {
       /** Unpaid Amount */
       unpaid_amount: number
     }
+    /** CustomIn */
+    CustomIn: {
+      /** Name */
+      name: string
+      /**
+       * Protocol
+       * @default openai_compat
+       * @enum {string}
+       */
+      protocol?: "openai_compat" | "native"
+      /**
+       * Adapter
+       * @default
+       */
+      adapter?: string
+      /**
+       * Api Base
+       * @default
+       */
+      api_base?: string
+      /** Key */
+      key?: string | null
+      /** Models */
+      models: components["schemas"]["CustomModelIn"][]
+    }
+    /** CustomModelIn */
+    CustomModelIn: {
+      /** Model */
+      model: string
+      /**
+       * Kind
+       * @default chat
+       * @enum {string}
+       */
+      kind?: "chat" | "embedding" | "rerank"
+      capabilities?: components["schemas"]["Capabilities"]
+    }
+    /** CustomModelOut */
+    CustomModelOut: {
+      /** Model */
+      model: string
+      /**
+       * Kind
+       * @default chat
+       * @enum {string}
+       */
+      kind: "chat" | "embedding" | "rerank"
+      capabilities: components["schemas"]["Capabilities"]
+      /** Alias */
+      alias: string
+      /** Available */
+      available: boolean | null
+      /** Unavailable Reason */
+      unavailable_reason: string | null
+    }
+    /** CustomOut */
+    CustomOut: {
+      /** Id */
+      id: string
+      /** Name */
+      name: string
+      /**
+       * Protocol
+       * @enum {string}
+       */
+      protocol: "openai_compat" | "native"
+      /**
+       * Adapter
+       * @default
+       */
+      adapter: string
+      /**
+       * Api Base
+       * @default
+       */
+      api_base: string
+      /** Tail */
+      tail: string | null
+      /**
+       * Has Key
+       * @default false
+       */
+      has_key: boolean
+      /**
+       * Broken
+       * @default false
+       */
+      broken: boolean
+      /** Saved By */
+      saved_by: string | null
+      /** Saved At */
+      saved_at: string | null
+      /** Available */
+      available: boolean | null
+      /** Models */
+      models: components["schemas"]["CustomModelOut"][]
+    }
+    /** CustomTestIn */
+    CustomTestIn: {
+      /**
+       * Protocol
+       * @default openai_compat
+       * @enum {string}
+       */
+      protocol?: "openai_compat" | "native"
+      /**
+       * Adapter
+       * @default
+       */
+      adapter?: string
+      /**
+       * Api Base
+       * @default
+       */
+      api_base?: string
+      /** Key */
+      key?: string | null
+      model: components["schemas"]["CustomModelIn"]
+      /**
+       * Detect
+       * @default true
+       */
+      detect?: boolean
+    }
     /** CustomerBrief */
     CustomerBrief: {
       /**
@@ -4589,6 +4931,11 @@ export interface components {
       source: "ai" | "template"
       /** Content */
       content: string
+    }
+    /** EmbeddingIn */
+    EmbeddingIn: {
+      /** Alias */
+      alias: string
     }
     /** ExpenseCheck */
     ExpenseCheck: {
@@ -4922,6 +5269,13 @@ export interface components {
       /** Content */
       content: string
     }
+    /** GroupsIn */
+    GroupsIn: {
+      /** Chat */
+      chat: string[]
+      /** Rerank */
+      rerank?: string[]
+    }
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -5107,22 +5461,6 @@ export interface components {
         [key: string]: number
       } | null
     }
-    /** KeyTestIn */
-    KeyTestIn: {
-      /** Var */
-      var: string
-      /** Key */
-      key?: string | null
-    }
-    /** KeyTestOut */
-    KeyTestOut: {
-      /** Ok */
-      ok: boolean
-      /** Model */
-      model: string | null
-      /** Error */
-      error: string | null
-    }
     /** KnowledgeDoc */
     KnowledgeDoc: {
       /** Doc Name */
@@ -5279,19 +5617,58 @@ export interface components {
       /** Access Code */
       access_code?: string | null
     }
-    /** ModelKeyIn */
-    ModelKeyIn: {
-      /** Var */
-      var: string
-      /** Key */
-      key: string
+    /** ModelCard */
+    ModelCard: {
+      /** Alias */
+      alias: string
+      /** Model */
+      model: string
+      /** Link */
+      link: string
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "chat" | "embedding" | "rerank"
+      /**
+       * Tools
+       * @default false
+       */
+      tools: boolean
+      /** Dims */
+      dims: number | null
+      /** Available */
+      available: boolean
+      /** Unavailable Reason */
+      unavailable_reason: string | null
+      /** Provider */
+      provider: string
     }
-    /** ModelKeysOut */
-    ModelKeysOut: {
+    /** ModelConfigOut */
+    ModelConfigOut: {
       /** Gateway Ok */
       gateway_ok: boolean
-      /** Providers */
-      providers: components["schemas"]["ProviderKey"][]
+      /** Builtin */
+      builtin: components["schemas"]["BuiltinOut"][]
+      /** Custom */
+      custom: components["schemas"]["CustomOut"][]
+      /** Groups */
+      groups: {
+        [key: string]: string[]
+      }
+      /** Group Defaults */
+      group_defaults: {
+        [key: string]: string[]
+      }
+      /** Models */
+      models: components["schemas"]["ModelCard"][]
+      /** Embedding Dims */
+      embedding_dims: number
+      /** Kb Chunks */
+      kb_chunks: number
+      reindex: components["schemas"]["ReindexOut"]
+      /** Allow Private Base */
+      allow_private_base: boolean
     }
     /** NewsItem */
     NewsItem: {
@@ -5897,35 +6274,6 @@ export interface components {
       /** Prompt */
       prompt: string
     }
-    /** ProviderKey */
-    ProviderKey: {
-      /** Var */
-      var: string
-      /** Label */
-      label: string
-      /** Hint */
-      hint: string
-      /** Models */
-      models: string[]
-      /**
-       * Source
-       * @enum {string}
-       */
-      source: "web" | "env" | "none"
-      /** Tail */
-      tail: string | null
-      /** Saved By */
-      saved_by: string | null
-      /** Saved At */
-      saved_at: string | null
-      /**
-       * Broken
-       * @default false
-       */
-      broken: boolean
-      /** Available */
-      available: boolean | null
-    }
     /** PushIn */
     PushIn: {
       /** Content */
@@ -6080,6 +6428,33 @@ export interface components {
        * Format: date-time
        */
       created_at: string
+    }
+    /** ReindexOut */
+    ReindexOut: {
+      /**
+       * Status
+       * @default idle
+       * @enum {string}
+       */
+      status: "idle" | "running" | "done" | "failed"
+      /** Target */
+      target: string | null
+      /**
+       * Done
+       * @default 0
+       */
+      done: number
+      /**
+       * Total
+       * @default 0
+       */
+      total: number
+      /** Error */
+      error: string | null
+      /** By */
+      by: string | null
+      /** At */
+      at: string | null
     }
     /** RemindOut */
     RemindOut: {
@@ -6622,6 +6997,21 @@ export interface components {
        * @default false
        */
       opportunity: boolean
+    }
+    /** TestOut */
+    TestOut: {
+      /** Ok */
+      ok: boolean
+      /** Model */
+      model: string | null
+      /** Error */
+      error: string | null
+      /** Dims */
+      dims: number | null
+      /** Capabilities */
+      capabilities: {
+        [key: string]: boolean
+      } | null
     }
     /** ThreadItem */
     ThreadItem: {
@@ -7839,7 +8229,7 @@ export interface operations {
       }
     }
   }
-  get_model_keys_api_integrations_model_keys_get: {
+  get_models_api_integrations_models_get: {
     parameters: {
       query?: never
       header?: {
@@ -7856,7 +8246,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          "application/json": components["schemas"]["ApiResponse_ModelKeysOut_"]
+          "application/json": components["schemas"]["ApiResponse_ModelConfigOut_"]
         }
       }
       /** @description Validation Error */
@@ -7870,7 +8260,7 @@ export interface operations {
       }
     }
   }
-  save_model_key_api_integrations_model_keys_put: {
+  save_builtin_api_integrations_models_builtin_put: {
     parameters: {
       query?: never
       header?: {
@@ -7881,7 +8271,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ModelKeyIn"]
+        "application/json": components["schemas"]["BuiltinIn"]
       }
     }
     responses: {
@@ -7891,7 +8281,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          "application/json": components["schemas"]["ApiResponse_ModelKeysOut_"]
+          "application/json": components["schemas"]["ApiResponse_ModelConfigOut_"]
         }
       }
       /** @description Validation Error */
@@ -7905,7 +8295,7 @@ export interface operations {
       }
     }
   }
-  test_model_key_api_integrations_model_keys_test_post: {
+  test_builtin_api_integrations_models_builtin_test_post: {
     parameters: {
       query?: never
       header?: {
@@ -7916,7 +8306,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        "application/json": components["schemas"]["KeyTestIn"]
+        "application/json": components["schemas"]["BuiltinTestIn"]
       }
     }
     responses: {
@@ -7926,7 +8316,184 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          "application/json": components["schemas"]["ApiResponse_KeyTestOut_"]
+          "application/json": components["schemas"]["ApiResponse_TestOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  save_custom_api_integrations_models_custom__provider_id__put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        provider_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CustomIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ModelConfigOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  delete_custom_api_integrations_models_custom__provider_id__delete: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        provider_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ModelConfigOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  test_custom_api_integrations_models_custom__provider_id__test_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        provider_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["CustomTestIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_TestOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  save_groups_api_integrations_models_groups_put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["GroupsIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ModelConfigOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  switch_embedding_api_integrations_models_embedding_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EmbeddingIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ModelConfigOut_"]
         }
       }
       /** @description Validation Error */

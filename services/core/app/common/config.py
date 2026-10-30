@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     llm_rerank_group: str = "rerank"
     rag_rerank: bool = True  # 检索后经网关重排；重排不可用时自动退回向量顺序
     llm_timeout_seconds: float = 30
+    # 网页上填写的模型 Key 的加密密钥（openssl rand -hex 32）。没设置时退回用 JWT_SECRET 派生
+    model_keys_secret: str = ""
+    # 模型接口地址可以指向内网 / 本机（自建 vLLM、Ollama）。不写时：演示模式允许，正式模式禁止
+    model_allow_private_base: bool | None = None
     upload_dir: str = "./data/uploads"
     default_pack: str = "llm_deploy"
     embedding_dims: int = 1024

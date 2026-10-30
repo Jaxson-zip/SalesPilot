@@ -1,4 +1,4 @@
-"""外部集成：企业微信群机器人（管理员配置、发送测试；所有人可查开关状态）、模型厂商 Key。"""
+"""外部集成：企业微信群机器人（管理员配置、发送测试；所有人可查开关状态）、模型接入（管理员）。"""
 
 from fastapi import APIRouter
 from starlette.concurrency import run_in_threadpool
@@ -6,8 +6,18 @@ from starlette.concurrency import run_in_threadpool
 from app.common.auth import CurrentUserDep
 from app.common.response import ApiResponse, ok
 from app.crm.routers.deps import DbDep
-from app.crm.services import model_keys_service, wecom_service
-from app.crm.services.model_keys_service import KeyTestIn, KeyTestOut, ModelKeyIn, ModelKeysOut
+from app.crm.services import model_config_service as models
+from app.crm.services import wecom_service
+from app.crm.services.model_config_service import (
+    BuiltinIn,
+    BuiltinTestIn,
+    CustomIn,
+    CustomTestIn,
+    EmbeddingIn,
+    GroupsIn,
+    ModelConfigOut,
+    TestOut,
+)
 from app.crm.services.wecom_service import PushOut, WecomConfigIn, WecomConfigOut
 
 router = APIRouter(prefix="/api/integrations", tags=["integrations"])
@@ -34,20 +44,56 @@ def flags(user: CurrentUserDep, db: DbDep) -> ApiResponse[dict[str, bool]]:
     return ok(wecom_service.config_flags(db))
 
 
-@router.get("/model-keys", response_model=ApiResponse[ModelKeysOut])
-async def get_model_keys(user: CurrentUserDep, db: DbDep) -> ApiResponse[ModelKeysOut]:
-    return ok(await run_in_threadpool(model_keys_service.get_status, db, user))
+@router.get("/models", response_model=ApiResponse[ModelConfigOut])
+async def get_models(user: CurrentUserDep, db: DbDep) -> ApiResponse[ModelConfigOut]:
+    return ok(await run_in_threadpool(models.get_status, db, user))
 
 
-@router.put("/model-keys", response_model=ApiResponse[ModelKeysOut])
-async def save_model_key(
-    body: ModelKeyIn, user: CurrentUserDep, db: DbDep
-) -> ApiResponse[ModelKeysOut]:
-    return ok(await run_in_threadpool(model_keys_service.save_key, db, user, body))
+@router.put("/models/builtin", response_model=ApiResponse[ModelConfigOut])
+async def save_builtin(
+    body: BuiltinIn, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[ModelConfigOut]:
+    return ok(await run_in_threadpool(models.save_builtin, db, user, body))
 
 
-@router.post("/model-keys/test", response_model=ApiResponse[KeyTestOut])
-async def test_model_key(
-    body: KeyTestIn, user: CurrentUserDep, db: DbDep
-) -> ApiResponse[KeyTestOut]:
-    return ok(await run_in_threadpool(model_keys_service.test_key, db, user, body))
+@router.post("/models/builtin/test", response_model=ApiResponse[TestOut])
+async def test_builtin(
+    body: BuiltinTestIn, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[TestOut]:
+    return ok(await run_in_threadpool(models.test_builtin, db, user, body))
+
+
+@router.put("/models/custom/{provider_id}", response_model=ApiResponse[ModelConfigOut])
+async def save_custom(
+    provider_id: str, body: CustomIn, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[ModelConfigOut]:
+    return ok(await run_in_threadpool(models.save_custom, db, user, provider_id, body))
+
+
+@router.delete("/models/custom/{provider_id}", response_model=ApiResponse[ModelConfigOut])
+async def delete_custom(
+    provider_id: str, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[ModelConfigOut]:
+    return ok(await run_in_threadpool(models.delete_custom, db, user, provider_id))
+
+
+@router.post("/models/custom/{provider_id}/test", response_model=ApiResponse[TestOut])
+async def test_custom(
+    provider_id: str, body: CustomTestIn, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[TestOut]:
+    return ok(await run_in_threadpool(models.test_custom, db, user, provider_id, body))
+
+
+@router.put("/models/groups", response_model=ApiResponse[ModelConfigOut])
+async def save_groups(
+    body: GroupsIn, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[ModelConfigOut]:
+    return ok(await run_in_threadpool(models.save_groups, db, user, body))
+
+
+@router.post("/models/embedding", response_model=ApiResponse[ModelConfigOut])
+async def switch_embedding(
+    body: EmbeddingIn, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[ModelConfigOut]:
+    """切换知识库向量模型：后台重建全部向量，完成后自动切换；进度在 GET /models 的 reindex 里。"""
+    return ok(await run_in_threadpool(models.switch_embedding, db, user, body))

@@ -39,7 +39,7 @@ from app.crm.routers import (
     tasks,
     usage,
 )
-from app.crm.services import model_keys_service
+from app.crm.services import model_config_service
 from app.crm.services.scheduler import Scheduler
 from app.rag.autoload import start_auto_ingest
 from app.rules.overrides import refresh_on_startup as refresh_overrides
@@ -68,8 +68,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     scheduler = Scheduler() if db_ok and cfg.scheduler_enabled else None
     if scheduler is not None:
         scheduler.start()
-    # 网页上填写的模型 Key：推给网关，之后每分钟比对一次（网关重启会丢）；测试里不启动
-    key_sync = model_keys_service.start_sync() if db_ok and cfg.scheduler_enabled else None
+    # 网页上的模型配置：推给网关，之后每分钟比对一次（网关重启会丢）；测试里不启动
+    key_sync = model_config_service.start_sync() if db_ok and cfg.scheduler_enabled else None
     yield
     if key_sync is not None:
         key_sync.set()

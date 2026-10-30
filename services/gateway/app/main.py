@@ -1,7 +1,7 @@
 """网关 HTTP 入口：对外完全是 OpenAI 格式。
 
 POST /v1/chat/completions · POST /v1/embeddings · POST /v1/rerank · GET /v1/models · GET /health
-管理（只给 core 用）：GET /v1/admin/providers · PUT /v1/admin/keys · POST /v1/admin/keys/test
+管理（只给 core 用）：GET / PUT /v1/admin/config · POST /v1/admin/test
 """
 
 from __future__ import annotations
@@ -20,8 +20,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.backend import Backend, LiteLLMBackend
 from app.compat.errors import GatewayError, classify_exception, error_body, invalid_param, unauthorized
 from app.config import Settings, get_settings, merged_env
-from app.keys import KeyManager
 from app.logging import LOGGER_NAME, CallLog, setup_logging
+from app.overlay import ModelConfig, OverlayManager, TestRequest
 from app.registry import Registry, load_registry
 from app.router import GatewayRouter
 
@@ -44,18 +44,6 @@ class EmbeddingRequest(BaseModel):
 
     model: str = Field(min_length=1)
     input: str | list[str] | list[int] | list[list[int]]
-
-
-class KeysUpdate(BaseModel):
-    """网页上保存的 Key（完整集合，没带的变量回到 .env）；version 用于 core 判断网关是否需要重新推送。"""
-
-    keys: dict[str, str] = Field(default_factory=dict)
-    version: str = Field(default="", max_length=64)
-
-
-class KeyTest(BaseModel):
-    var: str = Field(min_length=1, max_length=64)
-    key: str | None = Field(default=None, max_length=500)
 
 
 class RerankRequest(BaseModel):
@@ -218,25 +206,27 @@ def _install_routes(
         return resp
 
 
-def _install_admin_routes(app: FastAPI, keys: KeyManager, auth: Callable[..., None]) -> None:
-    def state() -> dict[str, Any]:
-        return {"version": keys.version, "providers": keys.providers()}
+def _install_admin_routes(app: FastAPI, overlay: OverlayManager, auth: Callable[..., None]) -> None:
+    @app.get("/v1/admin/config", dependencies=[Depends(auth)])
+    async def get_config() -> dict[str, Any]:
+        return overlay.state()
 
-    @app.get("/v1/admin/providers", dependencies=[Depends(auth)])
-    async def providers() -> dict[str, Any]:
-        return state()
+    @app.put("/v1/admin/config", dependencies=[Depends(auth)])
+    async def put_config(body: ModelConfig) -> dict[str, Any]:
+        """网页上的完整模型配置；version 用于 core 判断网关是否需要重新推送。"""
+        overlay.apply(body)
+        fields = {
+            "version": body.version,
+            "builtin": sorted(body.builtin),
+            "custom": [p.id for p in body.custom],
+            "groups": body.groups,
+        }
+        logging.getLogger(LOGGER_NAME).info("model config updated", extra={"fields": fields})
+        return overlay.state()
 
-    @app.put("/v1/admin/keys", dependencies=[Depends(auth)])
-    async def update_keys(body: KeysUpdate) -> dict[str, Any]:
-        keys.update(body.keys, body.version)
-        logging.getLogger(LOGGER_NAME).info(
-            "provider keys updated", extra={"fields": {"overridden": sorted(keys.overrides)}}
-        )
-        return state()
-
-    @app.post("/v1/admin/keys/test", dependencies=[Depends(auth)])
-    async def test_key(body: KeyTest) -> dict[str, Any]:
-        return await keys.test(body.var, body.key)
+    @app.post("/v1/admin/test", dependencies=[Depends(auth)])
+    async def test_model(body: TestRequest) -> dict[str, Any]:
+        return await overlay.test(body)
 
 
 def create_app(
@@ -264,8 +254,8 @@ def create_app(
     app.state.router = router
     _install_handlers(app)
     _install_routes(app, registry, router, auth)
-    app.state.keys = KeyManager(registry, backend, env)
-    _install_admin_routes(app, app.state.keys, auth)
+    app.state.overlay = OverlayManager(registry, backend, env)
+    _install_admin_routes(app, app.state.overlay, auth)
     return app
 
 

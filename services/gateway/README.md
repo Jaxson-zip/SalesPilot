@@ -53,6 +53,15 @@ tests/contract         10 个契约用例（RUN_CONTRACT=1 时访问真实模型
 scripts/compat_matrix.py  生成 docs/模型兼容矩阵.md
 ```
 
+## 网页上的模型配置
+
+管理员在「系统设置 → 模型接入」里改的配置由 core 推给网关（`PUT /v1/admin/config`，只认内部密钥），
+叠加在 `models.yaml` + `.env` 之上、立即生效，见 `app/overlay.py`：内置厂商的 Key / 地址 / 协议、
+自定义厂商（别名为「厂商标识-模型名」）、`chat-agent` / `embed` / `rerank` 三个分组。只放内存，
+网关重启后由 core 按 `version` 补推。`POST /v1/admin/test` 测试连接（对话模型可检测能力，Embedding 返回维度）。
+
+网页上新增的模型没有跑契约测试，能力以测试连接时的检测结果为准；要长期使用，按下面的步骤写进 `models.yaml`。
+
 ## 接入新模型（4 步，不改代码）
 
 1. **加注册表**：在 `models.yaml` 的 `models` 下加一条：`alias`、`link`（`openai_compat` 或 `native`）、`model`

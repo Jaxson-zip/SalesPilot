@@ -27,11 +27,12 @@ def test_preflight_flags_default_secrets() -> None:
         llm_gateway_key="change-me",
         database_url="postgresql+psycopg://crm:crm@db:5432/crm",
     )
-    assert len(preflight.problems(weak)) == 3
+    assert len(preflight.problems(weak)) == 4
     strong = Settings(
         _env_file=None,
         jwt_secret=STRONG,
         llm_gateway_key=STRONG,
+        model_keys_secret=STRONG,
         database_url=f"postgresql+psycopg://crm:{STRONG}@db:5432/crm",
     )
     assert preflight.problems(strong) == []

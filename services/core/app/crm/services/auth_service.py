@@ -2,6 +2,7 @@
 
 - 账号密码：`users.username` + scrypt 哈希；同一 IP + 账号连续输错 10 次锁 10 分钟。
 - 演示账户（`DEMO_LOGIN=true`）：按角色进入固定的演示用户，左下角可以切换；正式使用时关掉。
+- 正式模式下演示账号不能用公开的初始密码（DEMO_PASSWORD）登录，先用 `python -m seed.admin` 重置。
 - 访问口令（`ACCESS_CODE`）：公网部署时设置，两种登录都要先过口令；
   已登录的用户切换演示账户时带着当前 token，不用再输口令。
 """
@@ -22,12 +23,13 @@ from app.common.errors import BizError, ErrorCode
 from app.common.passwords import hash_password, verify_password, weakness
 from app.crm.models import Team, User
 from app.crm.schemas.common import UserOut
-from app.crm.services.demo import DEMO_USERS
+from app.crm.services.demo import DEMO_LOGINS, DEMO_USERS
 
 RULE_ACCESS_CODE = "access_code"
 RULE_LOGIN_LOCKED = "login_locked"
 RULE_WEAK_PASSWORD = "weak_password"
 RULE_INACTIVE = "account_inactive"
+RULE_DEMO_PASSWORD = "demo_password"
 MAX_FAILURES = 10
 LOCK_SECONDS = 600
 _failures: dict[str, deque[float]] = defaultdict(deque)
@@ -141,10 +143,25 @@ def password_login(db: Session, username: str, password: str, ip: str | None) ->
         raise BizError(ErrorCode.UNAUTHORIZED, "账号或密码不正确")
     if not user.active:
         raise BizError(ErrorCode.FORBIDDEN, "账号已停用，请联系管理员", {"rule": RULE_INACTIVE})
+    if _default_demo_password(user, password):
+        raise BizError(
+            ErrorCode.FORBIDDEN,
+            "演示账号还在用公开的初始密码，正式模式下不能登录；请在服务器上运行 "
+            f"python -m seed.admin {user.username} 重置密码",
+            {"rule": RULE_DEMO_PASSWORD},
+        )
     _clear(key)
     user.last_login_at = datetime.now(UTC)
     db.flush()
     return _session(db, user)
+
+
+def _default_demo_password(user: User, password: str) -> bool:
+    """正式模式（DEMO_LOGIN=false）下，演示账号不能用 README 里公开的初始密码登录。"""
+    settings = get_settings()
+    if settings.demo_login or user.id not in DEMO_LOGINS:
+        return False
+    return hmac.compare_digest(password.encode(), settings.demo_password.encode())
 
 
 def demo_login(db: Session, role: Role) -> LoginResult:

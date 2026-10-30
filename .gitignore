@@ -45,3 +45,7 @@ Thumbs.db
 
 # AI 评估输出（每次运行重新生成；需要留档的报告复制到 docs/eval/）
 services/core/evals/reports/
+
+# 正式部署：证书和数据库备份不进仓库
+infra/nginx/certs/
+backups/

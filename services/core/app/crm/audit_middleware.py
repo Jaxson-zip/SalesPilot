@@ -11,6 +11,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.common.auth import CurrentUser, decode_token
+from app.common.client_ip import resolve_client_ip
 from app.common.errors import BizError
 from app.common.request_id import get_request_id
 from app.crm.services import audit_service
@@ -31,11 +32,11 @@ def _user(scope: Scope) -> CurrentUser | None:
 
 
 def _ip(scope: Scope) -> str | None:
-    for key, value in scope.get("headers", []):
-        if key == b"x-forwarded-for":
-            return value.decode("latin-1").split(",")[0].strip()[:64]
+    real_ip = next(
+        (v.decode("latin-1") for k, v in scope.get("headers", []) if k == b"x-real-ip"), None
+    )
     client = scope.get("client")
-    return client[0] if client else None
+    return resolve_client_ip(real_ip, client[0] if client else None)
 
 
 class AuditMiddleware:

@@ -6,6 +6,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Query, Request
 
 from app.common.auth import CurrentUserDep
+from app.common.client_ip import resolve_client_ip
 from app.common.response import ApiResponse, ok
 from app.crm.routers.deps import DbDep
 from app.crm.schemas.common import Page, PageParams
@@ -16,10 +17,8 @@ router = APIRouter(prefix="/api", tags=["audit"])
 
 
 def client_ip(request: Request) -> str | None:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()[:64]
-    return request.client.host if request.client else None
+    peer = request.client.host if request.client else None
+    return resolve_client_ip(request.headers.get("x-real-ip"), peer)
 
 
 @router.get("/audit-logs", response_model=ApiResponse[Page[AuditItem]])

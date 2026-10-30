@@ -1,0 +1,45 @@
+# HTTPS 版本（正式上线用）。启用方法见 docs/上线部署指南.md：
+#   1. 把证书放到服务器的 infra/nginx/certs/fullchain.pem 和 privkey.pem（云厂商免费证书选「Nginx」格式下载）
+#   2. cp infra/nginx/https.conf.example infra/nginx/default.conf，把 sales.example.com 改成你的域名
+#   3. docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d nginx
+
+# 请求 ID：客户端带了 X-Request-ID 就透传，没带才用 nginx 生成的
+map $http_x_request_id $req_id {
+    default $http_x_request_id;
+    ""      $request_id;
+}
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ""      "";
+}
+
+# HTTP 一律跳转到 HTTPS
+server {
+    listen 80;
+    server_name sales.example.com;
+    server_tokens off;
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok";
+    }
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name sales.example.com;
+
+    ssl_certificate     /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:SSL:10m;
+
+    # 浏览器记住这个域名只走 HTTPS（确认证书续期正常后再加 includeSubDomains）
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    include /etc/nginx/snippets/salespilot.conf;
+}

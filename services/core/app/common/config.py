@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     access_code: str | None = None
     # 登录页显示演示账户（一键进入、左下角切换）；正式使用时关掉，只能账号密码登录
     demo_login: bool = True
+    # 部署在 nginx 后面时设为 true：来源 IP 读 nginx 写入的 X-Real-IP（登录锁定、操作日志用）。
+    # 不在代理后面时必须保持 false，否则客户端伪造这个请求头就能绕过错误次数锁定
+    trust_proxy_headers: bool = False
     # 定时任务调度器（到期提醒、回款逾期、日报催交等）；测试和只读副本设为 false
     scheduler_enabled: bool = True
     # 演示账户的初始密码（迁移 0019 和种子数据写入）

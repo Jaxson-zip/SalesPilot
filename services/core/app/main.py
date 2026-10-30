@@ -10,6 +10,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.agent.checkpoint import close_checkpointer, init_checkpointer
 from app.agent.router import router as agent_router
+from app.common import preflight
 from app.common.config import get_settings
 from app.common.db import check_db
 from app.common.request_id import RequestIdMiddleware
@@ -48,9 +49,13 @@ logger = logging.getLogger("core")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    if get_settings().jwt_secret in {"change-me", "change-me-to-a-random-string-of-32-chars"}:
-        # 演示登录（/api/auth/mock-login）对所有人开放，部署到公网前至少要换掉默认密钥
-        logger.warning("JWT_SECRET is the default value; set a random secret before deploying")
+    cfg = get_settings()
+    found = preflight.problems(cfg)
+    if found and not cfg.demo_login:
+        # 正式模式：默认密钥能伪造登录、默认数据库密码能直接读库，宁可起不来
+        raise RuntimeError("正式模式（DEMO_LOGIN=false）拒绝启动：" + "；".join(found))
+    for problem in found:
+        logger.warning("insecure config (ok for local demo, not for production): %s", problem)
     db_ok = await run_in_threadpool(check_db)
     if not db_ok:
         logger.warning("database unavailable at startup; DB-backed endpoints will fail")
@@ -59,7 +64,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if db_ok:
         await run_in_threadpool(refresh_overrides)  # 网页上改过的规则 / 价格
         app.state.kb_autoload = await run_in_threadpool(start_auto_ingest)
-    scheduler = Scheduler() if db_ok and get_settings().scheduler_enabled else None
+    scheduler = Scheduler() if db_ok and cfg.scheduler_enabled else None
     if scheduler is not None:
         scheduler.start()
     yield

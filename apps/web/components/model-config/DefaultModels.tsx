@@ -105,10 +105,8 @@ function EmbeddingSwitch({ config, cards }: { config: ModelConfig; cards: Map<st
   return (
     <div className="space-y-2">
       <div>
-        <p className="text-sm font-medium">知识库向量</p>
-        <p className="text-xs text-zinc-500">
-          把知识库文档变成向量、按语义检索。不同模型的向量不能混用，所以只能有一个；换模型要把知识库全部重新向量化。
-        </p>
+        <p className="text-sm font-medium">知识库</p>
+        <p className="text-xs text-zinc-500">换模型要把知识库全部重新处理一遍，完成后才切换。</p>
       </div>
       <p className="text-sm">
         当前：{current ? modelLabel(cards.get(current), current) : "未配置"}
@@ -122,7 +120,7 @@ function EmbeddingSwitch({ config, cards }: { config: ModelConfig; cards: Map<st
         <div className="space-y-1" role="status" aria-label="重建进度">
           <p className="flex items-center gap-1.5 text-xs text-zinc-600">
             <Loader2 className="size-3.5 animate-spin" />
-            正在用 {job.target} 重建知识库向量：{job.done} / {job.total} 段。完成前检索继续用当前模型。
+            正在换到 {job.target}：{job.done} / {job.total}
           </p>
           <div className="h-1.5 overflow-hidden rounded bg-zinc-100">
             <div
@@ -133,7 +131,7 @@ function EmbeddingSwitch({ config, cards }: { config: ModelConfig; cards: Map<st
         </div>
       ) : job.status === "failed" ? (
         <Warn>
-          上次切换到 {job.target} 失败{job.at ? `（${time(job.at)}）` : ""}：{job.error}。现在的检索不受影响。
+          换到 {job.target} 失败{job.at ? `（${time(job.at)}）` : ""}：{job.error}
         </Warn>
       ) : job.status === "done" && job.at ? (
         <p className="text-xs text-emerald-700">
@@ -162,23 +160,22 @@ function EmbeddingSwitch({ config, cards }: { config: ModelConfig; cards: Map<st
             disabled={!pick || !pick.available || running || switchTo.isPending}
             onClick={() =>
               ask({
-                title: "切换知识库向量模型？",
+                title: "换知识库模型？",
                 description:
-                  `会用 ${pick?.alias} 把知识库的 ${config.kb_chunks} 段内容全部重新向量化` +
-                  `（约 ${Math.ceil(config.kb_chunks / 10)} 次接口调用，按厂商价格计费）。` +
-                  "完成前检索继续用当前模型，全部成功后自动切换；中途失败不影响现在的检索。",
-                confirmLabel: "开始重建",
+                  `用 ${pick?.alias} 重新处理知识库的 ${config.kb_chunks} 段内容，` +
+                  `约调用 ${Math.ceil(config.kb_chunks / 10)} 次接口。完成后自动切换，失败不影响现在的使用。`,
+                confirmLabel: "开始",
                 onConfirm: () => switchTo.mutate(target, { onSuccess: () => setTarget("") }),
               })
             }
           >
             <RefreshCw />
-            切换并重建
+            切换
           </Button>
         </div>
       ) : (
         <p className="text-xs text-zinc-400">
-          没有其他可选的向量模型。需要 {config.embedding_dims} 维的 Embedding 模型，可以在下面的厂商里添加。
+          没有其他可选的模型（需要 {config.embedding_dims} 维的 Embedding 模型）。
         </p>
       )}
       {dialog}
@@ -200,8 +197,8 @@ export function DefaultModels({ config }: { config: ModelConfig }) {
   return (
     <div className="space-y-5 rounded-lg border border-zinc-200 p-4">
       <OrderedPicker
-        title="对话模型"
-        hint="AI 工作台、日报周报、需求整理等都用它。第一个是主用，出错或限流时按顺序切到备用；只能选支持工具调用的模型。"
+        title="对话"
+        hint="出错时按顺序换下一个。只能选支持工具调用的模型。"
         list={chat}
         onChange={setChat}
         options={candidates(config, "chat")}
@@ -209,13 +206,13 @@ export function DefaultModels({ config }: { config: ModelConfig }) {
         emptyText="至少选一个"
       />
       <OrderedPicker
-        title="重排模型"
-        hint="知识库检索后按相关度重新排序，让最相关的内容排在前面。可以不选，不选就按向量相似度排序。"
+        title="重排"
+        hint="让知识库检索结果更准。可以不选。"
         list={rerank}
         onChange={setRerank}
         options={candidates(config, "rerank")}
         cards={cards}
-        emptyText="不重排"
+        emptyText="不使用"
       />
       <div className="flex flex-wrap justify-end gap-2">
         {!isDefault && defaults.chat.length ? (
@@ -227,7 +224,7 @@ export function DefaultModels({ config }: { config: ModelConfig }) {
               setRerank(defaults.rerank)
             }}
           >
-            恢复默认顺序
+            恢复默认
           </Button>
         ) : null}
         {dirty ? (
@@ -257,7 +254,7 @@ export function DefaultModels({ config }: { config: ModelConfig }) {
             )
           }
         >
-          保存默认模型
+          保存
         </Button>
       </div>
       <div className="border-t border-zinc-100 pt-4">

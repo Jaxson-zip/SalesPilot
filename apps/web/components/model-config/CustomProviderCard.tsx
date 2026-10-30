@@ -129,15 +129,15 @@ function ModelRow({
               {c.label}
             </label>
           ))}
-          <span className="text-zinc-400">点「测试」自动检测；不支持工具调用的不能用作 AI 助手</span>
+          <span className="text-zinc-400">点「测试」自动勾选</span>
         </div>
       ) : row.kind === "embedding" ? (
         <p className="text-xs text-zinc-500">
           {caps.dims
             ? caps.dims === dims
-              ? `向量维度 ${caps.dims}，可以用于知识库`
-              : `向量维度 ${caps.dims}，知识库需要 ${dims} 维，不能用于知识库`
-            : "点「测试」检测向量维度"}
+              ? `${caps.dims} 维，可用于知识库`
+              : `${caps.dims} 维，知识库需要 ${dims} 维，不能用`
+            : "点「测试」检测维度"}
         </p>
       ) : null}
       {row.result ? (
@@ -225,7 +225,7 @@ function CustomForm({
   return (
     <div className="space-y-3">
       {isNew ? (
-        <FormField label="从常用厂商填入" hint={preset?.hint ?? "也可以不选，直接填写下面的内容"}>
+        <FormField label="从常用厂商填入" hint={preset?.hint}>
           <SimpleSelect
             ariaLabel="常用厂商"
             value={preset?.id ?? ""}
@@ -253,7 +253,7 @@ function CustomForm({
           label="标识"
           required
           htmlFor="custom-id"
-          hint={isNew ? "小写字母、数字、短横线；模型在系统里显示为「标识-模型名」，建好后不能改" : "建好后不能改"}
+          hint="英文小写，建好后不能改"
           error={id && !validId(id) ? "2～24 位，小写字母开头，只能有小写字母、数字和短横线" : undefined}
         >
           <Input
@@ -286,7 +286,7 @@ function CustomForm({
           label="接口地址"
           required={form.protocol === "openai_compat"}
           htmlFor="custom-base"
-          hint={form.protocol === "native" ? "原生适配一般不用填" : "一般以 /v1 结尾，以厂商文档为准"}
+          hint={form.protocol === "native" ? "原生适配一般不用填" : undefined}
         >
           <Input
             id="custom-base"
@@ -350,7 +350,7 @@ function CustomForm({
             onClick={() =>
               ask({
                 title: `删除「${p.name}」？`,
-                description: "删除后它的模型不再可用；默认模型里用到的会自动去掉，排在后面的备用模型顶上。",
+                description: "它的模型会从主备顺序里去掉。",
                 confirmLabel: "删除",
                 destructive: true,
                 onConfirm: () => remove.mutate(p.id, { onSuccess: onDone }),

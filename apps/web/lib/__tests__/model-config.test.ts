@@ -2,8 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import type { BuiltinProvider, ModelCard, ModelConfig } from "@/hooks/useModelConfig"
 import {
-  builtinDirty,
-  builtinForm,
+  aiStatus,
   candidates,
   customAlias,
   fromOption,
@@ -83,18 +82,32 @@ describe("模型接入", () => {
     expect(moveItem(["a", "b"], 1, 1)).toEqual(["a", "b"])
   })
 
-  it("内置厂商表单：填了 Key 或改了地址 / 协议才算改动", () => {
-    const form = builtinForm(builtin)
-    expect(form.protocol).toBe("default")
-    expect(builtinDirty(builtin, form)).toBe(false)
-    expect(builtinDirty(builtin, { ...form, key: " sk-new " })).toBe(true)
-    expect(builtinDirty(builtin, { ...form, base: "https://proxy/v1" })).toBe(true)
-    expect(builtinDirty(builtin, { ...form, protocol: "native", adapter: "deepseek" })).toBe(true)
+  it("协议选项：空字符串和 default 互转", () => {
+    expect(toOption("")).toBe("default")
     expect(fromOption(toOption(""))).toBe("")
+    expect(fromOption("native")).toBe("native")
   })
 
   it("Key 来源说明", () => {
-    expect(keySourceText(builtin, () => "10-30 16:00")).toBe("网页填写 · 末 4 位 abcd · 周敏 10-30 16:00 保存")
-    expect(keySourceText({ ...builtin, key_source: "env" }, String)).toBe("服务器 .env 的 DEEPSEEK_API_KEY")
+    expect(keySourceText(builtin)).toBe("已填写 · 末 4 位 abcd")
+    expect(keySourceText({ ...builtin, key_source: "env" })).toBe("用服务器配置的 Key")
+    expect(keySourceText({ ...builtin, key_source: "none" })).toBe("未填写")
+  })
+
+  it("顶部状态：按分组顺序取第一个可用的，其余可用的算备用", () => {
+    const config = {
+      groups: { "chat-agent": ["a", "b", "c"], embed: ["e"], rerank: [] },
+      models: [
+        card("a", "chat", { available: false, provider: "腾讯混元" }),
+        card("b", "chat", { provider: "DeepSeek" }),
+        card("c", "chat", { provider: "通义千问（阿里云百炼）" }),
+        card("e", "embedding", { available: false }),
+      ],
+    } as unknown as ModelConfig
+    expect(aiStatus(config)).toEqual([
+      { label: "对话", value: "DeepSeek", backups: ["通义千问"] },
+      { label: "知识库", value: null, backups: [] },
+      { label: "重排", value: null, backups: [] },
+    ])
   })
 })

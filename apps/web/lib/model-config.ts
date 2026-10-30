@@ -103,30 +103,33 @@ export function sameList(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i])
 }
 
-export interface BuiltinForm {
-  key: string
-  base: string
-  protocol: ProtocolOption
-  adapter: string
+/** Key 来自哪里，一句话 */
+export function keySourceText(p: BuiltinProvider): string {
+  if (p.key_source === "web") return p.tail ? `已填写 · 末 4 位 ${p.tail}` : "已填写"
+  if (p.key_source === "env") return "用服务器配置的 Key"
+  return "未填写"
 }
 
-export function builtinForm(p: BuiltinProvider): BuiltinForm {
-  return { key: "", base: p.base, protocol: toOption(p.protocol), adapter: p.adapter }
+/** 「通义千问（阿里云百炼）」→「通义千问」 */
+export function shortName(label: string): string {
+  return label.replace(/（.*?）|\(.*?\)/g, "").trim()
 }
 
-/** 表单和已保存的不一样（填了新 Key，或者改了地址 / 协议） */
-export function builtinDirty(p: BuiltinProvider, f: BuiltinForm): boolean {
-  if (f.key.trim()) return true
-  if (f.base.trim() !== p.base) return true
-  if (fromOption(f.protocol) !== p.protocol) return true
-  return f.protocol === "native" && f.adapter.trim() !== p.adapter
+export interface StatusLine {
+  label: string
+  /** 正在用的模型（厂商名）；没有可用的为 null */
+  value: string | null
+  /** 排在后面的可用备用模型 */
+  backups: string[]
 }
 
-export function keySourceText(p: BuiltinProvider, time: (iso: string) => string): string {
-  if (p.key_source === "web") {
-    const who = p.saved_by && p.saved_at ? ` · ${p.saved_by} ${time(p.saved_at)} 保存` : ""
-    return `网页填写${p.tail ? ` · 末 4 位 ${p.tail}` : ""}${who}`
+/** 页面顶部的状态：对话、知识库、重排各自现在用谁 */
+export function aiStatus(config: ModelConfig): StatusLine[] {
+  const cards = new Map(config.models.map((m) => [m.alias, m]))
+  const line = (label: string, group: string): StatusLine => {
+    const ready = (config.groups[group] ?? []).map((a) => cards.get(a)).filter((m) => m?.available) as ModelCard[]
+    const names = ready.map((m) => shortName(m.provider))
+    return { label, value: names[0] ?? null, backups: [...new Set(names.slice(1))].filter((n) => n !== names[0]) }
   }
-  if (p.key_source === "env") return `服务器 .env 的 ${p.var}`
-  return "网页和 .env 都没有填写"
+  return [line("对话", "chat-agent"), line("知识库", "embed"), line("重排", "rerank")]
 }

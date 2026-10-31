@@ -145,7 +145,7 @@ export interface OpportunityBrief {
   name: string
   /** 商机预计金额（分） */
   amount?: number | null
-  /** 跟进记录（新的在前） */
+  /** 跟进记录（新的在前）；undefined：没读到，不写这部分 */
   followups?: { content: string; occurred_at: string | null; created_at: string }[]
 }
 
@@ -156,7 +156,8 @@ const MAX_NOTE_CHARS = 300
 export function opportunityPrompt(o: OpportunityBrief): string {
   const lines = [`给「${o.customer}」的「${o.name}」商机出一份方案。`]
   if (o.amount) lines.push(`商机预计金额约 ¥${Math.round(o.amount / 100).toLocaleString("en-US")}。`)
-  const notes = (o.followups ?? []).filter((f) => f.content.trim()).slice(0, MAX_NOTES)
+  if (o.followups === undefined) return lines.join("\n")
+  const notes = o.followups.filter((f) => f.content.trim()).slice(0, MAX_NOTES)
   if (notes.length) {
     lines.push("最近的跟进记录：")
     for (const f of notes) {

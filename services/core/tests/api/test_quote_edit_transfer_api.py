@@ -248,3 +248,25 @@ def test_transfer_errors(client: TestClient, tracker: Tracker) -> None:
     assert client.post(url, json=empty, headers=MANAGER_H).json()["code"] == 40001
     # 失败的请求不会转移任何东西
     assert client.get(f"/api/customers/{customer['id']}", headers=SALES_H).json()["code"] == 0
+
+
+def test_lowered_unit_price_counts_as_discount(client: TestClient, tracker: Tracker) -> None:
+    """单价压低、折扣填 0 也算折扣：按目录价比，超出销售权限（10%）要审批，不能绕过。"""
+    opp = new_opp(client, tracker)
+    body = {
+        "opportunity_id": opp["id"],
+        "pack": "llm_deploy",
+        "items": [
+            # 目录价 26.2 万，压到 22 万；加一项高毛利的服务费让毛利达标，只剩折扣这一条
+            {"sku": "SRV-L20-4", "qty": 1, "unit_price": 22_000_000},
+            {"sku": "extra-consult", "qty": 1, "name": "咨询服务", "unit_price": 10_000_000},
+        ],
+        "discount_rate": 0,
+    }
+    q = client.post("/api/quotes", json=body, headers=SALES_H).json()["data"]
+    tracker.quotes.append(uuid.UUID(q["id"]))
+    res = act(client, q["id"], "submit")["data"]
+    assert res["status"] == "pending_approval"
+    detail = client.get(f"/api/quotes/{q['id']}", headers=SALES_H).json()["data"]
+    reason = detail["approvals"][0]["reason"]
+    assert "折扣 11.6% 超出销售权限" in reason and "毛利" not in reason

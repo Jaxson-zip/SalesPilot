@@ -8,6 +8,7 @@ import {
   ExternalLink,
   FilePlus,
   FileText,
+  Loader2,
   Lock,
   NotebookPen,
   Package,
@@ -327,7 +328,9 @@ export function OpportunitySheet({
   const o = detail.data ?? opp
   const [pasting, setPasting] = useState(false)
   // 出方案直接发给 AI：带上这个商机的跟进记录（没有就用这个客户最近的）
-  const followups = useFollowups(o?.customer.id ?? "", 30).data ?? []
+  // 跟进记录还没读到时按钮先转圈，免得发出「还没有跟进记录」；读失败就不带这部分
+  const notes = useFollowups(o?.customer.id ?? "", 30)
+  const followups = notes.data ?? []
   const forOpp = followups.filter((f) => f.opportunity_id === o?.id)
   const solutionHref = o
     ? aiPrefillHref(
@@ -335,7 +338,7 @@ export function OpportunitySheet({
           customer: o.customer.name,
           name: o.name,
           amount: o.amount,
-          followups: forOpp.length ? forOpp : followups.filter((f) => !f.opportunity_id),
+          followups: notes.isError ? undefined : forOpp.length ? forOpp : followups.filter((f) => !f.opportunity_id),
         }),
         o.id,
         true,
@@ -369,7 +372,12 @@ export function OpportunitySheet({
                 </Link>
               </Button>
             ) : null}
-            {editable ? (
+            {editable && notes.isPending ? (
+              <Button disabled>
+                <Loader2 className="animate-spin" />
+                出方案
+              </Button>
+            ) : editable ? (
               <Button asChild>
                 <Link href={solutionHref}>
                   <Sparkles />

@@ -35,7 +35,7 @@ from app.crm.services import (
 )
 from app.crm.services.codes import LOCAL_TZ, local_today, next_code
 from app.crm.services.opportunity_service import apply_stage, get_owned
-from app.packs.base import SolutionTier
+from app.packs.base import Catalog, SolutionTier
 from app.packs.registry import get_pack
 from app.rules import (
     CommissionLine,
@@ -215,13 +215,28 @@ def _check_transition(quote: Quote, action: str) -> None:
         )
 
 
-def approval_reasons(quote: Quote, items: list[QuoteItem], rules: RuleSet) -> list[str]:
-    """返回触发审批的规则说明；空列表表示无需审批。"""
+def catalog_prices(pack: str) -> dict[str, int]:
+    """行业包产品目录的售价（含管理员在网页上改过的），sku → 分；没有目录返回空。"""
+    path = get_pack(pack).path / "catalog.json"
+    if not path.exists():
+        return {}
+    return {i.sku: i.price for i in Catalog.from_file(path, scope=pack).all()}
+
+
+def approval_reasons(
+    quote: Quote, items: list[QuoteItem], rules: RuleSet, base: dict[str, int] | None = None
+) -> list[str]:
+    """返回触发审批的规则说明；空列表表示无需审批。
+
+    折扣按目录价算（base：sku → 目录价）：单价可以手改，只按改后的单价算的话，
+    把单价压低、折扣填 0 就能绕过折扣权限。目录外的额外费用按它自己的单价。
+    """
     reasons: list[str] = []
     margin = check_margin(quote.total_cost, quote.total_price, rules)
     if not margin.passed:
         reasons.append(margin.reason)
-    list_price = sum(i.unit_price * i.qty for i in items)
+    base = base or {}
+    list_price = sum(base.get(i.sku, i.unit_price) * i.qty for i in items)
     if list_price > 0 and not check_discount(list_price, quote.total_price, rules):
         discount = (list_price - quote.total_price) / list_price
         reasons.append(f"折扣 {discount:.1%} 超出销售权限 {rules.discount.max_rate:.0%}")
@@ -230,7 +245,7 @@ def approval_reasons(quote: Quote, items: list[QuoteItem], rules: RuleSet) -> li
 
 def _submit(db: Session, user: CurrentUser, quote: Quote) -> str:
     items = quote_query.items_of(db, quote.id)
-    reasons = approval_reasons(quote, items, rules_for(quote))
+    reasons = approval_reasons(quote, items, rules_for(quote), catalog_prices(quote.pack))
     if not reasons:
         quote.status = "approved"
         return "提交报价单，规则校验通过，自动审批"

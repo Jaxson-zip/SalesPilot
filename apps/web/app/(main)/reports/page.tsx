@@ -29,6 +29,7 @@ import {
 } from "@/hooks/useReports"
 import { usePushFlags, usePushSummary, useRemindReports } from "@/hooks/useWecom"
 import { useUnsavedGuard } from "@/hooks/useUnsavedGuard"
+import { restorable } from "@/lib/report-backup"
 import { copyText } from "@/lib/clipboard"
 import { LEAVE_REPORT_CONFIRM, REDRAFT_REPORT_CONFIRM } from "@/lib/confirm-texts"
 import { readStorage, writeStorage } from "@/lib/storage"
@@ -153,9 +154,10 @@ function MyReport() {
   const saved = q.data?.content
   useEffect(() => {
     if (!userId || saved === undefined) return
-    const backup = readStorage(backupKey(userId, date))
-    if (backup === null) return
-    if (backup === saved) return writeStorage(backupKey(userId, date), null)
+    const raw = readStorage(backupKey(userId, date))
+    if (raw === null) return
+    const backup = restorable(raw, saved)
+    if (backup === null) return writeStorage(backupKey(userId, date), null)
     setEdits((e) => (e[date] === undefined ? { ...e, [date]: backup } : e))
     setRestored(date)
   }, [userId, date, saved])
@@ -164,7 +166,7 @@ function MyReport() {
     if (!userId || saved === undefined) return
     const text = edits[date]
     if (text === undefined) return
-    writeStorage(backupKey(userId, date), text === saved ? null : text)
+    writeStorage(backupKey(userId, date), text === saved ? null : JSON.stringify({ text, base: saved }))
   }, [userId, date, saved, edits])
 
   const { ask, dialog } = useConfirmAction()

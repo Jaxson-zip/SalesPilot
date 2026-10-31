@@ -9,6 +9,7 @@ import { ModeSwitch } from "@/components/agent/ModeSwitch"
 import { UserMsg } from "@/components/agent/UserMsg"
 import { useMyRatings, useRate } from "@/hooks/useAiFeedback"
 import type { AgentMode } from "@/lib/agent-mode"
+import { feedbackSlots } from "@/lib/agent-feedback"
 import type { AssistantTurn, ChatTurn } from "@/lib/agent-reducer"
 import type { QtyEdits } from "@/lib/bom-adjust"
 import { cn } from "@/lib/utils"
@@ -89,16 +90,9 @@ export function ChatView({
   const learn = mode === "learn"
   const ratings = useMyRatings(threadId).data
   const rate = useRate(threadId, mode)
-  // 每条 AI 回复在会话里的序号和对应的提问（存反馈时带上，方便复盘）
-  const meta = new Map<string, { index: number; question: string }>()
-  let aiIndex = 0
-  let question = ""
-  for (const t of turns) {
-    if (t.role === "user") question = t.text
-    else meta.set(t.id, { index: aiIndex++, question })
-  }
+  const slots = feedbackSlots(turns)
   const feedbackFor = (t: AssistantTurn): MsgFeedback | undefined => {
-    const m = meta.get(t.id)
+    const m = slots.get(t.id)
     if (!threadId || !m) return undefined
     return {
       rating: ratings?.[m.index]?.rating ?? null,

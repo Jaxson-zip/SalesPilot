@@ -89,7 +89,9 @@ describe("商机出方案：直接发给 AI 的内容", () => {
     expect(text).toBe(
       "给「明理律所」的「合同审查」商机出一份方案。\n商机预计金额约 ¥400,000。\n最近的跟进记录：\n- 10-24 要私有化部署，50 人用",
     )
-    expect(opportunityPrompt({ customer: "A", name: "B" })).toContain("缺什么信息请直接问我")
+    expect(opportunityPrompt({ customer: "A", name: "B", followups: [] })).toContain("缺什么信息请直接问我")
+    // 跟进记录没读到：不能说成「还没有跟进记录」
+    expect(opportunityPrompt({ customer: "A", name: "B" })).toBe("给「A」的「B」商机出一份方案。")
     const url = new URL(aiPrefillHref(text, "o1", true), "http://x")
     expect(url.searchParams.get("send")).toBe("1")
     expect(url.searchParams.get("prompt")).toBe(text)

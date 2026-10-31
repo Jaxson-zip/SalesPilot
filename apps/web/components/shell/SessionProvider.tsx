@@ -10,6 +10,7 @@ import {
   DEMO_USERS,
   getStoredProfile,
   getStoredRole,
+  isPublicPath,
   LOGIN_PATH,
   loginUrl,
   logout,
@@ -66,7 +67,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setStored(getStoredProfile())
     const has = Boolean(getToken())
     setAuthed(has)
-    if (!has && pathname !== LOGIN_PATH) router.replace(loginUrl(window.location.pathname + window.location.search))
+    if (!has && !isPublicPath(pathname)) router.replace(loginUrl(window.location.pathname + window.location.search))
   }, [pathname, router])
 
   const enter = useCallback(

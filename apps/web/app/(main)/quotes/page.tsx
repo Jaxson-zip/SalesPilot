@@ -12,6 +12,7 @@ import { QueryError } from "@/components/biz/QueryStatus"
 import { ViewBar, type ViewOption } from "@/components/biz/ViewBar"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
+import { PageTip } from "@/components/onboarding/PageTip"
 import { useFacets } from "@/hooks/useFacets"
 import { useListView } from "@/hooks/useListView"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -22,6 +23,7 @@ import { QUOTE_STATUS_META } from "@/lib/labels"
 import { serverQuery } from "@/lib/list-view"
 import { fetchAllPages, PAGE_SIZE } from "@/lib/paging"
 import { defaultScope, scopeLabel } from "@/lib/views"
+import { PAGE_TIPS } from "@/lib/onboarding"
 import type { QuoteItem, QuoteStatus } from "@/types/api"
 
 import { quoteColumns, quoteCsv, quoteFilters } from "./columns"
@@ -100,6 +102,9 @@ export default function QuotesPage() {
           list={lv.bar}
         />
       )}
+      <PageTip id="quotes" className="mx-3 mt-2">
+        {PAGE_TIPS.quotes}
+      </PageTip>
       {query.isError && !query.data ? (
         <QueryError
           error={query.error}

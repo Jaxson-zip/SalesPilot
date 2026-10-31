@@ -138,6 +138,17 @@ def get_current_user(authorization: Annotated[str | None, Header()] = None) -> C
 CurrentUserDep = Annotated[CurrentUser, Depends(get_current_user)]
 
 
+def get_optional_user(authorization: Annotated[str | None, Header()] = None) -> CurrentUser | None:
+    """公开接口用：带了有效 token 返回登录用户，没带或无效返回 None（不报 401）。"""
+    try:
+        return get_current_user(authorization)
+    except BizError:
+        return None
+
+
+OptionalUserDep = Annotated[CurrentUser | None, Depends(get_optional_user)]
+
+
 def require_roles(*roles: Role) -> object:
     """路由依赖：限制角色，例如审批接口只允许 manager。"""
 

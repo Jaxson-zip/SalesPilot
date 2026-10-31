@@ -26,10 +26,12 @@ from app.crm.models import (
     Customer,
     Expense,
     Followup,
+    Notification,
     Opportunity,
     PaymentPlan,
     Quote,
     QuoteItem,
+    QuoteShare,
     Task,
 )
 from app.crm.services.demo import DEMO_USERS, EXTRA_SALES
@@ -131,6 +133,8 @@ def _purge_quotes(db: Session, ids: list[uuid.UUID]) -> None:
     db.execute(delete(Contract).where(Contract.id.in_(contracts)))
     db.execute(delete(Approval).where(Approval.target_id.in_(ids)))
     db.execute(delete(QuoteItem).where(QuoteItem.quote_id.in_(ids)))
+    db.execute(delete(QuoteShare).where(QuoteShare.quote_id.in_(ids)))
+    db.execute(delete(Notification).where(Notification.link.in_([f"/quotes/{i}" for i in ids])))
     db.execute(delete(Quote).where(Quote.id.in_(ids)))
 
 

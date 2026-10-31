@@ -14,12 +14,14 @@ import { OpportunitySheet } from "@/components/pipeline/OpportunitySheet"
 import { StageList } from "@/components/pipeline/StageList"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
+import { PageTip } from "@/components/onboarding/PageTip"
 import { useListView } from "@/hooks/useListView"
 import { BOARD_MAX, useBoardOpportunities } from "@/hooks/useOpportunities"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useStageMove } from "@/hooks/useStageMove"
 import { groupByStage, opportunityCsv, opportunityFilters, opportunitySort } from "@/lib/pipeline"
 import { resolveScope, scopeOptions } from "@/lib/views"
+import { PAGE_TIPS } from "@/lib/onboarding"
 import type { OpportunityItem, OpportunityStage } from "@/types/api"
 
 /** 商机看板：≥1024 五列拖拽；<1024 阶段切换 + 单列 */
@@ -113,6 +115,9 @@ export default function PipelinePage() {
         count={filtered ? lv.rows.length : query.data?.total}
         list={lv.bar}
       />
+      <PageTip id="pipeline" className="mx-3 mt-2">
+        {PAGE_TIPS.pipeline}
+      </PageTip>
       {query.data && query.data.total > query.data.items.length ? (
         <p role="status" className="border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
           共 {query.data.total} 个商机，看板只显示最近更新的 {BOARD_MAX} 个。

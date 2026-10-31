@@ -38,6 +38,11 @@ export interface Profile {
 
 export const LOGIN_PATH = "/login"
 
+/** 不需要登录的页面：登录页、发给客户的报价分享页 */
+export function isPublicPath(pathname: string | null): boolean {
+  return pathname === LOGIN_PATH || Boolean(pathname?.startsWith("/share/"))
+}
+
 export const ROLES: Role[] = ["sales", "manager", "admin"]
 
 export function isRole(v: string | null | undefined): v is Role {

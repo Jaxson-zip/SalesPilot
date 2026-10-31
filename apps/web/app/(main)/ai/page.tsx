@@ -10,6 +10,7 @@ import { Composer } from "@/components/agent/Composer"
 import { HistorySheet } from "@/components/agent/HistorySheet"
 import { Welcome } from "@/components/agent/Welcome"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
+import { PageTip } from "@/components/onboarding/PageTip"
 import { useOpportunity } from "@/hooks/useOpportunities"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useDefaultPack, usePackName } from "@/hooks/useProductLines"
@@ -17,6 +18,7 @@ import { DEFAULT_PACK_LABEL } from "@/lib/agent-labels"
 import type { AgentMode } from "@/lib/agent-mode"
 import { takePastedMaterial } from "@/lib/materials"
 import { aiThreadHref } from "@/lib/thread-history"
+import { PAGE_TIPS } from "@/lib/onboarding"
 
 /**
  * 当前会话与地址 `/ai?t=<id>` 同步（会话记录面板里的链接靠地址通信）：
@@ -183,14 +185,21 @@ function AiWorkbench() {
             正在加载会话…
           </div>
         ) : (
-          <Welcome
-            composer={composer(true)}
-            onPick={send}
-            readOnly={!canAiWrite}
-            mode={w.mode}
-            onModeChange={goMode}
-            streamingModes={w.streaming}
-          />
+          <div className="flex min-h-0 flex-1 flex-col">
+            {canAiWrite ? (
+              <PageTip id="ai" className="mx-4 mt-3">
+                {PAGE_TIPS.ai}
+              </PageTip>
+            ) : null}
+            <Welcome
+              composer={composer(true)}
+              onPick={send}
+              readOnly={!canAiWrite}
+              mode={w.mode}
+              onModeChange={goMode}
+              streamingModes={w.streaming}
+            />
+          </div>
         )}
       </div>
     </PageFrame>

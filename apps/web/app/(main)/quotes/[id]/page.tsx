@@ -11,6 +11,7 @@ import { Crumb, FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { RecordTabs } from "@/components/biz/RecordTabs"
 import { QuoteAdjust } from "@/components/quotes/QuoteAdjust"
+import { QuoteShareButton } from "@/components/quotes/QuoteShareButton"
 import { ApprovalRecords, QuoteFields, QuoteTimeline } from "@/components/quotes/QuotePanels"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
@@ -20,6 +21,7 @@ import { useQuote, useQuoteAction } from "@/hooks/useQuotes"
 import { quoteActionConfirm } from "@/lib/confirm-texts"
 import { formatRelative } from "@/lib/format"
 import { availableQuoteActions, primaryQuoteAction, QUOTE_ACTIONS, quoteToBom } from "@/lib/quote-actions"
+import { canShareQuote } from "@/lib/share"
 import type { QuoteAction, QuoteDetail } from "@/types/api"
 
 /** 报价内容变化（保存调整后后端重新计算）时重新挂载调价面板 */
@@ -152,6 +154,7 @@ export default function QuoteDetailPage() {
         q ? (
           <>
             <FrameAction icon={Printer} label="打印报价单" href={`/quotes/${encodeURIComponent(q.id)}/print`} />
+            {canEdit(q.owner?.id) && canShareQuote(q.status) ? <QuoteShareButton q={q} /> : null}
             {buttons}
             {q && q.status === "pending_approval" && canEdit(q.owner?.id) ? (
               <RemindButton targetType="quote" targetId={q.id} />

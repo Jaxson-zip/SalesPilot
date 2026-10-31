@@ -110,3 +110,17 @@ class Commission(OwnedMixin, Base):
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
     estimated: Mapped[int] = mapped_column(BigInteger, default=0)
     confirmed: Mapped[int] = mapped_column(BigInteger, default=0)
+
+
+class QuoteShare(TimestampMixin, Base):
+    """报价分享链接：甲方不用登录，凭 token 只读查看（不含成本、毛利）。撤销或过期后打不开。"""
+
+    __tablename__ = "quote_shares"
+
+    quote_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("quotes.id"), index=True)
+    token: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    view_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    last_viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

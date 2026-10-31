@@ -20,6 +20,7 @@ const META: Record<string, { label: string; tone: NotificationTone }> = {
   opportunity_stale: { label: "商机停滞", tone: "task" },
   report_remind: { label: "日报提醒", tone: "task" },
   customer_recycled: { label: "退回公海", tone: "assign" },
+  quote_viewed: { label: "客户在看报价", tone: "task" },
 }
 
 export function notificationMeta(type: string): { label: string; tone: NotificationTone } {

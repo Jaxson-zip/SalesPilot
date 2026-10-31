@@ -1127,6 +1127,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/onboarding": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Get Onboarding
+     * @description 工作台的上手清单：按角色给步骤，做没做完按真实数据判断。
+     */
+    get: operations["get_onboarding_api_onboarding_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/activities": {
     parameters: {
       query?: never
@@ -1461,6 +1481,48 @@ export interface paths {
     put?: never
     /** Reject Quote */
     post: operations["reject_quote_api_quotes__quote_id__reject_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/quotes/{quote_id}/share": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get Share */
+    get: operations["get_share_api_quotes__quote_id__share_get"]
+    put?: never
+    /**
+     * Create Share
+     * @description 已审批的报价会同时记为「已发送客户」（不可逆，前端先确认）。
+     */
+    post: operations["create_share_api_quotes__quote_id__share_post"]
+    /** Revoke Share */
+    delete: operations["revoke_share_api_quotes__quote_id__share_delete"]
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/public/quotes/{token}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Public Quote
+     * @description 不需要登录：链接无效、撤销、过期都返回 40401。登录着的自己人预览不算客户打开。
+     */
+    get: operations["public_quote_api_public_quotes__token__get"]
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -2928,6 +2990,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[Onboarding] */
+    ApiResponse_Onboarding_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["Onboarding"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[OpportunityDetail] */
     ApiResponse_OpportunityDetail_: {
       /**
@@ -3289,6 +3370,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[PublicQuote] */
+    ApiResponse_PublicQuote_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["PublicQuote"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[PushOut] */
     ApiResponse_PushOut_: {
       /**
@@ -3321,6 +3421,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["QuoteDetail"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[QuoteShareOut] */
+    ApiResponse_QuoteShareOut_: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["QuoteShareOut"] | null
       /**
        * Request Id
        * @default
@@ -3644,6 +3763,25 @@ export interface components {
        */
       message: string
       data: components["schemas"]["PrdOut"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[Union[QuoteShareOut, NoneType]] */
+    ApiResponse_Union_QuoteShareOut__NoneType__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["QuoteShareOut"] | null
       /**
        * Request Id
        * @default
@@ -6011,6 +6149,31 @@ export interface components {
       /** Respond */
       respond: string
     }
+    /** Onboarding */
+    Onboarding: {
+      /** Steps */
+      steps: components["schemas"]["OnboardingStep"][]
+      /** Done */
+      done: number
+      /** Total */
+      total: number
+    }
+    /** OnboardingStep */
+    OnboardingStep: {
+      /**
+       * Key
+       * @enum {string}
+       */
+      key: "model" | "pricing" | "customer" | "followup" | "solution" | "share"
+      /** Title */
+      title: string
+      /** Detail */
+      detail: string
+      /** Href */
+      href: string
+      /** Done */
+      done: boolean
+    }
     /** OppBrief */
     OppBrief: {
       /**
@@ -6569,6 +6732,86 @@ export interface components {
       /** Prompt */
       prompt: string
     }
+    /** PublicQuote */
+    PublicQuote: {
+      /** Code */
+      code: string
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "draft" | "pending_approval" | "approved" | "sent" | "accepted" | "rejected"
+      /** Customer Name */
+      customer_name: string | null
+      /** Opportunity Name */
+      opportunity_name: string | null
+      /** Tier Name */
+      tier_name: string
+      /** Owner Name */
+      owner_name: string | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+      /**
+       * Valid Until
+       * Format: date
+       */
+      valid_until: string
+      /** Items */
+      items: components["schemas"]["PublicQuoteLine"][]
+      /** List Price */
+      list_price: number
+      /** Discount Rate */
+      discount_rate: number
+      /** Total Price */
+      total_price: number
+      /**
+       * Client Costs
+       * @default []
+       */
+      client_costs: components["schemas"]["ClientCost"][]
+      scope: components["schemas"]["PublicScope"] | null
+      /**
+       * Terms
+       * @default []
+       */
+      terms: string[]
+    }
+    /** PublicQuoteLine */
+    PublicQuoteLine: {
+      /** Name */
+      name: string
+      /** Unit */
+      unit: string
+      /** Qty */
+      qty: number
+      /** Unit Price */
+      unit_price: number
+      /** Subtotal Price */
+      subtotal_price: number
+      /** Category */
+      category: string
+    }
+    /**
+     * PublicScope
+     * @description 需求清单里给甲方看的部分：交付端、功能模块名、交付方式（只有软件外包这类行业包有）。
+     */
+    PublicScope: {
+      /**
+       * Platforms
+       * @default []
+       */
+      platforms: string[]
+      /**
+       * Modules
+       * @default []
+       */
+      modules: string[]
+      /** Team Size */
+      team_size: number | null
+    }
     /** PushIn */
     PushIn: {
       /** Content */
@@ -6752,6 +6995,30 @@ export interface components {
        */
       source: "agent" | "manual"
       owner: components["schemas"]["UserBrief"] | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
+    /**
+     * QuoteShareOut
+     * @description 负责人看到的分享状态：链接路径、有效期、甲方打开次数。
+     */
+    QuoteShareOut: {
+      /** Token */
+      token: string
+      /** Path */
+      path: string
+      /**
+       * Expires At
+       * Format: date-time
+       */
+      expires_at: string
+      /** View Count */
+      view_count: number
+      /** Last Viewed At */
+      last_viewed_at: string | null
       /**
        * Created At
        * Format: date-time
@@ -10196,6 +10463,37 @@ export interface operations {
       }
     }
   }
+  get_onboarding_api_onboarding_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_Onboarding_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
   list_activities_api_activities_get: {
     parameters: {
       query?: {
@@ -10981,6 +11279,138 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_QuoteDetail_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  get_share_api_quotes__quote_id__share_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        quote_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_Union_QuoteShareOut__NoneType__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  create_share_api_quotes__quote_id__share_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        quote_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_QuoteShareOut_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  revoke_share_api_quotes__quote_id__share_delete: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        quote_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_NoneType_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  public_quote_api_public_quotes__token__get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        token: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_PublicQuote_"]
         }
       }
       /** @description Validation Error */

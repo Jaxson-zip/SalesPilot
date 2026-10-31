@@ -17,6 +17,7 @@ from app.crm.models.sales import (
     PaymentPlan,
     Quote,
     QuoteItem,
+    QuoteShare,
 )
 from app.crm.models.target import SalesTarget
 from app.crm.models.usage import AiUsage
@@ -48,6 +49,7 @@ __all__ = [
     "ProductLine",
     "Quote",
     "QuoteItem",
+    "QuoteShare",
     "SalesTarget",
     "ScheduledJob",
     "Task",

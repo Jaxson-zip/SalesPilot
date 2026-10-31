@@ -1,4 +1,5 @@
 import type { SourceRef } from "@/types/api"
+import { safeHref } from "@/lib/safe-url"
 
 /** 参考来源（RAG 引用） */
 export function Sources({ sources }: { sources: SourceRef[] }) {
@@ -16,10 +17,11 @@ export function Sources({ sources }: { sources: SourceRef[] }) {
         )
         // 没有链接的来源只是标签，不给 hover 效果（避免看起来能点）
         const cls = "inline-flex h-6 max-w-full items-center gap-1 rounded-md bg-zinc-100 px-2 text-zinc-600"
-        return s.url ? (
+        const href = safeHref(s.url)
+        return href ? (
           <a
             key={`${s.title}-${i}`}
-            href={s.url}
+            href={href}
             target="_blank"
             rel="noreferrer"
             className={`${cls} hover:bg-zinc-200`}

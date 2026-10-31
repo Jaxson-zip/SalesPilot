@@ -13,6 +13,7 @@ const EVENT_NAMES: ReadonlySet<string> = new Set<AgentEventName>([
   "interrupt",
   "artifact",
   "message.delta",
+  "message.replace",
   "done",
   "error",
 ])

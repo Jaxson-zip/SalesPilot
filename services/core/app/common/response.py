@@ -1,6 +1,7 @@
 """统一响应 {code, message, data, request_id} 与全局异常处理器。"""
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -48,10 +49,19 @@ async def _biz_error_handler(_: Request, exc: Exception) -> JSONResponse:
 
 async def _validation_handler(_: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, RequestValidationError)
-    errors = [
-        {"loc": [str(p) for p in e.get("loc", ())], "msg": e.get("msg", "")} for e in exc.errors()
-    ]
-    return error_response(ErrorCode.VALIDATION, "参数校验失败", {"errors": errors})
+    errors = [{"loc": [str(p) for p in e.get("loc", ())], "msg": _msg(e)} for e in exc.errors()]
+    # 自己写的中文校验（「客户名称不能为空」）直接当提示语，前端不用再拼字段名
+    own = next((e["msg"] for e in errors if _is_chinese(e["msg"])), None)
+    return error_response(ErrorCode.VALIDATION, own or "参数校验失败", {"errors": errors})
+
+
+def _msg(e: Mapping[str, Any]) -> str:
+    msg = str(e.get("msg", ""))
+    return msg.removeprefix("Value error, ") if e.get("type") == "value_error" else msg
+
+
+def _is_chinese(text: str) -> bool:
+    return any("\u4e00" <= c <= "\u9fff" for c in text)
 
 
 _HTTP_TO_CODE: dict[int, ErrorCode] = {

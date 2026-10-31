@@ -20,6 +20,7 @@ import {
   type ExpenseFormErrors,
   type ExpenseFormValues,
 } from "@/lib/expense"
+import { localDate } from "@/lib/format"
 import { EXPENSE_TYPE_META } from "@/lib/labels"
 import type { CustomerBrief, ExpenseTemplate, ExpenseType } from "@/types/api"
 
@@ -202,7 +203,12 @@ export function ExpenseForm({
           />
         </FormField>
         <FormField label="发生日期" required error={errors.occurred_on}>
-          <DatePicker value={values.occurred_on} onChange={(d) => onChange("occurred_on", d)} ariaLabel="发生日期" />
+          <DatePicker
+            value={values.occurred_on}
+            onChange={(d) => onChange("occurred_on", d)}
+            ariaLabel="发生日期"
+            max={localDate()}
+          />
         </FormField>
       </div>
       <TripFields

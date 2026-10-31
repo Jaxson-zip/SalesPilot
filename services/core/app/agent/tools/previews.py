@@ -21,6 +21,8 @@ from app.rules.calculators import stay_nights
 
 logger = logging.getLogger("core.agent")
 
+FOLLOWUP_TYPE_LABELS = {"phone": "电话", "visit": "拜访", "wechat": "微信", "email": "邮件"}
+
 TASK_TYPE_LABELS = {
     "call": "电话",
     "visit": "拜访",
@@ -164,6 +166,12 @@ BUILDERS: dict[str, Callable[[ToolContext, dict[str, Any]], dict[str, Any]]] = {
     "create_task": _task,
     "decide_approval": _approval,
     "digest_material": _digest,
+    "add_followup": lambda ctx, a: {
+        "customer_name": _customer_name(ctx, a.get("customer_id")),
+        "opportunity_name": _opportunity_name(ctx, a.get("opportunity_id")),
+        "followup_type": FOLLOWUP_TYPE_LABELS.get(a.get("type") or "phone"),
+        "followup": a.get("content"),
+    },
 }
 
 

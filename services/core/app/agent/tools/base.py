@@ -55,6 +55,11 @@ class ToolSpec:
     write: bool = False
     needs_confirm: bool = False
 
+    def __post_init__(self) -> None:
+        # 所有写工具统一走「准备 → 确认 → 执行」：不允许出现不用确认就能写库的工具
+        if self.write and not self.needs_confirm:
+            raise ValueError(f"写工具 {self.name} 必须 needs_confirm=True")
+
     def openai_schema(self) -> dict[str, Any]:
         """给 bind_tools 用的 OpenAI function 定义；系统注入的字段（INJECTED_ARGS）不暴露给模型。"""
         schema = self.args_model.model_json_schema()

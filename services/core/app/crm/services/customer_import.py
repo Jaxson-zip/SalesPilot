@@ -27,6 +27,7 @@ from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_business_writer
 from app.crm.models import Contact, Customer, User
 from app.crm.schemas.dashboard import CONTACT_ROLE_LABELS
+from app.crm.schemas.fields import WEBSITE_ERROR, normalize_website, phone_error
 from app.crm.services import activity_service, notification_service
 from app.crm.services.customer_service import core_name, similar_names
 
@@ -196,6 +197,10 @@ def _check(p: _Parsed) -> None:
     has_contact_detail = any(v.get(k) for k in ("contact_title", "contact_phone", "contact_role"))
     if has_contact_detail and not v.get("contact_name"):
         p.errors.append("填了联系人信息但没有联系人姓名")
+    if v.get("contact_phone") and (err := phone_error(v["contact_phone"])):
+        p.errors.append(err)
+    if v.get("website") and normalize_website(v["website"]) is None:
+        p.errors.append(WEBSITE_ERROR)
 
 
 def _owners(db: Session, user: CurrentUser) -> dict[str, User]:
@@ -318,7 +323,7 @@ def _create(db: Session, user: CurrentUser, plan: list[tuple[_Parsed, Owner]]) -
             level=(v.get("level") or "C").upper(),
             size=v.get("size") or None,
             address=v.get("address") or None,
-            website=v.get("website") or None,
+            website=normalize_website(v["website"]) if v.get("website") else None,
             annual_budget=budget,
             tags=[t[:50] for t in tags],
             owner_id=owner_id,

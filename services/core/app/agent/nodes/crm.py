@@ -1,7 +1,7 @@
-"""CRM 动作的规则兜底：没有可用模型时，按关键词选择只读 / 低风险工具。
+"""CRM 动作的规则兜底：没有可用模型时，按关键词选择只读工具。
 
-正常情况下由 nodes/tool_loop.py 的 function calling 循环处理；这里只覆盖查客户、记跟进、
-漏斗统计、查制度，需要确认的写操作不走规则（避免关键词误判后写库）。
+正常情况下由 nodes/tool_loop.py 的 function calling 循环处理；这里只覆盖查客户、
+漏斗统计、查制度。写操作（包括记跟进）都要用户确认，规则兜底一律不写库。
 """
 
 from typing import Any
@@ -17,19 +17,12 @@ def plan_tools(text: str) -> list[str]:
         return ["search_policy"]
     if any(w in text for w in ("漏斗", "商机统计", "管道")):
         return ["pipeline_summary"]
-    steps = ["search_customer"]
-    if any(w in text for w in ("跟进", "记一下", "记录")):
-        steps.append("add_followup")
-    return steps
+    return ["search_customer"]
 
 
 def _args_for(name: str, text: str, state: AgentState, found: list[dict[str, Any]]) -> dict | None:
     if name == "search_customer":
         return {"keyword": text[:200]}
-    if name == "add_followup":
-        if len(found) != 1:
-            return None  # 没有唯一匹配的客户时不写入，交给用户确认
-        return {"customer_id": found[0]["id"], "content": text, "type": "phone"}
     if name == "search_policy":
         return {"query": text[:500], "pack_id": state.get("pack_id")}
     return {}

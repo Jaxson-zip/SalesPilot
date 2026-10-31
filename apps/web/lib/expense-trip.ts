@@ -2,7 +2,7 @@
  * 差旅报销的补充信息（v4）：交通填行程，住宿填城市和入住 / 离店日期。
  * 与后端 app/crm/services/expense_details.py 同一套规则；是否超标仍以后端校验为准。
  */
-import { formatFen } from "@/lib/format"
+import { formatFen, localDate } from "@/lib/format"
 import { yuanToFen } from "@/lib/money"
 import type { ExpenseDetails, ExpenseTemplate, ExpenseType, TransportMode } from "@/types/api"
 
@@ -58,6 +58,7 @@ export function tripErrors(type: ExpenseType, t: TripValues): TripErrors {
     const nights = nightsBetween(t.check_in, t.check_out)
     if (nights < 1) errors.check_out = "离店日期要晚于入住日期"
     else if (nights > MAX_NIGHTS) errors.check_out = `单张报销最多 ${MAX_NIGHTS} 晚，请分开报销`
+    else if (t.check_out > localDate()) errors.check_out = "离店日期不能晚于今天，住完再报销"
   }
   return errors
 }

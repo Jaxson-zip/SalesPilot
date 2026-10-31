@@ -20,6 +20,7 @@ const BAR: Record<OpportunityStage, string> = {
 export function FunnelChart({ stages, loading }: { stages: FunnelStage[] | undefined; loading?: boolean }) {
   const rows = normalizeFunnel(stages ?? [])
   const widths = funnelWidths(rows)
+  const won = rows.find((s) => s.stage === "won")
   return (
     <div className="min-w-0 rounded-lg border border-zinc-200 lg:col-span-2">
       <div className="flex h-10 items-center justify-between border-b border-zinc-100 px-4">
@@ -50,6 +51,11 @@ export function FunnelChart({ stages, loading }: { stages: FunnelStage[] | undef
             )}
           </div>
         ))}
+        {!loading && won?.unsigned_count ? (
+          <p className="text-xs text-amber-700">
+            赢单里有 {won.unsigned_count} 个还没签合同（{formatFen(won.unsigned_amount ?? 0)}），不计入本月成交
+          </p>
+        ) : null}
       </div>
     </div>
   )

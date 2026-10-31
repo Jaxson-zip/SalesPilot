@@ -16,6 +16,7 @@ from app.crm.services import (
     approval_service,
     competitor_service,
     contact_service,
+    customer_service,
     intel_service,
     meddic_service,
 )
@@ -27,13 +28,30 @@ class CustomerContextArgs(BaseModel):
 
 
 def get_customer_context(ctx: ToolContext, args: CustomerContextArgs) -> ToolResult:
-    """客户的商机（含阶段、金额、下一步）和联系人；权限与接口一致（看不到的客户返回 40401）。"""
+    """客户资料（等级、行业、规模、预算等，和客户详情页同源）、商机（含阶段、金额、下一步）和联系人；
+    权限与接口一致（看不到的客户返回 40401）。"""
     with ctx.session() as db:
+        customer = customer_service.get_customer(db, ctx.user, args.customer_id)
         contacts = contact_service.list_contacts(db, ctx.user, args.customer_id).items
         opps = opp_service.list_opportunities(
             db, ctx.user, None, PageParams(page=1, page_size=20), customer_id=args.customer_id
         ).items
     data = {
+        # 字段值为 null 才是「没填」；这里没有的字段说明工具没返回，不能当成没维护
+        "customer": {
+            "name": customer.name,
+            "level": customer.level,
+            "industry": customer.industry,
+            "size": customer.size,
+            "address": customer.address,
+            "website": customer.website,
+            "annual_budget": customer.annual_budget,
+            "tags": customer.tags,
+            "owner": customer.owner.name if customer.owner else None,
+            "last_followup_at": (
+                customer.last_followup_at.isoformat() if customer.last_followup_at else None
+            ),
+        },
         "opportunities": [
             {
                 "id": str(o.id),
@@ -165,8 +183,9 @@ CONTEXT_TOOLS: list[ToolSpec] = [
     ),
     ToolSpec(
         "get_customer_context",
-        "查询客户的商机（id、阶段、金额、下一步）和联系人（id、姓名、职务）。"
-        "修改商机阶段、报销选参与人、建任务之前先调用它拿到 id",
+        "查询客户资料（等级、行业、规模、地址、网站、年度预算、负责人）、"
+        "商机（id、阶段、金额、下一步）和联系人（id、姓名、职务）。"
+        "问客户等级等资料、修改商机阶段、报销选参与人、建任务之前先调用它",
         CustomerContextArgs,
         get_customer_context,
     ),

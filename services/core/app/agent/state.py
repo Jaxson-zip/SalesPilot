@@ -45,6 +45,8 @@ class AgentState(TypedDict):
     pending_call: NotRequired[dict[str, Any] | None]  # 等待确认的写操作 {id, name, args, preview}
     tool_rounds: NotRequired[int]
     agent_reply: NotRequired[str | None]  # 模型在循环里已经流式输出的回复，respond 不再重复生成
+    # 确认后写操作的执行结果 {action, status: done/failed/cancelled, summary, href}
+    action_result: NotRequired[dict[str, Any] | None]
 
 
 def turn_reset() -> dict[str, Any]:
@@ -66,4 +68,5 @@ def turn_reset() -> dict[str, Any]:
         "pending_call": None,
         "tool_rounds": 0,
         "agent_reply": None,
+        "action_result": None,
     }

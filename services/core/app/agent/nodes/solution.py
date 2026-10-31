@@ -402,7 +402,7 @@ def make_save_quote(deps: AgentDeps) -> Node:
             "customer_id": state.get("customer_id"),
             "idempotency_key": key,
         }
-        result = call_tool(deps, "generate_quote", args)
+        result = call_tool(deps, "generate_quote", args, confirmed=True)  # confirm 节点之后
         log = log_tool(state, "generate_quote", result)
         if not result.ok:
             return {"error": tool_error(result), "tool_log": log}

@@ -10,6 +10,7 @@ from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
+from app.agent.action_result import contradicts, status_text
 from app.agent.deps import AgentDeps
 from app.agent.nodes.common import emit, node_start, now_iso
 from app.agent.nodes.solution import recommended_tier
@@ -94,6 +95,8 @@ def turn_artifacts(state: Mapping[str, Any]) -> list[dict[str, Any]]:
         arts.append({"type": "bom", "data": recommended_tier(tiers)})
     if quote := state.get("quote"):
         arts.append({"type": "quote", "data": quote})
+    if res := state.get("action_result"):
+        arts.append({"type": "action_result", "data": res})
     refs = [r for e in state.get("tool_log") or [] for r in e.get("sources", [])]
     if refs:
         unique = list({r["title"]: r for r in refs}.values())
@@ -210,8 +213,14 @@ def make_explain(deps: AgentDeps) -> Node:
 def make_respond(deps: AgentDeps) -> Node:
     def respond(state: AgentState) -> dict[str, Any]:
         node_start("respond")
+        res = state.get("action_result")
+        reply = state.get("agent_reply")
+        if res and (not reply or contradicts(reply, res)):
+            # 确认后的写操作：按执行状态回复（模型没说话，或已写入却还在让用户确认）
+            reply = status_text(res)
+            emit("message.replace", {"text": reply})
         # function calling 循环里模型已经流式输出过回复，直接保存，不再生成第二遍
-        if reply := state.get("agent_reply"):
+        if reply:
             extra = {"artifacts": turn_artifacts(state), "created_at": now_iso()}
             return {"messages": [AIMessage(content=reply, additional_kwargs=extra)]}
         draft = template_reply(state)

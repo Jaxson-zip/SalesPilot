@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.crm.schemas.common import UserBrief
+from app.crm.schemas.fields import CustomerName, Website
 
 Level = Literal["A", "B", "C"]
 
@@ -31,12 +32,12 @@ class CustomerDetail(CustomerListItem):
 
 
 class CustomerCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=200)
+    name: CustomerName
     industry: str | None = Field(default=None, max_length=50)
     level: Level = "C"
     size: str | None = Field(default=None, max_length=50)
     address: str | None = Field(default=None, max_length=200)
-    website: str | None = Field(default=None, max_length=200)
+    website: Website = None
     annual_budget: int | None = Field(default=None, ge=0)
     tags: list[str] = Field(default_factory=list, max_length=20)
 
@@ -44,12 +45,12 @@ class CustomerCreate(BaseModel):
 class CustomerUpdate(BaseModel):
     """行内编辑（U10）：只修改传入的字段；name / level 传 null 视为不修改。"""
 
-    name: str | None = Field(default=None, min_length=1, max_length=200)
+    name: CustomerName | None = None
     industry: str | None = Field(default=None, max_length=50)
     level: Level | None = None
     size: str | None = Field(default=None, max_length=50)
     address: str | None = Field(default=None, max_length=200)
-    website: str | None = Field(default=None, max_length=200)
+    website: Website = None
     annual_budget: int | None = Field(default=None, ge=0)
 
 
@@ -73,4 +74,5 @@ class CustomerSearchItem(BaseModel):
     id: uuid.UUID
     name: str
     industry: str | None
+    level: str  # 客户等级 A / B / C
     owner: UserBrief | None

@@ -37,8 +37,15 @@ def sources_of(name: str, result: ToolResult) -> list[dict[str, str]]:
     return source_refs(found) if found.found else []
 
 
-def call_tool(deps: AgentDeps, name: str, args: dict[str, Any]) -> ToolResult:
-    result = run_tool(TOOLS[name], deps.ctx, args, emit)
+def call_tool(
+    deps: AgentDeps, name: str, args: dict[str, Any], confirmed: bool = False
+) -> ToolResult:
+    """执行工具。写工具只能在用户确认之后执行（confirmed=True 只由确认后的节点传入），
+    其他路径（规则兜底、模型直接调用）一律拒绝，不写库。"""
+    spec = TOOLS[name]
+    if spec.needs_confirm and not confirmed:
+        return ToolResult(ok=False, summary=f"{name} 是写操作，必须先让用户确认，没有写入任何数据")
+    result = run_tool(spec, deps.ctx, args, emit)
     if refs := sources_of(name, result):
         emit("artifact", {"type": "sources", "data": refs})  # 回复必带出处（架构设计 §5.4）
     return result

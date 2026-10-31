@@ -185,6 +185,7 @@ CRM_TOOLS: list[ToolSpec] = [
         AddFollowupArgs,
         add_followup,
         write=True,
+        needs_confirm=True,
     ),
     ToolSpec(
         "update_opportunity_stage",

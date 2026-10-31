@@ -34,6 +34,11 @@ describe("tripErrors", () => {
     expect(tripErrors("hotel", hotel)).toEqual({})
   })
 
+  it("离店日期不能晚于今天", () => {
+    const r = tripErrors("hotel", { ...hotel, check_in: "2099-01-01", check_out: "2099-01-02" })
+    expect(r.check_out).toBe("离店日期不能晚于今天，住完再报销")
+  })
+
   it("交通和其他类型不校验行程", () => {
     expect(tripErrors("transport", EMPTY_TRIP)).toEqual({})
     expect(tripErrors("entertainment", EMPTY_TRIP)).toEqual({})

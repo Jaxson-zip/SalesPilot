@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.crm.schemas.common import AttachmentOut, CodeRef, CustomerBrief, OppBrief, UserBrief
+from app.crm.schemas.fields import ExpenseReason, PastDate, PlanName
 from app.crm.schemas.quote import ApprovalBrief
 
 # ---------- 合同与提成 ----------
@@ -90,7 +91,7 @@ class InvoiceIn(BaseModel):
 
 
 class PaymentPlanLineIn(BaseModel):
-    name: str = Field(min_length=1, max_length=30)
+    name: PlanName
     amount: int = Field(gt=0)
     due_date: date
 
@@ -179,16 +180,23 @@ class ExpenseCreate(BaseModel):
     type: ExpenseType
     amount: int = Field(gt=0)
     headcount: int | None = Field(default=None, ge=1, le=1000)
-    occurred_on: date
+    occurred_on: PastDate
     participants: str | None = Field(default=None, max_length=500)
     contact_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
     colleague_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
     extra_guests: int = Field(default=0, ge=0, le=500)
     customer_id: uuid.UUID | None = None
     opportunity_id: uuid.UUID | None = None
-    reason: str = Field(min_length=1, max_length=500)
+    reason: ExpenseReason
     idempotency_key: str | None = Field(default=None, min_length=1, max_length=100)
     details: ExpenseDetails | None = None
+
+
+class ExpenseBasics(BaseModel):
+    """提交前复核用：事由去掉空格后必填、发生日期不晚于今天（和新建 / 修改同一套校验）。"""
+
+    reason: ExpenseReason
+    occurred_on: PastDate
 
 
 class PolicyCheck(BaseModel):

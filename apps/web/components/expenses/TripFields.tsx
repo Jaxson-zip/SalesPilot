@@ -3,6 +3,7 @@
 import { DatePicker, FormField, SimpleSelect } from "@/components/biz/FormControls"
 import { Input } from "@/components/ui/input"
 import { hotelSummary, TRANSPORT_MODE_OPTIONS, type TripErrors, type TripValues } from "@/lib/expense-trip"
+import { localDate } from "@/lib/format"
 import type { ExpenseType } from "@/types/api"
 
 /** 差旅交通：出发地 / 目的地 / 交通方式（都是选填，便于核对行程） */
@@ -69,13 +70,19 @@ function HotelFields({
       </FormField>
       <div className="grid grid-cols-2 gap-3">
         <FormField label="入住日期" required error={errors.check_in}>
-          <DatePicker value={trip.check_in} onChange={(d) => onChange({ ...trip, check_in: d })} ariaLabel="入住日期" />
+          <DatePicker
+            value={trip.check_in}
+            onChange={(d) => onChange({ ...trip, check_in: d })}
+            ariaLabel="入住日期"
+            max={localDate()}
+          />
         </FormField>
         <FormField label="离店日期" required error={errors.check_out}>
           <DatePicker
             value={trip.check_out}
             onChange={(d) => onChange({ ...trip, check_out: d })}
             ariaLabel="离店日期"
+            max={localDate()}
           />
         </FormField>
       </div>

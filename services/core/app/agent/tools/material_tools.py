@@ -14,15 +14,16 @@ from sqlalchemy import select
 from app.agent.tools.base import ToolContext, ToolResult, ToolSpec
 from app.crm.models import Contact
 from app.crm.schemas.dashboard import ContactIn, ContactRole
+from app.crm.schemas.fields import ContactName, Phone
 from app.crm.schemas.task import TaskCreate, TaskType
 from app.crm.services import contact_service, followup_service, task_service
 from app.crm.services.followup_service import FollowupCreate
 
 
 class MaterialContact(BaseModel):
-    name: str = Field(min_length=1, max_length=50)
+    name: ContactName
     title: str | None = Field(default=None, max_length=50, description="职务")
-    phone: str | None = Field(default=None, max_length=30)
+    phone: Phone = None
     role: ContactRole | None = Field(
         default=None,
         description="decision_maker 决策人 / influencer 影响者 / technical 技术 / "
@@ -113,7 +114,12 @@ def digest_material(ctx: ToolContext, args: DigestMaterialArgs) -> ToolResult:
         parts.append(f"补充了 {'、'.join(updated)} 的信息")
     if args.next_steps:
         parts.append(f"安排 {len(args.next_steps)} 项下一步")
-    data = {"contacts_added": added, "contacts_updated": updated, "tasks": len(args.next_steps)}
+    data = {
+        "customer_id": str(args.customer_id),
+        "contacts_added": added,
+        "contacts_updated": updated,
+        "tasks": len(args.next_steps),
+    }
     return ToolResult(ok=True, summary="，".join(parts), data=data)
 
 

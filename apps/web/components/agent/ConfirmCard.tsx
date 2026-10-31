@@ -1,8 +1,11 @@
 "use client"
 
-import { CircleCheck, CircleX, ShieldCheck } from "lucide-react"
+import { CircleAlert, CircleCheck, CircleX, ShieldCheck } from "lucide-react"
+import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
+import type { ActionResult } from "@/lib/action-result"
+import { safeHref } from "@/lib/safe-url"
 import type { ResumeDecision } from "@/types/api"
 
 /** 写操作确认卡片（interrupt）：修改（传了 onModify 才显示）/ 取消 / 确认执行 */
@@ -10,6 +13,7 @@ export function ConfirmCard({
   title,
   rows,
   decision,
+  result,
   busy,
   onDecide,
   onModify,
@@ -17,6 +21,8 @@ export function ConfirmCard({
   title: string
   rows: [string, string][]
   decision?: ResumeDecision
+  /** 确认后服务端返回的执行结果：有了就按它显示（已完成 / 失败），没有说明还在执行 */
+  result?: ActionResult | null
   busy?: boolean
   onDecide: (decision: ResumeDecision) => void
   onModify?: () => void
@@ -38,10 +44,12 @@ export function ConfirmCard({
         </dl>
       ) : null}
       <div className="flex justify-end gap-2 px-3.5 pb-3">
-        {decision === "approve" ? (
-          <span className="inline-flex items-center gap-1.5 text-xs text-emerald-700">
+        {result ? (
+          <ResultLine result={result} />
+        ) : decision === "approve" ? (
+          <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
             <CircleCheck className="size-4" />
-            已确认执行
+            已确认，正在执行…
           </span>
         ) : decision === "reject" ? (
           <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
@@ -65,5 +73,36 @@ export function ConfirmCard({
         )}
       </div>
     </div>
+  )
+}
+
+/** 执行结果一行：已完成（带记录入口）/ 没有执行成功 / 已取消 */
+export function ResultLine({ result }: { result: ActionResult }) {
+  if (result.status === "done") {
+    return (
+      <span role="status" className="inline-flex items-center gap-1.5 text-xs text-emerald-700">
+        <CircleCheck className="size-4 shrink-0" />
+        已完成：{result.summary}
+        {safeHref(result.href) ? (
+          <Link href={safeHref(result.href) ?? "/"} className="ml-1 underline underline-offset-2">
+            查看
+          </Link>
+        ) : null}
+      </span>
+    )
+  }
+  if (result.status === "failed") {
+    return (
+      <span role="status" className="inline-flex items-center gap-1.5 text-xs text-red-600">
+        <CircleAlert className="size-4 shrink-0" />
+        没有执行成功：{result.summary}
+      </span>
+    )
+  }
+  return (
+    <span role="status" className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
+      <CircleX className="size-4 shrink-0" />
+      已取消，没有写入数据
+    </span>
   )
 }

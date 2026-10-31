@@ -55,6 +55,9 @@ export interface FunnelStage {
   stage: OpportunityStage
   count: number
   amount: number
+  /** 只有赢单有值：其中还没有合同的（手工标赢单），不计入「本月成交」 */
+  unsigned_count?: number
+  unsigned_amount?: number
 }
 
 export interface DashboardData {

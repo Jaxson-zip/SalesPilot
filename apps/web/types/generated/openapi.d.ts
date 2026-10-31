@@ -6429,6 +6429,16 @@ export interface components {
       count: number
       /** Amount */
       amount: number
+      /**
+       * Unsigned Count
+       * @default 0
+       */
+      unsigned_count: number
+      /**
+       * Unsigned Amount
+       * @default 0
+       */
+      unsigned_amount: number
     }
     /** PipelineSummary */
     PipelineSummary: {

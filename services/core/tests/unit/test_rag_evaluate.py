@@ -68,9 +68,10 @@ def test_qa_set_points_to_existing_documents() -> None:
 def test_auto_ingest_decision() -> None:
     from app.rag.autoload import decide
 
-    assert decide(lambda: False, lambda: True) == "skip_not_empty"
-    assert decide(lambda: True, lambda: False) == "skip_no_embedding"
-    assert decide(lambda: True, lambda: True) == "ingest"
+    # 只要有分区还没入库（例如后加的行业包）就补，不再要求整个知识库为空
+    assert decide(lambda: [], lambda: True) == "skip_up_to_date"
+    assert decide(lambda: ["pack:software_outsourcing"], lambda: False) == "skip_no_embedding"
+    assert decide(lambda: ["pack:software_outsourcing"], lambda: True) == "ingest"
 
 
 def test_rerank_comparison_top1(monkeypatch: pytest.MonkeyPatch) -> None:

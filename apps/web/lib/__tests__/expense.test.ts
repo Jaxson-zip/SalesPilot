@@ -113,6 +113,9 @@ describe("toExpenseCreate", () => {
   })
 
   it("逐项给出错误", () => {
+    const future = toExpenseCreate({ ...base, occurred_on: "2099-01-01", reason: "   " })
+    expect(future.ok).toBe(false)
+    if (!future.ok) expect(future.errors).toMatchObject({ occurred_on: "发生日期不能晚于今天", reason: "请填写事由" })
     const r = toExpenseCreate({ ...base, amount: "0", extra_guests: "-1", occurred_on: "", reason: "" })
     expect(r.ok).toBe(false)
     if (!r.ok) expect(Object.keys(r.errors).sort()).toEqual(["amount", "extra_guests", "occurred_on", "reason"])

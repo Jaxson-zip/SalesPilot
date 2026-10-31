@@ -166,7 +166,8 @@ def check_expense_policy(
     rules: RuleSet | None = None,
     details: Mapping[str, Any] | None = None,
 ) -> ExpenseCheck:
-    """客户招待按人均标准、差旅住宿按每晚标准校验；交通和其他类型不限额（实报实销）。"""
+    """客户招待按人均标准、差旅住宿按每晚标准校验；交通实报实销不限额；
+    「其他」类型制度里没有标准，一律交主管审核，不自动通过。"""
     if amount < 0:
         raise ValueError("金额不能为负数")
     if headcount <= 0:
@@ -174,8 +175,17 @@ def check_expense_policy(
     r = _rules(rules)
     if expense_type == "hotel":
         return _check_hotel(amount, details or {}, r.expense.hotel)
+    if expense_type == "transport":
+        return _no_limit(amount, "交通费实报实销，不设限额")
     if expense_type != "entertainment":
-        return _no_limit(amount, "该类型实报实销，不设限额")
+        return ExpenseCheck(
+            per_person=amount,
+            limit_per_person=0,
+            over_amount=0,
+            need_approval=True,
+            reason="「其他」类费用报销制度里没有标准，需主管审核",
+            rule_ref=r.expense.rule_ref,
+        )
     per_person = amount // headcount
     limit = r.expense.entertainment_per_person
     over = max(0, amount - limit * headcount)

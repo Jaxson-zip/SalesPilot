@@ -328,7 +328,11 @@ def rank_by_similarity(keyword: str, names: list[str], min_overlap: int = 2) -> 
 def _brief(row: Any) -> CustomerSearchItem:
     c: Customer = row.Customer
     return CustomerSearchItem(
-        id=c.id, name=c.name, industry=c.industry, owner=_owner(c, row.owner_name)
+        id=c.id,
+        name=c.name,
+        industry=c.industry,
+        level=c.level,
+        owner=_owner(c, row.owner_name),
     )
 
 

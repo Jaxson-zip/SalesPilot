@@ -11,6 +11,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+from pydantic import ValidationError
 from sqlalchemy import ColumnElement, Select, false, select
 from sqlalchemy.orm import Session
 
@@ -21,6 +22,7 @@ from app.common.scope import View, apply_scope, ensure_visible
 from app.crm.models import Customer, Expense, Opportunity
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.finance import (
+    ExpenseBasics,
     ExpenseCreate,
     ExpenseDetail,
     ExpenseDetails,
@@ -326,6 +328,17 @@ def missing_kinds(db: Session, expense: Expense, rules: RuleSet) -> list[str]:
     return [k for k in rules.expense.kinds_for(expense.type) if k not in have]
 
 
+def ensure_complete(expense: Expense) -> None:
+    """提交（可能自动通过）前再把整单校验一遍：保存时的校验之前没有、或数据是别处写进来的，
+    都在这里拦下，不让空事由、未来日期的报销单自动通过。"""
+    try:
+        ExpenseBasics(reason=expense.reason or "", occurred_on=expense.occurred_on)
+        clean_details(expense.type, ExpenseDetails.model_validate(expense.details or {}))
+    except ValidationError as e:
+        msg = str(e.errors()[0]["msg"]).removeprefix("Value error, ")
+        raise BizError(ErrorCode.VALIDATION, msg, {"errors": [{"msg": msg}]}) from e
+
+
 def submit_expense(
     db: Session, user: CurrentUser, expense_id: uuid.UUID, source: str = "manual"
 ) -> ExpenseDetail:
@@ -335,6 +348,7 @@ def submit_expense(
             ErrorCode.DUPLICATE, "报销单已提交，请勿重复提交", {"status": expense.status}
         )
     again = expense.status == "rejected"
+    ensure_complete(expense)
     rules = load_rules()
     missing = missing_kinds(db, expense, rules)
     if missing:

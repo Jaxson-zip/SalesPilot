@@ -5919,7 +5919,6 @@ components:
         name:
           type: string
           maxLength: 50
-          minLength: 1
           title: Name
         role:
           $ref: '#/components/schemas/Role'
@@ -5996,7 +5995,6 @@ components:
           anyOf:
           - type: string
             maxLength: 50
-            minLength: 1
           - type: 'null'
           title: Name
         role:
@@ -9428,7 +9426,6 @@ components:
         name:
           type: string
           maxLength: 50
-          minLength: 1
           title: Name
         title:
           anyOf:
@@ -9510,7 +9507,6 @@ components:
           anyOf:
           - type: string
             maxLength: 50
-            minLength: 1
           - type: 'null'
           title: Name
         title:
@@ -9880,7 +9876,6 @@ components:
         name:
           type: string
           maxLength: 200
-          minLength: 1
           title: Name
         industry:
           anyOf:
@@ -10076,7 +10071,6 @@ components:
           anyOf:
           - type: string
             maxLength: 200
-            minLength: 1
           - type: 'null'
           title: Name
         industry:
@@ -10449,7 +10443,6 @@ components:
         reason:
           type: string
           maxLength: 500
-          minLength: 1
           title: Reason
         idempotency_key:
           anyOf:
@@ -12103,7 +12096,6 @@ components:
         name:
           type: string
           maxLength: 200
-          minLength: 1
           title: Name
         amount:
           type: integer
@@ -12418,7 +12410,6 @@ components:
           anyOf:
           - type: string
             maxLength: 200
-            minLength: 1
           - type: 'null'
           title: Name
         amount:
@@ -12811,7 +12802,6 @@ components:
         name:
           type: string
           maxLength: 30
-          minLength: 1
           title: Name
         amount:
           type: integer
@@ -12912,11 +12902,21 @@ components:
         amount:
           type: integer
           title: Amount
+        unsigned_count:
+          type: integer
+          title: Unsigned Count
+          default: 0
+        unsigned_amount:
+          type: integer
+          title: Unsigned Amount
+          default: 0
       type: object
       required:
       - stage
       - count
       - amount
+      - unsigned_count
+      - unsigned_amount
       title: PipelineStage
     PipelineSummary:
       properties:
@@ -13357,7 +13357,6 @@ components:
           anyOf:
           - type: string
             maxLength: 200
-            minLength: 1
           - type: 'null'
           title: Name
         unit:
@@ -14335,7 +14334,6 @@ components:
         name:
           type: string
           maxLength: 100
-          minLength: 1
           title: Name
         default_product_line_id:
           anyOf:

@@ -128,6 +128,8 @@ export interface AgentEventMap {
   interrupt: { action: string; preview: Record<string, unknown> }
   artifact: { type: string; data: unknown }
   "message.delta": { text: string }
+  /** 用一段文字替换当前正文（确认后写操作已完成，模型却还在让用户确认时，按执行结果改正） */
+  "message.replace": { text: string }
   done: { thread_id: string }
   error: { code: number; message: string }
 }

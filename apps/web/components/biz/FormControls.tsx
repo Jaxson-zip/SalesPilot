@@ -87,6 +87,7 @@ export function DatePicker({
   placeholder = "选择日期",
   size = "default",
   ariaLabel,
+  max,
 }: {
   ariaLabel?: string
   value: string
@@ -94,6 +95,8 @@ export function DatePicker({
   disabled?: boolean
   placeholder?: string
   size?: "default" | "sm"
+  /** 最晚可选日期（YYYY-MM-DD），如报销发生日期不能晚于今天 */
+  max?: string
 }) {
   const [open, setOpen] = useState(false)
   const date = value ? parseISO(value) : undefined
@@ -117,6 +120,7 @@ export function DatePicker({
           locale={zhCN}
           selected={date}
           defaultMonth={date}
+          disabled={max ? { after: parseISO(max) } : undefined}
           onSelect={(d) => {
             if (d) onChange(format(d, "yyyy-MM-dd"))
             setOpen(false)

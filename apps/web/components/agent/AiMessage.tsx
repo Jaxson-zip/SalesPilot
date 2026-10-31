@@ -6,12 +6,13 @@ import { useState } from "react"
 import { ArtifactView } from "@/components/agent/ArtifactView"
 import { BomEditor } from "@/components/agent/BomEditor"
 import { ChatMarkdown } from "@/components/agent/ChatMarkdown"
-import { ConfirmCard } from "@/components/agent/ConfirmCard"
+import { ConfirmCard, ResultLine } from "@/components/agent/ConfirmCard"
 import { MsgActions, type MsgFeedback } from "@/components/agent/MsgActions"
 import { PrdDialog } from "@/components/pipeline/PrdDialog"
 import { ThinkBlock } from "@/components/agent/ThinkBlock"
 import { Button } from "@/components/ui/button"
 import { useSmoothText } from "@/hooks/useSmoothText"
+import { actionResultOf } from "@/lib/action-result"
 import { splitFollowUps } from "@/lib/agent-mode"
 import type { AgentArtifact, AssistantTurn } from "@/lib/agent-reducer"
 import { isCoreTier, isCoreTiers, type CoreSolutionTier } from "@/lib/artifacts"
@@ -83,6 +84,7 @@ export function AiMessage({
   // 生成报价单前可以在三档里另选：物料清单和确认卡跟着切换，确认时把选中档带给后端
   const [picked, setPicked] = useState<string | null>(null)
   const tiers = coreTiers(turn.artifacts)
+  const actionResult = actionResultOf(turn.artifacts)
   const pending = turn.interrupt?.action === "generate_quote" && !turn.interrupt.decision
   const canPick = pending && !readonly && !busy && tiers.length > 1
   const pickedTier = picked ? tiers.find((t) => t.tier === picked) : undefined
@@ -152,35 +154,41 @@ export function AiMessage({
           </div>
         ) : null}
         {showCards
-          ? turn.artifacts.map((a) => (
-              <div
-                key={a.id}
-                // 三档方案卡：出来时滚到卡片顶部（下面还有确认卡，一直跟到底会把方案顶出视口）
-                data-scroll-anchor={!readonly && a.type === "solution_tiers" ? "" : undefined}
-                className={cn(animate && "animate-in fade-in slide-in-from-bottom-1 duration-300")}
-              >
-                {a.type === "bom" && canEdit && baseTier && isCoreTier(a.data) ? (
-                  <BomEditor tier={baseTier} edits={edits} onChange={setEdits} />
-                ) : (
-                  <ArtifactView
-                    artifact={a.type === "bom" && shownTier ? { ...a, data: shownTier } : a}
-                    onConfirmRequirement={onConfirmRequirement}
-                    readonly={readonly || busy}
-                    selectedTier={pickedTier?.tier}
-                    onSelectTier={canPick ? pick : undefined}
-                  />
-                )}
-              </div>
-            ))
+          ? turn.artifacts
+              .filter((a) => a.type !== "action_result")
+              .map((a) => (
+                <div
+                  key={a.id}
+                  // 三档方案卡：出来时滚到卡片顶部（下面还有确认卡，一直跟到底会把方案顶出视口）
+                  data-scroll-anchor={!readonly && a.type === "solution_tiers" ? "" : undefined}
+                  className={cn(animate && "animate-in fade-in slide-in-from-bottom-1 duration-300")}
+                >
+                  {a.type === "bom" && canEdit && baseTier && isCoreTier(a.data) ? (
+                    <BomEditor tier={baseTier} edits={edits} onChange={setEdits} />
+                  ) : (
+                    <ArtifactView
+                      artifact={a.type === "bom" && shownTier ? { ...a, data: shownTier } : a}
+                      onConfirmRequirement={onConfirmRequirement}
+                      readonly={readonly || busy}
+                      selectedTier={pickedTier?.tier}
+                      onSelectTier={canPick ? pick : undefined}
+                    />
+                  )}
+                </div>
+              ))
           : null}
         {showCards && turn.interrupt ? (
           <ConfirmCard
             title={turn.interrupt.title}
             rows={previewRows(preview)}
             decision={turn.interrupt.decision}
+            result={actionResult}
             busy={busy || readonly}
             onDecide={decide}
           />
+        ) : showCards && actionResult ? (
+          // 历史记录里没有确认卡片：只显示执行结果
+          <ResultLine result={actionResult} />
         ) : null}
         {afterText ? (
           <div className={cn("prose-chat break-words", caretAfter && "[&>*:last-child]:caret")}>

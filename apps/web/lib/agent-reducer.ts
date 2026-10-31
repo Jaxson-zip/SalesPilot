@@ -153,6 +153,8 @@ export function applyAgentEvent(turn: AssistantTurn, ev: AgentEvent): AssistantT
       return applyInterrupt(turn, ev.data.action, ev.data.preview)
     case "artifact":
       return { ...turn, artifacts: upsertArtifact(turn.artifacts, ev.data.type, ev.data.data) }
+    case "message.replace":
+      return turn.interrupt?.decision ? { ...turn, afterText: ev.data.text } : { ...turn, text: ev.data.text }
     case "message.delta":
       return turn.interrupt?.decision
         ? { ...turn, afterText: turn.afterText + ev.data.text }

@@ -68,7 +68,10 @@ class TestTools:
         }
         assert set(TOOLS) == expected
         confirm = {n for n, t in TOOLS.items() if t.needs_confirm}
+        # 所有写工具都要确认（记跟进也不例外），确认集合 = 写工具集合
+        assert confirm == {n for n, t in TOOLS.items() if t.write}
         assert confirm == {
+            "add_followup",
             "update_opportunity_stage",
             "generate_quote",
             "submit_expense",

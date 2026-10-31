@@ -1,6 +1,7 @@
 /** 新建客户表单 → CustomerCreate（字段对照 core schemas/customer.py；年度预算元 → 分） */
 import { yuanToFen } from "@/lib/money"
 import type { CustomerCreate, CustomerLevel } from "@/types/api"
+import { isWebsite } from "@/lib/safe-url"
 
 /** 行业字典（U7：统一写法，筛选和统计才不会乱） */
 export const INDUSTRY_OPTIONS = [
@@ -65,6 +66,7 @@ export function toCustomerCreate(
   const errors: CustomerFormErrors = {}
   const t = (k: keyof CustomerFormValues) => String(v[k]).trim()
   if (!t("name")) errors.name = "请填写客户名称"
+  if (t("website") && !isWebsite(t("website"))) errors.website = "网站地址要以 http:// 或 https:// 开头"
   for (const [k, max] of Object.entries(MAX_LEN) as [keyof CustomerFormValues, number][]) {
     if (!errors[k] && t(k).length > max) errors[k] = `不能超过 ${max} 个字`
   }

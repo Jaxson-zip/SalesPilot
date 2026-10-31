@@ -4,14 +4,23 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_owner
 from app.common.scope import View, apply_scope, ensure_visible
-from app.crm.models import Customer, Expense, Opportunity, ProductLine, Quote, Team, User
+from app.crm.models import (
+    Contract,
+    Customer,
+    Expense,
+    Opportunity,
+    ProductLine,
+    Quote,
+    Team,
+    User,
+)
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.opportunity import (
     FINAL_STAGES,
@@ -212,6 +221,13 @@ def update_opportunity(
     changes = data.model_dump(exclude_unset=True)
     if "product_line_id" in changes:
         _check_product_line(db, changes["product_line_id"])
+    amount = changes.get("amount")
+    if amount is not None and amount != opp.amount and _signed(db, opp):
+        raise BizError(
+            ErrorCode.RULE_VIOLATION,
+            "已签合同的商机，金额按合同金额计，不能手动修改",
+            {"rule": RULE_AMOUNT_SIGNED},
+        )
     for key, value in changes.items():
         if value is None and key in {"name", "amount", "win_rate"}:
             continue  # 非空字段传 null 视为不修改
@@ -308,12 +324,50 @@ def _stage_rows(db: Session, user: CurrentUser, view: View | None) -> list[Any]:
     return list(db.execute(apply_scope(stmt, Opportunity, user, view)).all())
 
 
+RULE_AMOUNT_SIGNED = "opportunity_amount_signed"
+
+
+def _signed(db: Session, opp: Opportunity) -> bool:
+    return bool(db.scalar(select(_has_contract().where(Opportunity.id == opp.id))))
+
+
+def _has_contract() -> Any:
+    return exists().where(Contract.quote_id == Quote.id, Quote.opportunity_id == Opportunity.id)
+
+
 def funnel(db: Session, user: CurrentUser, view: View | None = None) -> list[PipelineStage]:
+    """各阶段数量和金额；赢单另外给出「还没有合同」的部分（手工标赢单、没走报价成交），
+    这部分不计入工作台「本月成交」（成交按合同算），在漏斗上单独提示。"""
     counts = {stage: (int(c), int(a)) for stage, c, a in _stage_rows(db, user, view)}
+    unsigned = select(func.count(), func.coalesce(func.sum(Opportunity.amount), 0)).where(
+        Opportunity.stage == "won", ~_has_contract()
+    )
+    u_count, u_amount = db.execute(apply_scope(unsigned, Opportunity, user, view)).one()
     return [
-        PipelineStage(stage=s, count=counts.get(s, (0, 0))[0], amount=counts.get(s, (0, 0))[1])
+        PipelineStage(
+            stage=s,
+            count=counts.get(s, (0, 0))[0],
+            amount=counts.get(s, (0, 0))[1],
+            unsigned_count=int(u_count) if s == "won" else 0,
+            unsigned_amount=int(u_amount) if s == "won" else 0,
+        )
         for s in STAGES
     ]
+
+
+def sync_signed_amount(db: Session, user: CurrentUser, opp: Opportunity, source: str) -> None:
+    """生成合同后商机金额改成已签合同金额合计：赢单金额 = 实际签约，漏斗和工作台成交对得上。"""
+    signed = db.scalar(
+        select(func.coalesce(func.sum(Contract.amount), 0))
+        .join(Quote, Quote.id == Contract.quote_id)
+        .where(Quote.opportunity_id == opp.id)
+    )
+    if not signed or signed == opp.amount:
+        return
+    content = f"商机金额按已签合同更新：¥{opp.amount / 100:,.0f} → ¥{signed / 100:,.0f}"
+    opp.amount = int(signed)
+    db.flush()
+    activity_service.record(db, user, "opportunity", opp.id, "update", content, source, opp)
 
 
 def pipeline_summary(db: Session, user: CurrentUser, view: View | None = None) -> PipelineSummary:

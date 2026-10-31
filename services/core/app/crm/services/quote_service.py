@@ -34,7 +34,7 @@ from app.crm.services import (
     task_service,
 )
 from app.crm.services.codes import LOCAL_TZ, local_today, next_code
-from app.crm.services.opportunity_service import apply_stage, get_owned
+from app.crm.services.opportunity_service import apply_stage, get_owned, sync_signed_amount
 from app.packs.base import PASSTHROUGH, Catalog, SolutionTier
 from app.packs.registry import get_pack
 from app.rules import (
@@ -307,10 +307,14 @@ def _accept(db: Session, user: CurrentUser, quote: Quote, source: str) -> str:
 
 
 def _mark_won(db: Session, user: CurrentUser, opportunity_id: uuid.UUID | None, src: str) -> None:
+    """生成合同后：商机金额同步为签约金额（先同步，赢单喜报里的金额才对），再标赢单。"""
     if opportunity_id is None:
         return
     opp = db.get(Opportunity, opportunity_id)
-    if opp is not None and opp.stage not in FINAL_STAGES:
+    if opp is None:
+        return
+    sync_signed_amount(db, user, opp, src)
+    if opp.stage not in FINAL_STAGES:
         apply_stage(db, user, opp, StageChange(stage="won"), src)
 
 

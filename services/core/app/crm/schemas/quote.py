@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.crm.schemas.common import CustomerBrief, OppBrief, UserBrief
+from app.crm.schemas.fields import ItemName
 from app.packs.base import Category, ClientCost
 
 QuoteStatus = Literal["draft", "pending_approval", "approved", "sent", "accepted", "rejected"]
@@ -101,7 +102,7 @@ class QuoteLineIn(BaseModel):
 
     sku: str = Field(min_length=1, max_length=50)
     qty: int = Field(ge=1, le=100_000)
-    name: str | None = Field(default=None, min_length=1, max_length=200)
+    name: ItemName | None = None
     unit: str | None = Field(default=None, min_length=1, max_length=20)
     unit_price: int | None = Field(default=None, ge=0, le=10_000_000_000)
     unit_cost: int | None = Field(default=None, ge=0, le=10_000_000_000)

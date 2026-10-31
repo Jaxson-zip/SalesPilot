@@ -88,6 +88,7 @@ export function toExpenseCreate(v: ExpenseFormValues, idempotencyKey?: string): 
   if (amount === null || amount <= 0) errors.amount = "请输入大于 0 的金额，最多两位小数"
   if (parseExtraGuests(v.extra_guests) === null) errors.extra_guests = "其他人数为 0–999 的整数"
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v.occurred_on)) errors.occurred_on = "请选择发生日期"
+  else if (v.occurred_on > localDate()) errors.occurred_on = "发生日期不能晚于今天"
   if (!v.reason.trim()) errors.reason = "请填写事由"
   if (v.type === "entertainment") {
     if (!v.customer_id) errors.customer_id = "客户招待需关联客户"

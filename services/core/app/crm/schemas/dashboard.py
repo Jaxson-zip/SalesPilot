@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.crm.schemas.fields import ContactName, Phone, PhoneOrMasked
 from app.crm.schemas.opportunity import PipelineStage
 
 FollowupType = Literal["phone", "visit", "wechat", "email", "ai"]  # ai = Agent 记录
@@ -82,14 +83,14 @@ class PhoneOut(BaseModel):
 
 
 class ContactIn(BaseModel):
-    name: str = Field(min_length=1, max_length=50)
+    name: ContactName
     title: str | None = Field(default=None, max_length=50)
-    phone: str | None = Field(default=None, max_length=30)
+    phone: Phone = None
     role: ContactRole | None = None
 
 
 class ContactUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=50)
+    name: ContactName | None = None
     title: str | None = Field(default=None, max_length=50)
-    phone: str | None = Field(default=None, max_length=30)
+    phone: PhoneOrMasked = None
     role: ContactRole | None = None

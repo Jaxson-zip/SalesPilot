@@ -1,5 +1,6 @@
 """Agent 会话编排：构造依赖、校验会话归属、准备 chat / resume 的图输入。"""
 
+import contextlib
 import logging
 import uuid
 from dataclasses import dataclass
@@ -148,6 +149,11 @@ def prepare_chat(
     # 没带商机（例如从历史记录重新打开的会话）时不覆盖：会话之前关联的商机继续有效
     if opportunity_id:
         payload["opportunity_id"] = str(opportunity_id)
+    # 每轮按「关联商机的产品线 → 团队默认产品线 → 系统默认」定行业包，查资料、出方案都用它
+    linked = str(opportunity_id) if opportunity_id else existing.get("opportunity_id")
+    # 产品线没启用行业包时不设：出方案时再报错，普通对话按公司制度回答
+    with contextlib.suppress(BizError):
+        payload["pack_id"] = deps.resolve_pack(linked)
     touch_thread(deps.ctx.session, deps.ctx.user, thread_id, message, opportunity_id, mode)
     return PreparedRun(
         graph, payload, config, thread_id, "chat", message, build_messages(thread_id, snapshot)

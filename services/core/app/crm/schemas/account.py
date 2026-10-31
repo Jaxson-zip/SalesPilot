@@ -6,6 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.common.auth import Role
+from app.crm.schemas.fields import PersonName, TeamName
 
 USERNAME_PATTERN = r"^[a-zA-Z][a-zA-Z0-9_.-]{2,29}$"
 
@@ -26,13 +27,13 @@ class AccountItem(BaseModel):
 
 class AccountCreate(BaseModel):
     username: str = Field(pattern=USERNAME_PATTERN)
-    name: str = Field(min_length=1, max_length=50)
+    name: PersonName
     role: Role
     team_id: uuid.UUID | None = None
 
 
 class AccountUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=50)
+    name: PersonName | None = None
     role: Role | None = None
     team_id: uuid.UUID | None = None
     active: bool | None = None
@@ -57,6 +58,6 @@ class TeamItem(BaseModel):
 
 
 class TeamIn(BaseModel):
-    name: str = Field(min_length=1, max_length=100)
+    name: TeamName
     # 不传 = 不改；传 null = 改回系统默认行业包
     default_product_line_id: uuid.UUID | None = None

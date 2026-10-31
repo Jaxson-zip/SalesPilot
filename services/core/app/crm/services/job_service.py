@@ -16,10 +16,10 @@ from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.common.auth import CurrentUser, Role
+from app.common.auth import CurrentUser
 from app.common.db import session_scope
 from app.common.errors import BizError, ErrorCode
-from app.common.permissions import ensure_role
+from app.common.permissions import ensure_configurer
 from app.crm.models import JobRun, ScheduledJob, User
 from app.crm.services.jobs import JOBS, JobDef, new_run_key
 from app.rules.crm_calc import LOCAL_TZ
@@ -63,7 +63,7 @@ class JobUpdate(BaseModel):
 
 
 def _ensure_admin(user: CurrentUser) -> None:
-    ensure_role(user, Role.ADMIN, "定时任务由系统管理员配置")
+    ensure_configurer(user, "定时任务由系统管理员配置")
 
 
 def _def(name: str) -> JobDef:

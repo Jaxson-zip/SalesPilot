@@ -89,6 +89,10 @@ class PaymentRules(BaseModel):
     rule_ref: str = ""
 
 
+class OrgRules(BaseModel):
+    solo_mode: bool = False
+
+
 class QuoteRules(BaseModel):
     valid_days: int = 30
     followup_days: int = 3
@@ -129,6 +133,7 @@ class AiUsageRules(BaseModel):
 
 
 class RuleSet(BaseModel):
+    org: OrgRules = OrgRules()
     margin: MarginRules
     discount: DiscountRules
     commission: CommissionRules
@@ -184,3 +189,8 @@ def load_raw_rules(override_file: Path | None = None, scope: str | None = None) 
 def load_rules(override_file: Path | None = None, scope: str | None = None) -> RuleSet:
     """加载规则；传入行业包 rules.yaml（及行业包 id）时用其覆盖同名项。"""
     return RuleSet.model_validate(load_raw_rules(override_file, scope))
+
+
+def solo_mode() -> bool:
+    """个人模式（一个人接单）：审批自动通过、主管可以改系统配置。"""
+    return load_rules().org.solo_mode

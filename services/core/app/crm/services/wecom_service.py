@@ -22,6 +22,7 @@ from app.common.auth import CurrentUser, Role
 from app.common.config import get_settings
 from app.common.db import session_scope
 from app.common.errors import BizError, ErrorCode
+from app.common.permissions import ensure_configurer
 from app.crm.models import Integration
 
 logger = logging.getLogger(__name__)
@@ -117,10 +118,7 @@ def _resolve(row: Integration | None) -> tuple[str | None, Literal["web", "env",
 
 
 def _require_admin(user: CurrentUser) -> None:
-    if user.role != Role.ADMIN:
-        raise BizError(
-            ErrorCode.FORBIDDEN, "企业微信推送由系统管理员配置", {"rule": "role_forbidden"}
-        )
+    ensure_configurer(user, "企业微信推送由系统管理员配置")
 
 
 def get_config(db: Session, user: CurrentUser) -> WecomConfigOut:

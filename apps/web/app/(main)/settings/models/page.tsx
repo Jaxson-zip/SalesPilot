@@ -115,11 +115,11 @@ function Providers({ config }: { config: ModelConfig }) {
 
 /** 模型接入：左边填各家厂商的 Key，右边选用哪个模型 */
 export default function ModelConfigPage() {
-  const { role } = useSession()
-  const q = useModelConfig(role === "admin") // 非管理员只看锁定提示，不请求管理员接口
+  const { canConfigure } = useSession()
+  const q = useModelConfig(canConfigure) // 非管理员只看锁定提示，不请求管理员接口
   return (
     <PageFrame title="模型接入" icon={KeyRound} bodyClassName="overflow-y-auto">
-      <RoleGate roles={["admin"]} lockedText="模型接入由系统管理员配置">
+      <RoleGate roles={["admin"]} config lockedText="模型接入由系统管理员配置">
         {q.isPending ? (
           <div className="p-5">
             <Skeleton className="h-60 w-full" />

@@ -76,13 +76,26 @@ export function contractsLabel(role: Role): string {
   return role === "manager" ? "合同与回款" : "合同与提成"
 }
 
+/** 个人模式（一个人接单）的主管：没有审批、业绩目标、日报、成员管理，系统配置自己管 */
+function soloGroups(top: NavGroup): NavGroup[] {
+  return [
+    top,
+    {
+      label: "工作区",
+      items: [DASHBOARD, CUSTOMERS, PIPELINE, QUOTES, { ...CONTRACTS, label: "合同与回款" }, EXPENSES],
+    },
+    { label: "设置", items: [MODELS, PRICING, BATTLE, SYSTEM] },
+  ]
+}
+
 /**
  * 按角色分组的导航（契约 §0）：
  * 销售「工作区」；主管「工作区」+「团队管理」；管理员「业务总览（只读）」+「系统设置」。
- * 同一页面只出现在一个分组里；AI 方案工作台固定在最上方。
+ * 个人模式下主管换成「工作区」+「设置」。同一页面只出现在一个分组里；AI 方案工作台固定在最上方。
  */
-export function navGroupsFor(role: Role): NavGroup[] {
+export function navGroupsFor(role: Role, solo = false): NavGroup[] {
   const top: NavGroup = { items: [AI] }
+  if (solo && role === "manager") return soloGroups(top)
   if (role === "admin")
     return [
       top,
@@ -105,8 +118,8 @@ export function navGroupsFor(role: Role): NavGroup[] {
 }
 
 /** 当前角色可见的全部页面（命令面板用，合并入口展开成子页面，含底部的使用说明） */
-export function navItemsFor(role: Role): NavItem[] {
-  return [...navGroupsFor(role).flatMap((g) => g.items.flatMap((i) => i.children ?? [i])), HELP]
+export function navItemsFor(role: Role, solo = false): NavItem[] {
+  return [...navGroupsFor(role, solo).flatMap((g) => g.items.flatMap((i) => i.children ?? [i])), HELP]
 }
 
 /** 侧边栏高亮：合并入口的任一子页面打开时都算 */
@@ -115,8 +128,8 @@ export function isNavActive(pathname: string, item: NavItem): boolean {
 }
 
 /** 当前页属于某个合并入口时，返回同组页面（页面顶部显示成标签页） */
-export function navSiblings(pathname: string, role: Role): NavItem[] | null {
-  for (const g of navGroupsFor(role))
+export function navSiblings(pathname: string, role: Role, solo = false): NavItem[] | null {
+  for (const g of navGroupsFor(role, solo))
     for (const i of g.items) if (i.children && isNavActive(pathname, i)) return i.children
   return null
 }
@@ -148,8 +161,8 @@ export function isActivePath(pathname: string, href: string): boolean {
 }
 
 /** 当前角色无权访问的路径（切换角色后需要跳回工作台） */
-export function isForbiddenPath(pathname: string, role: Role): boolean {
-  const visible = navItemsFor(role)
+export function isForbiddenPath(pathname: string, role: Role, solo = false): boolean {
+  const visible = navItemsFor(role, solo)
   return ALL_ITEMS.some((i) => isActivePath(pathname, i.href) && !visible.some((v) => v.href === i.href))
 }
 

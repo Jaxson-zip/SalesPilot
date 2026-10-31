@@ -27,6 +27,8 @@ class UserOut(BaseModel):
     username: str | None = None
     # 管理员新建 / 重置密码后为 true：登录后先改密码
     must_change_password: bool = False
+    # 个人模式（业务规则 org.solo_mode）：前端隐藏团队相关页面，主管显示系统配置
+    solo_mode: bool = False
 
 
 class PageParams(BaseModel):

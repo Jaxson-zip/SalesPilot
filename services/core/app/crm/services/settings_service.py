@@ -13,8 +13,9 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from app.common.auth import CurrentUser, Role
+from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
+from app.common.permissions import ensure_configurer
 from app.crm.models import ConfigOverride, KbChunk, User
 from app.llm.client import embed_texts
 from app.packs.base import Catalog, CatalogItem
@@ -74,6 +75,14 @@ _STAGE_LABELS = {
 }
 
 GLOBAL_FIELDS: list[SettingField] = [
+    _f(
+        "org.solo_mode",
+        "个人模式",
+        "工作方式",
+        "bool",
+        help="一个人接单时打开：报价、报销触发审批规则时自动通过（原因照常记在动态里）；"
+        "主管账号可以进入模型接入、行业包、业务规则等系统配置，团队相关的页面隐藏",
+    ),
     _f(
         "margin.floor_rate",
         "毛利底线",
@@ -279,8 +288,7 @@ def _pack_fields(pack: PackInfo) -> list[SettingField]:
 
 
 def _require_admin(user: CurrentUser) -> None:
-    if user.role is not Role.ADMIN:
-        raise BizError(ErrorCode.FORBIDDEN, "仅管理员可以修改配置")
+    ensure_configurer(user, "仅管理员可以修改配置")
 
 
 def _rows(db: Session, scope: str) -> dict[str, tuple[ConfigOverride, str | None]]:

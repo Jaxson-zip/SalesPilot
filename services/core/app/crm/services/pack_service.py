@@ -8,8 +8,9 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.common.auth import CurrentUser, Role
+from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
+from app.common.permissions import can_configure, ensure_configurer
 from app.crm.models import Opportunity, ProductLine
 from app.crm.schemas.common import Page
 from app.crm.schemas.dashboard import ProductLineItem, ProductLineUpdate
@@ -112,8 +113,7 @@ def get_pack_detail(pack_id: str, db: Session | None = None) -> PackDetail:
 
 
 def _require_admin(user: CurrentUser) -> None:
-    if user.role is not Role.ADMIN:
-        raise BizError(ErrorCode.FORBIDDEN, "仅管理员可以配置行业包")
+    ensure_configurer(user, "仅管理员可以配置行业包")
 
 
 def _open_counts(db: Session) -> dict[uuid.UUID, int]:
@@ -138,7 +138,7 @@ def _to_item(line: ProductLine, counts: dict[uuid.UUID, int]) -> ProductLineItem
 def list_product_lines(db: Session, user: CurrentUser) -> Page[ProductLineItem]:
     """所有角色可读（销售建商机时选产品线）；非管理员只看到已启用的。修改仍仅限管理员。"""
     stmt = select(ProductLine).order_by(ProductLine.name)
-    if user.role != Role.ADMIN:
+    if not can_configure(user):
         stmt = stmt.where(ProductLine.enabled.is_(True))
     lines = list(db.scalars(stmt).all())
     counts = _open_counts(db)

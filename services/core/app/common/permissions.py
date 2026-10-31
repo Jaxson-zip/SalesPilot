@@ -9,6 +9,7 @@
 from app.common.auth import CurrentUser, Role
 from app.common.errors import BizError, ErrorCode
 from app.common.scope import ScopedModel, ensure_visible
+from app.rules.loader import solo_mode
 
 RULE_ROLE_FORBIDDEN = "role_forbidden"
 RULE_NOT_OWNER = "not_owner"
@@ -37,6 +38,19 @@ def ensure_owner(obj: ScopedModel | None, user: CurrentUser) -> None:
 def ensure_role(user: CurrentUser, role: Role, message: str) -> None:
     """限定单一角色（审批、回款仅 manager）。"""
     if user.role is not role:
+        raise forbidden(message, RULE_ROLE_FORBIDDEN)
+
+
+def can_configure(user: CurrentUser) -> bool:
+    """系统配置（模型、行业包、业务规则、定时任务、战卡、消息推送）：管理员；
+    个人模式下主管也可以（一个人既做业务也管配置）。成员与团队管理始终只有管理员。"""
+    if user.role is Role.ADMIN:
+        return True
+    return user.role is Role.MANAGER and solo_mode()
+
+
+def ensure_configurer(user: CurrentUser, message: str) -> None:
+    if not can_configure(user):
         raise forbidden(message, RULE_ROLE_FORBIDDEN)
 
 

@@ -49,11 +49,11 @@ export function PageFrame({
   bodyClassName?: string
 }) {
   const { isMobile, setOpenMobile } = useSidebar()
-  const { role } = useSession()
+  const { role, solo } = useSession()
   const pathname = usePathname()
   const readOnly = isReadOnlyRole(role) && isBusinessPath(pathname)
   // 合并入口里的页面（如「系统」）：标题行换成同组页面的标签页
-  const siblings = navSiblings(pathname, role)
+  const siblings = navSiblings(pathname, role, solo)
   return (
     <div className="flex h-full min-w-0 flex-col">
       <div className="mb-1.5 flex h-10 min-w-0 shrink-0 items-center gap-2">

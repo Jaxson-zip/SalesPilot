@@ -123,11 +123,11 @@ function PacksContent() {
 
 /** 行业包配置（仅管理员）：PackCard + ProductLineMapping */
 export default function PacksPage() {
-  const { role } = useSession()
+  const { canConfigure } = useSession()
   return (
     <PageFrame title="行业包与产品" icon={Boxes}>
-      <RoleGate roles={["admin"]} lockedText="行业包由系统管理员统一配置，可在左下角切换为「系统管理员」查看">
-        {role === "admin" ? <PacksContent /> : null}
+      <RoleGate roles={["admin"]} config lockedText="行业包由系统管理员统一配置，可在左下角切换为「系统管理员」查看">
+        {canConfigure ? <PacksContent /> : null}
       </RoleGate>
     </PageFrame>
   )

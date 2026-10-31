@@ -42,6 +42,7 @@ from app.crm.services.expense_details import clean_details
 from app.crm.services.listing import SortKey, order
 from app.crm.services.quote_query import approvals_of, count
 from app.rules import RuleSet, check_expense_policy, load_rules
+from app.rules.loader import solo_mode
 
 RULE_MISSING_INVOICE = "expense_missing_invoice"
 RULE_NOT_EDITABLE = "expense_not_editable"
@@ -372,6 +373,9 @@ def submit_expense(
     if check.passed:
         expense.status = "approved"
         content = f"{'重新' if again else ''}提交报销单，制度校验通过：{reason}"
+    elif solo_mode():
+        expense.status = "approved"  # 个人模式：没有别人可以审批，超标原因照常记下
+        content = f"{'重新' if again else ''}提交报销单，个人模式免审批（提醒：{reason}）"
     else:
         expense.status = "pending_approval"
         hint = approval_hints.expense_hint(

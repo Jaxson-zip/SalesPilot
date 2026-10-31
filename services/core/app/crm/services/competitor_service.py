@@ -10,8 +10,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.common.auth import CurrentUser, Role
+from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
+from app.common.permissions import ensure_configurer
 from app.crm.models import Competitor, Opportunity
 from app.crm.services import activity_service
 from app.crm.services import opportunity_service as opp_service
@@ -50,8 +51,7 @@ class OppCompetitorsIn(BaseModel):
 
 
 def _require_admin(user: CurrentUser) -> None:
-    if user.role != Role.ADMIN:
-        raise BizError(ErrorCode.FORBIDDEN, "竞品战卡由系统管理员维护", {"rule": "role_forbidden"})
+    ensure_configurer(user, "竞品战卡由系统管理员维护")
 
 
 def _clean(items: list[str]) -> list[str]:

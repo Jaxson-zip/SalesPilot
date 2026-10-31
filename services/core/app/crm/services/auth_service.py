@@ -24,6 +24,7 @@ from app.common.passwords import hash_password, verify_password, weakness
 from app.crm.models import Team, User
 from app.crm.schemas.common import UserOut
 from app.crm.services.demo import DEMO_LOGINS, DEMO_USERS
+from app.rules.loader import solo_mode
 
 RULE_ACCESS_CODE = "access_code"
 RULE_LOGIN_LOCKED = "login_locked"
@@ -61,6 +62,7 @@ def to_user_out(db: Session, user: User) -> UserOut:
         team_name=team.name if team else None,
         username=user.username,
         must_change_password=user.must_change_password,
+        solo_mode=solo_mode(),
     )
 
 

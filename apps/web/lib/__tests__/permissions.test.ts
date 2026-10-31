@@ -72,4 +72,11 @@ describe("permissions · 契约 §0 矩阵", () => {
   it("行业包配置、产品线映射：仅管理员", () => {
     expect(by(canConfigurePacks)).toEqual({ sales: false, manager: false, admin: true })
   })
+
+  it("个人模式下主管可以改系统配置，销售不行", () => {
+    expect(canConfigurePacks("manager")).toBe(false)
+    expect(canConfigurePacks("manager", true)).toBe(true)
+    expect(canConfigurePacks("sales", true)).toBe(false)
+    expect(canConfigurePacks("admin")).toBe(true)
+  })
 })

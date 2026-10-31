@@ -154,11 +154,11 @@ function WecomForm({ cfg }: { cfg: WecomConfig }) {
 
 /** 消息推送：企业微信群机器人（审批提醒、赢单喜报、日报汇总与提醒） */
 export default function IntegrationsPage() {
-  const { role } = useSession()
-  const q = useWecomConfig(role === "admin") // 非管理员只看锁定提示，不请求管理员接口
+  const { canConfigure } = useSession()
+  const q = useWecomConfig(canConfigure) // 非管理员只看锁定提示，不请求管理员接口
   return (
     <PageFrame title="消息推送" icon={BellRing} bodyClassName="overflow-y-auto">
-      <RoleGate roles={["admin"]} lockedText="消息推送由系统管理员配置">
+      <RoleGate roles={["admin"]} config lockedText="消息推送由系统管理员配置">
         {q.isPending ? (
           <div className="p-5">
             <Skeleton className="h-60 w-full" />

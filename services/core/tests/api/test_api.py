@@ -32,6 +32,7 @@ def test_mock_login(client: TestClient, role: str) -> None:
     assert data["token"] and data["user"]["role"] == role
     assert set(data["user"]) == {
         "id", "name", "role", "team_id", "team_name", "username", "must_change_password",
+        "solo_mode",
     }  # fmt: skip
 
 

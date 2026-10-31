@@ -93,4 +93,21 @@ describe("导航按角色分组（契约 §0）", () => {
     expect(isBusinessPath("/settings/packs")).toBe(false)
     expect(isBusinessPath("/approvals")).toBe(false)
   })
+
+  it("个人模式：主管没有审批、目标、日报、成员管理，系统配置自己管", () => {
+    const solo = navItemsFor("manager", true).map((i) => i.href)
+    for (const hidden of ["/approvals", "/targets", "/reports", "/settings/accounts"])
+      expect(solo).not.toContain(hidden)
+    for (const shown of ["/contracts", "/settings/models", "/settings/packs", "/settings/rules", "/settings/jobs"])
+      expect(solo).toContain(shown)
+    expect(isForbiddenPath("/approvals", "manager", true)).toBe(true)
+    expect(isForbiddenPath("/settings/models", "manager", true)).toBe(false)
+    expect(navSiblings("/settings/rules", "manager", true)?.map((i) => i.href)).toEqual([
+      "/settings/packs",
+      "/settings/rules",
+    ])
+    // 销售、管理员不受个人模式影响
+    expect(navItemsFor("sales", true)).toEqual(navItemsFor("sales"))
+    expect(navItemsFor("admin", true)).toEqual(navItemsFor("admin"))
+  })
 })

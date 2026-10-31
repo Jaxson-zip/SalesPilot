@@ -82,8 +82,7 @@ function Row({
 
 /** 竞品战卡：所有人可查（现场按客户原话搜），管理员维护；输赢战绩来自商机标注 */
 export default function BattleCardsPage() {
-  const { role } = useSession()
-  const admin = role === "admin"
+  const { canConfigure: admin } = useSession()
   const [text, setText] = useState("")
   const q = useDebounced(text.trim(), 250)
   const query = useCompetitors(q)

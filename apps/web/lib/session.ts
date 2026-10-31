@@ -58,7 +58,7 @@ const PROFILE_KEY = "sp.profile"
 export function profileOf(user: CurrentUser): Profile {
   return {
     name: user.name,
-    title: ROLE_TITLE[user.role],
+    title: user.solo_mode && user.role === "manager" ? "个人模式" : ROLE_TITLE[user.role],
     scope: user.team_name ?? (user.role === "admin" ? "全公司" : ""),
   }
 }

@@ -49,9 +49,12 @@ export function canRegisterPayment(role: Role, record?: { status: string }): boo
   return record ? record.status === "active" : true
 }
 
-/** 行业包配置、产品线映射（修改）：仅管理员 */
-export function canConfigurePacks(role: Role): boolean {
-  return role === "admin"
+/**
+ * 系统配置（模型接入、行业包、业务规则、定时任务、战卡、消息推送）：管理员；
+ * 个人模式下主管也可以（一个人既做业务也管配置）。成员与团队始终只有管理员。
+ */
+export function canConfigurePacks(role: Role, solo = false): boolean {
+  return role === "admin" || (solo && role === "manager")
 }
 
 /** AI 助手：查询类工具所有角色可用 */

@@ -55,6 +55,8 @@ export interface CurrentUser extends UserBrief {
   username?: string | null
   /** 管理员新建 / 重置密码后为 true：先改密码 */
   must_change_password?: boolean
+  /** 个人模式（业务规则 org.solo_mode）：隐藏团队相关页面，主管可以改系统配置 */
+  solo_mode?: boolean
 }
 
 export interface MockLoginRequest {

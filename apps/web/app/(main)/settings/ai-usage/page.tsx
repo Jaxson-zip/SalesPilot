@@ -200,7 +200,7 @@ function RankTable({ title, rows, nameHeader }: { title: string; rows: UsageRow[
 }
 
 function UsageContent() {
-  const { role } = useSession()
+  const { canConfigure } = useSession()
   const [period, setPeriod] = useState<Period>("30d")
   const q = useQuery({
     queryKey: ["ai-usage", period],
@@ -261,7 +261,7 @@ function UsageContent() {
           <p className="text-xs text-zinc-400">
             {q.data.scope === "team" ? "只统计本团队成员的调用。" : "统计全公司的调用。"}
             费用按 token 数 × 单价估算，与模型厂商账单可能有出入；
-            {role === "admin" ? (
+            {canConfigure ? (
               <>
                 单价和预算在{" "}
                 <Link href="/settings/rules" className="text-zinc-600 underline">

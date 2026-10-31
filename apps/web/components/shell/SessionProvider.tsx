@@ -20,6 +20,7 @@ import {
   storeRole,
   type Profile,
 } from "@/lib/session"
+import { canConfigurePacks } from "@/lib/permissions"
 import { getToken } from "@/lib/storage"
 import type { CurrentUser, Role } from "@/types/api"
 
@@ -32,6 +33,10 @@ interface SessionValue {
   userId: string | null
   /** 管理员新建 / 重置密码后，登录要先改密码 */
   mustChangePassword: boolean
+  /** 个人模式：一个人接单，隐藏团队相关页面 */
+  solo: boolean
+  /** 能改系统配置（管理员；个人模式下的主管） */
+  canConfigure: boolean
   /** 切换演示账户：重新 mock 登录并刷新所有查询 */
   switchRole: (role: Role) => Promise<void>
   /** 登录页：演示账户一键进入 */
@@ -141,6 +146,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const userId = fresh?.id ?? null
   const user = fresh ? profileOf(fresh) : (stored ?? DEMO_USERS[role])
   const mustChangePassword = Boolean(fresh?.must_change_password)
+  const solo = Boolean(fresh?.solo_mode)
+  const canConfigure = canConfigurePacks(role, solo)
   const name = user.name
   const title = user.title
   const scope = user.scope
@@ -152,6 +159,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       isLead: role !== "sales",
       userId,
       mustChangePassword,
+      solo,
+      canConfigure,
       switchRole,
       signIn,
       signInWithPassword,
@@ -165,6 +174,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       scope,
       userId,
       mustChangePassword,
+      solo,
+      canConfigure,
       switchRole,
       signIn,
       signInWithPassword,

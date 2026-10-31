@@ -40,13 +40,14 @@ function targetHint(won: number | undefined, target: number | null | undefined):
 
 /** 工作台：StatCard ×4、FunnelChart、待办（TodoCard）、ActivityFeed、PipelineOverview */
 export default function DashboardPage() {
-  const { role, user, isLead } = useSession()
+  const { role, user, isLead, solo } = useSession()
   const hello = useGreeting()
   const { canAiWrite } = usePermissions()
   const view = defaultScope(role)
   const query = useDashboard(view)
   const d = query.data
-  const prefix = role === "admin" ? "全公司" : isLead ? "团队" : ""
+  // 个人模式：只有自己，不叫「团队」
+  const prefix = role === "admin" ? "全公司" : isLead && !solo ? "团队" : ""
   const loading = query.isPending
   const summary = todoSummary(d?.tasks_today, d?.tasks_overdue)
   // 主管 / 管理员看到的是团队（全公司）的任务，不是自己的
@@ -66,17 +67,22 @@ export default function DashboardPage() {
       hint: d ? `预计 ${formatFen(d.open_amount)}` : undefined,
       icon: Target,
     },
-    {
-      label: role === "manager" ? "待我审批" : role === "admin" ? "待审批" : "审批中",
-      value: String(d?.pending_approvals ?? "—"),
-      hint:
-        role === "manager"
-          ? "需要你处理的报价与报销"
-          : role === "admin"
-            ? "等待各团队主管处理"
-            : "你提交、等待主管审批",
-      icon: Clock,
-    },
+    // 个人模式不走审批，不显示这张卡
+    ...(solo
+      ? []
+      : [
+          {
+            label: role === "manager" ? "待我审批" : role === "admin" ? "待审批" : "审批中",
+            value: String(d?.pending_approvals ?? "—"),
+            hint:
+              role === "manager"
+                ? "需要你处理的报价与报销"
+                : role === "admin"
+                  ? "等待各团队主管处理"
+                  : "你提交、等待主管审批",
+            icon: Clock,
+          },
+        ]),
     {
       label: `${prefix}本月预估提成`,
       value: formatFen(d?.estimated_commission_month),

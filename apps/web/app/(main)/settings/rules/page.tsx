@@ -67,11 +67,11 @@ function RulesContent() {
 
 /** 业务规则（仅管理员）：rules.yaml 是默认值，网页上的改动存数据库 */
 export default function RulesPage() {
-  const { role } = useSession()
+  const { canConfigure } = useSession()
   return (
     <PageFrame title="业务规则" icon={Scale}>
-      <RoleGate roles={["admin"]} lockedText="业务规则由系统管理员维护，可在左下角切换为「系统管理员」查看">
-        {role === "admin" ? <RulesContent /> : null}
+      <RoleGate roles={["admin"]} config lockedText="业务规则由系统管理员维护，可在左下角切换为「系统管理员」查看">
+        {canConfigure ? <RulesContent /> : null}
       </RoleGate>
     </PageFrame>
   )

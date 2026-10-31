@@ -32,10 +32,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
-from app.common.auth import CurrentUser, Role
+from app.common.auth import CurrentUser
 from app.common.config import get_settings
 from app.common.db import session_scope
 from app.common.errors import BizError, ErrorCode
+from app.common.permissions import ensure_configurer
 from app.crm.models import Integration, KbChunk
 from app.llm import client
 from app.rag.chunking import Chunk, embedding_text
@@ -449,8 +450,7 @@ def _status(db: Session, cfg: dict[str, Any], state: dict[str, Any] | None) -> M
 
 
 def _require_admin(user: CurrentUser) -> None:
-    if user.role != Role.ADMIN:
-        raise BizError(ErrorCode.FORBIDDEN, "模型接入由系统管理员配置", {"rule": "role_forbidden"})
+    ensure_configurer(user, "模型接入由系统管理员配置")
 
 
 def _invalid(message: str) -> BizError:

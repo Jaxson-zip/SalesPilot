@@ -77,14 +77,14 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
  */
 export function AppSidebar({ onSearch }: { onSearch: () => void }) {
   const pathname = usePathname()
-  const { role } = useSession()
+  const { role, solo } = useSession()
   return (
     <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0">
       <SidebarHeader className="px-2 pt-2.5 pb-1">
         <WorkspaceSwitcher />
       </SidebarHeader>
       <SidebarContent className="gap-0">
-        {navGroupsFor(role).map((group, gi) => {
+        {navGroupsFor(role, solo).map((group, gi) => {
           const items = group.items
           return (
             <SidebarGroup key={group.label ?? gi} className="px-2 py-1.5">

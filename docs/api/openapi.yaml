@@ -14900,6 +14900,10 @@ components:
           type: boolean
           title: Must Change Password
           default: false
+        solo_mode:
+          type: boolean
+          title: Solo Mode
+          default: false
       type: object
       required:
       - id
@@ -14909,6 +14913,7 @@ components:
       - team_name
       - username
       - must_change_password
+      - solo_mode
       title: UserOut
     ValidationError:
       properties:

@@ -47,6 +47,7 @@ from app.rules import (
     load_rules,
 )
 from app.rules.crm_calc import discount_rate_of, quote_valid_until
+from app.rules.loader import solo_mode
 
 RULE_TRANSITION = "quote_status_transition"
 # 动作 → (允许的当前状态, 结果状态)；submit 的结果由规则决定
@@ -265,6 +266,9 @@ def _submit(db: Session, user: CurrentUser, quote: Quote) -> str:
     if not reasons:
         quote.status = "approved"
         return "提交报价单，规则校验通过，自动审批"
+    if solo_mode():
+        quote.status = "approved"  # 个人模式：没有别人可以审批，提醒照常记下
+        return "提交报价单，个人模式免审批（提醒：" + "；".join(reasons) + "）"
     quote.status = "pending_approval"
     rules = rules_for(quote)
     margin = check_margin(*goods_totals(quote, items), rules)

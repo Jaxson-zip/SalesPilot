@@ -7522,6 +7522,11 @@ export interface components {
        * @default false
        */
       must_change_password: boolean
+      /**
+       * Solo Mode
+       * @default false
+       */
+      solo_mode: boolean
     }
     /** ValidationError */
     ValidationError: {

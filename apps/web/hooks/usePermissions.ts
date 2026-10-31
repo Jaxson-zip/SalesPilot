@@ -16,7 +16,7 @@ import {
 
 /** 把 lib/permissions 的纯函数绑定到当前会话（角色 + 当前用户 id） */
 export function usePermissions() {
-  const { role, userId } = useSession()
+  const { role, userId, solo } = useSession()
   return useMemo(
     () => ({
       readOnly: isReadOnlyRole(role),
@@ -24,11 +24,11 @@ export function usePermissions() {
       canFollowup: canWriteFollowup(role),
       canAiWrite: canUseAiWrite(role),
       canApprove: canApprove(role),
-      canConfigurePacks: canConfigurePacks(role),
+      canConfigurePacks: canConfigurePacks(role, solo),
       /** 本人负责的业务记录才能改 */
       canEdit: (ownerId: string | null | undefined) => canEditRecord(role, ownerId, userId),
       canPay: (record?: { status: string }) => canRegisterPayment(role, record),
     }),
-    [role, userId],
+    [role, userId, solo],
   )
 }

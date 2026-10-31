@@ -89,7 +89,7 @@ const GROUPS = [
 /** Ctrl K 全局搜索：输入关键词查客户 / 商机 / 报价单，也可以跳转页面和快捷操作 */
 export function CommandMenu({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const router = useRouter()
-  const { role } = useSession()
+  const { role, solo } = useSession()
   const [text, setText] = useState("")
   const q = useDebounced(text.trim(), 250)
 
@@ -122,7 +122,7 @@ export function CommandMenu({ open, onOpenChange }: { open: boolean; onOpenChang
   }
 
   const kw = text.trim().toLowerCase()
-  const pages = navItemsFor(role).filter((p) => !kw || p.label.toLowerCase().includes(kw))
+  const pages = navItemsFor(role, solo).filter((p) => !kw || p.label.toLowerCase().includes(kw))
   const actions = canCreateBusiness(role)
     ? [
         { label: "AI 出方案报价", href: "/ai", icon: Sparkles },

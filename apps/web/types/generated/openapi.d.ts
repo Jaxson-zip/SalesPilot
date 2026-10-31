@@ -6479,12 +6479,26 @@ export interface components {
       /** Subtotal Price */
       subtotal_price: number
     }
-    /** QuoteLineIn */
+    /**
+     * QuoteLineIn
+     * @description 一行明细。目录物料只传 sku + 数量；自己加的费用（sku 以 extra- 开头，如加急费、差旅费、
+     *     第三方服务）还要传名称和单价，成本不填按 0 算。
+     */
     QuoteLineIn: {
       /** Sku */
       sku: string
       /** Qty */
       qty: number
+      /** Name */
+      name?: string | null
+      /** Unit */
+      unit?: string | null
+      /** Unit Price */
+      unit_price?: number | null
+      /** Unit Cost */
+      unit_cost?: number | null
+      /** Category */
+      category?: ("hardware" | "software" | "service") | null
     }
     /** QuoteListItem */
     QuoteListItem: {

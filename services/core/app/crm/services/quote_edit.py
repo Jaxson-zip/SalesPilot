@@ -1,6 +1,7 @@
 """报价单调价（接口契约 v3 §14）：仅负责人、仅草稿（含审批驳回退回的草稿）。
 
-传入调整后的完整明细（sku + 数量）和整单折扣率；单价、成本沿用原明细，新增物料取行业包目录价。
+传入调整后的完整明细（sku + 数量）和整单折扣率；单价、成本沿用原明细，新增物料取行业包目录价；
+也可以加目录以外的费用（sku 以 extra- 开头，自己填名称、单价、成本）。
 总价、毛利、折扣全部由 app.rules.crm_calc.price_quote 重算；是否需要审批在提交时按规则判定
 （毛利低于底线或折扣超过 discount.max_rate → 进入审批，审批 reason 写明触发的是哪条规则）。
 """
@@ -15,7 +16,7 @@ from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_owner
 from app.crm.models import Quote, QuoteItem
-from app.crm.schemas.quote import QUOTE_STATUS_LABELS, QuoteDetail, QuoteItemsUpdate
+from app.crm.schemas.quote import QUOTE_STATUS_LABELS, QuoteDetail, QuoteItemsUpdate, QuoteLineIn
 from app.crm.services import activity_service, quote_query
 from app.crm.services.quote_service import get_quote, rules_for
 from app.packs.base import BomItem, Catalog
@@ -50,7 +51,9 @@ def build_lines(
             raise _invalid(f"物料重复：{line.sku}", line.sku)
         seen.add(line.sku)
         old = by_sku.get(line.sku)
-        if old is not None:
+        if line.is_extra:
+            lines.append(_extra_line(line))
+        elif old is not None:
             lines.append(
                 BomItem(
                     sku=old.sku, name=old.name, category=old.category,  # type: ignore[arg-type]
@@ -63,6 +66,21 @@ def build_lines(
         else:
             raise _invalid(f"物料不在报价单或行业包目录中：{line.sku}", line.sku)
     return lines
+
+
+def _extra_line(line: QuoteLineIn) -> BomItem:
+    """自己加的费用：名称、单价必填；成本不填按 0（毛利照常计算，低于底线照常走审批）。"""
+    if not line.name or line.unit_price is None:
+        raise _invalid("自己加的费用要填写名称和单价", line.sku)
+    return BomItem(
+        sku=line.sku,
+        name=line.name.strip(),
+        category=line.category or "service",
+        unit=(line.unit or "项").strip(),
+        qty=line.qty,
+        unit_cost=line.unit_cost or 0,
+        unit_price=line.unit_price,
+    )
 
 
 def _check_editable(quote: Quote) -> None:

@@ -96,6 +96,39 @@ def test_patch_items_errors(client: TestClient, tracker: Tracker) -> None:
     assert patch_items(client, qid, {"items": [{"sku": "T-0", "qty": 0}]})["code"] == 40001
 
 
+def test_patch_items_extra_charges(client: TestClient, tracker: Tracker) -> None:
+    """目录以外的费用：自己填名称、单价、成本，计入总价和毛利；再次保存可以改；名称单价必填。"""
+    qid = create_quote(tracker, make_tier(GOOD))  # 原价 15 万，成本 9 万
+    rush = {"sku": "extra-rush", "qty": 1, "name": "加急实施费", "unit_price": 1_000_000}
+    trip = {
+        "sku": "extra-trip",
+        "qty": 2,
+        "name": "现场差旅",
+        "unit": "次",
+        "unit_price": 300_000,
+        "unit_cost": 250_000,
+    }
+    body = {"items": [{"sku": "T-0", "qty": 1}, {"sku": "T-1", "qty": 1}, rush, trip]}
+    data = patch_items(client, qid, body)["data"]
+    assert data["total_price"] == 15_000_000 + 1_000_000 + 600_000
+    assert data["total_cost"] == 9_000_000 + 500_000
+    extra = {i["sku"]: i for i in data["items"]}
+    assert extra["extra-rush"]["unit"] == "项" and extra["extra-rush"]["category"] == "service"
+    assert (
+        extra["extra-trip"]["name"] == "现场差旅"
+        and extra["extra-trip"]["subtotal_cost"] == 500_000
+    )
+
+    # 再保存时改单价、删掉差旅
+    again = patch_items(
+        client, qid, {"items": [{**rush, "unit_price": 800_000}, {"sku": "T-0", "qty": 1}]}
+    )
+    assert again["data"]["total_price"] == 10_000_000 + 800_000
+
+    missing = patch_items(client, qid, {"items": [{"sku": "extra-x", "qty": 1, "name": "无单价"}]})
+    assert missing["code"] == 40001 and missing["data"]["errors"][0]["sku"] == "extra-x"
+
+
 # ---------- §16 转移负责人 ----------
 
 

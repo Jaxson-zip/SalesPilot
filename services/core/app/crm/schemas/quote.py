@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.crm.schemas.common import CustomerBrief, OppBrief, UserBrief
-from app.packs.base import ClientCost
+from app.packs.base import Category, ClientCost
 
 QuoteStatus = Literal["draft", "pending_approval", "approved", "sent", "accepted", "rejected"]
 
@@ -91,9 +91,24 @@ class QuoteDetail(QuoteListItem):
     client_costs: list[ClientCost] = []
 
 
+EXTRA_PREFIX = "extra-"
+
+
 class QuoteLineIn(BaseModel):
+    """一行明细。目录物料只传 sku + 数量；自己加的费用（sku 以 extra- 开头，如加急费、差旅费、
+    第三方服务）还要传名称和单价，成本不填按 0 算。"""
+
     sku: str = Field(min_length=1, max_length=50)
     qty: int = Field(ge=1, le=100_000)
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    unit: str | None = Field(default=None, min_length=1, max_length=20)
+    unit_price: int | None = Field(default=None, ge=0, le=10_000_000_000)
+    unit_cost: int | None = Field(default=None, ge=0, le=10_000_000_000)
+    category: Category | None = None
+
+    @property
+    def is_extra(self) -> bool:
+        return self.sku.startswith(EXTRA_PREFIX)
 
 
 class QuoteItemsUpdate(BaseModel):

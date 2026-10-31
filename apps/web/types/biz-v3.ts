@@ -15,7 +15,8 @@ export interface NextTask {
 
 /** PATCH /api/quotes/{id}/items（v3 §14） */
 export interface QuoteItemsPatch {
-  items: { sku: string; qty: number }[]
+  /** 目录物料只传 sku + 数量；自己加的费用（sku 以 extra- 开头）还要传名称、单价，成本可不填 */
+  items: { sku: string; qty: number; name?: string; unit?: string; unit_price?: number; unit_cost?: number }[]
   discount_rate: number
 }
 

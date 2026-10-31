@@ -12925,11 +12925,51 @@ components:
           maximum: 100000.0
           minimum: 1.0
           title: Qty
+        name:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Name
+        unit:
+          anyOf:
+          - type: string
+            maxLength: 20
+            minLength: 1
+          - type: 'null'
+          title: Unit
+        unit_price:
+          anyOf:
+          - type: integer
+            maximum: 10000000000.0
+            minimum: 0.0
+          - type: 'null'
+          title: Unit Price
+        unit_cost:
+          anyOf:
+          - type: integer
+            maximum: 10000000000.0
+            minimum: 0.0
+          - type: 'null'
+          title: Unit Cost
+        category:
+          anyOf:
+          - type: string
+            enum:
+            - hardware
+            - software
+            - service
+          - type: 'null'
+          title: Category
       type: object
       required:
       - sku
       - qty
       title: QuoteLineIn
+      description: '一行明细。目录物料只传 sku + 数量；自己加的费用（sku 以 extra- 开头，如加急费、差旅费、
+
+        第三方服务）还要传名称和单价，成本不填按 0 算。'
     QuoteListItem:
       properties:
         id:

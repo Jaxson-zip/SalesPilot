@@ -1,183 +1,152 @@
-# SalesPilot · AI 销售 CRM
+# SalesPilot
 
-腾讯 AI Coding 课程作业 · 方向二 · 场景 3「业务智能体」。
+**会干活的销售 CRM。** 销售说一句话，AI 去查客户、记跟进、推商机、出报价、提报销；每一笔写入都先给你确认。价格、毛利、提成、报销标准由规则代码计算，不交给大模型。
 
-面向 ToB 销售的 CRM：销售用一句话完成「查客户 → 记跟进 → 推进商机 → 出方案报价 → 报销」，AI 通过 **function calling** 调用真实的业务工具读写数据，写操作必须经用户确认；价格、毛利、提成、报销标准一律由规则代码计算；行业知识以可插拔的「行业包」提供（大模型部署 / 企业办公 IT / 软件外包）。
+![工作台](docs/images/dashboard.jpg)
 
-> ⚠️ 项目中的客户、产品价格、提成比例、报销标准均为**模拟数据**。
+## 为什么做这个
 
-## 功能一览
+ToB 销售团队用 CRM 常见的三个问题：
 
-| 模块 | 能做什么 |
+- **销售不愿意填。** 跟进、报价、报销全是表单，填得越少，数据越不可信，主管越看不清。
+- **跟钱有关的数字靠手算。** 报价毛利够不够、这单提成多少、这顿饭超没超标，各算各的，事后对不上。
+- **流程断在半路。** 报价批了没人发，回款逾期没人催，人走了客户没人接。
+
+SalesPilot 的做法：
+
+| 问题 | 做法 |
 |---|---|
-| AI 方案工作台 | 对话出方案报价（显存估算 → 配置 → 毛利校验 → 不达标自动重配 → 确认后生成报价单）；对话记跟进、改商机阶段、安排下一步、报销、查制度（带出处）；主管处理审批；执行过程（思考 → 调用 → 结果）可视化 |
-| 客户 / 商机 | 列表筛选排序导出、多选批量操作、主管转移负责人；商机看板拖拽（可撤销）、赢单 / 输单确认；下一步任务、阶段默认赢率、久未跟进提醒 |
-| 报价 / 合同 | 报价调价（规则重算毛利和是否需审批）、正式报价单打印 / 存 PDF（不含成本毛利）；合同、回款计划与登记、开票跟踪（销售申请 → 主管登记，已开票未回款提示）、提成按回款确认；AI 出方案可在三档里另选后生成报价单 |
-| 报销 / 审批 | 按类型填写（客户招待选参与人、差旅填行程、住宿按城市每晚标准校验）、模板和报销须知、上传票据自动存草稿、超标自动转主管审批 |
-| 软件外包报价 | 可上传客户样例图片（最多 30 张），AI 识别单据类型、字段和清晰度，据此定识别难度并追问字段；模糊需求分三步：AI 拆功能模块并给粗估区间和确认问题 → 需求卡片上增删模块、标二期 → 确认后出三档报价；支持个人全栈，成本拆成人工、AI 编码工具、第三方代采，并估算上线后的 AI 调用费 |
-| 销售辅助 | 上传纪要 / 聊天记录 / 名片一键整理成跟进和联系人；MEDDIC 赢单要素与阶段风险；竞品战卡；日报（按当天真实操作生成草稿）；客户外部情报（演示数据） |
-| 数据安全与集成 | 操作日志、电话脱敏与查看留痕、导出按角色授权；企业微信群推送（待审批、赢单喜报、日报）；AI 用量与成本统计 |
-| 权限 | 销售只改自己的数据；主管看团队、审批、登记回款、按人一键交接客户（离职 / 调岗）；管理员只读并配置行业包；无权按钮不显示 |
-| 账号 | 账号密码登录（错 10 次锁 10 分钟）、修改密码；管理员新建成员（临时密码、首次登录强制改密）、改角色和团队、重置密码、停用（立即下线并通知主管交接客户）、新建 / 改名团队；演示环境可一键进入演示账户，公网部署可设访问口令 |
-| 列表 | 客户 / 报价 / 合同 / 报销服务端分页（每页 50 条）、多选筛选和排序，筛选项覆盖整个数据范围；导出按当前筛选取全部（受单次条数上限约束） |
-| 其他 | 通知铃铛、工作台待办、「使用说明」页 |
+| 不愿意填 | 用自然语言下指令，AI 通过 function calling 调用真实业务接口完成；会议纪要、聊天记录、名片可以直接粘贴，整理成跟进和联系人 |
+| 数字算不准 | 毛利、提成、报销标准全部在 `rules.yaml` 里配置、由代码计算；超出规则自动转主管审批 |
+| 流程断档 | 报价 → 审批 → 合同 → 回款 → 开票 → 提成自动串起来；到期、逾期、停滞自动提醒，点通知直达要处理的那一条 |
+
+## 一天里怎么用
+
+**销售**
+
+> 「给明理记一条电话跟进：聊了私有化部署，下周三前给两档报价」
+
+AI 先匹配客户、查当前商机，再给出确认卡；点「确认执行」才写入，并附上记录入口。
+
+![AI 写操作先确认](docs/images/ai-confirm.jpg)
+
+> 「华南智能制造要上质检大模型，200 人用，预算 50 万左右」
+
+AI 按行业包估算配置，给出高 / 中 / 低三档方案，毛利不达标会自动重新配；选定一档生成报价单。毛利低于规则线的报价自动提交主管审批，通过后才能发给客户。
+
+![报价单](docs/images/quote.jpg)
+
+客户接受报价后，系统自动生成合同和预估提成，商机标为赢单。之后每登记一笔回款，按比例确认一部分提成；工作台随时能看到「这个月能拿多少」。
+
+**销售主管**
+
+- 审批中心处理超标报价和报销，可以批量处理；
+- 看板查看团队商机，拖拽推进阶段（可撤销），赢单 / 输单需要确认；
+- 登记回款和开票，按月给每个人定业绩目标；
+- 有人离职或调岗，按人一键交接客户和商机。
+
+![商机看板](docs/images/pipeline.jpg)
+
+**系统管理员**
+
+管理成员与团队、配置模型接入、维护行业包（产品目录价格、业务规则、知识库文档）、查看操作日志和 AI 用量。
+
+## 行业包
+
+产品目录、报价算法、业务规则、知识库和话术都按行业打包，放在 `services/core/app/packs/<pack_id>/`。新增一个行业只加一个包，不改主体代码。目前内置：
+
+| 行业包 | 适合 |
+|---|---|
+| 大模型部署 | 私有化大模型、算力服务器方案 |
+| 企业办公 IT | 办公电脑、网络、外设批量采购 |
+| 软件外包 | 定制开发报价：拆功能模块、估人天、区分一期 / 二期，可上传客户样例图片判断识别难度 |
+
+团队可以设置默认产品线，AI 对话会跟随对应的行业包检索资料。
+
+> 内置的客户、价格、提成比例、报销标准和知识库文档都是**示例数据**。正式使用前请在「行业包配置」里换成真实资料，详见 [功能说明](docs/功能说明.md#学习问答新人带教)。
+
+## 快速开始
+
+需要 Docker（含 Compose v2）。Windows 下请访问 `127.0.0.1`，不要用 `localhost`。
+
+```bash
+cp .env.example .env                 # 不填模型 Key 也能启动，AI 会退回规则模式
+docker compose up -d --build         # db / gateway / core / web
+docker compose exec core python -m seed   # 导入演示数据
+```
+
+打开 http://127.0.0.1:3000 ，在登录页点演示账户进入（初始密码见 `.env` 的 `DEMO_PASSWORD`，登录后左下角可切换）：
+
+| 角色 | 账号 | 可以试 |
+|---|---|---|
+| 销售 · 张晨 | `zhangchen` | AI 出方案、对话记跟进和报销、看板拖拽 |
+| 销售 · 王磊 | `wanglei` | 与张晨同组，验证销售之间数据隔离 |
+| 销售主管 · 李薇 | `liwei` | 审批、团队商机、登记回款、按人交接 |
+| 系统管理员 · 周敏 | `zhoumin` | 成员与团队、模型接入、行业包配置 |
+
+接入大模型：在 `.env` 填至少一家厂商的 Key，或登录管理员后在「系统设置 → 模型接入」里配置。支持混元、DeepSeek、通义，以及任意 OpenAI 兼容接口。
+
+正式部署：设 `DEMO_LOGIN=false` 关闭演示账户，修改所有密钥和默认密码，只对外暴露 nginx。步骤见 [上线部署指南](docs/上线部署指南.md)。
 
 ## 架构
 
 ```
-浏览器 ── web（Next.js）── /api/* ──▶ core（FastAPI + LangGraph）──▶ gateway（FastAPI + LiteLLM）──▶ 混元 / DeepSeek / 通义 …
+浏览器 ── web（Next.js）── /api/* ──▶ core（FastAPI + LangGraph）──▶ gateway（LiteLLM）──▶ 混元 / DeepSeek / 通义 / …
                                          │
                                          └──▶ PostgreSQL 16 + pgvector（业务数据 · 知识库向量 · 会话状态）
 ```
 
-| 服务 | 技术 | 端口 |
+| 服务 | 技术 | 职责 |
 |---|---|---|
-| web | TypeScript · Next.js 15 · React 19 · Tailwind · shadcn/ui · TanStack Query | 3000 |
-| core | Python 3.12 · FastAPI · SQLAlchemy 2 · LangGraph · pgvector | 8000 |
-| gateway | Python 3.12 · FastAPI · LiteLLM 库（模型注册表 + 兼容层） | 8100 |
-| db | PostgreSQL 16 + pgvector | 5432 |
-| nginx（可选） | `/` → web，`/api` → core（SSE 关缓冲） | 8080 |
+| web | Next.js 15 · React 19 · Tailwind · shadcn/ui · TanStack Query | 界面；`/api/*` 代理到 core |
+| core | Python 3.12 · FastAPI · SQLAlchemy 2 · LangGraph | 业务规则与权限、Agent、行业包、RAG、定时任务 |
+| gateway | FastAPI · LiteLLM | 统一的 OpenAI 格式模型入口：注册表、主备切换、各家兼容差异 |
+| db | PostgreSQL 16 + pgvector | 业务数据、知识库向量、Agent 会话检查点 |
 
-详见 [架构设计](docs/架构设计.md)、[架构图](docs/架构图.html)、[开发规范](docs/开发规范.md)、[架构完成度与缺项说明](docs/架构完成度与缺项说明.md)。
+几条设计约束：
 
-## 快速开始（Docker，推荐）
+- **AI 只调工具，不碰数据库。** Agent 工具是 service 的薄包装，和网页走同一套权限与规则；所有写工具必须经过用户确认才执行。
+- **数字只由规则代码算。** 阈值在 `rules.yaml`，大模型只负责理解意图和组织语言。
+- **权限在服务端。** 销售看自己、主管看本团队、管理员看全部，在 service 层统一过滤；界面上无权的按钮直接隐藏。
+- **模型可替换。** core 只认网关；换厂商、加模型只改网关配置或在网页上配置。
 
-环境：Docker Desktop（含 Compose v2）。Windows 下访问请用 `127.0.0.1`，不要用 `localhost`（可能解析到 IPv6 导致卡住）。
+更多：[架构设计](docs/架构设计.md) · [架构图](docs/架构图.html) · [接口契约](docs/api/业务模块接口契约.md) · [OpenAPI](docs/api/openapi.yaml)（运行时 http://127.0.0.1:8000/docs） · [功能说明](docs/功能说明.md)
 
-```bash
-# 1. 配置（不填模型 Key 也能启动：AI 走「规则模式」，回复为固定模板）
-cp .env.example .env
-
-# 2. 构建并启动 db / gateway / core / web
-docker compose up -d --build
-
-# 3. 导入演示数据（客户、商机、报价、报销、审批、任务、通知）
-docker compose exec core python -m seed
-```
-
-打开 http://127.0.0.1:3000 ，用账号密码登录，或在登录页点演示账户一键进入（登录后左下角可以切换）。演示账户的初始密码都是 `demo2026`（`.env` 的 `DEMO_PASSWORD`）：
-
-| 角色 | 姓名 | 账号 | 适合演示 |
-|---|---|---|---|
-| 销售 | 张晨 | `zhangchen` | AI 出方案、对话报销、看板拖拽、写跟进、安排下一步 |
-| 销售 | 王磊 | `wanglei` | 与张晨同组，演示销售之间数据隔离 |
-| 销售主管 | 李薇 | `liwei` | 审批、团队商机、转移负责人、按人交接、登记回款 |
-| 系统管理员 | 周敏 | `zhoumin` | 成员与团队、行业包配置、只读查看全公司数据 |
-
-正式使用时在 `.env` 设 `DEMO_LOGIN=false`：登录页不再显示演示账户，只能账号密码登录；由管理员在「成员与团队」里建账号（生成临时密码，首次登录必须修改）。
-
-模型可以写在 `.env` / `models.yaml`，也可以由管理员在「系统设置 → 模型接入」里配置，保存后立即生效：内置厂商（混元、DeepSeek、通义）改 Key、接口地址、协议；添加自定义厂商（Kimi、智谱、自建 vLLM / Ollama 等任意 OpenAI 兼容接口，测试连接时自动检测工具调用等能力）；选对话、重排的主用和备用模型；切换知识库向量模型（后台重建全部向量，成功后才切换）。Key 加密保存、只显示末 4 位。
-
-正式上线（HTTPS、只开放 nginx、自动重启、空库建第一个管理员 `python -m seed.admin`、备份与恢复）见 [上线部署指南](docs/上线部署指南.md)。
-
-### AI 学习问答（新人带教）
-
-AI 工作台顶部可以切换「做方案 / 学习问答」。学习问答给刚入职的销售了解公司：卖哪些产品、销售阶段怎么走、报价折扣和毛利审批、提成和报销标准、主要竞品怎么应对。它只按知识库、业务规则和竞品战卡回答，每条标出处，查不到会直接说没找到；只读，不查客户、不改数据。回答末尾的追问建议可以直接点。
-
-目前内置的产品目录价格和知识库文档是**示例资料**（「行业包配置」里标「示例资料」，学习问答回答时也会提醒）。正式使用前请管理员在「行业包配置」里改成真实价格、上传公司真实的制度和产品文档，再把对应 `pack.yaml` 的 `sample_data` 改为 `false`；引导问题在 `rules/templates.yaml` 的 `learn_prompts` 里按新文档调整。
-
-### 业绩目标
-
-「业绩目标」页：主管按月给本团队每个人设签约额目标（按万元填，可「复制上月目标」），团队目标是成员目标之和；每人显示已签约（当月新签合同）、完成率、是否落后于当月时间进度、还差多少，以及按赢率加权的商机预测。销售只看自己，管理员只读查看全公司。工作台「本月成交」卡片显示目标完成率。
-
-### 批量导入客户
-
-客户页右上角「批量导入」：下载模板，填好后选 CSV（UTF-8 / GBK 都行）或 Excel，先预览——已存在的客户、文件里重复的、填错的行会标出来并跳过，名称相似的给提示——再确认导入。一次最多 1000 行。主管的模板多一列「负责人」，可以填本团队成员或「公海」。
-
-### 定时任务
-
-core 启动后每 30 秒检查一次，到点自动运行（北京时间），管理员在「系统设置 → 定时任务」里开关、改时间、立即运行、看运行记录：
-
-| 任务 | 默认 | 做什么 |
-|---|---|---|
-| 任务到期提醒 | 开，08:30 | 今天到期的任务提醒负责人；最近一周逾期的各提醒一次 |
-| 回款逾期提醒 | 开，09:00 | 逾期的回款期次提醒合同负责人和团队主管 |
-| 商机停滞提醒 | 开，09:00 | 超过业务规则停滞天数的商机提醒负责人 |
-| 日报催交 | 开，18:00，仅工作日 | 提醒还没提交日报的销售 |
-| 公海自动回收 | **关**，02:00 | 超过 N 天（默认 90）没有跟进、没有进行中商机的客户退回公海；会改负责人，开启要确认 |
-
-每个任务一天只跑一次（多实例也一样）；core 在运行时间没启动时，当天启动后补跑。站内提醒都有去重，「立即运行」不会重复提醒。企业微信群推送需要在「消息推送」里另外勾选「定时任务：回款逾期 / 自动催交日报」，默认不推。`SCHEDULER_ENABLED=false` 关闭调度（只读副本、测试）。
-
-### 接入大模型
-
-在 `.env` 里填至少一家的 Key（地址已预填官方兼容接口），然后重启网关和 core：
+## 开发
 
 ```bash
-docker compose up -d gateway core
-```
-
-- 网关模型列表：http://127.0.0.1:8100/v1/models （需要 `Authorization: Bearer <GATEWAY_INTERNAL_KEY>`）
-- 新增模型只改 `services/gateway/models.yaml`，并跑契约测试：`cd services/gateway && uv run pytest tests/contract -k <别名>`
-
-### 知识库入库（需要 Embedding 模型）
-
-```bash
-docker compose exec core python -m app.rag.ingest --scope all
-docker compose exec core python -m app.rag.evaluate          # 评测：Top-4 命中率 / 拒答率
-```
-
-core 启动时如果知识库为空且有可用的 Embedding 模型，会自动入库一次。资料来源、切块和检索参数见 [知识库构建说明](docs/知识库构建说明.md)。
-
-### 通过 Nginx 访问（与云端部署一致）
-
-```bash
-docker compose --profile prod up -d       # 额外启动 nginx，访问 http://127.0.0.1:8080
-```
-
-云端部署（腾讯云轻量服务器）：设置 `NGINX_PORT=80`、修改 `JWT_SECRET` 和 `GATEWAY_INTERNAL_KEY`、设置访问口令 `ACCESS_CODE`（登录页要先输入口令才能选演示账户进入，同一 IP 连续错 10 次锁 10 分钟），并去掉 `docker-compose.yml` 中 db / gateway / core 的端口映射，只对外暴露 nginx。
-
-## 接口
-
-| 文档 | 位置 |
-|---|---|
-| 接口契约（字段、错误码、权限矩阵、Agent 事件） | [docs/api/业务模块接口契约.md](docs/api/业务模块接口契约.md) |
-| OpenAPI（从代码导出） | [docs/api/openapi.yaml](docs/api/openapi.yaml)，运行中可看 http://127.0.0.1:8000/docs |
-| 模型兼容矩阵 | [docs/模型兼容矩阵.md](docs/模型兼容矩阵.md) |
-
-统一响应 `{"code": 0, "message": "ok", "data": ..., "request_id": "..."}`；金额单位为「分」；请求 ID 通过 `X-Request-ID` 在 web → core → gateway 之间透传。改了接口后运行 `cd services/core && uv run python scripts/export_openapi.py`（有测试检查是否最新）。
-
-## 本地开发
-
-```bash
-docker compose up -d db gateway                              # 只用容器跑数据库和网关
+docker compose up -d db gateway                       # 数据库和网关用容器
 cd services/core && uv sync && uv run alembic upgrade head && uv run python -m seed
 cd services/core && uv run uvicorn app.main:app --reload --port 8000
-cd apps/web && pnpm install && pnpm dev                      # http://127.0.0.1:3000
+cd apps/web && pnpm install && pnpm dev               # http://127.0.0.1:3000
 ```
 
-## 测试
+| 测试 | 命令 |
+|---|---|
+| core 单元 + 接口 | `cd services/core && uv run pytest`（独立测试库 `crm_test`，模型用剧本代替，不需要 Key） |
+| gateway | `cd services/gateway && uv run pytest` |
+| 前端 | `cd apps/web && pnpm lint && pnpm typecheck && pnpm test` |
+| 接口端到端 | `uv run --python 3.12 --with httpx --with pytest pytest tests/e2e -q` |
+| 浏览器端到端 | `cd apps/web && PW_CHANNEL=msedge pnpm test:e2e` |
 
-| 层 | 命令 | 说明 |
-|---|---|---|
-| core 单元 + 接口 | `cd services/core && uv run pytest` | 自动使用独立测试库 `crm_test`；模型用剧本代替，不需要 Key |
-| gateway | `cd services/gateway && uv run pytest` | 兼容层用录制样本；契约测试需要真实 Key，没有时跳过 |
-| 前端单元 | `cd apps/web && pnpm lint && pnpm typecheck && pnpm test` | Vitest |
-| 接口端到端 | `uv run --python 3.12 --with httpx --with pytest pytest tests/e2e -q` | 需要 Docker 环境在运行 |
-| 浏览器自动化 | `cd apps/web && PW_CHANNEL=msedge pnpm test:e2e` | Playwright，直接用 Windows 自带的 Edge；`E2E_BASE_URL=http://127.0.0.1:8080` 可经 Nginx 测 |
+端到端测试会真实写入数据：跑之前先注释掉 `.env` 的 `WECOM_WEBHOOK_URL`（否则测试会拒绝运行），跑完用 `pnpm e2e:reset` 恢复演示数据。
 
-跑完端到端 / 浏览器测试后恢复干净的演示数据：`cd apps/web && pnpm e2e:reset`。软件外包 AI 评估：`docker compose exec core python -m evals.run_eval`（报告见 [docs/eval](docs/eval/软件外包AI评估报告.md)）。
+改了接口后运行 `cd services/core && uv run python scripts/export_openapi.py`，再 `cd apps/web && pnpm gen:api`。启用提交前检查：`git config core.hooksPath infra/git-hooks`，改到 Agent / 模型 / 行业包代码时会用真实模型跑 AI 评估并与基线对比。
 
-**提交前自动评估**：`git config core.hooksPath infra/git-hooks` 安装后，提交里改到 `app/packs`、`app/agent`、`app/llm` 或 `evals` 时，会用真实模型跑软件外包评估并与 `evals/baseline.json` 对比，基线里通过的用例这次没过就拦下提交（失败的用例会复跑 2 次，3 次里失败 2 次才算回归；模型调不通只警告不拦）。需要网关在 8100 端口运行；有意改变结果时运行 `uv run python -m evals.run_eval --write-baseline` 更新基线；临时跳过：`SKIP_EVAL=1 git commit …`。
-
-> 浏览器测试会保存企业微信配置；`.env` 里配置了 `WECOM_WEBHOOK_URL` 时先注释掉再跑，避免向真实群发消息。测试结果和联调过程见 [测试与联调报告](docs/测试与联调报告.md)。
+编码规范见 [AGENTS.md](AGENTS.md) 和 [开发规范](docs/开发规范.md)；项目用 Claude Code 辅助开发，每个阶段的任务、AI 出错和人工修正记录在 [docs/ai-log](docs/ai-log/README.md)。
 
 ## 目录
 
 ```
-apps/web               前端（页面、组件、hooks、纯函数 lib、Playwright e2e）
-services/core          业务 + Agent + 行业包 + RAG
-  app/crm              routers → services → models（权限在 service 层）
-  app/agent            LangGraph 状态图、function calling、工具
-  app/packs            行业包（llm_deploy / it_office / software_outsourcing）
-  app/rag              加载（Markdown / PDF / Excel）、切块、入库、检索、评测
-  app/rules            rules.yaml（标准 / 阈值）+ templates.yaml（业务模板）+ 计算器
-services/gateway       模型网关（注册表 models.yaml、兼容层、契约测试）
-infra/nginx            反向代理配置
-tests/e2e              接口端到端测试
-docs/                  架构、规范、接口契约、知识库说明、测试报告、AI Coding 记录（ai-log）
-prototype/             UI 原型
+apps/web            前端（页面、组件、hooks、纯函数 lib、Playwright e2e）
+services/core       业务 + Agent + 行业包 + RAG
+  app/crm             routers → services → models（权限在 service 层）
+  app/agent           LangGraph 状态图与工具
+  app/packs           行业包
+  app/rag             文档加载、切块、入库、检索、评测
+  app/rules           rules.yaml（标准 / 阈值）+ 计算器
+services/gateway    模型网关
+infra/              nginx、git hooks
+tests/e2e           接口端到端测试
+docs/               架构、接口契约、部署、功能说明
 ```
-
-## AI Coding 记录
-
-开发全过程由 Claude Code 辅助完成，每个阶段的任务、AI 写错的地方和人工修正都记录在 [docs/ai-log/](docs/ai-log/README.md)（目录页汇总了 AI 写错的典型问题）；项目规范见 [AGENTS.md](AGENTS.md)。

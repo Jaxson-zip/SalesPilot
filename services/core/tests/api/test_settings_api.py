@@ -169,6 +169,28 @@ def test_knowledge_upload_and_delete(
     assert res["code"] == 40401
 
 
+def test_knowledge_upload_embedding_down(
+    client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """向量模型上游故障：报上游错误、不留文件，列表里不会出现「看得到却搜不到」的文档。"""
+    from app.common.errors import ErrorCode
+    from app.crm.services import settings_service
+
+    monkeypatch.setattr(settings_service, "uploaded_dir", lambda pack: tmp_path / pack)
+
+    def down(_texts: list[str]) -> list[list[float]]:
+        raise RuntimeError("embed upstream 502")
+
+    monkeypatch.setattr(settings_service, "embed_texts", down)
+    doc = "# 上游故障\n\n## 说明\n\n测试内容。".encode()
+    files = {"file": ("上游故障.md", BytesIO(doc), "text/markdown")}
+    res = client.post("/api/packs/it_office/knowledge", files=files, headers=ADMIN_H).json()
+    assert res["code"] == ErrorCode.UPSTREAM and "文档入库失败" in res["message"]
+    assert not (tmp_path / "it_office" / "上游故障.md").exists()
+    detail = client.get("/api/packs/it_office", headers=ADMIN_H).json()["data"]
+    assert all(d["doc_name"] != "上游故障.md" for d in detail["knowledge"])
+
+
 def test_software_pack_settings_nested_ratio(client: TestClient) -> None:
     """软件外包：嵌套参数（pack.ratios.qa）可改，改完配置器立即按新比例估算。"""
     data = client.get("/api/packs/software_outsourcing/settings", headers=ADMIN_H).json()["data"]

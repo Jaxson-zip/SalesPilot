@@ -51,7 +51,7 @@ import { isFinalStage, stageBarState } from "@/lib/pipeline"
 import { staleText } from "@/lib/tasks"
 import { aiPrefillHref, solutionPrompt } from "@/lib/thread-history"
 import { cn } from "@/lib/utils"
-import type { OpportunityDetail, OpportunityItem, OpportunityStage } from "@/types/api"
+import type { OpportunityDetail, OpportunityItem, OpportunityProfit, OpportunityStage } from "@/types/api"
 
 const BAR_CLS = {
   done: "bg-zinc-200 text-zinc-700",
@@ -146,7 +146,7 @@ function Fields({
   o,
   editable,
 }: {
-  o: OpportunityItem & Partial<Pick<OpportunityDetail, "quotes" | "expenses">>
+  o: OpportunityItem & Partial<Pick<OpportunityDetail, "quotes" | "expenses" | "profit">>
   editable: boolean
 }) {
   const update = useUpdateOpportunity(o.id)
@@ -217,21 +217,60 @@ function Fields({
           "—"
         )}
       </FieldRow>
-      <FieldRow icon={Receipt} label="跟单费用">
-        {o.expenses?.count ? (
-          <Link href="/expenses" className="tabular-nums hover:underline">
-            {[
-              o.expenses.approved ? `已批 ${formatFen(o.expenses.approved)}` : "",
-              o.expenses.pending ? `审批中 ${formatFen(o.expenses.pending)}` : "",
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </Link>
-        ) : (
-          "—"
-        )}
-      </FieldRow>
+      {o.profit ? null : (
+        <FieldRow icon={Receipt} label="跟单费用">
+          {o.expenses?.count ? (
+            <Link href="/expenses" className="tabular-nums hover:underline">
+              {[
+                o.expenses.approved ? `已批 ${formatFen(o.expenses.approved)}` : "",
+                o.expenses.pending ? `审批中 ${formatFen(o.expenses.pending)}` : "",
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </Link>
+          ) : (
+            "—"
+          )}
+        </FieldRow>
+      )}
+      {o.profit ? <Profit p={o.profit} /> : null}
     </div>
+  )
+}
+
+/** 这单赚多少：报价毛利 − 预估提成 − 跟单费用 */
+function Profit({ p }: { p: OpportunityProfit }) {
+  const rows: [string, number][] = [
+    ["报价毛利", p.gross],
+    ["预估提成", -p.commission],
+    ["跟单费用", -p.expenses],
+  ]
+  return (
+    <section aria-label="这单赚多少" className="mt-3 rounded-lg border border-zinc-200 p-3">
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        <span className="font-medium">这单赚多少</span>
+        <Link href={`/quotes/${p.quote_id}`} className="text-xs text-zinc-500 hover:underline">
+          {p.basis === "accepted" ? "按成交报价" : "按最新报价估算"} {p.quote_code}
+        </Link>
+      </div>
+      <dl className="space-y-1 tabular-nums">
+        {rows.map(([label, v]) => (
+          <div key={label} className="flex justify-between text-zinc-600">
+            <dt>{label}</dt>
+            <dd>{v < 0 ? `−${formatFen(-v)}` : formatFen(v)}</dd>
+          </div>
+        ))}
+        <div className="flex justify-between border-t border-zinc-100 pt-1 font-medium">
+          <dt>实际赚</dt>
+          <dd className={p.net < 0 ? "text-red-600" : undefined}>
+            {p.net < 0 ? `−${formatFen(-p.net)}` : formatFen(p.net)}
+            {p.price ? (
+              <span className="ml-1.5 text-xs font-normal text-zinc-500">{((p.net / p.price) * 100).toFixed(1)}%</span>
+            ) : null}
+          </dd>
+        </div>
+      </dl>
+    </section>
   )
 }
 

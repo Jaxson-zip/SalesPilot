@@ -5911,6 +5911,7 @@ export interface components {
       /** Activities */
       activities: components["schemas"]["ActivityOut"][]
       expenses: components["schemas"]["OpportunityExpenses"]
+      profit: components["schemas"]["OpportunityProfit"] | null
     }
     /**
      * OpportunityExpenses
@@ -5980,6 +5981,34 @@ export interface components {
       meddic_risks: string[]
       /** Competitors */
       competitors: string[]
+    }
+    /**
+     * OpportunityProfit
+     * @description 这单实际赚多少（分）：报价毛利 − 预估提成 − 跟单费用（已批 + 审批中）。
+     */
+    OpportunityProfit: {
+      /**
+       * Quote Id
+       * Format: uuid
+       */
+      quote_id: string
+      /** Quote Code */
+      quote_code: string
+      /**
+       * Basis
+       * @enum {string}
+       */
+      basis: "accepted" | "latest"
+      /** Price */
+      price: number
+      /** Gross */
+      gross: number
+      /** Commission */
+      commission: number
+      /** Expenses */
+      expenses: number
+      /** Net */
+      net: number
     }
     /**
      * OpportunityUpdate

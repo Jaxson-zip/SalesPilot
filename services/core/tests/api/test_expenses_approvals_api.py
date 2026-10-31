@@ -305,3 +305,32 @@ def test_opportunity_shows_its_expenses(client: TestClient, tracker: Tracker) ->
             db.get(Expense, uuid.UUID(eid)).status = status  # type: ignore[union-attr]
     detail = client.get(f"/api/opportunities/{opp['id']}", headers=SALES_H).json()["data"]
     assert detail["expenses"] == {"approved": 30_000, "pending": 50_000, "count": 2}
+
+
+def test_opportunity_profit_subtracts_commission_and_expenses(
+    client: TestClient, tracker: Tracker
+) -> None:
+    """这单赚多少 = 报价毛利 − 预估提成 − 跟单费用；成交前按最新报价估算，成交后按接受的报价。"""
+    from tests.api.test_opportunities_api import new_opp
+    from tests.api.test_quotes_contracts_api import GOOD, act, create_quote, make_tier
+
+    opp = new_opp(client, tracker)
+    url = f"/api/opportunities/{opp['id']}"
+    assert client.get(url, headers=SALES_H).json()["data"]["profit"] is None
+
+    qid = create_quote(tracker, make_tier(GOOD), opp["id"])
+    new_expense(client, tracker, amount=80_000, opportunity_id=opp["id"])
+    eid = new_expense(client, tracker, amount=20_000, opportunity_id=opp["id"])["id"]
+    with_receipts(client, eid)
+    client.post(f"/api/expenses/{eid}/submit", headers=SALES_H)
+
+    profit = client.get(url, headers=SALES_H).json()["data"]["profit"]
+    # 报价 15 万、成本 9 万；提成 = 硬件 3% + 服务 8% = 7000；草稿报销不算
+    assert profit["basis"] == "latest" and profit["quote_id"] == qid
+    assert profit["gross"] == 6_000_000 and profit["commission"] == 700_000
+    assert profit["expenses"] == 20_000
+    assert profit["net"] == 6_000_000 - 700_000 - 20_000
+
+    for action in ("submit", "send", "accept"):
+        act(client, qid, action)
+    assert client.get(url, headers=SALES_H).json()["data"]["profit"]["basis"] == "accepted"

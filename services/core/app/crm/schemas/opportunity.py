@@ -53,10 +53,25 @@ class OpportunityExpenses(BaseModel):
     count: int = 0  # 不含草稿和被驳回的
 
 
+class OpportunityProfit(BaseModel):
+    """这单实际赚多少（分）：报价毛利 − 预估提成 − 跟单费用（已批 + 审批中）。"""
+
+    quote_id: uuid.UUID
+    quote_code: str
+    # accepted：按客户已接受的报价；latest：还没成交，按最新一张有效报价估算
+    basis: Literal["accepted", "latest"]
+    price: int
+    gross: int
+    commission: int
+    expenses: int
+    net: int
+
+
 class OpportunityDetail(OpportunityItem):
     quotes: list[QuoteListItem]
     activities: list[ActivityOut]
     expenses: OpportunityExpenses = Field(default_factory=OpportunityExpenses)
+    profit: OpportunityProfit | None = None
 
 
 class OpportunityCreate(BaseModel):

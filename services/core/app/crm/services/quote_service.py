@@ -175,7 +175,9 @@ def _contract_of(db: Session, quote_id: uuid.UUID) -> Contract | None:
     return db.scalar(select(Contract).where(Contract.quote_id == quote_id))
 
 
-def _estimated_commission(db: Session, quote: Quote, contract: Contract | None) -> int:
+def estimated_commission(db: Session, quote: Quote, contract: Contract | None = None) -> int:
+    """预估提成：已成交按合同的提成记录，否则按报价明细和规则估算。"""
+    contract = contract or _contract_of(db, quote.id)
     if contract is not None:
         stmt = select(Commission.estimated).where(Commission.contract_id == contract.id)
         return int(sum(db.scalars(stmt).all()))
@@ -194,7 +196,7 @@ def get_quote(db: Session, user: CurrentUser, quote_id: uuid.UUID) -> QuoteDetai
         items=lines,
         approvals=quote_query.approvals_of(db, "quote", quote.id),
         contract_id=contract.id if contract else None,
-        estimated_commission=_estimated_commission(db, quote, contract),
+        estimated_commission=estimated_commission(db, quote, contract),
         list_price=sum(i.subtotal_price for i in lines),
         discount_rate=quote.discount_rate,
         valid_until=quote_valid_until(quote.created_at, rules_for(quote)),

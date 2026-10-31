@@ -11833,6 +11833,10 @@ components:
           title: Activities
         expenses:
           $ref: '#/components/schemas/OpportunityExpenses'
+        profit:
+          anyOf:
+          - $ref: '#/components/schemas/OpportunityProfit'
+          - type: 'null'
       type: object
       required:
       - id
@@ -11855,6 +11859,7 @@ components:
       - meddic_risks
       - competitors
       - expenses
+      - profit
       title: OpportunityDetail
     OpportunityExpenses:
       properties:
@@ -11975,6 +11980,48 @@ components:
       - meddic_risks
       - competitors
       title: OpportunityItem
+    OpportunityProfit:
+      properties:
+        quote_id:
+          type: string
+          format: uuid
+          title: Quote Id
+        quote_code:
+          type: string
+          title: Quote Code
+        basis:
+          type: string
+          enum:
+          - accepted
+          - latest
+          title: Basis
+        price:
+          type: integer
+          title: Price
+        gross:
+          type: integer
+          title: Gross
+        commission:
+          type: integer
+          title: Commission
+        expenses:
+          type: integer
+          title: Expenses
+        net:
+          type: integer
+          title: Net
+      type: object
+      required:
+      - quote_id
+      - quote_code
+      - basis
+      - price
+      - gross
+      - commission
+      - expenses
+      - net
+      title: OpportunityProfit
+      description: 这单实际赚多少（分）：报价毛利 − 预估提成 − 跟单费用（已批 + 审批中）。
     OpportunityUpdate:
       properties:
         name:

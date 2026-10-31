@@ -11,7 +11,7 @@ from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_owner
 from app.common.scope import View, apply_scope, ensure_visible
-from app.crm.models import Customer, Expense, Opportunity, ProductLine, Team, User
+from app.crm.models import Customer, Expense, Opportunity, ProductLine, Quote, Team, User
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.opportunity import (
     FINAL_STAGES,
@@ -21,6 +21,7 @@ from app.crm.schemas.opportunity import (
     OpportunityDetail,
     OpportunityExpenses,
     OpportunityItem,
+    OpportunityProfit,
     OpportunityUpdate,
     PipelineStage,
     PipelineSummary,
@@ -138,13 +139,46 @@ def expense_summary(db: Session, opportunity_id: uuid.UUID) -> OpportunityExpens
     return out
 
 
+def deal_profit(
+    db: Session, opportunity_id: uuid.UUID, expenses: OpportunityExpenses
+) -> OpportunityProfit | None:
+    """按客户接受的报价算这单赚多少；还没成交时按最新一张没被拒的报价估算。没有报价返回 None。"""
+    # quote_service 依赖本模块（推进阶段），放在函数里导入避免循环引用
+    from app.crm.services.quote_service import estimated_commission
+
+    quotes = db.scalars(
+        select(Quote)
+        .where(Quote.opportunity_id == opportunity_id, Quote.status != "rejected")
+        .order_by(Quote.created_at.desc())
+    ).all()
+    if not quotes:
+        return None
+    accepted = next((q for q in quotes if q.status == "accepted"), None)
+    quote = accepted or quotes[0]
+    gross = quote.total_price - quote.total_cost
+    commission = estimated_commission(db, quote)
+    spent = expenses.approved + expenses.pending
+    return OpportunityProfit(
+        quote_id=quote.id,
+        quote_code=quote.code,
+        basis="accepted" if accepted else "latest",
+        price=quote.total_price,
+        gross=gross,
+        commission=commission,
+        expenses=spent,
+        net=gross - commission - spent,
+    )
+
+
 def get_detail(db: Session, user: CurrentUser, opportunity_id: uuid.UUID) -> OpportunityDetail:
     item = get_item(db, user, opportunity_id)
+    expenses = expense_summary(db, opportunity_id)
     return OpportunityDetail(
         **item.model_dump(),
         quotes=quote_query.list_for_opportunity(db, user, opportunity_id),
         activities=activity_service.list_for_subject(db, opportunity_id),
-        expenses=expense_summary(db, opportunity_id),
+        expenses=expenses,
+        profit=deal_profit(db, opportunity_id, expenses),
     )
 
 

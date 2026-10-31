@@ -115,10 +115,24 @@ export interface OpportunityExpenses {
   count: number
 }
 
+/** 这单实际赚多少（分）：报价毛利 − 预估提成 − 跟单费用 */
+export interface OpportunityProfit {
+  quote_id: string
+  quote_code: string
+  /** accepted：按客户接受的报价；latest：未成交，按最新报价估算 */
+  basis: "accepted" | "latest"
+  price: number
+  gross: number
+  commission: number
+  expenses: number
+  net: number
+}
+
 export interface OpportunityDetail extends OpportunityItem {
   quotes: QuoteItem[]
   activities: Activity[]
   expenses: OpportunityExpenses
+  profit: OpportunityProfit | null
 }
 
 export interface OpportunityCreate {

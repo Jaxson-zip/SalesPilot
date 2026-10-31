@@ -149,7 +149,8 @@ def to_items(db: Session, expenses: list[Expense]) -> list[ExpenseItem]:
                 reason=e.reason,
                 status=e.status,  # type: ignore[arg-type]
                 attachment_count=counts.get(e.id, 0),
-                over_limit=check is not None and not check.passed,
+                # 超标 = 超出金额标准；「其他」类没有标准、只是要审核，不算超标
+                over_limit=check is not None and not check.passed and check.over_amount > 0,
                 owner=lookup.pick(owners, e.owner_id),
                 created_at=e.created_at,
             )
@@ -168,8 +169,10 @@ class ExpenseFilter:
 
 
 def over_limit_condition() -> ColumnElement[bool]:
-    """超标：有制度校验结果且未通过（与列表项 over_limit 一致）。"""
-    return Expense.policy_check["passed"].as_boolean() == false()
+    """超标：有制度校验结果、未通过且超出金额 > 0（与列表项 over_limit 一致）。"""
+    return (Expense.policy_check["passed"].as_boolean() == false()) & (
+        Expense.policy_check["over_amount"].as_integer() > 0
+    )
 
 
 def _apply_filter(stmt: Select[Any], f: ExpenseFilter | None) -> Select[Any]:

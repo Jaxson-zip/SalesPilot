@@ -183,3 +183,14 @@ def test_customer_context_has_level() -> None:
 
         level = db.scalar(select(Customer.level).where(Customer.id == C_MINGLI))
     assert out.data["customer"]["level"] == level
+
+
+def test_only_card_confirm_phrases_count_as_contradiction() -> None:
+    from app.agent.action_result import contradicts
+
+    done = {"status": "done"}
+    assert contradicts("请确认卡片，确认后即写入系统。", done)
+    assert contradicts("确认后才会写入", done)
+    # 正常的下一步建议不能被当成「还在让用户确认」而整句替换
+    assert not contradicts("已记录跟进。请确认下周是否需要拜访", done)
+    assert not contradicts("请确认卡片", {"status": "cancelled"})

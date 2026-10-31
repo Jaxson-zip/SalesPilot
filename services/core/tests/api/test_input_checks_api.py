@@ -77,6 +77,11 @@ def test_other_type_needs_manager_approval(client: TestClient, tracker: Tracker)
     assert upload(client, e["id"], "invoice", "发票.pdf", PDF, "application/pdf")["code"] == 0
     r = client.post(f"/api/expenses/{e['id']}/submit", headers=SALES_H)
     assert r.json()["data"]["status"] == "pending_approval", r.text
+    # 要审核但没有超出金额标准：不标「超标」，「只看超标」也筛不出来
+    items = client.get("/api/expenses?over=yes&page_size=100", headers=SALES_H).json()["data"]
+    assert e["id"] not in [i["id"] for i in items["items"]]
+    mine = client.get("/api/expenses?type=other&page_size=100", headers=SALES_H).json()["data"]
+    assert next(i for i in mine["items"] if i["id"] == e["id"])["over_limit"] is False
     # 交通费照旧实报实销
     t = new_expense(client, tracker, type="transport", amount=20_000, headcount=1)
     assert t["policy_check"]["passed"] is True

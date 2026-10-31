@@ -2,7 +2,7 @@
 
 import { History, Loader2, Sparkles } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 
 import { useAiSession, type AiSession } from "@/components/agent/AiSessionProvider"
 import { ChatView } from "@/components/agent/ChatView"
@@ -14,6 +14,7 @@ import { useOpportunity } from "@/hooks/useOpportunities"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useDefaultPack, usePackName } from "@/hooks/useProductLines"
 import { DEFAULT_PACK_LABEL } from "@/lib/agent-labels"
+import type { AgentMode } from "@/lib/agent-mode"
 import { takePastedMaterial } from "@/lib/materials"
 import { aiThreadHref } from "@/lib/thread-history"
 
@@ -21,9 +22,10 @@ import { aiThreadHref } from "@/lib/thread-history"
  * 当前会话与地址 `/ai?t=<id>` 同步（会话记录面板里的链接靠地址通信）：
  * - 地址变了（点会话记录某条 / 点「新对话」/ 刷新）→ 打开对应会话或清空
  * - 从别的页面回到 `/ai`（地址没有 t）而会话还在 → 保留会话，把 id 补回地址
+ * - 刷新后打开 `/ai`：回到这个模式上次的对话
  * - 发出第一条消息生成了新会话 → 把 id 写进地址（replace，不多一条历史记录）
  */
-function useThreadUrl(w: AiSession): () => void {
+function useThreadUrl(w: AiSession): { goNew: () => void; goMode: (mode: AgentMode) => void } {
   const params = useSearchParams()
   const t = params.get("t")
   const prompt = params.get("prompt")
@@ -45,36 +47,47 @@ function useThreadUrl(w: AiSession): () => void {
       if (t !== w.stream.threadId) void w.openThread(t)
     } else if (w.stream.threadId && !first) {
       w.newChat()
+    } else if (first && !prompt && !mode) {
+      void w.restore()
     }
+    // 只跟着地址里的 t 走；prompt / mode 只用来判断是不是从别处带参数进来的
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t])
 
   // ?prompt=：从客户 / 商机页带过来的上下文，开新对话并预填输入框（不自动发送），然后去掉参数
   useEffect(() => {
     if (prompt === null) return
-    latest.current.w.newChat()
-    latest.current.w.switchMode("work")
-    latest.current.w.setInput(prompt)
-    latest.current.w.setOpportunityId(opp)
+    const s = latest.current.w.startIn("work")
+    s.setInput(prompt)
+    s.setOpportunityId(opp)
     // &paste=1：写跟进处粘贴的纪要，作为材料带进来（不自动发送，销售看一眼再发）
     const pasted = paste ? takePastedMaterial() : null
-    if (pasted) latest.current.w.loadMaterial(pasted)
+    if (pasted) s.loadMaterial(pasted)
     router.replace("/ai", { scroll: false })
   }, [prompt, opp, paste, router])
 
-  // ?mode=learn / ?mode=work：开一个该模式的新对话（工作台按钮、对话中切换模式）
+  // 切换模式：显示那个模式上次的对话（没有就是空白），地址跟着换
+  const goMode = useCallback(
+    (next: AgentMode) => {
+      const id = latest.current.w.switchMode(next)
+      router.replace(id ? aiThreadHref(id) : "/ai", { scroll: false })
+      // 这个模式还没有对话（例如刚刷新过）：接上它上次的对话
+      if (!id) void latest.current.w.restore()
+    },
+    [router],
+  )
+
+  // ?mode=learn / ?mode=work：工作台首页按钮直达某个模式（不新建对话）
   useEffect(() => {
-    if (mode !== "learn" && mode !== "work") return
-    latest.current.w.newChat()
-    latest.current.w.switchMode(mode)
-    router.replace("/ai", { scroll: false })
-  }, [mode, router])
+    if (mode === "learn" || mode === "work") goMode(mode)
+  }, [mode, goMode])
 
   const threadId = w.stream.threadId
   useEffect(() => {
     if (threadId && threadId !== latest.current.t) router.replace(aiThreadHref(threadId), { scroll: false })
   }, [threadId, router])
 
-  return () => router.push("/ai")
+  return { goNew: () => router.push("/ai"), goMode }
 }
 
 /** AI 方案工作台：居中会话 + 底部大输入框；会话记录在标题行「历史记录」打开的右侧面板里 */
@@ -82,8 +95,7 @@ function AiWorkbench() {
   const w = useAiSession()
   const { stream, input, setInput, model, setModel, title, send } = w
   const { canAiWrite } = usePermissions()
-  const goNew = useThreadUrl(w)
-  const router = useRouter()
+  const { goNew, goMode } = useThreadUrl(w)
   // 从商机进入：显示该商机产品线对应的行业包；否则显示团队默认行业包（管理员在「成员与团队」里给团队设置）
   const opp = useOpportunity(w.opportunityId)
   const packName = usePackName()
@@ -148,7 +160,8 @@ function AiWorkbench() {
             onNew={goNew}
             onConfirmRequirement={w.confirmRequirement}
             mode={w.mode}
-            onModeChange={canAiWrite ? (m) => router.push(`/ai?mode=${m}`) : undefined}
+            onModeChange={canAiWrite ? goMode : undefined}
+            streamingModes={w.streaming}
             onAsk={send}
             prdOpportunity={opp.data ? { id: opp.data.id, name: opp.data.name, canGenerate: canAiWrite } : undefined}
           />
@@ -163,7 +176,8 @@ function AiWorkbench() {
             onPick={send}
             readOnly={!canAiWrite}
             mode={w.mode}
-            onModeChange={w.switchMode}
+            onModeChange={goMode}
+            streamingModes={w.streaming}
           />
         )}
       </div>

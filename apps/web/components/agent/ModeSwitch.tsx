@@ -1,6 +1,6 @@
 "use client"
 
-import { GraduationCap, Sparkles } from "lucide-react"
+import { GraduationCap, Loader2, Sparkles } from "lucide-react"
 
 import { MODE_LABEL, type AgentMode } from "@/lib/agent-mode"
 import { cn } from "@/lib/utils"
@@ -10,17 +10,22 @@ const MODES: { mode: AgentMode; icon: typeof Sparkles; hint: string }[] = [
   { mode: "learn", icon: GraduationCap, hint: "新人了解公司产品、报价方式、制度和竞品，只问不改数据" },
 ]
 
-/** 做方案 / 学习问答 切换（分段按钮）；会话开始后切换会另起新对话。compact：对话标题栏里的小尺寸，手机上只显示图标 */
+/**
+ * 做方案 / 学习问答 切换（分段按钮）。两种模式各有自己的当前对话，切过去显示那边上次的对话；
+ * 另一边还在生成时按钮上转圈。compact：对话标题栏里的小尺寸，手机上只显示图标
+ */
 export function ModeSwitch({
   mode,
   onChange,
   disabled,
   compact,
+  streaming,
 }: {
   mode: AgentMode
   onChange: (mode: AgentMode) => void
   disabled?: boolean
   compact?: boolean
+  streaming?: Partial<Record<AgentMode, boolean>>
 }) {
   return (
     <div
@@ -36,7 +41,7 @@ export function ModeSwitch({
             type="button"
             role="radio"
             aria-checked={active}
-            title={compact && !active ? `${m.hint}（另起新对话，当前对话保存在历史记录里）` : m.hint}
+            title={m.hint}
             aria-label={MODE_LABEL[m.mode]}
             disabled={disabled}
             onClick={() => onChange(m.mode)}
@@ -46,7 +51,11 @@ export function ModeSwitch({
               active ? "bg-white font-medium text-zinc-900 shadow-xs" : "text-zinc-500 hover:text-zinc-800",
             )}
           >
-            <m.icon className="size-3.5" />
+            {streaming?.[m.mode] && !active ? (
+              <Loader2 className="size-3.5 animate-spin" aria-label="正在生成" />
+            ) : (
+              <m.icon className="size-3.5" />
+            )}
             <span className={compact ? "hidden sm:inline" : undefined}>{MODE_LABEL[m.mode]}</span>
           </button>
         )

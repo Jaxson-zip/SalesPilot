@@ -23,17 +23,18 @@ function ChatHeader({
   onNew,
   mode,
   onModeChange,
-  busy,
+  streamingModes,
 }: {
   title: string
   onNew: () => void
   mode: AgentMode
   onModeChange?: (mode: AgentMode) => void
-  busy?: boolean
+  /** 两种模式各自是否在生成：另一边在后台生成时切换按钮上转圈 */
+  streamingModes?: Partial<Record<AgentMode, boolean>>
 }) {
   return (
     <div className="flex h-11 shrink-0 items-center gap-2 border-b border-zinc-100 px-3 sm:px-4">
-      {onModeChange ? <ModeSwitch mode={mode} onChange={onModeChange} disabled={busy} compact /> : null}
+      {onModeChange ? <ModeSwitch mode={mode} onChange={onModeChange} streaming={streamingModes} compact /> : null}
       <span className="min-w-0 flex-1 truncate font-medium" title={title}>
         {title}
       </span>
@@ -57,6 +58,7 @@ export function ChatView({
   onConfirmRequirement,
   mode = "work",
   onModeChange,
+  streamingModes,
   onAsk,
   prdOpportunity,
 }: {
@@ -73,6 +75,8 @@ export function ChatView({
   mode?: AgentMode
   /** 切换模式（另起新对话）；管理员只能查询，不显示 */
   onModeChange?: (mode: AgentMode) => void
+  /** 两种模式各自是否在生成：另一边在后台生成时切换按钮上转圈 */
+  streamingModes?: Partial<Record<AgentMode, boolean>>
   /** 学习问答：点回答末尾的追问建议直接发送 */
   onAsk?: (question: string) => void
   prdOpportunity?: { id: string; name: string; canGenerate: boolean }
@@ -121,7 +125,7 @@ export function ChatView({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <ChatHeader title={title} onNew={onNew} mode={mode} onModeChange={onModeChange} busy={busy} />
+      <ChatHeader title={title} onNew={onNew} mode={mode} onModeChange={onModeChange} streamingModes={streamingModes} />
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div
           ref={contentRef}

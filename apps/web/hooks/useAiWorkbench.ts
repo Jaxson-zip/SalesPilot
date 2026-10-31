@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { notifyError } from "@/hooks/notify"
-import { fetchThreadMessages, threadKeys } from "@/hooks/useAgentThreads"
+import { threadKeys } from "@/hooks/useAgentThreads"
 import { useAgentStream } from "@/hooks/useAgentStream"
 import { requirementKey } from "@/hooks/useRequirement"
 import { DEFAULT_MODEL } from "@/lib/agent-labels"
@@ -20,13 +20,14 @@ import {
   toSamplesIn,
   type SampleState,
 } from "@/lib/samples"
-import { lastUserText, messagesToTurns } from "@/lib/thread-history"
+import { lastUserText, messagesToTurns, type ThreadMessages } from "@/lib/thread-history"
 
 /**
- * AI 工作台状态：输入框、模型、当前会话、会话历史。
- * 由 AiSessionProvider 挂在整个应用外壳上（不随页面卸载）：生成到一半切去别的页面，回来还在，并且接着输出。
+ * 一种模式（做方案 / 学习问答）的 AI 会话：输入框、模型、当前会话。
+ * AiSessionProvider 给两种模式各建一个，挂在整个应用外壳上（不随页面卸载）：
+ * 生成到一半切去别的页面或另一种模式，这边在后台接着输出，回来还在。
  */
-export function useAiWorkbench() {
+export function useAiWorkbench(mode: AgentMode) {
   const stream = useAgentStream()
   const qc = useQueryClient()
   const [input, setInput] = useState("")
@@ -39,8 +40,6 @@ export function useAiWorkbench() {
   const sampleBatch = useRef(0)
   // 从商机「出方案」进入时关联的商机；新对话 / 打开历史会话时清空
   const [opportunityId, setOpportunityId] = useState<string | null>(null)
-  // 做方案 / 学习问答：新对话时选，会话开始后固定（打开历史会话时跟着会话走）
-  const [mode, setMode] = useState<AgentMode>("work")
   const learning = mode === "learn"
 
   /** 上传材料：服务端解析成文字（不入库），发送时随消息一起交给 AI */
@@ -145,37 +144,21 @@ export function useAiWorkbench() {
     setOpportunityId(null)
   }
 
-  /** 切换模式：当前会话已经开始时另起一个新对话（模式随会话固定） */
-  const switchMode = (next: AgentMode) => {
-    if (next === mode || stream.isStreaming) return
-    if (stream.turns.length > 0) newChat()
-    if (next === "learn") {
-      setMaterial(null)
-      clearSamples()
-      setOpportunityId(null)
-    }
-    setMode(next)
+  /** 显示一条历史会话（provider 已取到消息并按会话的模式分到这里） */
+  const show = (id: string, data: ThreadMessages) => {
+    const turns = messagesToTurns(data)
+    setOpportunityId(learning ? null : (data.opportunity_id ?? null))
+    // 这一轮还在后台生成（例如刷新了页面）：先显示之前的内容，再接上本轮
+    if (data.running) stream.attach(id, turns, data.running, model)
+    else stream.load(id, turns, lastUserText(turns), model)
+    setInput("")
   }
 
-  const openThread = async (id: string) => {
-    if (id === stream.threadId || loadingId) return
+  /** 取消息时显示「正在加载会话…」 */
+  const loading = async <T>(id: string, task: () => Promise<T>): Promise<T> => {
     setLoadingId(id)
-    setOpportunityId(null)
     try {
-      const data = await qc.fetchQuery({
-        queryKey: threadKeys.messages(id),
-        queryFn: ({ signal }) => fetchThreadMessages(id, signal),
-        staleTime: 0,
-      })
-      const turns = messagesToTurns(data)
-      setOpportunityId(data.opportunity_id ?? null)
-      setMode(data.mode ?? "work")
-      // 这一轮还在后台生成（例如刷新了页面）：先显示之前的内容，再接上本轮
-      if (data.running) stream.attach(id, turns, data.running, model)
-      else stream.load(id, turns, lastUserText(turns), model)
-      setInput("")
-    } catch (err) {
-      notifyError(err)
+      return await task()
     } finally {
       setLoadingId(null)
     }
@@ -205,10 +188,10 @@ export function useAiWorkbench() {
     send,
     confirmRequirement,
     newChat,
-    openThread,
+    show,
+    loading,
     opportunityId,
     setOpportunityId,
     mode,
-    switchMode,
   }
 }

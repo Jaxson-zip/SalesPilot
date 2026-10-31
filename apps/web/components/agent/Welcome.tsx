@@ -50,6 +50,7 @@ export function Welcome({
   readOnly,
   mode = "work",
   onModeChange,
+  streamingModes,
 }: {
   composer: ReactNode
   onPick: (prompt: string) => void
@@ -57,6 +58,7 @@ export function Welcome({
   readOnly?: boolean
   mode?: AgentMode
   onModeChange?: (mode: AgentMode) => void
+  streamingModes?: Partial<Record<AgentMode, boolean>>
 }) {
   const { role } = useSession()
   const learn = mode === "learn"
@@ -68,7 +70,7 @@ export function Welcome({
       <div className="my-auto w-full max-w-[720px]">
         {onModeChange ? (
           <div className="mb-5 flex justify-center">
-            <ModeSwitch mode={mode} onChange={onModeChange} />
+            <ModeSwitch mode={mode} onChange={onModeChange} streaming={streamingModes} />
           </div>
         ) : null}
         <div className="mb-2 flex items-center justify-center gap-3 text-center">

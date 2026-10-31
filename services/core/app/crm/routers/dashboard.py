@@ -11,8 +11,7 @@ from app.common.scope import View
 from app.crm.routers.deps import DbDep
 from app.crm.schemas.common import ActivityOut, Page
 from app.crm.schemas.dashboard import Dashboard
-from app.crm.services import activity_service, dashboard_service, onboarding_service
-from app.crm.services.onboarding_service import Onboarding
+from app.crm.services import activity_service, dashboard_service
 
 router = APIRouter(prefix="/api", tags=["dashboard"])
 
@@ -22,12 +21,6 @@ def get_dashboard(
     user: CurrentUserDep, db: DbDep, view: View | None = None
 ) -> ApiResponse[Dashboard]:
     return ok(dashboard_service.get_dashboard(db, user, view))
-
-
-@router.get("/onboarding", response_model=ApiResponse[Onboarding])
-def get_onboarding(user: CurrentUserDep, db: DbDep) -> ApiResponse[Onboarding]:
-    """工作台的上手清单：按角色给步骤，做没做完按真实数据判断。"""
-    return ok(onboarding_service.get_onboarding(db, user))
 
 
 @router.get("/activities", response_model=ApiResponse[Page[ActivityOut]])

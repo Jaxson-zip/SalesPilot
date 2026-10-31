@@ -24,6 +24,7 @@ import { QueryError } from "@/components/biz/QueryStatus"
 import { Tag } from "@/components/biz/Tag"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useActivities } from "@/hooks/useDashboard"
+import { contractHref } from "@/lib/contract"
 import { formatFen, formatPercent, formatRelative, ownerName } from "@/lib/format"
 import { activityActionLabel, APPROVAL_STATUS_META, labelOf, QUOTE_STATUS_META } from "@/lib/labels"
 import { defaultScope } from "@/lib/views"
@@ -67,7 +68,7 @@ function RuleAlert({ q }: { q: QuoteDetail }) {
       <Alert tone="ok" title="客户已接受">
         已生成合同
         {q.contract_id ? (
-          <Link href="/contracts" className="ml-1 underline">
+          <Link href={contractHref(q.contract_id)} className="ml-1 underline">
             查看合同
           </Link>
         ) : null}

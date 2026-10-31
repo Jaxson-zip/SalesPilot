@@ -10,7 +10,6 @@ import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
 import { FunnelChart } from "@/components/dashboard/FunnelChart"
 import { PipelineOverview } from "@/components/dashboard/PipelineOverview"
 import { TodoCard } from "@/components/dashboard/TodoCard"
-import { OnboardingCard } from "@/components/onboarding/OnboardingCard"
 import { useSession } from "@/components/shell/SessionProvider"
 import { useDashboard } from "@/hooks/useDashboard"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -119,7 +118,6 @@ export default function DashboardPage() {
             {todo ? ` · ${todo}` : ""}
           </div>
         </div>
-        <OnboardingCard />
         {query.isError && !d ? (
           <div className="mb-3 rounded-lg border border-zinc-200">
             <QueryError

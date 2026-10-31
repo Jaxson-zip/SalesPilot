@@ -2868,35 +2868,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /api/onboarding:
-    get:
-      tags:
-      - dashboard
-      summary: Get Onboarding
-      description: 工作台的上手清单：按角色给步骤，做没做完按真实数据判断。
-      operationId: get_onboarding_api_onboarding_get
-      parameters:
-      - name: authorization
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Authorization
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse_Onboarding_'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /api/activities:
     get:
       tags:
@@ -7086,31 +7057,6 @@ components:
           default: ''
       type: object
       title: ApiResponse[NotificationReadResult]
-      required:
-      - code
-      - message
-      - data
-      - request_id
-    ApiResponse_Onboarding_:
-      properties:
-        code:
-          type: integer
-          title: Code
-          default: 0
-        message:
-          type: string
-          title: Message
-          default: ok
-        data:
-          anyOf:
-          - $ref: '#/components/schemas/Onboarding'
-          - type: 'null'
-        request_id:
-          type: string
-          title: Request Id
-          default: ''
-      type: object
-      title: ApiResponse[Onboarding]
       required:
       - code
       - message
@@ -12355,57 +12301,6 @@ components:
       - say
       - respond
       title: Objection
-    Onboarding:
-      properties:
-        steps:
-          items:
-            $ref: '#/components/schemas/OnboardingStep'
-          type: array
-          title: Steps
-        done:
-          type: integer
-          title: Done
-        total:
-          type: integer
-          title: Total
-      type: object
-      required:
-      - steps
-      - done
-      - total
-      title: Onboarding
-    OnboardingStep:
-      properties:
-        key:
-          type: string
-          enum:
-          - model
-          - pricing
-          - customer
-          - followup
-          - solution
-          - share
-          title: Key
-        title:
-          type: string
-          title: Title
-        detail:
-          type: string
-          title: Detail
-        href:
-          type: string
-          title: Href
-        done:
-          type: boolean
-          title: Done
-      type: object
-      required:
-      - key
-      - title
-      - detail
-      - href
-      - done
-      title: OnboardingStep
     OppBrief:
       properties:
         id:

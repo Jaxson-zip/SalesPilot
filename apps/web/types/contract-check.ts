@@ -29,7 +29,6 @@ import type * as Imp from "@/lib/customer-import"
 import type * as Prd from "@/lib/prd"
 import type * as CC from "@/lib/client-costs"
 import type * as QS from "@/hooks/useQuoteShare"
-import type * as OB from "@/hooks/useOnboarding"
 import type * as Tg from "@/lib/targets"
 
 type S = components["schemas"]
@@ -75,7 +74,6 @@ export const responses = {
   ClientCost: true as Fits<S["ClientCost"], CC.ClientCost>,
   QuoteShare: true as Fits<S["QuoteShareOut"], QS.QuoteShare>,
   PublicQuote: true as Fits<S["PublicQuote"], QS.PublicQuote>,
-  Onboarding: true as Fits<S["Onboarding"], OB.Onboarding>,
   ContractList: true as Fits<S["ContractList"], T.ContractList>,
   PaymentPlanView: true as Fits<S["PaymentPlanView"], T.PaymentPlanView>,
   ExpenseItem: true as Fits<S["ExpenseItem"], T.ExpenseItem>,

@@ -1,27 +1,11 @@
-/** 新手引导（契约 §36）的纯函数：上手清单什么时候显示、页面提示记在哪个本地键 */
-
-export const ONBOARDING_DISMISSED_KEY = "sp.onboarding.dismissed"
-
 /** 页面首次提示：每个页面一条，关掉后这台电脑上不再显示 */
 export function tipKey(id: string): string {
   return `sp.tip.${id}`
 }
 
-/** 「重新显示新手引导」要清掉的本地键 */
+/** 「重新显示页面提示」要清掉的本地键 */
 export function guideKeys(): string[] {
-  return [ONBOARDING_DISMISSED_KEY, ...Object.keys(PAGE_TIPS).map(tipKey)]
-}
-
-/** 全部做完、没有步骤（如未加载）或用户收起了，就不显示清单 */
-export function showOnboarding(p: { done: number; total: number } | undefined, dismissed: boolean): boolean {
-  if (!p || dismissed || p.total === 0) return false
-  return p.done < p.total
-}
-
-/** 进度条宽度（0–100） */
-export function progressPercent(done: number, total: number): number {
-  if (total <= 0) return 0
-  return Math.round((Math.min(done, total) / total) * 100)
+  return Object.keys(PAGE_TIPS).map(tipKey)
 }
 
 /** 关键页面的首次提示文案（一句话说清楚这页最常用的操作） */

@@ -77,10 +77,10 @@ function ExpenseStandards() {
 }
 
 /** 使用说明：按当前角色的上手步骤 + 商机阶段口径 + 报销标准 + AI 能做什么 + 常见问题 */
-/** 清掉「已收起」记录，回到工作台重新看到上手清单和页面提示 */
+/** 清掉「知道了」记录，各页面的首次提示重新出现 */
 function showGuideAgain() {
   for (const key of guideKeys()) writeStorage(key, null)
-  toast.success("已恢复新手引导", { description: "工作台和各页面的提示会重新出现" })
+  toast.success("已恢复页面提示", { description: "AI 工作台、商机、报价单的提示会重新出现" })
 }
 
 export default function HelpPage() {
@@ -91,7 +91,7 @@ export default function HelpPage() {
       title="使用说明"
       icon={BookOpen}
       bodyClassName="overflow-y-auto"
-      actions={<FrameAction icon={RotateCcw} label="重新显示新手引导" onClick={showGuideAgain} />}
+      actions={<FrameAction icon={RotateCcw} label="重新显示页面提示" onClick={showGuideAgain} />}
     >
       <div className="mx-auto w-full max-w-4xl space-y-4 p-4 sm:p-6">
         <nav aria-label="目录" className="flex flex-wrap gap-1.5">

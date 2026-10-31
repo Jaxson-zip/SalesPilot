@@ -1127,26 +1127,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  "/api/onboarding": {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    /**
-     * Get Onboarding
-     * @description 工作台的上手清单：按角色给步骤，做没做完按真实数据判断。
-     */
-    get: operations["get_onboarding_api_onboarding_get"]
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   "/api/activities": {
     parameters: {
       query?: never
@@ -2984,25 +2964,6 @@ export interface components {
        */
       message: string
       data: components["schemas"]["NotificationReadResult"] | null
-      /**
-       * Request Id
-       * @default
-       */
-      request_id: string
-    }
-    /** ApiResponse[Onboarding] */
-    ApiResponse_Onboarding_: {
-      /**
-       * Code
-       * @default 0
-       */
-      code: number
-      /**
-       * Message
-       * @default ok
-       */
-      message: string
-      data: components["schemas"]["Onboarding"] | null
       /**
        * Request Id
        * @default
@@ -6148,31 +6109,6 @@ export interface components {
       say: string
       /** Respond */
       respond: string
-    }
-    /** Onboarding */
-    Onboarding: {
-      /** Steps */
-      steps: components["schemas"]["OnboardingStep"][]
-      /** Done */
-      done: number
-      /** Total */
-      total: number
-    }
-    /** OnboardingStep */
-    OnboardingStep: {
-      /**
-       * Key
-       * @enum {string}
-       */
-      key: "model" | "pricing" | "customer" | "followup" | "solution" | "share"
-      /** Title */
-      title: string
-      /** Detail */
-      detail: string
-      /** Href */
-      href: string
-      /** Done */
-      done: boolean
     }
     /** OppBrief */
     OppBrief: {
@@ -10450,37 +10386,6 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_Dashboard_"]
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"]
-        }
-      }
-    }
-  }
-  get_onboarding_api_onboarding_get: {
-    parameters: {
-      query?: never
-      header?: {
-        authorization?: string | null
-      }
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          "application/json": components["schemas"]["ApiResponse_Onboarding_"]
         }
       }
       /** @description Validation Error */

@@ -4,6 +4,11 @@ import { yuanToFen } from "@/lib/money"
 import type { ContractItem } from "@/types/api"
 
 /** paid_ratio（0–1）→ 0–100 的整数百分比，越界时夹紧 */
+/** 打开某份合同：合同列表页带 plan 参数，直接展开这份合同的回款计划 */
+export function contractHref(id: string): string {
+  return `/contracts?plan=${encodeURIComponent(id)}`
+}
+
 export function paidPercent(ratio: number): number {
   if (!Number.isFinite(ratio)) return 0
   return Math.min(100, Math.max(0, Math.round(ratio * 100)))

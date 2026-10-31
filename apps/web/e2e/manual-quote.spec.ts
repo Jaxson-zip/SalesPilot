@@ -47,6 +47,11 @@ test("不经过 AI 新建报价：选客户和产品线，从目录加物料并�
   await extras.getByLabel("费用名称 1").fill("上门安装")
   await extras.getByLabel("单价 1").fill("800")
   await expect(page.getByText("预估毛利率")).toBeVisible()
+  // 单价压到远低于目录价：提交前就提示会进审批（和后端同一套规则）
+  const hint = page.getByRole("status", { name: "审批预判" })
+  await expect(hint).toContainText("提交后要主管审批")
+  await expect(hint).toContainText("超出销售折扣权限")
+  if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/approval-hint.png`, fullPage: true })
 
   await save.click()
   await expect.poll(() => sent).not.toBeNull()

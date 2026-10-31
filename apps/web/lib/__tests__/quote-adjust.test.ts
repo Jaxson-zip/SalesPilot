@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  approvalPreview,
+  approvalRules,
   catalogRow,
   discountToInput,
   initialDraft,
@@ -126,5 +128,41 @@ describe("目录物料改单价、从目录添加", () => {
   it("没有明细不能保存", () => {
     expect(previewAdjust([], "").valid).toBe(false)
     expect(toItemsPatch([], "")).toBeNull()
+  })
+})
+
+describe("审批预判（和后端规则一致）", () => {
+  const rules = { floor: 0.25, maxDiscount: 0.1 }
+  const row = (sku: string, price: string, cost: string, extra = false): DraftRow => ({
+    sku,
+    name: sku,
+    unit: "台",
+    qty: "1",
+    price,
+    cost,
+    extra,
+    basePrice: null,
+  })
+  const catalog = { "SRV-4": 26_200_000 }
+
+  it("按目录价、毛利达标：自动通过", () => {
+    expect(approvalPreview([row("SRV-4", "262000", "150000")], "0", catalog, rules)).toEqual([])
+  })
+  it("压低单价、折扣填 0：按目录价算出折扣，超出权限要审批", () => {
+    const rows = [row("SRV-4", "220000", "150000"), row("extra-x", "100000", "0", true)]
+    expect(approvalPreview(rows, "0", catalog, rules)).toEqual(["比目录价低 11.6%，超出销售折扣权限 10%"])
+  })
+  it("毛利低于底线也提示；输入不合法返回 null", () => {
+    expect(approvalPreview([row("SRV-4", "262000", "218000")], "0", catalog, rules)?.[0]).toBe(
+      "毛利 16.8% 低于底线 25%",
+    )
+    expect(approvalPreview([row("SRV-4", "abc", "1")], "0", catalog, rules)).toBeNull()
+  })
+  it("从行业包规则里读阈值，缺了返回 null", () => {
+    expect(approvalRules({ margin: { floor_rate: 0.2 }, discount: { max_rate: 0.15 } })).toEqual({
+      floor: 0.2,
+      maxDiscount: 0.15,
+    })
+    expect(approvalRules({ margin: {} })).toBeNull()
   })
 })

@@ -121,6 +121,53 @@ export function previewAdjust(rows: DraftRow[], discountInput: string): AdjustPr
   return { valid, lines, listTotal, discountAmount, total, margin }
 }
 
+export interface ApprovalRules {
+  /** 毛利底线（低于要主管审批） */
+  floor: number
+  /** 销售折扣权限（比目录价低得超过这个比例要主管审批） */
+  maxDiscount: number
+}
+
+/** 行业包详情里的规则（GET /api/packs/{id} 的 rules，已合并网页上的修改）→ 审批阈值；缺了返回 null */
+export function approvalRules(rules: Record<string, unknown> | undefined): ApprovalRules | null {
+  const get = (sec: string, key: string) => {
+    const s = rules?.[sec]
+    const v = typeof s === "object" && s !== null ? (s as Record<string, unknown>)[key] : null
+    return typeof v === "number" && Number.isFinite(v) ? v : null
+  }
+  const floor = get("margin", "floor_rate")
+  const maxDiscount = get("discount", "max_rate")
+  return floor === null || maxDiscount === null ? null : { floor, maxDiscount }
+}
+
+/**
+ * 提交后会不会进主管审批（和 core quote_service.approval_reasons 一致）：
+ * 毛利低于底线；或比目录价低得超过折扣权限（目录物料按目录价比，压单价和填折扣一样算折扣）。
+ * 返回原因，空数组表示会自动通过；输入不合法返回 null。
+ */
+export function approvalPreview(
+  rows: DraftRow[],
+  discountInput: string,
+  catalogPrices: Record<string, number>,
+  rules: ApprovalRules,
+): string[] | null {
+  const p = previewAdjust(rows, discountInput)
+  if (!p.valid) return null
+  const reasons: string[] = []
+  const cost = rows.map(parseRow).reduce((s, r) => s + r.unitCost * r.qty, 0)
+  // 后端毛利率保留 4 位小数后再和底线比
+  const margin = p.total > 0 ? Math.round(((p.total - cost) / p.total) * 10000) / 10000 : 0
+  if (!(p.total > 0 && margin >= rules.floor)) {
+    reasons.push(`毛利 ${(margin * 100).toFixed(1)}% 低于底线 ${Math.round(rules.floor * 100)}%`)
+  }
+  const base = p.lines.reduce((s, l) => s + (catalogPrices[l.sku] ?? l.subtotal / l.qty) * l.qty, 0)
+  const off = base > 0 ? (base - p.total) / base : 0
+  if (off > rules.maxDiscount + 1e-9) {
+    reasons.push(`比目录价低 ${(off * 100).toFixed(1)}%，超出销售折扣权限 ${Math.round(rules.maxDiscount * 100)}%`)
+  }
+  return reasons
+}
+
 const sameRow = (a: DraftRow, b: DraftRow) =>
   a.sku === b.sku &&
   a.qty.trim() === b.qty.trim() &&

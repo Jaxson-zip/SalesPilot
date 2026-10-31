@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronsUpDown, Plus, RotateCcw, Save, Trash2 } from "lucide-react"
+import { Check, ChevronsUpDown, Plus, RotateCcw, Save, Trash2, TriangleAlert } from "lucide-react"
 import { useState, type ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,8 @@ import {
   initialDraft,
   isAdjustDirty,
   newExtraRow,
+  approvalPreview,
+  approvalRules,
   previewAdjust,
   toItemsPatch,
   type DraftRow,
@@ -75,8 +77,15 @@ export function QuoteEditor({
 }) {
   const [rows, setRows] = useState<DraftRow[]>(initial)
   const [discount, setDiscount] = useState(initialDiscount)
-  const catalog = usePackDetail(pack).data?.catalog ?? []
+  const detail = usePackDetail(pack).data
+  const catalog = detail?.catalog ?? []
   const preview = previewAdjust(rows, discount)
+  // 提交后会不会进审批：和后端同一套规则（毛利底线、按目录价算的折扣权限）
+  const rules = approvalRules(detail?.rules)
+  const approval =
+    rules && rows.length
+      ? approvalPreview(rows, discount, Object.fromEntries(catalog.map((c) => [c.sku, c.price])), rules)
+      : null
   const dirty = isDirty ? isDirty(rows, discount) : rows.length > 0
   const subtotal = new Map(preview.lines.map((l) => [l.sku, l.subtotal]))
   const items = rows.filter((r) => !r.extra)
@@ -245,6 +254,25 @@ export function QuoteEditor({
           danger={margin !== null && margin < 0}
           hint={margin !== null && margin < 0 ? "低于成本" : undefined}
         />
+        {approval ? (
+          <p
+            role="status"
+            aria-label="审批预判"
+            className={cn(
+              "flex items-start gap-1.5 rounded-md px-2.5 py-2 text-xs",
+              approval.length ? "bg-amber-50 text-amber-800" : "bg-zinc-50 text-zinc-500",
+            )}
+          >
+            {approval.length ? (
+              <TriangleAlert className="mt-px size-3.5 shrink-0" />
+            ) : (
+              <Check className="mt-px size-3.5 shrink-0" />
+            )}
+            <span>
+              {approval.length ? `提交后要主管审批：${approval.join("；")}` : "按现在的价格提交会自动通过，不用审批"}
+            </span>
+          </p>
+        ) : null}
         {rows.length && !preview.valid ? (
           <p className="text-xs text-red-600">单价为金额、数量为正整数；折扣为 0–99.9 的百分比；额外费用要填名称</p>
         ) : null}

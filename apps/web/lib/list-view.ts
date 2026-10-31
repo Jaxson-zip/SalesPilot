@@ -143,8 +143,12 @@ export interface CsvColumn<T> {
   value: (row: T) => string | number | null | undefined
 }
 
+/** 以 = + @ 制表符 回车 开头、或 - 后面不是数字的文字，Excel 会当公式执行（CSV 注入）：前面加 ' 当文本 */
+const FORMULA = /^(?:[=+@\t\r]|-(?![\d.]))/
+
 function csvCell(v: string | number | null | undefined): string {
-  const s = v === null || v === undefined ? "" : String(v)
+  const raw = v === null || v === undefined ? "" : String(v)
+  const s = typeof v === "string" && FORMULA.test(raw) ? `'${raw}` : raw
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 

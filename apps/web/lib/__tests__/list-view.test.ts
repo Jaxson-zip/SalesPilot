@@ -116,6 +116,27 @@ describe("toCsv", () => {
     expect(csv.charCodeAt(0)).toBe(0xfeff)
     expect(csv.slice(1)).toBe('名称,金额（元）\r\n"明理,""律所""",1.00\r\n"两行\n文字",\r\n')
   })
+
+  it("可能被 Excel 当公式执行的文字前面加 '，负数金额不受影响", () => {
+    const col = [{ label: "v", value: (r: { v: string | number }) => r.v }]
+    const vs = ['=HYPERLINK("http://x","点我")', "+86 138", "@SUM(A1)", "-cmd", "-12.00", -5, "正常"]
+    const cells = toCsv(
+      col,
+      vs.map((v) => ({ v })),
+    )
+      .slice(1)
+      .split("\r\n")
+      .slice(1, -1)
+    expect(cells).toEqual([
+      `"'=HYPERLINK(""http://x"",""点我"")"`,
+      "'+86 138",
+      "'@SUM(A1)",
+      "'-cmd",
+      "-12.00",
+      "-5",
+      "正常",
+    ])
+  })
 })
 
 describe("显示字段偏好", () => {

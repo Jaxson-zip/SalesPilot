@@ -1,4 +1,4 @@
-"""function calling 的纯逻辑：工具可见范围、系统注入参数、意图分类与需求抽取的模型 / 规则切换。"""
+"""function calling 的纯逻辑：工具可见范围、系统注入参数、转入出方案、需求抽取的模型 / 规则切换。"""
 
 from typing import Any
 
@@ -7,12 +7,11 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from app.agent.deps import AgentDeps
 from app.agent.nodes.requirement_fields import extract_with_llm, optional_model
-from app.agent.nodes.router import llm_intent
-from app.agent.tools import TOOLS, ToolContext, chat_tools_for, inject_system_args
+from app.agent.tools import TOOLS, ToolContext, chat_tools_for, inject_system_args, tools_for
 from app.common.auth import Role
 from app.packs.llm_deploy.requirement import LlmDeployRequirement
 from tests.scripted_llm import ScriptedModel, call
-from tests.unit.test_agent import make_deps, names, run_chat
+from tests.unit.test_agent import SOLUTION_MSG, make_deps, names, run_chat
 
 
 def _deps(ctx: ToolContext, llm: Any) -> AgentDeps:
@@ -48,17 +47,43 @@ class TestToolExposure:
         assert "pack_id" not in out  # 该工具没有 pack_id 参数，不注入
 
 
-class TestRouter:
-    def test_llm_decides_intent(self, tool_ctx: ToolContext) -> None:
-        llm = ScriptedModel(script=[call("IntentDecision", {"intent": "solution"}, "r1")])
-        assert llm_intent(_deps(tool_ctx, llm), "帮我看看 32B 要几张卡", False) == "solution"
+def _nodes(events: list[dict[str, Any]]) -> list[str]:
+    return [e["data"]["node"] for e in events if e["event"] == "node.start"]
 
-    def test_llm_failure_returns_none(self, tool_ctx: ToolContext) -> None:
-        deps = _deps(tool_ctx, ScriptedModel(script=[], fail=True))
-        assert llm_intent(deps, "你好", False) is None
 
-    def test_no_llm_returns_none(self, tool_ctx: ToolContext) -> None:
-        assert llm_intent(_deps(tool_ctx, None), "你好", False) is None
+class TestEntry:
+    """不单独做意图分类：每句话进对话循环，由带上下文的模型决定是否转入出方案。"""
+
+    def test_model_hands_off_to_solution(self, tool_ctx: ToolContext) -> None:
+        # 用户说「按刚才说的给他们出方案」，模型结合上文把需求说完整后转入出方案流程
+        llm = ScriptedModel(script=[call("start_solution", {"request": SOLUTION_MSG}, "s1")])
+        events = run_chat(make_deps(tool_ctx, llm=llm), InMemorySaver(), "按刚才说的给他们出方案")
+        assert "start_solution" in llm.bound[0]
+        assert _nodes(events)[:3] == ["router", "tool_agent", "start_solution"]
+        assert "parse_requirement" in _nodes(events)
+        (pending,) = [e["data"] for e in events if e["event"] == "interrupt"]
+        assert pending["action"] == "generate_quote"  # 需求取自模型整理的完整描述
+        assert "tool.start" in names(events)
+
+    def test_chitchat_is_one_model_call(self, tool_ctx: ToolContext) -> None:
+        llm = ScriptedModel(script=[AIMessage(content="你好，有什么要我帮忙的？")])
+        events = run_chat(make_deps(tool_ctx, llm=llm), InMemorySaver(), "你好")
+        assert len(llm.seen) == 1  # 没有单独的意图分类调用
+        text = "".join(e["data"]["text"] for e in events if e["event"] == "message.delta")
+        assert text == "你好，有什么要我帮忙的？"
+
+    def test_model_down_still_routes_solution_by_keywords(self, tool_ctx: ToolContext) -> None:
+        llm = ScriptedModel(script=[], fail=True)
+        events = run_chat(make_deps(tool_ctx, llm=llm), InMemorySaver(), SOLUTION_MSG)
+        assert "parse_requirement" in _nodes(events)
+        assert [e["data"]["action"] for e in events if e["event"] == "interrupt"] == [
+            "generate_quote"
+        ]
+
+    def test_handoff_tool_visibility(self) -> None:
+        assert "start_solution" in {t.name for t in chat_tools_for(Role.SALES)}
+        assert "start_solution" in {t.name for t in chat_tools_for(Role.ADMIN)}  # 只出方案
+        assert "start_solution" not in {t.name for t in tools_for(Role.SALES, "learn")}
 
 
 class TestRequirementExtraction:
@@ -95,7 +120,6 @@ class TestFallback:
     def test_chitchat_without_tools(self, tool_ctx: ToolContext) -> None:
         llm = ScriptedModel(
             script=[
-                call("IntentDecision", {"intent": "crm_action"}, "r1"),
                 AIMessage(content="请告诉我客户名称，我来帮你查。"),
             ]
         )

@@ -1,30 +1,16 @@
-"""意图路由节点：有模型时用大模型结构化输出分类，失败或没有模型时用关键词规则兜底。"""
+"""入口节点：只按确定的信号分流，不单独做意图分类。
 
-import logging
+- 界面上的明确动作（学习问答模式、需求卡片确认、上传样例、上传材料）直接定去向；
+- 其余每句话交给对话循环（tool_agent）：模型带着完整上下文判断，要出方案时调用 start_solution；
+- 没有模型时用关键词规则分流（离线可用，写操作仍然不会执行）。
+"""
+
 from collections.abc import Callable
 from typing import Any
-
-from langchain_core.messages import HumanMessage, SystemMessage
-from pydantic import BaseModel, Field
 
 from app.agent.deps import AgentDeps
 from app.agent.nodes.common import node_start
 from app.agent.state import AgentState, Intent, turn_reset
-
-logger = logging.getLogger("core.agent")
-
-ROUTER_PROMPT = """你是 CRM 助手的意图分类器，只输出分类结果。
-- solution：要出方案、配置、报价、选型、估算算力或开发工作量，
-  或在补充方案需求（模型、并发、预算、要做的功能 / 端、交付人数等）
-- crm_action：查客户 / 商机、记跟进、改商机阶段、安排任务、报销、算提成、审批、问公司制度
-- chitchat：打招呼、闲聊、问你能做什么"""
-
-
-class IntentDecision(BaseModel):
-    """用户这句话的意图。"""
-
-    intent: Intent = Field(description="solution / crm_action / chitchat")
-
 
 SOLUTION_WORDS = (
     "方案", "部署", "配置", "报价", "采购", "私有化", "选型", "显存", "小程序", "定制开发", "估价",
@@ -33,6 +19,7 @@ CRM_WORDS = ("跟进", "记一下", "记录", "客户", "商机", "阶段", "报
 
 
 def classify_intent(text: str, pending_requirement: bool = False) -> Intent:
+    """关键词规则：没有模型、或模型第一次调用就失败时使用。"""
     if any(w in text for w in SOLUTION_WORDS):
         return "solution"
     if pending_requirement:
@@ -42,35 +29,23 @@ def classify_intent(text: str, pending_requirement: bool = False) -> Intent:
     return "chitchat"
 
 
-def llm_intent(deps: AgentDeps, text: str, pending: bool) -> Intent | None:
-    """大模型分类；没有模型或调用失败返回 None（由规则兜底）。"""
+def entry_intent(deps: AgentDeps, state: AgentState) -> Intent:
+    if state.get("mode") == "learn":
+        return "crm_action"  # 学习问答：只走知识类工具
+    if state.get("confirmed_requirement") or state.get("samples"):
+        return "solution"  # 需求卡片确认 / 上传了客户样例：直接出方案
+    if state.get("material"):
+        return "crm_action"  # 上传了材料：整理写入
     if deps.llm is None:
-        return None
-    hint = "\n（上一轮正在追问方案需求，这句很可能是在补充需求）" if pending else ""
-    try:
-        classifier = deps.llm.with_structured_output(IntentDecision, method="function_calling")
-        out = classifier.invoke([SystemMessage(ROUTER_PROMPT + hint), HumanMessage(text)])
-    except Exception:
-        logger.warning("router: llm classify failed, fallback to keywords", exc_info=True)
-        return None
-    return out.intent if isinstance(out, IntentDecision) else None
+        return classify_intent(state.get("user_message", ""), bool(state.get("missing")))
+    return "crm_action"  # 交给对话循环，由模型判断（要出方案时调用 start_solution）
 
 
 def make_router(deps: AgentDeps) -> Callable[[AgentState], dict[str, Any]]:
     def router(state: AgentState) -> dict[str, Any]:
         node_start("router")
-        pending = bool(state.get("missing"))
-        text = state.get("user_message", "")
-        if state.get("mode") == "learn":
-            return {**turn_reset(), "intent": "crm_action"}  # 学习问答：只走知识类工具
-        if state.get("confirmed_requirement"):
-            return {**turn_reset(), "intent": "solution"}  # 需求卡片确认：直接出方案
-        if state.get("samples"):
-            return {**turn_reset(), "intent": "solution"}  # 上传了客户样例：按样例出方案
-        if state.get("material"):
-            return {**turn_reset(), "intent": "crm_action"}  # 上传了材料：直接整理写入
-        intent = llm_intent(deps, text, pending) or classify_intent(text, pending)
-        return {**turn_reset(), "intent": intent}
+        intent = entry_intent(deps, state)
+        return {**turn_reset(), "intent": intent, "prev_missing": list(state.get("missing") or [])}
 
     return router
 

@@ -1,5 +1,6 @@
 /** 工具 / 节点 / 写操作的中文名（时间线标题用）；未登记的直接显示英文名 */
 export const TOOL_TITLES: Record<string, string> = {
+  start_solution: "转入出方案",
   parse_requirement: "理解需求",
   configure_solution: "估算算力",
   query_catalog: "查询产品目录",

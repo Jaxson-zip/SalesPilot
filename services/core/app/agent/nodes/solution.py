@@ -41,6 +41,15 @@ Node = Callable[[AgentState], dict[str, Any]]
 logger = logging.getLogger(__name__)
 
 
+def request_text(state: AgentState) -> str:
+    """出方案用的需求文字：用户原话；对话循环转入时附上模型结合上文整理的需求（补全了指代）。"""
+    text = state.get("user_message", "")
+    request = (state.get("solution_request") or "").strip()
+    if request and request != text.strip():
+        return f"{text}\n\n结合上文整理的需求：{request}" if text else request
+    return text
+
+
 def link_customer(deps: AgentDeps, state: AgentState) -> dict[str, Any]:
     """没有从商机进入时，按用户这句话里提到的客户关联报价单。
 
@@ -58,7 +67,7 @@ def link_customer(deps: AgentDeps, state: AgentState) -> dict[str, Any]:
 
 def _match_customer(deps: AgentDeps, state: AgentState) -> dict[str, Any]:
     with deps.ctx.session() as db:
-        found = customer_service.find_mentioned(db, deps.ctx.user, state.get("user_message", ""))
+        found = customer_service.find_mentioned(db, deps.ctx.user, request_text(state))
         if len(found) != 1:
             return {}
         customer = found[0]
@@ -92,7 +101,7 @@ def make_parse_requirement(deps: AgentDeps) -> Node:
             # 需求卡片上确认的结果：不再抽取，直接按它出方案
             args: dict[str, Any] = {"pack_id": pack_id, "text": "", "draft": confirmed}
         else:
-            text = state.get("user_message", "")
+            text = request_text(state)
             if samples := state.get("samples"):
                 # 样例汇总一起交给模型：单据类型和字段有助于拆模块、提问
                 text = f"{text}\n\n{describe(SampleSummary.model_validate(samples))}"
@@ -246,14 +255,20 @@ def clarify_text(card: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def missing_labels(pack_id: str | None, missing: list[str]) -> list[str]:
+    """追问字段的中文说明（取需求模型字段的 description）。"""
+    try:
+        model = get_configurator(pack_id or "").requirement_model
+    except Exception:
+        return list(missing)
+    fields = model.model_fields
+    return [(fields[f].description or f) if f in fields else f for f in missing]
+
+
 def make_ask_user(deps: AgentDeps) -> Node:
     def ask_user(state: AgentState) -> dict[str, Any]:
         node_start("ask_user")
-        model = get_configurator(state["pack_id"] or "").requirement_model
-        labels = [
-            model.model_fields[f].description or f if f in model.model_fields else f
-            for f in state.get("missing", [])
-        ]
+        labels = missing_labels(state.get("pack_id"), state.get("missing", []))
         text = f"为了给出准确的配置和报价，还需要确认：{'；'.join(labels)}。"
         emit("message.delta", {"text": text})
         return {"messages": [AIMessage(content=text, additional_kwargs={"created_at": now_iso()})]}

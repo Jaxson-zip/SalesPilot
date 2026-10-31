@@ -1,4 +1,4 @@
-"""Agent：工具包装、意图路由、状态图事件序列（假模型 + 内存 checkpointer，离线可跑）。"""
+"""Agent：工具包装、入口分流、状态图事件序列（假模型 + 内存 checkpointer，离线可跑）。"""
 
 from typing import Any
 
@@ -45,6 +45,7 @@ class TestTools:
     def test_registry_matches_spec(self) -> None:
         expected = {
             "search_customer",
+            "start_solution",
             "add_followup",
             "digest_material",
             "get_meddic",

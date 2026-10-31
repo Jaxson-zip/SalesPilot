@@ -1,5 +1,5 @@
 #!/bin/sh
-# 提交前评估：改到 AI 拆解 / 提示词相关代码时，跑软件外包评估并与基线对比，有回归就拦下提交。
+# 提交前评估：改到 AI 拆解 / 提示词相关代码时，跑软件外包评估和 CRM 对话评估并与基线对比，有回归就拦下提交。
 # 安装：git config core.hooksPath infra/git-hooks
 # 跳过（例如网关没启动又急着提交）：SKIP_EVAL=1 git commit ...
 
@@ -24,5 +24,7 @@ explain="--no-explain"
 echo "$changed" | grep -q "nodes/respond.py" && explain=""
 
 # 在本机跑工作区代码（容器里是上次构建的旧代码）；网关端口已映射到本机
-LLM_GATEWAY_BASE=http://127.0.0.1:8100/v1 PYTHONIOENCODING=utf-8 PYTHONPATH=. \
-  uv run python -m evals.run_eval --check $explain
+export LLM_GATEWAY_BASE=http://127.0.0.1:8100/v1 PYTHONIOENCODING=utf-8 PYTHONPATH=.
+uv run python -m evals.run_eval --check $explain || exit 1
+# CRM 对话：转不转出方案、调哪个工具、参数对不对（在测试库 crm_test 上跑，不写业务数据）
+uv run python -m evals.crm_eval --check

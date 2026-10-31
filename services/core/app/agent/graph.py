@@ -1,11 +1,12 @@
 """LangGraph 状态图（开发规范 §6.1）。
 
-START → router
-  ├─ chitchat   → respond
-  ├─ crm_action → tool_agent（function calling 循环）
+START → router（只按界面信号分流，不做意图分类）
+  ├─ 一般对话 → tool_agent（function calling 循环，上下文里带「当前这单」的 CRM 状态）
   │                 ├─ 要执行写工具 → confirm_action（interrupt）→ run_action → tool_agent
+  │                 ├─ 模型调用 start_solution → parse_requirement（出方案）
   │                 └─ 完成 → respond
-  └─ solution   → parse_requirement
+  ├─ 没有模型时的闲聊 → respond
+  └─ 需求卡片确认 / 上传样例 / 没有模型时的出方案 → parse_requirement
                     ├─ 缺信息 → ask_user → END
                     ├─ 行业包要先确认需求且还没确认 → clarify（粗估区间 + 需求卡片）→ END
                     └─ configure → price → check_margin
@@ -64,7 +65,9 @@ def build_graph(deps: AgentDeps, checkpointer: BaseCheckpointSaver) -> CompiledS
 
     g.add_edge(START, "router")
     g.add_conditional_edges("router", route_intent, ["respond", "tool_agent", "parse_requirement"])
-    g.add_conditional_edges("tool_agent", route_after_tool_agent, ["confirm_action", "respond"])
+    g.add_conditional_edges(
+        "tool_agent", route_after_tool_agent, ["confirm_action", "parse_requirement", "respond"]
+    )
     g.add_edge("confirm_action", "run_action")
     g.add_edge("run_action", "tool_agent")
     g.add_conditional_edges(

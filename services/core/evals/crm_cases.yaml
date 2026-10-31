@@ -1,0 +1,130 @@
+# CRM 对话评估用例：用真实模型跑完整状态图，看它选的流程、工具和参数对不对。
+#
+# 停在写入之前（确认卡片 / 刚转入出方案），不会写业务数据；在测试库 crm_test 上跑。
+#
+# 字段：
+#   text      用户这一句
+#   role      sales（默认，张晨）/ manager（李薇）
+#   opp       会话关联的商机（seed 里的 key：mingli / hnzz / xinghe / yunfan / yuehai …）
+#   history   之前的对话 [[user|ai, 内容], …]，直接写进会话，不调模型
+#   state     会话里已有的状态（例如出方案进行中：pack_id / requirement / missing）
+#   expect:
+#     route     solution（转入出方案）/ write（弹出确认卡）/ read（只调只读工具）/ reply（不调工具直接回答）
+#     action    write 时确认卡对应的工具
+#     args      确认卡参数里必须有的值；customer:xxx / opp:xxx / contact:xxx 换成 seed 里的 id
+#     tools     必须调用过的只读工具（任一）
+#     request_has   转入出方案时，整理的需求里必须包含的内容
+#     not       不能出现的流程（例如 [solution, write]）
+
+cases:
+  # ---------- 记跟进 / 推进商机 ----------
+  - id: followup-basic
+    text: 给明理记一条电话跟进：聊了私有化部署，客户关心数据不出内网，下周三前给两档报价
+    expect: {route: write, action: add_followup, args: {customer_id: customer:mingli, type: phone}}
+
+  - id: followup-short-confirm
+    history:
+      - [user, 今天下午去明理拜访了王律师，他们对审计日志很看重，预算还要再走流程]
+      - [ai, 了解。要不要我把这次拜访记成一条跟进？]
+    text: 好，就这么办
+    expect: {route: write, action: add_followup, args: {customer_id: customer:mingli, type: visit}}
+
+  - id: stage-in-deal
+    opp: mingli
+    text: 这单客户同意进入商务谈判了，帮我把阶段改一下
+    expect: {route: write, action: update_opportunity_stage, args: {opportunity_id: opp:mingli, stage: negotiation}}
+
+  - id: stage-by-name
+    text: 华南智能制造的质检助手推进到商务谈判
+    expect: {route: write, action: update_opportunity_stage, args: {opportunity_id: opp:hnzz, stage: negotiation}}
+
+  - id: lost-needs-reason
+    text: 星河那单丢了
+    expect: {not: [write, solution]}
+
+  - id: task-next-step
+    text: 提醒我周五下午三点给星河设计工作室打电话确认采购清单
+    expect: {route: write, action: create_task, args: {subject_id: customer:xinghe|opp:xinghe}}
+
+  - id: deal-next-step-advice
+    opp: mingli
+    text: 这单现在什么情况，下一步该怎么推？
+    expect: {not: [write, solution]}
+
+  # ---------- 报销 / 提成 / 制度 ----------
+  - id: expense-entertainment
+    text: 昨晚请明理的王律师和陈工吃饭，我和李薇作陪，一共花了 860 元
+    expect: {route: write, action: submit_expense, args: {amount: 86000, customer_id: customer:mingli, type: entertainment}}
+
+  - id: expense-missing-amount
+    text: 帮我报销一下昨天的打车费
+    expect: {not: [write, solution]}
+
+  - id: commission
+    text: 一单硬件 37.2 万，毛利 30%，我能拿多少提成？
+    expect: {route: read, tools: [calc_commission]}
+
+  - id: policy
+    text: 客户招待每人的标准是多少？
+    expect: {route: read, tools: [search_policy]}
+
+  - id: manager-approvals
+    role: manager
+    text: 看看有哪些等我审批的
+    expect: {route: read, tools: [list_pending_approvals]}
+
+  # ---------- 出方案：转入时机与上下文 ----------
+  - id: solution-direct
+    text: 华南智能制造想上一套质检大模型，200 人用，预算 50 万左右，帮我出个方案
+    expect: {route: solution, request_has: [华南智能制造, "200"]}
+
+  - id: solution-software
+    text: 接了个健身房的单子，要做会员约课小程序，店长后台排课，帮我估个报价
+    expect: {route: solution, request_has: [约课]}
+
+  - id: solution-pronoun
+    history:
+      - [user, 华南智能制造的刘经理说想做质检大模型，200 人同时用，数据不能出厂区]
+      - [ai, 明白，私有化部署的需求。要我按这个出方案吗？]
+    text: 好，按刚才说的给他们出方案
+    expect: {route: solution, request_has: [华南智能制造, "200"]}
+
+  - id: solution-answer-missing
+    state:
+      pack_id: llm_deploy
+      requirement: {model_name: Qwen3-32B, scene: 合同审查}
+      missing: [concurrency]
+    history:
+      - [user, 给明理出个 Qwen3-32B 的合同审查方案]
+      - [ai, 为了给出准确的配置和报价，还需要确认：并发人数。]
+    text: 大概 80 个人同时用
+    expect: {route: solution, request_has: ["80"]}
+
+  - id: solution-modify-software
+    state:
+      pack_id: software_outsourcing
+      requirement: {platforms: [mini_program, admin], modules: [{key: booking, name: 在线预约}]}
+    history:
+      - [user, 健身房会员约课小程序，店长后台排课]
+      - [ai, 按需求拆了在线预约、课程管理、会员账号，粗估 6–9 万。请在需求卡片上确认功能。]
+    text: 再加一个会员积分商城
+    expect: {route: solution, request_has: [积分]}
+
+  - id: no-solution-midway
+    state:
+      pack_id: software_outsourcing
+      requirement: {platforms: [mini_program, admin], modules: [{key: booking, name: 在线预约}]}
+    history:
+      - [user, 健身房会员约课小程序，店长后台排课]
+      - [ai, 按需求拆了在线预约、课程管理、会员账号，粗估 6–9 万。请在需求卡片上确认功能。]
+    text: 对了，先帮我记一下：今天给前海云帆打了电话，他们下周给 AI 客服的需求文档
+    expect: {route: write, action: add_followup, args: {customer_id: customer:yunfan}}
+
+  # ---------- 闲聊 ----------
+  - id: hello
+    text: 你好
+    expect: {route: reply}
+
+  - id: time
+    text: 现在几点了
+    expect: {route: reply}

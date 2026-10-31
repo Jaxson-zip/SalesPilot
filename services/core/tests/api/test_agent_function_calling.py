@@ -26,8 +26,6 @@ from tests.api.conftest import Tracker
 from tests.api.test_opportunities_api import new_opp
 from tests.scripted_llm import ScriptedModel, call
 
-ROUTE_CRM = call("IntentDecision", {"intent": "crm_action"}, "route")
-
 
 def _deps(role: Role, llm: ScriptedModel, thread: str) -> AgentDeps:
     ctx = ToolContext(user=DEMO_USERS[role], session=session_scope, thread_id=thread)
@@ -57,7 +55,6 @@ def _stage(opp_id: str) -> str:
 
 def _stage_script(opp_id: str, final: str) -> list[AIMessage]:
     return [
-        ROUTE_CRM,
         call("search_customer", {"keyword": "明理"}, "c1"),
         call("get_customer_context", {"customer_id": str(C_MINGLI)}, "c2"),
         call(
@@ -121,9 +118,7 @@ def test_expense_via_chat_uses_system_idempotency_key(tracker: Tracker) -> None:
         "headcount": 4,
         "reason": f"function calling 测试晚餐 {uuid.uuid4().hex[:6]}",
     }
-    llm = ScriptedModel(
-        script=[ROUTE_CRM, call("submit_expense", args, "e1"), AIMessage(content="已提交。")]
-    )
+    llm = ScriptedModel(script=[call("submit_expense", args, "e1"), AIMessage(content="已提交。")])
     deps, saver = _deps(Role.SALES, llm, f"t-{uuid.uuid4().hex[:6]}"), InMemorySaver()
     (pending,) = _of(_chat(deps, saver, "昨晚请明理王律师吃饭 860，4 个人，帮我报销"), "interrupt")
     assert pending["preview"]["customer_name"] == "深圳明理律师事务所"
@@ -141,7 +136,6 @@ def test_admin_cannot_call_write_tools(client: TestClient, tracker: Tracker) -> 
     opp = new_opp(client, tracker)
     llm = ScriptedModel(
         script=[
-            ROUTE_CRM,
             call("update_opportunity_stage", {"opportunity_id": opp["id"], "stage": "won"}, "a1"),
             AIMessage(content="管理员只能查看业务数据。"),
         ]

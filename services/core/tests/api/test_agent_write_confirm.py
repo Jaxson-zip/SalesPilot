@@ -28,7 +28,6 @@ from seed.data import C_MINGLI
 from tests.api.conftest import Tracker
 from tests.scripted_llm import ScriptedModel, call
 
-ROUTE_CRM = call("IntentDecision", {"intent": "crm_action"}, "route")
 ASKS_AGAIN = "请确认卡片，确认后即写入系统。"
 
 
@@ -57,7 +56,7 @@ def _followups(content: str) -> list[Followup]:
 def _followup_script(content: str) -> list[AIMessage]:
     args = {"customer_id": str(C_MINGLI), "content": content, "type": "phone"}
     # 执行之后模型还在让用户确认：回复要按执行状态改正
-    return [ROUTE_CRM, call("add_followup", args, "f1"), AIMessage(content=ASKS_AGAIN)]
+    return [call("add_followup", args, "f1"), AIMessage(content=ASKS_AGAIN)]
 
 
 def test_followup_waits_for_confirm_and_reply_follows_status(tracker: Tracker) -> None:
@@ -137,7 +136,6 @@ def test_context_pack_reaches_search_policy(monkeypatch: pytest.MonkeyPatch) -> 
 
     monkeypatch.setattr(retriever, "search", fake_search)
     script = [
-        ROUTE_CRM,
         call("search_policy", {"query": "云服务和短信费用包含在报价里吗"}, "p1"),
         AIMessage(content="这次检索范围里没有命中。"),
     ]

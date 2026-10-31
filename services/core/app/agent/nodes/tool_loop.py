@@ -2,7 +2,10 @@
 
     tool_agent ──(模型要调写工具)──▶ confirm_action（interrupt）──▶ run_action ──▶ tool_agent
         │                                                                    （把结果交回模型继续）
+        ├──(模型调用 start_solution)──▶ parse_requirement（出方案流程）
         └──(模型不再调工具 / 达到上限)──▶ respond
+
+- 不单独做意图分类：每轮的系统提示里带着「当前这单」的 CRM 状态，模型结合上下文决定调什么。
 
 - 模型只能看到当前角色可用的工具（chat_tools_for）；幂等键、行业包由系统注入，不由模型生成。
 - 只读工具直接执行；needs_confirm 的写工具先停下来等用户确认，一次只确认一个。
@@ -25,13 +28,16 @@ from langchain_core.messages import (
 from langgraph.types import interrupt
 
 from app.agent.action_result import action_result
+from app.agent.deal_context import deal_brief
 from app.agent.deps import AgentDeps
 from app.agent.nodes.common import call_tool, emit, log_tool, node_start
 from app.agent.nodes.crm import run_rule_plan
+from app.agent.nodes.router import classify_intent
+from app.agent.nodes.solution import missing_labels
 from app.agent.prompts import learn_prompt, system_prompt
 from app.agent.runtime import runtime_note
 from app.agent.state import AgentState
-from app.agent.tools import TOOLS, ToolResult, inject_system_args, tools_for
+from app.agent.tools import HANDOFF_TOOL, TOOLS, ToolResult, inject_system_args, tools_for
 from app.agent.tools.previews import confirm_preview
 
 logger = logging.getLogger("core.agent")
@@ -40,6 +46,7 @@ Node = Callable[[AgentState], dict[str, Any]]
 TOOL_RULES = """
 ## 调用工具的规则
 - 当前用户：{user}（{role}）。
+- 打招呼、问时间、问你是什么模型等和业务无关的话，直接简短回答，不调用工具。
 - 需要客户、商机、联系人的 id 时，先调用 search_customer、get_customer_context 查询，禁止编造 id。
 - search_customer 匹配到多个客户时，列出候选让用户选，不要自己挑。
 - 金额参数一律以「分」为单位（860 元 = 86000）。
@@ -70,13 +77,37 @@ TOOL_RULES = """
 """.strip()
 
 
+def solution_note(state: AgentState) -> str | None:
+    """会话里正在做方案时提醒模型：用户补充或修改需求要交回出方案流程，而不是自己回答。"""
+    if missing := state.get("prev_missing"):
+        labels = missing_labels(state.get("pack_id"), missing)
+        return (
+            f"## 方案进行中\n上一轮出方案时追问了：{'、'.join(labels)}。"
+            "用户这句话如果是在回答这些问题或补充需求，调用 start_solution。"
+        )
+    if state.get("requirement"):
+        return (
+            "## 方案进行中\n这个会话已经在出方案（有需求草稿）。用户这句话如果是在补充或修改需求"
+            "（功能模块、端、预算、工期、人数、模型、并发等），调用 start_solution。"
+        )
+    return None
+
+
 def _system(deps: AgentDeps, state: AgentState) -> SystemMessage:
     user = deps.ctx.user
     rules = TOOL_RULES.format(user=user.name, role=user.role.value)
     # 当前时间和这一轮用的模型（原来只写了今天的日期）
     note = runtime_note(deps.model)
-    base = learn_prompt() if state.get("mode") == "learn" else system_prompt(state.get("pack_id"))
-    return SystemMessage(content=f"{base}\n\n{note}\n\n{rules}")
+    learn = state.get("mode") == "learn"
+    base = learn_prompt() if learn else system_prompt(state.get("pack_id"))
+    # 学习问答不碰客户数据：不放当前这单
+    deal = (
+        None
+        if learn
+        else deal_brief(deps.ctx, state.get("opportunity_id"), state.get("customer_id"))
+    )
+    parts = [base, note, deal, None if learn else solution_note(state), rules]
+    return SystemMessage(content="\n\n".join(p for p in parts if p))
 
 
 def _tool_content(result: ToolResult) -> str:
@@ -115,6 +146,16 @@ def _skip(call_id: str, reason: str) -> ToolMessage:
         content=json.dumps({"ok": False, "summary": reason}, ensure_ascii=False),
         tool_call_id=call_id,
     )
+
+
+def _handoff(ai: AIMessage, allowed: set[str]) -> str | None:
+    """模型调用了 start_solution：返回它整理的需求描述（同一轮的其他调用不再执行）。"""
+    if HANDOFF_TOOL not in allowed:
+        return None
+    for call in ai.tool_calls:
+        if call["name"] == HANDOFF_TOOL:
+            return str((call.get("args") or {}).get("request") or "").strip()
+    return None
 
 
 def _run_calls(
@@ -163,6 +204,19 @@ def _llm_loop(deps: AgentDeps, state: AgentState) -> dict[str, Any]:
         if not ai.tool_calls:
             break
         rounds += 1
+        request = _handoff(ai, _allowed(deps, state))
+        if request is not None:
+            # 交给出方案流程：它自己输出说明和方案卡片，这里的工作消息和过渡语都不保留
+            node_start("start_solution")
+            return {
+                "intent": "solution",
+                "solution_request": request or None,
+                "tool_log": log,
+                "scratch": [],
+                "pending_call": None,
+                "agent_reply": None,
+                "tool_rounds": rounds,
+            }
         pending, log = _run_calls(deps, state, ai, messages, log)
         if pending is not None:
             out = {"scratch": messages, "tool_log": log, "tool_rounds": rounds}
@@ -186,13 +240,26 @@ def make_tool_agent(deps: AgentDeps) -> Node:
         except Exception:
             logger.warning("tool_agent: llm failed", exc_info=True)
             if not state.get("scratch"):
-                return run_rule_plan(deps, state)  # 第一次就失败：按规则兜底
+                return _rule_fallback(deps, state)  # 第一次就失败：按关键词规则兜底
             return {"pending_call": None}  # 中途失败：用已有的工具结果出模板回复
 
     return tool_agent
 
 
+def _rule_fallback(deps: AgentDeps, state: AgentState) -> dict[str, Any]:
+    """模型不可用：关键词判断要不要出方案（出方案流程本身不依赖模型），其余走只读规则。"""
+    pending = bool(state.get("prev_missing"))
+    if (
+        state.get("mode") != "learn"
+        and classify_intent(state.get("user_message", ""), pending) == "solution"
+    ):
+        return {"intent": "solution"}
+    return run_rule_plan(deps, state)
+
+
 def route_after_tool_agent(state: AgentState) -> str:
+    if state.get("intent") == "solution":
+        return "parse_requirement"
     return "confirm_action" if state.get("pending_call") else "respond"
 
 

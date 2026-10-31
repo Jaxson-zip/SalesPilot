@@ -21,6 +21,10 @@ class AgentState(TypedDict):
     customer_id: NotRequired[str | None]  # 出方案时从对话里识别出的客户（唯一匹配才关联）
     customer_name: NotRequired[str | None]
     intent: NotRequired[Intent]
+    # 对话循环转入出方案时，模型结合上文整理的需求描述（补全指代，保留数字）
+    solution_request: NotRequired[str | None]
+    # 上一轮出方案时追问过、用户还没给的字段（本轮开始时从 missing 转存，提示模型用户可能在回答）
+    prev_missing: NotRequired[list[str]]
     pack_id: NotRequired[str | None]
     requirement: NotRequired[dict[str, Any]]  # 跨轮次累积的需求草稿
     # 需求已由销售在需求卡片上确认（跨轮次保留；功能 / 端变了会回到待确认）
@@ -53,6 +57,7 @@ def turn_reset() -> dict[str, Any]:
     """每轮开始时清空的字段（requirement 保留，用于多轮补充需求）。"""
     return {
         "intent": "chitchat",
+        "solution_request": None,
         "missing": [],
         "tiers": [],
         "clarify": None,

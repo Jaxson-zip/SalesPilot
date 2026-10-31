@@ -10,6 +10,7 @@ from app.agent.tools.base import (
 )
 from app.agent.tools.context_tools import CONTEXT_TOOLS
 from app.agent.tools.crm_tools import CRM_TOOLS
+from app.agent.tools.handoff_tools import HANDOFF_TOOL, HANDOFF_TOOLS
 from app.agent.tools.learn_tools import LEARN_TOOLS
 from app.agent.tools.material_tools import MATERIAL_TOOLS
 from app.agent.tools.policy_tools import POLICY_TOOLS
@@ -25,11 +26,14 @@ TOOLS: dict[str, ToolSpec] = {
         *SOLUTION_TOOLS,
         *POLICY_TOOLS,
         *LEARN_TOOLS,
+        *HANDOFF_TOOLS,
     ]
 }
 
-# 对话里交给模型自主调用（function calling）的工具；出方案链路的工具由状态图按固定顺序调用
+# 对话里交给模型自主调用（function calling）的工具；出方案链路的工具由状态图按固定顺序调用，
+# 模型只能通过 start_solution 把这一轮交给出方案流程
 CHAT_TOOL_NAMES: tuple[str, ...] = (
+    HANDOFF_TOOL,
     "search_customer",
     "get_customer_context",
     "get_meddic",
@@ -50,6 +54,7 @@ CHAT_TOOL_NAMES: tuple[str, ...] = (
 # 按角色收窄可见工具（契约 §0）：管理员对业务数据只读；审批只有主管能做。service 层仍会再校验一次
 READ_ONLY_TOOLS = frozenset(
     {
+        HANDOFF_TOOL,  # 只出方案；管理员生成报价单时 service 会拒绝
         "search_customer",
         "get_customer_context",
         "get_meddic",
@@ -83,6 +88,7 @@ def tools_for(role: Role, mode: str | None = None) -> list[ToolSpec]:
 
 
 __all__ = [
+    "HANDOFF_TOOL",
     "INJECTED_ARGS",
     "TOOLS",
     "ToolContext",

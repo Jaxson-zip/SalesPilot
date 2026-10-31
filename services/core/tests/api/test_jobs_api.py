@@ -194,6 +194,8 @@ def test_task_due_job_notifies_once(db: Session) -> None:
     assert len(overdue) == 1
     assert overdue[0].user_id == SALES.id
     assert overdue[0].title == "任务已逾期：逾期测试"
+    # 点通知打开客户页并定位到这条任务
+    assert overdue[0].link == f"/customers/{c.id}?task={late.id}"
     assert _notes(db, f"task_overdue:{old.id}") == []  # 超过一周的不再提醒
 
 

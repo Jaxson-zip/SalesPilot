@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useCompleteTask, useTasks } from "@/hooks/useTasks"
 import { isNotImplemented } from "@/lib/errors"
-import { mergeTodoTasks, taskSubjectHref } from "@/lib/tasks"
+import { mergeTodoTasks, taskHref } from "@/lib/tasks"
 import type { DataView } from "@/types/api"
 
 const MAX_ROWS = 8
@@ -41,7 +41,7 @@ export function TodoCard({ view, title = "待办" }: { view: DataView; title?: s
           t={t}
           showSubject
           showOwner={view !== "mine"}
-          href={taskSubjectHref(t)}
+          href={taskHref(t)}
           canComplete={canEdit(t.owner?.id)}
           onComplete={complete}
           completing={pendingId === t.id}

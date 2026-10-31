@@ -137,6 +137,12 @@ export function taskSubjectHref(t: { subject_type: string; subject_id: string })
   return t.subject_type === "opportunity" ? `/pipeline?opp=${id}` : `/customers/${id}`
 }
 
+/** 点任务：打开所属商机 / 客户，并定位到这条任务（与通知里的链接一致） */
+export function taskHref(t: { id: string; subject_type: string; subject_id: string }): string {
+  const base = taskSubjectHref(t)
+  return `${base}${base.includes("?") ? "&" : "?"}task=${encodeURIComponent(t.id)}`
+}
+
 /** 工作台标题下的待办摘要；后端还没返回 tasks_today 时为空串 */
 export function todoSummary(today: number | undefined, overdue: number | undefined): string {
   if (today === undefined) return ""

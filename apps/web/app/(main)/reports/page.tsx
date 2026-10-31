@@ -1,7 +1,7 @@
 "use client"
 
 import { BellRing, ChevronDown, ClipboardList, Copy, Loader2, Send, Sparkles } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { useConfirmAction } from "@/components/biz/ConfirmAction"
@@ -28,7 +28,9 @@ import {
   type TeamMemberReport,
 } from "@/hooks/useReports"
 import { usePushFlags, usePushSummary, useRemindReports } from "@/hooks/useWecom"
-import { REDRAFT_REPORT_CONFIRM } from "@/lib/confirm-texts"
+import { useUnsavedGuard } from "@/hooks/useUnsavedGuard"
+import { LEAVE_REPORT_CONFIRM, REDRAFT_REPORT_CONFIRM } from "@/lib/confirm-texts"
+import { readStorage, writeStorage } from "@/lib/storage"
 import { cn } from "@/lib/utils"
 
 /** 本地日期 yyyy-mm-dd（服务端按北京时间算「当天」） */
@@ -128,7 +130,11 @@ function Facts({ facts }: { facts: DailyFacts }) {
   )
 }
 
+/** 没保存的日报存在浏览器里：切走、刷新、切到团队日报后回来还在 */
+const backupKey = (userId: string, date: string) => `sp.report.${userId}.${date}`
+
 function MyReport() {
+  const { userId } = useSession()
   const [date, setDate] = useState(localDate())
   const q = useDailyReport(date)
   const draft = useDraftReport()
@@ -139,6 +145,26 @@ function MyReport() {
   const content = edits[date] ?? q.data?.content ?? ""
   const setContent = (v: string) => setEdits((e) => ({ ...e, [date]: v }))
   const dirty = edits[date] !== undefined && edits[date] !== (q.data?.content ?? "")
+  const [restored, setRestored] = useState<string | null>(null)
+  const leaveDialog = useUnsavedGuard(dirty, LEAVE_REPORT_CONFIRM)
+
+  // 打开某天的日报：浏览器里有没保存的内容就恢复
+  const saved = q.data?.content
+  useEffect(() => {
+    if (!userId || saved === undefined) return
+    const backup = readStorage(backupKey(userId, date))
+    if (backup === null) return
+    if (backup === saved) return writeStorage(backupKey(userId, date), null)
+    setEdits((e) => (e[date] === undefined ? { ...e, [date]: backup } : e))
+    setRestored(date)
+  }, [userId, date, saved])
+  // 边写边存；和已保存的一样就清掉
+  useEffect(() => {
+    if (!userId || saved === undefined) return
+    const text = edits[date]
+    if (text === undefined) return
+    writeStorage(backupKey(userId, date), text === saved ? null : text)
+  }, [userId, date, saved, edits])
 
   const { ask, dialog } = useConfirmAction()
   const runDraft = () =>
@@ -153,18 +179,22 @@ function MyReport() {
     save.mutate(
       { date, content: content.trim(), submit: asSubmit },
       {
-        onSuccess: () =>
+        onSuccess: () => {
+          if (userId) writeStorage(backupKey(userId, date), null)
+          setRestored(null)
           setEdits((e) => {
             const next = { ...e }
             delete next[date]
             return next
-          }),
+          })
+        },
       },
     )
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 sm:p-5">
       {dialog}
+      {leaveDialog}
       <div className="flex flex-wrap items-center gap-2">
         <DateInput
           value={date}
@@ -210,7 +240,11 @@ function MyReport() {
               className="min-h-72 flex-1 resize-none"
             />
             <div className="flex items-center justify-end gap-2">
-              {dirty ? <span className="mr-auto text-xs text-amber-600">有未保存的修改</span> : null}
+              {dirty ? (
+                <span className="mr-auto text-xs text-amber-600">
+                  {restored === date ? "已恢复上次没保存的内容，记得保存" : "有未保存的修改"}
+                </span>
+              ) : null}
               <Button
                 variant="outline"
                 size="sm"

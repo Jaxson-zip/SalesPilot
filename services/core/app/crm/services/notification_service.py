@@ -79,14 +79,20 @@ def team_managers(db: Session, team_id: uuid.UUID | None) -> list[uuid.UUID]:
 
 
 def subject_link(subject_type: str, subject_id: uuid.UUID) -> str:
-    """前端路由：商机在看板侧栏打开，报销在列表页打开，其余有详情页。"""
+    """前端路由：商机在看板侧栏打开（参数名 opp），报销在列表页打开，其余有详情页。"""
     if subject_type == "opportunity":
-        return f"/pipeline?opportunity={subject_id}"
+        return f"/pipeline?opp={subject_id}"
     if subject_type == "expense":
         return f"/expenses?id={subject_id}"
     if subject_type == "quote":
         return f"/quotes/{subject_id}"
     return f"/customers/{subject_id}"
+
+
+def task_link(task: Task) -> str:
+    """任务挂在商机 / 客户上：打开它们并定位到这条任务（task 参数）。"""
+    link = subject_link(task.subject_type, task.subject_id)
+    return f"{link}{'&' if '?' in link else '?'}task={task.id}"
 
 
 def ensure_task_due(db: Session, user: CurrentUser, now: datetime | None = None) -> int:
@@ -105,7 +111,7 @@ def ensure_task_due(db: Session, user: CurrentUser, now: datetime | None = None)
             "type": "task_due",
             "title": f"任务今天到期：{t.title}",
             "body": t.note,
-            "link": subject_link(t.subject_type, t.subject_id),
+            "link": task_link(t),
             "read": False,
             "dedupe_key": f"task_due:{t.id}:{day}",
         }

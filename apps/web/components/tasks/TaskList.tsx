@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { AddTaskDialog } from "@/components/tasks/AddTaskDialog"
 import { useSession } from "@/components/shell/SessionProvider"
@@ -25,9 +25,12 @@ export function TaskRow({
   showOwner,
   onComplete,
   completing,
+  focused,
 }: {
   t: TaskItem
   canComplete: boolean
+  /** 从通知 / 待办点进来的那条：滚到可见处并高亮 */
+  focused?: boolean
   /** 点标题跳转（工作台待办：跳到对应商机 / 客户） */
   href?: string
   showSubject?: boolean
@@ -37,6 +40,10 @@ export function TaskRow({
   completing?: boolean
 }) {
   const overdue = isTaskOverdue(t)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (focused) ref.current?.scrollIntoView({ block: "center", behavior: "smooth" })
+  }, [focused])
   const title = href ? (
     <Link href={href} className="truncate hover:underline">
       {t.title}
@@ -45,7 +52,14 @@ export function TaskRow({
     <span className="truncate">{t.title}</span>
   )
   return (
-    <div className="flex min-h-9 items-center gap-2.5 rounded-md px-2 hover:bg-zinc-50">
+    <div
+      ref={ref}
+      data-focused={focused || undefined}
+      className={cn(
+        "flex min-h-9 items-center gap-2.5 rounded-md px-2 hover:bg-zinc-50",
+        focused && "bg-amber-50 ring-1 ring-amber-300 hover:bg-amber-50",
+      )}
+    >
       {canComplete ? (
         <Checkbox
           aria-label={`完成：${t.title}`}
@@ -81,11 +95,14 @@ export function SubjectTasks({
   subjectId,
   subjectName,
   editable,
+  focusId,
 }: {
   subjectType: TaskSubjectType
   subjectId: string
   subjectName: string
   editable: boolean
+  /** 要定位的任务 id（地址里的 task 参数） */
+  focusId?: string | null
 }) {
   const { role } = useSession()
   const [adding, setAdding] = useState(false)
@@ -106,7 +123,14 @@ export function SubjectTasks({
     )
   else
     body = items.map((t) => (
-      <TaskRow key={t.id} t={t} canComplete={editable} onComplete={complete} completing={pendingId === t.id} />
+      <TaskRow
+        key={t.id}
+        t={t}
+        canComplete={editable}
+        onComplete={complete}
+        completing={pendingId === t.id}
+        focused={t.id === focusId}
+      />
     ))
 
   const pending = q.isError && isNotImplemented(q.error)

@@ -1,7 +1,8 @@
 "use client"
 
 import { Plus, Target } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 
 import { EmptyState } from "@/components/biz/EmptyState"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
@@ -50,11 +51,8 @@ export default function PipelinePage() {
   const [mobileStage, setMobileStage] = useState<OpportunityStage>("lead")
   const [openId, setOpenId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
-  // 从工作台待办 / 通知跳转过来：/pipeline?opp=<id> 直接打开商机侧栏（不用 useSearchParams，避免整页需要 Suspense）
-  useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("opp")
-    if (id) setOpenId(id)
-  }, [])
+  const [focusTask, setFocusTask] = useState<string | null>(null)
+  const router = useRouter()
   const openCreate = canCreate ? () => setCreating(true) : undefined
   // Sheet 里显示最新缓存（乐观更新后阶段立即变化）
   const opened = query.data?.items.find((o) => o.id === openId) ?? null
@@ -124,12 +122,44 @@ export default function PipelinePage() {
       <OpportunitySheet
         opp={opened}
         editable={opened ? canEdit(opened.owner?.id) : false}
-        onClose={() => setOpenId(null)}
+        onClose={() => {
+          setOpenId(null)
+          setFocusTask(null)
+          // 去掉地址里的 opp / task：再点同一条通知还能打开
+          if (window.location.search) router.replace("/pipeline", { scroll: false })
+        }}
+        focusTaskId={focusTask}
         onStageChange={move}
         changing={changing}
       />
       <NewOpportunitySheet open={creating} onOpenChange={setCreating} />
+      <Suspense fallback={null}>
+        <OpenFromUrl
+          onOpen={(opp, task) => {
+            setOpenId(opp)
+            setFocusTask(task)
+          }}
+        />
+      </Suspense>
       {dialogs}
     </PageFrame>
   )
+}
+
+/**
+ * 从工作台待办 / 通知跳转过来：/pipeline?opp=<id>&task=<id> 打开商机侧栏并定位任务。
+ * 已经在看板页时点通知也会生效（地址变了就重新打开）；单独包在 Suspense 里，整页不用等。
+ */
+function OpenFromUrl({ onOpen }: { onOpen: (opp: string, task: string | null) => void }) {
+  const params = useSearchParams()
+  const opp = params.get("opp")
+  const task = params.get("task")
+  const latest = useRef(onOpen)
+  useEffect(() => {
+    latest.current = onOpen
+  })
+  useEffect(() => {
+    if (opp) latest.current(opp, task)
+  }, [opp, task])
+  return null
 }

@@ -127,3 +127,10 @@ export function deleteContactConfirm(name: string): ConfirmCopy {
     destructive: true,
   }
 }
+
+/** 日报有没保存的修改时离开页面 */
+export const LEAVE_REPORT_CONFIRM: ConfirmCopy = {
+  title: "日报还没保存",
+  description: "离开后这次的修改不会提交（会暂存在这台电脑的浏览器里，回来时恢复）。建议先点「保存草稿」。",
+  confirmLabel: "先离开",
+}

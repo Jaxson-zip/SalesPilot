@@ -3457,6 +3457,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - quotes
+      summary: Create Quote
+      operationId: create_quote_api_quotes_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_QuoteDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/quotes/facets:
     get:
       tags:
@@ -4233,6 +4266,46 @@ paths:
           - type: string
           - type: 'null'
           title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ExpenseDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - expenses
+      summary: Update Expense
+      operationId: update_expense_api_expenses__expense_id__put
+      parameters:
+      - name: expense_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Expense Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseCreate'
       responses:
         '200':
           description: Successful Response
@@ -10295,6 +10368,12 @@ components:
           anyOf:
           - $ref: '#/components/schemas/ExpenseDetails'
           - type: 'null'
+        approvals:
+          items:
+            $ref: '#/components/schemas/ApprovalBrief'
+          type: array
+          title: Approvals
+          default: []
       type: object
       required:
       - id
@@ -10318,6 +10397,7 @@ components:
       - attachments
       - policy_check
       - details
+      - approvals
       title: ExpenseDetail
     ExpenseDetails:
       properties:
@@ -12733,6 +12813,44 @@ components:
       - ok
       - error
       title: PushOut
+    QuoteCreate:
+      properties:
+        opportunity_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Opportunity Id
+        customer_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Customer Id
+        pack:
+          type: string
+          maxLength: 50
+          minLength: 1
+          title: Pack
+        items:
+          items:
+            $ref: '#/components/schemas/QuoteLineIn'
+          type: array
+          maxItems: 100
+          minItems: 1
+          title: Items
+        discount_rate:
+          type: number
+          exclusiveMaximum: 1.0
+          minimum: 0.0
+          title: Discount Rate
+          default: 0
+      type: object
+      required:
+      - pack
+      - items
+      title: QuoteCreate
+      description: 不经过 AI，自己从零出一张报价（草稿）。商机和客户至少填一个；填了商机就用商机的客户。
     QuoteDetail:
       properties:
         id:
@@ -12967,9 +13085,11 @@ components:
       - sku
       - qty
       title: QuoteLineIn
-      description: '一行明细。目录物料只传 sku + 数量；自己加的费用（sku 以 extra- 开头，如加急费、差旅费、
+      description: '一行明细。目录物料传 sku + 数量，可以带 unit_price 改单价（不带沿用原价）；
 
-        第三方服务）还要传名称和单价，成本不填按 0 算。'
+        自己加的费用（sku 以 extra- 开头，如加急费、差旅费、第三方服务）还要传名称和单价，
+
+        成本不填按 0 算。'
     QuoteListItem:
       properties:
         id:

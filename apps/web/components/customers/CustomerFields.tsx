@@ -63,7 +63,16 @@ const LEVELS = [
 ]
 const toOptions = (xs: readonly string[]) => xs.map((x) => ({ value: x, label: x }))
 
-export function CustomerFields({ c, editable }: { c: CustomerDetail; editable: boolean }) {
+export function CustomerFields({
+  c,
+  editable,
+  focusTaskId,
+}: {
+  c: CustomerDetail
+  editable: boolean
+  /** 从通知 / 待办点进来时要定位的任务 */
+  focusTaskId?: string | null
+}) {
   const update = useUpdateCustomer(c.id)
   const save = (key: keyof CustomerUpdate) => (v: string | number | null) => update.mutateAsync({ [key]: v })
   return (
@@ -154,7 +163,13 @@ export function CustomerFields({ c, editable }: { c: CustomerDetail; editable: b
         )}
       </FieldRow>
       <div className="mt-5">
-        <SubjectTasks subjectType="customer" subjectId={c.id} subjectName={c.name} editable={editable} />
+        <SubjectTasks
+          subjectType="customer"
+          subjectId={c.id}
+          subjectName={c.name}
+          editable={editable}
+          focusId={focusTaskId}
+        />
       </div>
     </>
   )

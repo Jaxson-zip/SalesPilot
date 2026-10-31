@@ -8,6 +8,7 @@ import {
   mergeTodoTasks,
   nextStepView,
   staleText,
+  taskHref,
   taskSubjectHref,
   toDueIso,
   todoSummary,
@@ -100,6 +101,10 @@ describe("工作台待办", () => {
   it("标题跳转：商机 → 看板打开侧栏；客户 → 详情", () => {
     expect(taskSubjectHref({ subject_type: "opportunity", subject_id: "o 1" })).toBe("/pipeline?opp=o%201")
     expect(taskSubjectHref({ subject_type: "customer", subject_id: "c1" })).toBe("/customers/c1")
+  })
+  it("点任务：定位到这条任务", () => {
+    expect(taskHref({ id: "t1", subject_type: "opportunity", subject_id: "o1" })).toBe("/pipeline?opp=o1&task=t1")
+    expect(taskHref({ id: "t 2", subject_type: "customer", subject_id: "c1" })).toBe("/customers/c1?task=t%202")
   })
   it("标题摘要", () => {
     expect(todoSummary(undefined, undefined)).toBe("")

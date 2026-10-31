@@ -2,7 +2,7 @@
 
 import { Building2, Clock, Contact, FileText, Globe, Hand, PencilLine, Sparkles, Target, Undo2 } from "lucide-react"
 import { useParams } from "next/navigation"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { Alert } from "@/components/biz/Alert"
 import { DataGrid } from "@/components/biz/DataGrid"
@@ -55,6 +55,11 @@ export default function CustomerDetailPage() {
   const claim = useClaimCustomer(customerId)
   const [releasing, setReleasing] = useState(false)
   const [tab, setTab] = useState("timeline")
+  // 从通知 / 待办点进来：/customers/<id>?task=<id> 定位到这条任务
+  const [focusTask, setFocusTask] = useState<string | null>(null)
+  useEffect(() => {
+    setFocusTask(new URLSearchParams(window.location.search).get("task"))
+  }, [customerId])
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const c = query.data
   // 公海客户（B5）：负责人为空，只读，领取后才能编辑和写跟进
@@ -98,7 +103,7 @@ export default function CustomerDetailPage() {
               {role === "sales" ? "领取后才能编辑和写跟进。" : "可以在客户列表勾选后「转移负责人」分配给销售。"}
             </Alert>
           ) : null}
-          <CustomerFields c={cust} editable={canEdit(cust.owner?.id)} />
+          <CustomerFields c={cust} editable={canEdit(cust.owner?.id)} focusTaskId={focusTask} />
         </div>
         <div className="flex min-w-0 flex-1 flex-col lg:min-h-0">
           <RecordTabs

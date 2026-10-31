@@ -63,7 +63,7 @@ def _task_due(db: Session, now: datetime, _: dict[str, Any]) -> str:
             f"任务今天到期：{t.title}",
             f"task_due:{t.id}:{day}",  # 与查询通知时补生成的 key 相同，不会重复
             t.note,
-            notification_service.subject_link(t.subject_type, t.subject_id),
+            notification_service.task_link(t),
         )
     for t in overdue:
         sent += notification_service.notify_once(
@@ -73,7 +73,7 @@ def _task_due(db: Session, now: datetime, _: dict[str, Any]) -> str:
             f"任务已逾期：{t.title}",
             f"task_overdue:{t.id}",
             f"原定 {local_date(t.due_at):%m-%d} 完成",
-            notification_service.subject_link(t.subject_type, t.subject_id),
+            notification_service.task_link(t),
         )
     return f"今天到期 {len(today)} 个、逾期 {len(overdue)} 个任务，新发提醒 {sent} 条"
 

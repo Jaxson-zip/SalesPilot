@@ -6,6 +6,7 @@ import {
   Calendar,
   Coins,
   ExternalLink,
+  FilePlus,
   FileText,
   Lock,
   NotebookPen,
@@ -311,8 +312,11 @@ export function OpportunitySheet({
   onClose,
   onStageChange,
   changing,
+  focusTaskId,
 }: {
   opp: OpportunityItem | null
+  /** 从通知 / 待办点进来时要定位的任务 */
+  focusTaskId?: string | null
   /** 本人负责的商机才能切换阶段、出方案 */
   editable: boolean
   onClose: () => void
@@ -340,6 +344,14 @@ export function OpportunitySheet({
               <Button variant="outline" onClick={() => setPasting(true)}>
                 <NotebookPen />
                 粘贴纪要
+              </Button>
+            ) : null}
+            {editable ? (
+              <Button variant="outline" asChild>
+                <Link href={`/quotes/new?opp=${encodeURIComponent(o.id)}`}>
+                  <FilePlus />
+                  手动报价
+                </Link>
               </Button>
             ) : null}
             {editable ? (
@@ -383,7 +395,13 @@ export function OpportunitySheet({
           <MeddicCard oppId={o.id} editable={editable} />
           <CompetitorsCard oppId={o.id} editable={editable} />
           {/* U9：去掉固定文字的「下一步建议」，换成真实的下一步任务（v3 §12） */}
-          <SubjectTasks subjectType="opportunity" subjectId={o.id} subjectName={o.name} editable={editable} />
+          <SubjectTasks
+            subjectType="opportunity"
+            subjectId={o.id}
+            subjectName={o.name}
+            editable={editable}
+            focusId={focusTaskId}
+          />
           {detail.isPending ? (
             <Skeleton className="h-24 w-full" />
           ) : detail.isError ? (

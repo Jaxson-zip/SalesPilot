@@ -660,6 +660,41 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/ai-feedback": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Review */
+    get: operations["review_api_ai_feedback_get"]
+    put?: never
+    /** Rate */
+    post: operations["rate_api_ai_feedback_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/ai-feedback/thread/{thread_id}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** My Ratings */
+    get: operations["my_ratings_api_ai_feedback_thread__thread_id__get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/customers": {
     parameters: {
       query?: never
@@ -3573,6 +3608,25 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[Union[MyRating, NoneType]] */
+    ApiResponse_Union_MyRating__NoneType__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      data: components["schemas"]["MyRating"] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[Union[PrdOut, NoneType]] */
     ApiResponse_Union_PrdOut__NoneType__: {
       /**
@@ -3772,6 +3826,26 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[list[FeedbackItem]] */
+    ApiResponse_list_FeedbackItem__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: components["schemas"]["FeedbackItem"][] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[list[JobItem]] */
     ApiResponse_list_JobItem__: {
       /**
@@ -3806,6 +3880,26 @@ export interface components {
       message: string
       /** Data */
       data: components["schemas"]["JobRunOut"][] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[list[MyRating]] */
+    ApiResponse_list_MyRating__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: components["schemas"]["MyRating"][] | null
       /**
        * Request Id
        * @default
@@ -5257,6 +5351,58 @@ export interface components {
       /** Label */
       label: string
     }
+    /** FeedbackIn */
+    FeedbackIn: {
+      /** Thread Id */
+      thread_id: string
+      /** Message Index */
+      message_index: number
+      /** Rating */
+      rating: ("up" | "down") | null
+      /**
+       * Mode
+       * @default work
+       * @enum {string}
+       */
+      mode?: "work" | "learn"
+      /**
+       * Question
+       * @default
+       */
+      question?: string
+      /**
+       * Answer
+       * @default
+       */
+      answer?: string
+      /** Comment */
+      comment?: string | null
+    }
+    /** FeedbackItem */
+    FeedbackItem: {
+      /** Id */
+      id: string
+      /** User Name */
+      user_name: string
+      /**
+       * Rating
+       * @enum {string}
+       */
+      rating: "up" | "down"
+      /** Mode */
+      mode: string
+      /** Question */
+      question: string
+      /** Answer */
+      answer: string
+      /** Comment */
+      comment: string | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
     /** FollowupIn */
     FollowupIn: {
       /**
@@ -5722,6 +5868,18 @@ export interface components {
       reindex: components["schemas"]["ReindexOut"]
       /** Allow Private Base */
       allow_private_base: boolean
+    }
+    /** MyRating */
+    MyRating: {
+      /** Message Index */
+      message_index: number
+      /**
+       * Rating
+       * @enum {string}
+       */
+      rating: "up" | "down"
+      /** Comment */
+      comment: string | null
     }
     /** NewsItem */
     NewsItem: {
@@ -8914,6 +9072,108 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_UsageStats_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  review_api_ai_feedback_get: {
+    parameters: {
+      query?: {
+        rating?: "up" | "down"
+        limit?: number
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_FeedbackItem__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  rate_api_ai_feedback_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["FeedbackIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_Union_MyRating__NoneType__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  my_ratings_api_ai_feedback_thread__thread_id__get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        thread_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_MyRating__"]
         }
       }
       /** @description Validation Error */

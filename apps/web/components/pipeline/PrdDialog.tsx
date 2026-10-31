@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useGeneratePrd, usePrd } from "@/hooks/usePrd"
+import { copyText } from "@/lib/clipboard"
 import { downloadText } from "@/lib/download"
 import { formatRelative } from "@/lib/format"
 import { prdFileName } from "@/lib/prd"
@@ -35,10 +36,9 @@ export function PrdDialog({
   const text = gen.running ? gen.draft : (prd?.markdown ?? "")
 
   const copy = () =>
-    navigator.clipboard
-      .writeText(text)
-      .then(() => toast.success("已复制 Markdown，可直接粘贴到飞书 / 钉钉 / Notion 文档"))
-      .catch(() => toast.error("复制失败"))
+    void copyText(text).then((ok) =>
+      ok ? toast.success("已复制 Markdown，可直接粘贴到飞书 / 钉钉 / Notion 文档") : toast.error("复制失败"),
+    )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

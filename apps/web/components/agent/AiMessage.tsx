@@ -7,7 +7,7 @@ import { ArtifactView } from "@/components/agent/ArtifactView"
 import { BomEditor } from "@/components/agent/BomEditor"
 import { ChatMarkdown } from "@/components/agent/ChatMarkdown"
 import { ConfirmCard } from "@/components/agent/ConfirmCard"
-import { MsgActions } from "@/components/agent/MsgActions"
+import { MsgActions, type MsgFeedback } from "@/components/agent/MsgActions"
 import { PrdDialog } from "@/components/pipeline/PrdDialog"
 import { ThinkBlock } from "@/components/agent/ThinkBlock"
 import { Button } from "@/components/ui/button"
@@ -60,6 +60,7 @@ export function AiMessage({
   onAsk,
   prdOpportunity,
   readonly,
+  feedback,
 }: {
   turn: AssistantTurn
   compact?: boolean
@@ -74,6 +75,8 @@ export function AiMessage({
   onAsk?: (question: string) => void
   /** 会话关联的商机：软件外包方案下面显示「PRD 规格书」（需求清单存在商机上） */
   prdOpportunity?: { id: string; name: string; canGenerate: boolean }
+  /** 点赞 / 点踩（会话有 id 后才有） */
+  feedback?: MsgFeedback
 }) {
   const [prdOpen, setPrdOpen] = useState(false)
   const live = turn.status === "streaming"
@@ -224,6 +227,7 @@ export function AiMessage({
           <MsgActions
             text={[turn.text, turn.afterText].filter(Boolean).join("\n\n")}
             onRegenerate={readonly || busy ? undefined : onRetry}
+            feedback={feedback}
           />
         ) : null}
       </div>

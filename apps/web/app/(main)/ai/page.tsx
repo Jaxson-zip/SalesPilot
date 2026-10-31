@@ -31,6 +31,7 @@ function useThreadUrl(w: AiSession): { goNew: () => void; goMode: (mode: AgentMo
   const prompt = params.get("prompt")
   const opp = params.get("opp")
   const paste = params.get("paste") === "1"
+  const autoSend = params.get("send") === "1"
   const mode = params.get("mode")
   const router = useRouter()
   const latest = useRef({ w, t })
@@ -54,17 +55,27 @@ function useThreadUrl(w: AiSession): { goNew: () => void; goMode: (mode: AgentMo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t])
 
-  // ?prompt=：从客户 / 商机页带过来的上下文，开新对话并预填输入框（不自动发送），然后去掉参数
+  // ?prompt=：从客户 / 商机页带过来的上下文，开新对话并预填输入框，然后去掉参数；
+  // &send=1（商机「出方案」）直接发出去，等输入框和商机都设好之后的那次渲染再发
+  const [pendingSend, setPendingSend] = useState<string | null>(null)
+  useEffect(() => {
+    if (!pendingSend) return
+    const cur = latest.current.w
+    if (cur.mode !== "work" || cur.input !== pendingSend || cur.stream.isStreaming) return
+    setPendingSend(null)
+    cur.send(pendingSend)
+  }, [pendingSend, w.input, w.mode, w.opportunityId, w.stream.isStreaming])
   useEffect(() => {
     if (prompt === null) return
     const s = latest.current.w.startIn("work")
     s.setInput(prompt)
     s.setOpportunityId(opp)
+    if (autoSend) setPendingSend(prompt)
     // &paste=1：写跟进处粘贴的纪要，作为材料带进来（不自动发送，销售看一眼再发）
     const pasted = paste ? takePastedMaterial() : null
     if (pasted) s.loadMaterial(pasted)
     router.replace("/ai", { scroll: false })
-  }, [prompt, opp, paste, router])
+  }, [prompt, opp, paste, autoSend, router])
 
   // 切换模式：显示那个模式上次的对话（没有就是空白），地址跟着换
   const goMode = useCallback(
@@ -164,6 +175,7 @@ function AiWorkbench() {
             streamingModes={w.streaming}
             onAsk={send}
             prdOpportunity={opp.data ? { id: opp.data.id, name: opp.data.name, canGenerate: canAiWrite } : undefined}
+            threadId={stream.threadId}
           />
         ) : w.loadingId ? (
           <div className="flex flex-1 items-center justify-center gap-2 text-sm text-zinc-400">

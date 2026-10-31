@@ -29,6 +29,7 @@ import {
 } from "@/hooks/useReports"
 import { usePushFlags, usePushSummary, useRemindReports } from "@/hooks/useWecom"
 import { useUnsavedGuard } from "@/hooks/useUnsavedGuard"
+import { copyText } from "@/lib/clipboard"
 import { LEAVE_REPORT_CONFIRM, REDRAFT_REPORT_CONFIRM } from "@/lib/confirm-texts"
 import { readStorage, writeStorage } from "@/lib/storage"
 import { cn } from "@/lib/utils"
@@ -315,9 +316,8 @@ function SummaryCard({ s, onClose }: { s: SummaryOut; onClose: () => void }) {
           size="xs"
           variant="outline"
           onClick={() =>
-            void navigator.clipboard.writeText(s.content).then(
-              () => toast.success("已复制"),
-              () => toast.error("复制失败，请手动选择文字"),
+            void copyText(s.content).then((ok) =>
+              ok ? toast.success("已复制") : toast.error("复制失败，请手动选择文字"),
             )
           }
         >

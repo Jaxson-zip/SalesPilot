@@ -1,7 +1,7 @@
 "use client"
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
-import { AlertTriangle, Gauge } from "lucide-react"
+import { AlertTriangle, Gauge, ThumbsDown } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 
@@ -10,6 +10,7 @@ import { QueryError } from "@/components/biz/QueryStatus"
 import { RoleGate } from "@/components/shell/RoleGate"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useFeedbackReview } from "@/hooks/useAiFeedback"
 import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
@@ -256,6 +257,7 @@ function UsageContent() {
             <RankTable title="按功能" nameHeader="功能" rows={q.data.by_feature} />
           </div>
           <RankTable title="按模型" nameHeader="模型" rows={q.data.by_model} />
+          <BadAnswers />
           <p className="text-xs text-zinc-400">
             {q.data.scope === "team" ? "只统计本团队成员的调用。" : "统计全公司的调用。"}
             费用按 token 数 × 单价估算，与模型厂商账单可能有出入；
@@ -277,6 +279,41 @@ function UsageContent() {
         </>
       )}
     </div>
+  )
+}
+
+/** 被点了「没帮助」的回复：看提问、回答和原因，用来调提示词、补知识库 */
+function BadAnswers() {
+  const q = useFeedbackReview()
+  const rows = q.data ?? []
+  return (
+    <section aria-label="没帮助的回复" className="rounded-lg border border-zinc-200 text-sm">
+      <h3 className="flex items-center gap-1.5 border-b border-zinc-100 px-4 py-2.5 font-medium">
+        <ThumbsDown className="size-3.5 text-zinc-500" />
+        没帮助的回复
+        <span className="font-normal text-zinc-400">最近 50 条</span>
+      </h3>
+      {q.isLoading ? (
+        <Skeleton className="m-4 h-12" />
+      ) : rows.length === 0 ? (
+        <p className="px-4 py-3 text-zinc-400">还没有人点过「没帮助」。</p>
+      ) : (
+        <ul className="divide-y divide-zinc-100">
+          {rows.map((f) => (
+            <li key={f.id} className="space-y-1 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-x-2 text-xs text-zinc-500">
+                <span className="text-zinc-700">{f.user_name}</span>
+                <span>{f.mode === "learn" ? "学习问答" : "做方案"}</span>
+                <span>{f.created_at.slice(0, 16).replace("T", " ")}</span>
+              </div>
+              {f.comment ? <p className="font-medium">「{f.comment}」</p> : null}
+              <p className="line-clamp-2 text-zinc-600">问：{f.question || "（无文字，可能是上传的材料）"}</p>
+              <p className="line-clamp-3 text-zinc-500">答：{f.answer || "（只有卡片）"}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }
 

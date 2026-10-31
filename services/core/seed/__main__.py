@@ -43,6 +43,7 @@ RESET_TABLES = (
     "agent_threads",
     "daily_reports",
     "ai_usage",
+    "ai_feedback",
     "sales_targets",
     "job_runs",  # 运行记录清掉后，当天的定时任务会按新数据重新跑一次
     "audit_logs",  # 日报草稿按今天的操作日志汇总，不清会把测试时的操作算进演示数据

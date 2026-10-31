@@ -2,6 +2,7 @@
 
 import { Check, Copy } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import { FormField, SimpleSelect } from "@/components/biz/FormControls"
 import { Button } from "@/components/ui/button"
@@ -23,6 +24,7 @@ import {
   type TempPassword,
 } from "@/hooks/useAccounts"
 import { useProductLines, usePackName } from "@/hooks/useProductLines"
+import { copyText } from "@/lib/clipboard"
 import { USERNAME_RE } from "@/lib/password"
 import { ROLE_TITLE } from "@/lib/session"
 import type { Role } from "@/types/api"
@@ -139,10 +141,7 @@ export function TempPasswordDialog({ result, onClose }: { result: TempPassword |
   const copy = () => {
     if (!result) return
     const text = `账号：${result.account.username ?? ""}\n临时密码：${result.temp_password}`
-    void navigator.clipboard
-      ?.writeText(text)
-      .then(() => setCopied(true))
-      .catch(() => undefined)
+    void copyText(text).then((ok) => (ok ? setCopied(true) : toast.error("复制失败，请手动记下临时密码")))
   }
   return (
     <Dialog

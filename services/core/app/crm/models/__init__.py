@@ -3,6 +3,7 @@
 from app.crm.models.audit import AuditLog
 from app.crm.models.competitor import Competitor
 from app.crm.models.customer import Activity, Contact, Customer, Followup
+from app.crm.models.feedback import AiFeedback
 from app.crm.models.finance import Approval, Attachment, Expense
 from app.crm.models.integration import Integration
 from app.crm.models.job import JobRun, ScheduledJob
@@ -24,6 +25,7 @@ from app.crm.models.workflow import Notification, Task
 __all__ = [
     "Activity",
     "AgentThread",
+    "AiFeedback",
     "AiUsage",
     "Approval",
     "Attachment",

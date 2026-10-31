@@ -131,10 +131,43 @@ export function aiThreadHref(id: string): string {
   return `/ai?t=${encodeURIComponent(id)}`
 }
 
-/** 从客户 / 商机页点「出方案」：开新对话并预填客户和商机，销售补上需求后再发送 */
-export function aiPrefillHref(prompt: string, opportunityId?: string): string {
+/**
+ * 打开 AI 工作台并开一个新对话：预填 prompt（关联商机）。
+ * send：直接发出去（商机「出方案」）；不传时只预填，销售补上需求后再发（客户页、粘贴纪要）。
+ */
+export function aiPrefillHref(prompt: string, opportunityId?: string, send = false): string {
   const opp = opportunityId ? `&opp=${encodeURIComponent(opportunityId)}` : ""
-  return `/ai?prompt=${encodeURIComponent(prompt)}${opp}`
+  return `/ai?prompt=${encodeURIComponent(prompt)}${opp}${send ? "&send=1" : ""}`
+}
+
+export interface OpportunityBrief {
+  customer: string
+  name: string
+  /** 商机预计金额（分） */
+  amount?: number | null
+  /** 跟进记录（新的在前） */
+  followups?: { content: string; occurred_at: string | null; created_at: string }[]
+}
+
+const MAX_NOTES = 6
+const MAX_NOTE_CHARS = 300
+
+/** 商机「出方案」直接发给 AI 的话：商机、预计金额、最近几条跟进记录（AI 从里面拆需求，缺什么会问） */
+export function opportunityPrompt(o: OpportunityBrief): string {
+  const lines = [`给「${o.customer}」的「${o.name}」商机出一份方案。`]
+  if (o.amount) lines.push(`商机预计金额约 ¥${Math.round(o.amount / 100).toLocaleString("en-US")}。`)
+  const notes = (o.followups ?? []).filter((f) => f.content.trim()).slice(0, MAX_NOTES)
+  if (notes.length) {
+    lines.push("最近的跟进记录：")
+    for (const f of notes) {
+      const day = (f.occurred_at ?? f.created_at).slice(5, 10)
+      const text = f.content.trim().replace(/\s+/g, " ")
+      lines.push(`- ${day} ${text.length > MAX_NOTE_CHARS ? `${text.slice(0, MAX_NOTE_CHARS)}…` : text}`)
+    }
+  } else {
+    lines.push("还没有跟进记录，缺什么信息请直接问我。")
+  }
+  return lines.join("\n")
 }
 
 export function solutionPrompt(customer: string, opportunity?: string): string {

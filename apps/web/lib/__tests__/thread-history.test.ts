@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   aiPrefillHref,
+  opportunityPrompt,
   lastUserText,
   messagesToTurns,
   solutionPrompt,
@@ -71,6 +72,27 @@ describe("messagesToTurns", () => {
   it("lastUserText 取最后一条用户消息", () => {
     expect(lastUserText(messagesToTurns(data))).toBe("给明理律所出方案")
     expect(lastUserText([])).toBeNull()
+  })
+})
+
+describe("商机出方案：直接发给 AI 的内容", () => {
+  it("商机、预计金额、最近跟进（这一个商机的），链接带 send=1", () => {
+    const text = opportunityPrompt({
+      customer: "明理律所",
+      name: "合同审查",
+      amount: 40_000_000,
+      followups: [
+        { content: "要私有化部署，50 人用", occurred_at: "2026-10-24T10:00:00Z", created_at: "2026-10-24T10:00:00Z" },
+        { content: "  ", occurred_at: null, created_at: "2026-10-20T10:00:00Z" },
+      ],
+    })
+    expect(text).toBe(
+      "给「明理律所」的「合同审查」商机出一份方案。\n商机预计金额约 ¥400,000。\n最近的跟进记录：\n- 10-24 要私有化部署，50 人用",
+    )
+    expect(opportunityPrompt({ customer: "A", name: "B" })).toContain("缺什么信息请直接问我")
+    const url = new URL(aiPrefillHref(text, "o1", true), "http://x")
+    expect(url.searchParams.get("send")).toBe("1")
+    expect(url.searchParams.get("prompt")).toBe(text)
   })
 })
 

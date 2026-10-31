@@ -1588,6 +1588,120 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/ai-feedback:
+    post:
+      tags:
+      - ai-feedback
+      summary: Rate
+      operationId: rate_api_ai_feedback_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Union_MyRating__NoneType__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - ai-feedback
+      summary: Review
+      operationId: review_api_ai_feedback_get
+      parameters:
+      - name: rating
+        in: query
+        required: false
+        schema:
+          enum:
+          - up
+          - down
+          type: string
+          default: down
+          title: Rating
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_FeedbackItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/ai-feedback/thread/{thread_id}:
+    get:
+      tags:
+      - ai-feedback
+      summary: My Ratings
+      operationId: my_ratings_api_ai_feedback_thread__thread_id__get
+      parameters:
+      - name: thread_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Thread Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_MyRating__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/customers:
     get:
       tags:
@@ -7698,6 +7812,31 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_Union_MyRating__NoneType__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/MyRating'
+          - type: 'null'
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[Union[MyRating, NoneType]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_Union_PrdOut__NoneType__:
       properties:
         code:
@@ -7965,6 +8104,34 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_list_FeedbackItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/FeedbackItem'
+            type: array
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[list[FeedbackItem]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_list_JobItem__:
       properties:
         code:
@@ -8016,6 +8183,34 @@ components:
           default: ''
       type: object
       title: ApiResponse[list[JobRunOut]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_list_MyRating__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/MyRating'
+            type: array
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[list[MyRating]]
       required:
       - code
       - message
@@ -10684,6 +10879,98 @@ components:
       - value
       - label
       title: FacetOption
+    FeedbackIn:
+      properties:
+        thread_id:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Thread Id
+        message_index:
+          type: integer
+          maximum: 10000.0
+          minimum: 0.0
+          title: Message Index
+        rating:
+          anyOf:
+          - type: string
+            enum:
+            - up
+            - down
+          - type: 'null'
+          title: Rating
+        mode:
+          type: string
+          enum:
+          - work
+          - learn
+          title: Mode
+          default: work
+        question:
+          type: string
+          maxLength: 20000
+          title: Question
+          default: ''
+        answer:
+          type: string
+          maxLength: 100000
+          title: Answer
+          default: ''
+        comment:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Comment
+      type: object
+      required:
+      - thread_id
+      - message_index
+      - rating
+      title: FeedbackIn
+    FeedbackItem:
+      properties:
+        id:
+          type: string
+          title: Id
+        user_name:
+          type: string
+          title: User Name
+        rating:
+          type: string
+          enum:
+          - up
+          - down
+          title: Rating
+        mode:
+          type: string
+          title: Mode
+        question:
+          type: string
+          title: Question
+        answer:
+          type: string
+          title: Answer
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - user_name
+      - rating
+      - mode
+      - question
+      - answer
+      - comment
+      - created_at
+      title: FeedbackItem
     FollowupIn:
       properties:
         type:
@@ -11577,6 +11864,28 @@ components:
       - reindex
       - allow_private_base
       title: ModelConfigOut
+    MyRating:
+      properties:
+        message_index:
+          type: integer
+          title: Message Index
+        rating:
+          type: string
+          enum:
+          - up
+          - down
+          title: Rating
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+      type: object
+      required:
+      - message_index
+      - rating
+      - comment
+      title: MyRating
     NewsItem:
       properties:
         date:

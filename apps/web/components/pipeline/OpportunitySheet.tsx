@@ -35,7 +35,7 @@ import { RequirementSummary } from "@/components/pipeline/RequirementSummary"
 import { SubjectTasks } from "@/components/tasks/TaskList"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useContacts } from "@/hooks/useFollowups"
+import { useContacts, useFollowups } from "@/hooks/useFollowups"
 import { useOpportunity, useUpdateOpportunity } from "@/hooks/useOpportunities"
 import { formatFen, formatRelative, ownerName } from "@/lib/format"
 import {
@@ -50,7 +50,7 @@ import {
 import { activityActor } from "@/lib/timeline"
 import { isFinalStage, stageBarState } from "@/lib/pipeline"
 import { staleText } from "@/lib/tasks"
-import { aiPrefillHref, solutionPrompt } from "@/lib/thread-history"
+import { aiPrefillHref, opportunityPrompt } from "@/lib/thread-history"
 import { cn } from "@/lib/utils"
 import type { OpportunityDetail, OpportunityItem, OpportunityProfit, OpportunityStage } from "@/types/api"
 
@@ -326,6 +326,21 @@ export function OpportunitySheet({
   const detail = useOpportunity(opp?.id ?? null)
   const o = detail.data ?? opp
   const [pasting, setPasting] = useState(false)
+  // 出方案直接发给 AI：带上这个商机的跟进记录（没有就用这个客户最近的）
+  const followups = useFollowups(o?.customer.id ?? "", 30).data ?? []
+  const forOpp = followups.filter((f) => f.opportunity_id === o?.id)
+  const solutionHref = o
+    ? aiPrefillHref(
+        opportunityPrompt({
+          customer: o.customer.name,
+          name: o.name,
+          amount: o.amount,
+          followups: forOpp.length ? forOpp : followups.filter((f) => !f.opportunity_id),
+        }),
+        o.id,
+        true,
+      )
+    : "/ai"
   return (
     <FormSheet
       open={opp !== null}
@@ -356,7 +371,7 @@ export function OpportunitySheet({
             ) : null}
             {editable ? (
               <Button asChild>
-                <Link href={aiPrefillHref(solutionPrompt(o.customer.name, o.name), o.id)}>
+                <Link href={solutionHref}>
                   <Sparkles />
                   出方案
                 </Link>

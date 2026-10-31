@@ -4,10 +4,12 @@ import { SquarePen } from "lucide-react"
 import { useEffect, useRef, type ReactNode } from "react"
 
 import { AiMessage } from "@/components/agent/AiMessage"
+import type { MsgFeedback } from "@/components/agent/MsgActions"
 import { ModeSwitch } from "@/components/agent/ModeSwitch"
 import { UserMsg } from "@/components/agent/UserMsg"
+import { useMyRatings, useRate } from "@/hooks/useAiFeedback"
 import type { AgentMode } from "@/lib/agent-mode"
-import type { ChatTurn } from "@/lib/agent-reducer"
+import type { AssistantTurn, ChatTurn } from "@/lib/agent-reducer"
 import type { QtyEdits } from "@/lib/bom-adjust"
 import { cn } from "@/lib/utils"
 import type { ResumeDecision } from "@/types/api"
@@ -61,6 +63,7 @@ export function ChatView({
   streamingModes,
   onAsk,
   prdOpportunity,
+  threadId = null,
 }: {
   title: string
   turns: ChatTurn[]
@@ -80,8 +83,35 @@ export function ChatView({
   /** 学习问答：点回答末尾的追问建议直接发送 */
   onAsk?: (question: string) => void
   prdOpportunity?: { id: string; name: string; canGenerate: boolean }
+  /** 当前会话 id：点赞 / 点踩按「会话 + 第几条 AI 回复」存 */
+  threadId?: string | null
 }) {
   const learn = mode === "learn"
+  const ratings = useMyRatings(threadId).data
+  const rate = useRate(threadId, mode)
+  // 每条 AI 回复在会话里的序号和对应的提问（存反馈时带上，方便复盘）
+  const meta = new Map<string, { index: number; question: string }>()
+  let aiIndex = 0
+  let question = ""
+  for (const t of turns) {
+    if (t.role === "user") question = t.text
+    else meta.set(t.id, { index: aiIndex++, question })
+  }
+  const feedbackFor = (t: AssistantTurn): MsgFeedback | undefined => {
+    const m = meta.get(t.id)
+    if (!threadId || !m) return undefined
+    return {
+      rating: ratings?.[m.index]?.rating ?? null,
+      onRate: (rating, comment) =>
+        rate.mutate({
+          message_index: m.index,
+          rating,
+          comment: comment ?? null,
+          question: m.question,
+          answer: [t.text, t.afterText].filter(Boolean).join("\n\n"),
+        }),
+    }
+  }
   const scrollRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   // 停在底部附近时跟随新内容（正文是逐字显示的，内容高度一直在变）；用户往上翻看时不打扰
@@ -149,6 +179,7 @@ export function ChatView({
                 onAsk={learn ? onAsk : undefined}
                 prdOpportunity={learn ? undefined : prdOpportunity}
                 readonly={i !== turns.length - 1}
+                feedback={feedbackFor(t)}
               />
             ),
           )}

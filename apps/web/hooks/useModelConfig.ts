@@ -160,9 +160,10 @@ const KEY = ["integrations", "models"] as const
 const URL = "/api/integrations/models"
 
 /** GET /api/integrations/models（管理员）；重建知识库向量期间每 2 秒刷新进度 */
-export function useModelConfig() {
+export function useModelConfig(enabled = true) {
   return useQuery({
     queryKey: KEY,
+    enabled,
     queryFn: ({ signal }) => api.get<ModelConfig>(URL, undefined, signal),
     refetchInterval: (q) => (q.state.data?.reindex.status === "running" ? 2_000 : false),
   })

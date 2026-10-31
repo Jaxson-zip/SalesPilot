@@ -14,7 +14,6 @@ import { useUpdateCustomer } from "@/hooks/useCustomers"
 import { INDUSTRY_OPTIONS, SIZE_OPTIONS } from "@/lib/customer"
 import { displayHost, formatFen } from "@/lib/format"
 import { STAGE_META } from "@/lib/labels"
-import { isNotImplemented } from "@/lib/errors"
 import { defaultScope } from "@/lib/views"
 import type { CustomerDetail, CustomerUpdate, Role } from "@/types/api"
 
@@ -27,8 +26,7 @@ function levelColor(level: string) {
 export function CustomerOpportunities({ customerId, role }: { customerId: string; role: Role }) {
   const q = useOpportunities({ view: defaultScope(role), customer_id: customerId, page_size: 20 })
   if (q.isPending) return <Skeleton className="h-16 w-full" />
-  if (q.isError)
-    return <div className="text-zinc-400">{isNotImplemented(q.error) ? "商机接口开发中" : "商机加载失败"}</div>
+  if (q.isError) return <div className="text-zinc-400">商机加载失败</div>
   const items = q.data.items.filter((o) => o.customer.id === customerId)
   if (items.length === 0) return <div className="text-zinc-400">还没有商机</div>
   return (

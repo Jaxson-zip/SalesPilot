@@ -10,6 +10,7 @@ import { CustomEditor } from "@/components/model-config/CustomEditor"
 import { ModelUsage } from "@/components/model-config/ModelUsage"
 import { BuiltinEditor, RowCard } from "@/components/model-config/ProviderRows"
 import { RoleGate } from "@/components/shell/RoleGate"
+import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useDeleteCustom, useModelConfig, type ModelConfig } from "@/hooks/useModelConfig"
@@ -114,7 +115,8 @@ function Providers({ config }: { config: ModelConfig }) {
 
 /** 模型接入：左边填各家厂商的 Key，右边选用哪个模型 */
 export default function ModelConfigPage() {
-  const q = useModelConfig()
+  const { role } = useSession()
+  const q = useModelConfig(role === "admin") // 非管理员只看锁定提示，不请求管理员接口
   return (
     <PageFrame title="模型接入" icon={KeyRound} bodyClassName="overflow-y-auto">
       <RoleGate roles={["admin"]} lockedText="模型接入由系统管理员配置">

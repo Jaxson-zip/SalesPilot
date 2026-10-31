@@ -2,6 +2,7 @@
 
 import { FileText, Lightbulb, Receipt } from "lucide-react"
 import Link from "next/link"
+import { useEffect, useRef } from "react"
 
 import { AttachmentPill } from "@/components/biz/Attachments"
 import { Tag } from "@/components/biz/Tag"
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { formatFen, formatPercent, formatRelative, ownerName } from "@/lib/format"
 import { APPROVAL_STATUS_META, APPROVAL_TARGET_LABEL, labelOf } from "@/lib/labels"
+import { cn } from "@/lib/utils"
 import type { ApprovalItem } from "@/types/api"
 
 /** 金额下面那一行：报销看超标多少，报价看毛利 */
@@ -32,6 +34,7 @@ export function ApprovalRow({
   onReject,
   selected,
   onSelectedChange,
+  focused,
 }: {
   a: ApprovalItem
   busy?: boolean
@@ -40,7 +43,13 @@ export function ApprovalRow({
   /** 传了就显示勾选框（待处理列表批量操作） */
   selected?: boolean
   onSelectedChange?: (v: boolean) => void
+  /** 从通知点进来的那一条：滚到可见处并高亮 */
+  focused?: boolean
 }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (focused) ref.current?.scrollIntoView({ block: "center" })
+  }, [focused])
   const Icon = a.target_type === "quote" ? FileText : Receipt
   const status = labelOf(APPROVAL_STATUS_META, a.status)
   const t = a.target
@@ -61,11 +70,13 @@ export function ApprovalRow({
     )
   return (
     <div
-      className={
-        selected
-          ? "flex gap-3 border-b border-zinc-100 bg-zinc-50 px-4 py-4 sm:px-5"
-          : "flex gap-3 border-b border-zinc-100 px-4 py-4 hover:bg-zinc-50/60 sm:px-5"
-      }
+      ref={ref}
+      data-focused={focused || undefined}
+      className={cn(
+        "flex gap-3 border-b border-zinc-100 px-4 py-4 sm:px-5",
+        selected ? "bg-zinc-50" : "hover:bg-zinc-50/60",
+        focused && "bg-amber-50/70 ring-1 ring-amber-300 ring-inset",
+      )}
     >
       {onSelectedChange ? (
         <Checkbox

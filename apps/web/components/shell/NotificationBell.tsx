@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useMarkNotificationsRead, useNotifications } from "@/hooks/useNotifications"
-import { isNotImplemented } from "@/lib/errors"
 import { formatRelative } from "@/lib/format"
 import { bellLabel, notificationHref, notificationMeta, unreadBadge, type NotificationTone } from "@/lib/notifications"
 import { cn } from "@/lib/utils"
@@ -68,12 +67,7 @@ export function NotificationBell() {
 
   let body
   if (q.isPending) body = [0, 1, 2].map((i) => <Skeleton key={i} className="m-1.5 h-10" />)
-  else if (q.isError && !q.data)
-    body = (
-      <div className="px-3 py-8 text-center text-zinc-500">
-        {isNotImplemented(q.error) ? "通知接口后端开发中" : "通知加载失败"}
-      </div>
-    )
+  else if (q.isError && !q.data) body = <div className="px-3 py-8 text-center text-zinc-500">通知加载失败</div>
   else if (items.length === 0) body = <div className="px-3 py-8 text-center text-zinc-400">暂无通知</div>
   else body = items.map((n) => <Row key={n.id} n={n} onOpen={openItem} />)
 

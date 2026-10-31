@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCompleteTask, useTasks } from "@/hooks/useTasks"
-import { isNotImplemented } from "@/lib/errors"
 import { dueText, isTaskOverdue, TASK_TYPE_LABEL } from "@/lib/tasks"
 import { cn } from "@/lib/utils"
 import { defaultScope } from "@/lib/views"
@@ -113,8 +112,7 @@ export function SubjectTasks({
 
   let body
   if (q.isPending) body = <Skeleton className="h-9 w-full" />
-  else if (q.isError)
-    body = <div className="px-2 text-zinc-400">{isNotImplemented(q.error) ? "任务接口后端开发中" : "任务加载失败"}</div>
+  else if (q.isError) body = <div className="px-2 text-zinc-400">任务加载失败</div>
   else if (items.length === 0)
     body = (
       <div className="rounded-md bg-amber-50 px-2.5 py-2 text-amber-800">
@@ -133,12 +131,11 @@ export function SubjectTasks({
       />
     ))
 
-  const pending = q.isError && isNotImplemented(q.error)
   return (
     <div>
       <div className="mb-1.5 flex h-7 items-center justify-between">
         <span className="text-zinc-500">下一步</span>
-        {editable && !pending ? (
+        {editable ? (
           <Button variant="ghost" size="xs" className="h-7 text-zinc-600" onClick={() => setAdding(true)}>
             <Plus />
             添加下一步

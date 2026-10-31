@@ -1,7 +1,8 @@
 "use client"
 
 import { CircleCheck, Inbox, Search, Stamp } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
 
 import { ApprovalRow } from "@/components/approvals/ApprovalRow"
 import { RejectDialog } from "@/components/approvals/RejectDialog"
@@ -106,7 +107,17 @@ function Toolbar({
  * 审批列表。待处理：一次取回（最多 100 条），可搜索、按类型筛选、按金额 / 超标排序，
  * 顶部汇总条数与金额，勾选后批量通过 / 驳回；已处理：每次 20 条，「加载更多」。
  */
-function ApprovalList({ tab }: { tab: ApprovalTab }) {
+function ApprovalList({
+  tab,
+  focus,
+  onFocusMissing,
+}: {
+  tab: ApprovalTab
+  /** 通知带来的审批 id：在列表里定位 */
+  focus?: string | null
+  /** 当前列表里没有这一条（多半已经处理过） */
+  onFocusMissing?: () => void
+}) {
   const pending = tab === "pending"
   const [size, setSize] = useState(pending ? MAX : DONE_PAGE)
   const query = useApprovals(tab, true, size)
@@ -131,6 +142,10 @@ function ApprovalList({ tab }: { tab: ApprovalTab }) {
   const selected = shown.filter((a) => picked.has(a.id))
   const selectedSum = summarizeApprovals(selected)
   const allPicked = shown.length > 0 && selected.length === shown.length
+  const focusFound = Boolean(focus && all.some((a) => a.id === focus))
+  useEffect(() => {
+    if (focus && query.data && !focusFound) onFocusMissing?.()
+  }, [focus, query.data, focusFound, onFocusMissing])
 
   const approve = (a: ApprovalItem) =>
     ask({
@@ -235,6 +250,7 @@ function ApprovalList({ tab }: { tab: ApprovalTab }) {
             onReject={() => setRejecting(a)}
             selected={pending ? picked.has(a.id) : undefined}
             onSelectedChange={pending ? (v) => toggle(a.id, v) : undefined}
+            focused={a.id === focus}
           />
         ))
       )}
@@ -286,10 +302,23 @@ function ApprovalCenter() {
   const [tab, setTab] = useState<ApprovalTab>("pending")
   const pending = useApprovals("pending")
   const count = pending.data?.total
+  // 从待审批 / 催办通知跳转过来：/approvals?id=<审批 id>，待处理里没有就去已处理里找
+  const [focus, setFocus] = useState<string | null>(null)
+  useEffect(() => {
+    setFocus(new URLSearchParams(window.location.search).get("id"))
+  }, [])
+  const onFocusMissing = useCallback(() => {
+    if (tab === "pending") return setTab("done")
+    toast.info("这条审批不在最近的记录里，可能已被处理或撤回")
+    setFocus(null)
+  }, [tab])
   return (
     <Tabs
       value={tab}
-      onValueChange={(v) => setTab(v === "done" ? "done" : "pending")}
+      onValueChange={(v) => {
+        setFocus(null) // 用户自己切标签：不再定位通知里的那一条
+        setTab(v === "done" ? "done" : "pending")
+      }}
       className="flex min-h-0 flex-1 flex-col gap-0"
     >
       <TabsList variant="line" className={LINE_TABS_LIST}>
@@ -301,7 +330,7 @@ function ApprovalCenter() {
         </TabsTrigger>
       </TabsList>
       <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-        <ApprovalList key={tab} tab={tab} />
+        <ApprovalList key={tab} tab={tab} focus={focus} onFocusMissing={onFocusMissing} />
       </div>
     </Tabs>
   )

@@ -1,21 +1,18 @@
 import { describe, expect, it } from "vitest"
 
 import { ApiError } from "@/lib/api"
-import { errorMessage, errorMeta, isNotImplemented } from "@/lib/errors"
+import { errorMessage, errorMeta } from "@/lib/errors"
 
 const err = (code: number, status: number, data?: unknown, message = "后端消息") =>
   new ApiError({ code, status, message, requestId: "req_1", data })
 
-describe("isNotImplemented", () => {
-  it("501 或 50101 视为后端开发中", () => {
-    expect(isNotImplemented(err(50101, 501))).toBe(true)
-    expect(isNotImplemented(err(50101, 200))).toBe(true)
-    expect(isNotImplemented(err(50001, 500))).toBe(false)
-    expect(isNotImplemented(new Error("x"))).toBe(false)
-  })
-  it("回归：路由未注册的默认 404 视为开发中，业务 40401 不算", () => {
-    expect(isNotImplemented(err(40401, 404, null, "Not Found"))).toBe(true)
-    expect(isNotImplemented(err(40401, 404, null, "资源不存在"))).toBe(false)
+describe("接口不存在", () => {
+  it("回归：501 / 路由未注册的 404 提示刷新或更新服务，不再说「开发中」；业务 40401 照常", () => {
+    for (const e of [err(50101, 501), err(40401, 404, null, "Not Found")]) {
+      expect(errorMessage(e)).toContain("请刷新页面")
+      expect(errorMessage(e)).not.toContain("开发中")
+    }
+    expect(errorMessage(err(40401, 404, null, "资源不存在"))).not.toContain("请刷新页面")
   })
 })
 
@@ -28,7 +25,6 @@ describe("errorMessage", () => {
   it("40301 / 40901 / 501", () => {
     expect(errorMessage(err(40301, 403))).toBe("当前角色无权执行该操作")
     expect(errorMessage(err(40901, 409))).toContain("重复提交")
-    expect(errorMessage(err(50101, 501))).toContain("开发中")
   })
   it("40301 按 data.rule 区分角色不允许 / 不是负责人", () => {
     expect(errorMessage(err(40301, 403, { rule: "role_forbidden" }))).toContain("管理员负责系统配置")

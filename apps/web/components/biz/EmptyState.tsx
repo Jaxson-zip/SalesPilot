@@ -1,4 +1,4 @@
-import { CircleAlert, Construction, Inbox, Lock, RotateCw, type LucideIcon } from "lucide-react"
+import { CircleAlert, Inbox, Lock, RotateCw, type LucideIcon } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -46,17 +46,6 @@ export function ErrorState({ error, onRetry, retrying }: { error: unknown; onRet
           重试
         </Button>
       }
-    />
-  )
-}
-
-/** 页面占位：「开发中」 */
-export function ComingSoon({ description }: { description?: string }) {
-  return (
-    <EmptyState
-      icon={Construction}
-      title="开发中"
-      description={description ?? "该页面正在开发，布局与原型保持一致。"}
     />
   )
 }

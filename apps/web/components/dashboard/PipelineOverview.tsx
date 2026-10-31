@@ -2,7 +2,6 @@
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { usePipelineSummary } from "@/hooks/useOpportunities"
-import { isNotImplemented } from "@/lib/errors"
 import { formatFen } from "@/lib/format"
 import type { DataView } from "@/types/api"
 
@@ -23,9 +22,7 @@ export function PipelineOverview({ view }: { view: DataView }) {
       <div className="flex h-10 items-center border-b border-zinc-100 px-4 font-medium">管道概览</div>
       <div className="p-1.5">
         {query.isError ? (
-          <div className="px-2.5 py-6 text-center text-zinc-500">
-            {isNotImplemented(query.error) ? "后端开发中" : "加载失败"}
-          </div>
+          <div className="px-2.5 py-6 text-center text-zinc-500">加载失败</div>
         ) : (
           rows.map((r) => (
             <div key={r.label} className="flex h-10 items-center justify-between gap-3 rounded-md px-2.5">

@@ -28,7 +28,7 @@ function ProductLineSelect({ value, onChange }: { value: string | null; onChange
   return (
     <FormField
       label="产品线"
-      hint={unavailable ? "产品线列表暂不可用（接口开发中或无权限），可稍后在商机上补充" : "系统按产品线自动匹配行业包"}
+      hint={unavailable ? "产品线列表暂时加载不出来，可稍后在商机上补充" : "系统按产品线自动匹配行业包"}
     >
       <SimpleSelect
         value={value ?? ""}

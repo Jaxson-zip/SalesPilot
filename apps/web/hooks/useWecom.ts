@@ -42,9 +42,10 @@ const KEY = ["integrations", "wecom"] as const
 const FLAGS = ["integrations", "flags"] as const
 
 /** GET /api/integrations/wecom（管理员） */
-export function useWecomConfig() {
+export function useWecomConfig(enabled = true) {
   return useQuery({
     queryKey: KEY,
+    enabled,
     queryFn: ({ signal }) => api.get<WecomConfig>("/api/integrations/wecom", undefined, signal),
   })
 }

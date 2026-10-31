@@ -64,7 +64,7 @@ def create_approval(
         "approval_pending",
         f"待审批：{kind} {target.code}",
         reason,
-        "/approvals",
+        f"/approvals?id={approval.id}",
     )
     owner = db.get(User, target.owner_id) if target.owner_id else None
     amount = target.total_price if isinstance(target, Quote) else target.amount

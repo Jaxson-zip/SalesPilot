@@ -1,7 +1,7 @@
 "use client"
 
 import { Plus, Receipt } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { BulkBar } from "@/components/biz/BulkBar"
 import { DataGrid } from "@/components/biz/DataGrid"
@@ -50,6 +50,11 @@ export default function ExpensesPage() {
   const admin = role === "admin"
   const [view, setView] = useState("all")
   const [sheet, setSheet] = useState<{ open: boolean; id: string | null }>({ open: false, id: null })
+  // 从审批结果 / 动态通知跳转过来：/expenses?id=<报销 id> 直接打开这张报销单（不用 useSearchParams，避免整页需要 Suspense）
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("id")
+    if (id) setSheet({ open: true, id })
+  }, [])
   const scope = admin ? "all" : "mine"
   const status = toStatus(view)
   const allColumns = useMemo(() => expenseColumns((e) => setSheet({ open: true, id: e.id })), [])

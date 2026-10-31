@@ -5,7 +5,6 @@ import { TaskRow } from "@/components/tasks/TaskList"
 import { Skeleton } from "@/components/ui/skeleton"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useCompleteTask, useTasks } from "@/hooks/useTasks"
-import { isNotImplemented } from "@/lib/errors"
 import { mergeTodoTasks, taskHref } from "@/lib/tasks"
 import type { DataView } from "@/types/api"
 
@@ -25,11 +24,7 @@ export function TodoCard({ view, title = "待办" }: { view: DataView; title?: s
   if (today.isPending || overdue.isPending) {
     body = [0, 1, 2].map((i) => <Skeleton key={i} className="m-1 h-7" />)
   } else if (error) {
-    body = (
-      <div className="px-2.5 py-6 text-center text-zinc-500">
-        {isNotImplemented(error) ? "任务接口后端开发中" : "待办加载失败"}
-      </div>
-    )
+    body = <div className="px-2.5 py-6 text-center text-zinc-500">待办加载失败</div>
   } else if (items.length === 0) {
     body = <div className="px-2.5 py-6 text-center text-zinc-400">今天没有到期或逾期的任务</div>
   } else {

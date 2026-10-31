@@ -35,7 +35,11 @@ def test_approval_notifications(client: TestClient, tracker: Tracker) -> None:
         for n in notifications(client, MANAGER_H)["items"]
         if n["type"] == "approval_pending" and submitted["code"] in n["title"]
     ]
-    assert len(pending) == 1 and pending[0]["link"] == "/approvals" and not pending[0]["read"]
+    assert (
+        len(pending) == 1
+        and pending[0]["link"] == f"/approvals?id={submitted['approvals'][0]['id']}"
+        and not pending[0]["read"]
+    )
     assert "毛利" in pending[0]["body"]
     approval_id = submitted["approvals"][0]["id"]
     decided = client.post(

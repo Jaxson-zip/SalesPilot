@@ -1,5 +1,5 @@
 /** 错误码 → 用户可读的中文提示（toast / 错误状态共用，纯函数便于测试） */
-import { isApiError } from "@/lib/api"
+import { isApiError, type ApiError } from "@/lib/api"
 import { ErrorCode } from "@/types/api"
 
 /** 42201 时 data.rule 的中文说明（契约 §2–§6） */
@@ -26,19 +26,19 @@ function ruleOf(data: unknown): string | null {
 }
 
 /**
- * 接口还没实现：HTTP 501 / code 50101；
- * 或路由还没注册（FastAPI 默认 404，message 为 "Not Found"，与业务 40401「记录不存在」的中文消息区分）。
+ * 服务端没有这个接口：HTTP 501，或路由不存在（FastAPI 默认 404，message 为 "Not Found"，
+ * 与业务 40401「记录不存在」的中文消息区分）。多半是前后端版本不一致。
  */
-export function isNotImplemented(err: unknown): boolean {
-  if (!isApiError(err)) return false
-  if (err.status === 501 || err.code === ErrorCode.NOT_IMPLEMENTED) return true
-  return err.status === 404 && err.message === "Not Found"
+function isMissingRoute(err: ApiError): boolean {
+  return (
+    err.status === 501 || err.code === ErrorCode.NOT_IMPLEMENTED || (err.status === 404 && err.message === "Not Found")
+  )
 }
 
 /** 写操作失败时的中文提示 */
 export function errorMessage(err: unknown): string {
   if (!isApiError(err)) return err instanceof Error ? err.message : "操作失败，请稍后重试"
-  if (isNotImplemented(err)) return "后端接口开发中，暂不可用"
+  if (isMissingRoute(err)) return "服务端暂不支持这个操作，请刷新页面；仍不行请联系管理员更新服务"
   switch (err.code) {
     case ErrorCode.BIZ_RULE: {
       const rule = ruleOf(err.data)

@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAgentThreads, useDeleteThread, useRenameThread } from "@/hooks/useAgentThreads"
-import { isNotImplemented } from "@/lib/errors"
 import { aiThreadHref, historyTime, toHistoryItems, type HistoryItem } from "@/lib/thread-history"
 import { cn } from "@/lib/utils"
 
@@ -197,16 +196,12 @@ export function HistorySheet({
               </div>
             ) : threads.isError ? (
               <div className="px-2 pt-3 text-xs text-zinc-400">
-                {isNotImplemented(threads.error) ? (
-                  "历史会话：后端开发中"
-                ) : (
-                  <>
-                    加载失败，
-                    <button type="button" className="text-zinc-600 underline" onClick={() => void threads.refetch()}>
-                      重试
-                    </button>
-                  </>
-                )}
+                <>
+                  加载失败，
+                  <button type="button" className="text-zinc-600 underline" onClick={() => void threads.refetch()}>
+                    重试
+                  </button>
+                </>
               </div>
             ) : groups.length === 0 ? (
               <div className="px-2 pt-6 text-center text-sm text-zinc-400">{q ? "没有匹配的会话" : "还没有对话"}</div>

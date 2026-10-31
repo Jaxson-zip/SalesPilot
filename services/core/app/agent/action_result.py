@@ -9,6 +9,7 @@ import re
 from typing import Any, Literal
 
 from app.agent.tools import ToolResult
+from app.crm.services.notification_service import subject_link
 
 ActionStatus = Literal["done", "failed", "cancelled"]
 
@@ -21,21 +22,25 @@ _ASKS_CONFIRM = re.compile(
 
 
 def _link(name: str, data: Any) -> str | None:
-    """写入后的记录入口（前端路由）。"""
+    """写入后的记录入口（前端路由），直接打开刚写入的那条记录；拿不到 id 时退回列表页。"""
     d = data if isinstance(data, dict) else {}
+    rid = d.get("id")
     if name in ("add_followup", "digest_material"):
         cid = d.get("customer_id")
         return f"/customers/{cid}" if cid else None
     if name == "create_task":
+        if rid and d.get("subject_type") and d.get("subject_id"):
+            link = subject_link(d["subject_type"], d["subject_id"])
+            return f"{link}{'&' if '?' in link else '?'}task={rid}"
         return "/dashboard"
     if name == "submit_expense":
-        return "/expenses"
+        return f"/expenses?id={rid}" if rid else "/expenses"
     if name == "update_opportunity_stage":
-        return "/pipeline"
+        return f"/pipeline?opp={rid}" if rid else "/pipeline"
     if name == "decide_approval":
-        return "/approvals"
-    if name == "generate_quote" and d.get("id"):
-        return f"/quotes/{d['id']}"
+        return f"/approvals?id={rid}" if rid else "/approvals"
+    if name == "generate_quote" and rid:
+        return f"/quotes/{rid}"
     return None
 
 

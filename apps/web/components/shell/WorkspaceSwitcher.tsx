@@ -1,15 +1,9 @@
 "use client"
 
-import { Check, ChevronsUpDown, PanelLeftClose, PanelLeftOpen, X, Zap } from "lucide-react"
+import { PanelLeftClose, PanelLeftOpen, X, Zap } from "lucide-react"
+import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { useSidebar } from "@/components/ui/sidebar"
 
 function Logo() {
@@ -25,13 +19,14 @@ function ToggleButton() {
   const { state, isMobile, toggleSidebar, setOpenMobile } = useSidebar()
   const collapsed = state === "collapsed" && !isMobile
   const Icon = isMobile ? X : collapsed ? PanelLeftOpen : PanelLeftClose
-  const title = isMobile ? "关闭导航" : `${collapsed ? "展开" : "收起"}侧边栏（Ctrl B）`
+  const label = isMobile ? "关闭导航" : `${collapsed ? "展开" : "收起"}侧边栏`
   return (
     <Button
       variant="ghost"
       size="icon-sm"
       className="size-7 shrink-0 text-zinc-500 hover:bg-black/5"
-      title={title}
+      aria-label={label}
+      title={isMobile ? label : `${label}（Ctrl B）`}
       onClick={() => (isMobile ? setOpenMobile(false) : toggleSidebar())}
     >
       <Icon />
@@ -39,52 +34,35 @@ function ToggleButton() {
   )
 }
 
-/** 工作区切换（Logo + 名称 + 下拉）+ 侧栏开关 */
+/** 品牌（点击回工作台）+ 侧栏开关。只有一个工作区，不放切换下拉 */
 export function WorkspaceSwitcher() {
   const { state, isMobile } = useSidebar()
   const collapsed = state === "collapsed" && !isMobile
-  const menu = (
-    <DropdownMenuContent align="start" className="w-[200px]">
-      <DropdownMenuLabel className="text-xs text-zinc-500">工作区</DropdownMenuLabel>
-      <DropdownMenuItem>
-        <Zap className="text-zinc-500" />
-        <span className="flex-1">SalesPilot 演示</span>
-        <Check />
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-  )
-
   if (collapsed) {
     return (
       <div className="flex flex-col items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              title="SalesPilot"
-              className="inline-flex size-9 items-center justify-center rounded-md hover:bg-black/5"
-            >
-              <Logo />
-            </button>
-          </DropdownMenuTrigger>
-          {menu}
-        </DropdownMenu>
+        <Link
+          href="/dashboard"
+          title="SalesPilot · 回到工作台"
+          aria-label="SalesPilot，回到工作台"
+          className="inline-flex size-9 items-center justify-center rounded-md hover:bg-black/5"
+        >
+          <Logo />
+        </Link>
         <ToggleButton />
       </div>
     )
   }
   return (
     <div className="flex items-center gap-1">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button type="button" className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-2 hover:bg-black/5">
-            <Logo />
-            <span className="flex-1 truncate text-left text-sm font-semibold text-zinc-900">SalesPilot</span>
-            <ChevronsUpDown className="size-3.5 text-zinc-400" />
-          </button>
-        </DropdownMenuTrigger>
-        {menu}
-      </DropdownMenu>
+      <Link
+        href="/dashboard"
+        title="回到工作台"
+        className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-2 hover:bg-black/5"
+      >
+        <Logo />
+        <span className="flex-1 truncate text-left text-sm font-semibold text-zinc-900">SalesPilot</span>
+      </Link>
       <ToggleButton />
     </div>
   )

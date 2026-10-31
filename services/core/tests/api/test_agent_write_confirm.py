@@ -194,3 +194,22 @@ def test_only_card_confirm_phrases_count_as_contradiction() -> None:
     # 正常的下一步建议不能被当成「还在让用户确认」而整句替换
     assert not contradicts("已记录跟进。请确认下周是否需要拜访", done)
     assert not contradicts("请确认卡片", {"status": "cancelled"})
+
+
+def test_done_links_open_the_written_record() -> None:
+    """确认执行后「查看记录」直接打开刚写的那条，而不是只到列表页。"""
+    from app.agent.action_result import action_result
+    from app.agent.tools import ToolResult
+
+    def href(name: str, data: dict[str, Any]) -> str | None:
+        return action_result(name, "approve", ToolResult(ok=True, summary="ok", data=data))["href"]
+
+    assert href("submit_expense", {"id": "e1"}) == "/expenses?id=e1"
+    assert href("update_opportunity_stage", {"id": "o1"}) == "/pipeline?opp=o1"
+    assert href("decide_approval", {"id": "a1"}) == "/approvals?id=a1"
+    task = {"id": "t1", "subject_type": "opportunity", "subject_id": "o1"}
+    assert href("create_task", task) == "/pipeline?opp=o1&task=t1"
+    task = {"id": "t2", "subject_type": "customer", "subject_id": "c1"}
+    assert href("create_task", task) == "/customers/c1?task=t2"
+    # 拿不到 id 时退回列表页
+    assert href("submit_expense", {}) == "/expenses"

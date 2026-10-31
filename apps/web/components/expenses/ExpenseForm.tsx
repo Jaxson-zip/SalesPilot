@@ -12,7 +12,6 @@ import { TripFields } from "@/components/expenses/TripFields"
 import { useOpportunities } from "@/hooks/useOpportunities"
 import { useTemplates } from "@/hooks/useTemplates"
 import { useTeamUsers } from "@/hooks/useUsers"
-import { isNotImplemented } from "@/lib/errors"
 import {
   headcountSummary,
   participantCount,
@@ -79,7 +78,7 @@ function ContactsField({
   let empty = "还没有联系人，可在客户详情里添加"
   if (!customerId) empty = "先选择关联客户"
   else if (q.isPending) empty = "加载联系人…"
-  else if (q.isError) empty = isNotImplemented(q.error) ? "联系人接口开发中" : "联系人加载失败"
+  else if (q.isError) empty = "联系人加载失败"
   return (
     <FormField label="客户方参与人" required={required} error={error}>
       <ChipMultiSelect

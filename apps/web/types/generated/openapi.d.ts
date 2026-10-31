@@ -1056,23 +1056,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  "/api/commissions/estimate": {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /** Estimate Commission */
-    post: operations["estimate_commission_api_commissions_estimate_post"]
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   "/api/expenses/precheck": {
     parameters: {
       query?: never
@@ -2385,25 +2368,6 @@ export interface components {
        */
       message: string
       data: components["schemas"]["ChatModels"] | null
-      /**
-       * Request Id
-       * @default
-       */
-      request_id: string
-    }
-    /** ApiResponse[CommissionResult] */
-    ApiResponse_CommissionResult_: {
-      /**
-       * Code
-       * @default 0
-       */
-      code: number
-      /**
-       * Message
-       * @default ok
-       */
-      message: string
-      data: components["schemas"]["CommissionResult"] | null
       /**
        * Request Id
        * @default
@@ -4425,41 +4389,6 @@ export interface components {
       estimated: number
       /** Confirmed */
       confirmed: number
-    }
-    /** CommissionEstimateIn */
-    CommissionEstimateIn: {
-      /** Lines */
-      lines: components["schemas"]["CommissionLineIn"][]
-      /** Margin Rate */
-      margin_rate: number
-      /**
-       * Paid Ratio
-       * @default 1
-       */
-      paid_ratio?: number
-    }
-    /** CommissionLineIn */
-    CommissionLineIn: {
-      /**
-       * Category
-       * @enum {string}
-       */
-      category: "hardware" | "software" | "service"
-      /** Amount */
-      amount: number
-    }
-    /** CommissionResult */
-    CommissionResult: {
-      /** Estimated */
-      estimated: number
-      /** Confirmed */
-      confirmed: number
-      /** Halved */
-      halved: boolean
-      /** Detail */
-      detail: {
-        [key: string]: number
-      }
     }
     /** CompanyIntel */
     CompanyIntel: {
@@ -10023,41 +9952,6 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_PackDetail_"]
-        }
-      }
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"]
-        }
-      }
-    }
-  }
-  estimate_commission_api_commissions_estimate_post: {
-    parameters: {
-      query?: never
-      header?: {
-        authorization?: string | null
-      }
-      path?: never
-      cookie?: never
-    }
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["CommissionEstimateIn"]
-      }
-    }
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          "application/json": components["schemas"]["ApiResponse_CommissionResult_"]
         }
       }
       /** @description Validation Error */

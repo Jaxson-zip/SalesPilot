@@ -63,9 +63,15 @@ def test_packs(client: TestClient) -> None:
 
 
 def test_commission_estimate(client: TestClient) -> None:
+    """提成试算只给 AI「算提成」用，不单独开放 REST 接口（界面上没有入口）。"""
+    from app.crm.schemas.finance import CommissionEstimateIn
+    from app.crm.services import finance_service
+
     body = {"lines": [{"category": "hardware", "amount": 10_000_000}], "margin_rate": 0.2}
+    result = finance_service.estimate_commission(CommissionEstimateIn(**body))
+    assert result.estimated == 150_000 and result.halved
     r = client.post("/api/commissions/estimate", json=body, headers=auth_header(Role.SALES))
-    assert r.json()["data"]["estimated"] == 150_000 and r.json()["data"]["halved"]
+    assert r.status_code == 404
 
 
 def test_expense_precheck(client: TestClient) -> None:

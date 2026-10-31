@@ -1,14 +1,14 @@
-"""纯规则接口（不依赖数据库）：行业包列表、提成估算、报销制度预校验、业务模板。"""
+"""纯规则接口（不依赖数据库）：行业包列表、报销制度预校验、业务模板。"""
 
 from fastapi import APIRouter
 
 from app.common.auth import CurrentUserDep
 from app.common.response import ApiResponse, ok
 from app.crm.routers.deps import DbDep
-from app.crm.schemas.finance import CommissionEstimateIn, ExpensePrecheckIn
+from app.crm.schemas.finance import ExpensePrecheckIn
 from app.crm.services import finance_service, pack_service, template_service
 from app.crm.services.pack_service import PackDetail, PackOut
-from app.rules import CommissionResult, ExpenseCheck
+from app.rules import ExpenseCheck
 
 router = APIRouter(prefix="/api", tags=["rules"])
 
@@ -21,13 +21,6 @@ def list_packs(user: CurrentUserDep) -> ApiResponse[list[PackOut]]:
 @router.get("/packs/{pack_id}", response_model=ApiResponse[PackDetail])
 def get_pack(pack_id: str, user: CurrentUserDep, db: DbDep) -> ApiResponse[PackDetail]:
     return ok(pack_service.get_pack_detail(pack_id, db))
-
-
-@router.post("/commissions/estimate", response_model=ApiResponse[CommissionResult])
-def estimate_commission(
-    body: CommissionEstimateIn, user: CurrentUserDep
-) -> ApiResponse[CommissionResult]:
-    return ok(finance_service.estimate_commission(body))
 
 
 @router.post("/expenses/precheck", response_model=ApiResponse[ExpenseCheck])

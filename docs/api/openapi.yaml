@@ -2734,40 +2734,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /api/commissions/estimate:
-    post:
-      tags:
-      - rules
-      summary: Estimate Commission
-      operationId: estimate_commission_api_commissions_estimate_post
-      parameters:
-      - name: authorization
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Authorization
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CommissionEstimateIn'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse_CommissionResult_'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /api/expenses/precheck:
     post:
       tags:
@@ -6211,31 +6177,6 @@ components:
       - message
       - data
       - request_id
-    ApiResponse_CommissionResult_:
-      properties:
-        code:
-          type: integer
-          title: Code
-          default: 0
-        message:
-          type: string
-          title: Message
-          default: ok
-        data:
-          anyOf:
-          - $ref: '#/components/schemas/CommissionResult'
-          - type: 'null'
-        request_id:
-          type: string
-          title: Request Id
-          default: ''
-      type: object
-      title: ApiResponse[CommissionResult]
-      required:
-      - code
-      - message
-      - data
-      - request_id
     ApiResponse_CompanyIntel_:
       properties:
         code:
@@ -9097,70 +9038,6 @@ components:
       - estimated
       - confirmed
       title: CommissionBrief
-    CommissionEstimateIn:
-      properties:
-        lines:
-          items:
-            $ref: '#/components/schemas/CommissionLineIn'
-          type: array
-          title: Lines
-        margin_rate:
-          type: number
-          maximum: 1.0
-          minimum: -1.0
-          title: Margin Rate
-        paid_ratio:
-          type: number
-          maximum: 1.0
-          minimum: 0.0
-          title: Paid Ratio
-          default: 1.0
-      type: object
-      required:
-      - lines
-      - margin_rate
-      title: CommissionEstimateIn
-    CommissionLineIn:
-      properties:
-        category:
-          type: string
-          enum:
-          - hardware
-          - software
-          - service
-          title: Category
-        amount:
-          type: integer
-          minimum: 0.0
-          title: Amount
-      type: object
-      required:
-      - category
-      - amount
-      title: CommissionLineIn
-    CommissionResult:
-      properties:
-        estimated:
-          type: integer
-          title: Estimated
-        confirmed:
-          type: integer
-          title: Confirmed
-        halved:
-          type: boolean
-          title: Halved
-        detail:
-          additionalProperties:
-            type: integer
-          type: object
-          title: Detail
-      type: object
-      required:
-      - estimated
-      - confirmed
-      - halved
-      - detail
-      title: CommissionResult
     CompanyIntel:
       properties:
         customer_id:

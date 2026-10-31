@@ -17,7 +17,13 @@ import { PolicyCheckAlert } from "@/components/expenses/PolicyCheckAlert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useDebounced } from "@/hooks/useDebounced"
-import { useCreateExpense, useExpense, useExpensePrecheck, useSubmitExpense } from "@/hooks/useExpenses"
+import {
+  useCreateExpense,
+  useExpense,
+  useExpensePrecheck,
+  useSubmitExpense,
+  useUpdateExpense,
+} from "@/hooks/useExpenses"
 import { usePermissions } from "@/hooks/usePermissions"
 import { newRequestId } from "@/lib/api"
 import { EXPENSE_SUBMIT_CONFIRM } from "@/lib/confirm-texts"
@@ -25,6 +31,8 @@ import { localDate } from "@/lib/format"
 import {
   checkFromPolicy,
   checkFromPrecheck,
+  formFromExpense,
+  lastRejection,
   missingAttachmentReason,
   toExpenseCreate,
   toPrecheckBody,
@@ -74,18 +82,24 @@ export function ExpenseSheet({
   const [templateId, setTemplateId] = useState<string | null>(null)
   const [createdId, setCreatedId] = useState<string | null>(null)
   const [idemKey, setIdemKey] = useState(newRequestId)
+  // 修改已保存的草稿 / 被驳回的报销单
+  const [editing, setEditing] = useState(false)
 
   const draftId = expenseId ?? createdId
   const detail = useExpense(open ? draftId : null)
   const create = useCreateExpense()
   const submit = useSubmitExpense()
+  const update = useUpdateExpense()
   const { ask, dialog } = useConfirmAction()
-  const precheck = useLivePrecheck(values, open && !draftId)
+  const form = !draftId || editing
+  const precheck = useLivePrecheck(values, open && form)
 
   const { canCreate, canEdit } = usePermissions()
   const exp = detail.data
-  // 新建：有新建权限；已有报销单：本人的草稿才能上传票据和提交（契约 §0）
-  const editable = !draftId ? canCreate : exp?.status === "draft" && canEdit(exp.owner?.id)
+  // 新建：有新建权限；已有报销单：本人的草稿或被驳回的才能修改、补票据和（重新）提交（契约 §0）
+  const rejected = exp?.status === "rejected"
+  const editable = !draftId ? canCreate : (exp?.status === "draft" || rejected) && canEdit(exp?.owner?.id)
+  const rejection = rejected ? lastRejection(exp?.approvals) : null
   const attachments = exp?.attachments ?? []
   const missing = exp ? missingAttachmentReason(exp.type, attachments) : "保存草稿后上传票据"
 
@@ -97,6 +111,21 @@ export function ExpenseSheet({
     setTemplateId(null)
     setCreatedId(null)
     setIdemKey(newRequestId())
+    setEditing(false)
+  }
+  const startEdit = () => {
+    if (!exp) return
+    setValues(formFromExpense(exp))
+    setCustomer(exp.customer)
+    setErrors({})
+    setEditing(true)
+  }
+  const saveEdit = () => {
+    if (!draftId) return
+    const r = toExpenseCreate(values)
+    if (!r.ok) return setErrors(r.errors)
+    setErrors({})
+    update.mutate({ id: draftId, body: r.value }, { onSuccess: () => setEditing(false) })
   }
   const set = <K extends keyof ExpenseFormValues>(k: K, v: ExpenseFormValues[K]) =>
     setValues((prev) => ({ ...prev, [k]: v }))
@@ -146,13 +175,25 @@ export function ExpenseSheet({
         {create.isPending ? "保存中…" : "保存草稿"}
       </Button>
     </>
+  ) : editing ? (
+    <>
+      <Button variant="outline" onClick={() => setEditing(false)} disabled={update.isPending}>
+        取消修改
+      </Button>
+      <Button onClick={saveEdit} disabled={update.isPending}>
+        {update.isPending ? "保存中…" : "保存修改"}
+      </Button>
+    </>
   ) : editable ? (
     <>
+      <Button variant="outline" onClick={startEdit} disabled={!exp} className="mr-auto">
+        修改
+      </Button>
       <Button variant="outline" onClick={close}>
         稍后提交
       </Button>
       <Button onClick={doSubmit} disabled={Boolean(missing) || submit.isPending || !exp} title={missing ?? undefined}>
-        {submit.isPending ? "提交中…" : "提交审批"}
+        {submit.isPending ? "提交中…" : rejected ? "重新提交" : "提交审批"}
       </Button>
     </>
   ) : (
@@ -168,7 +209,13 @@ export function ExpenseSheet({
 
   return (
     <FormSheet open={open} onOpenChange={(o) => !o && close()} title={title} footer={footer}>
-      {!draftId ? (
+      {rejection ? (
+        <Alert tone="warn" title={`${rejection.approver?.name ?? "主管"}驳回了这张报销`}>
+          {rejection.comment || "没有写原因"}
+          {editable ? <p className="mt-1 text-xs">按意见修改、补票据后，点「重新提交」</p> : null}
+        </Alert>
+      ) : null}
+      {form ? (
         <ExpenseForm
           values={values}
           customer={customer}
@@ -201,7 +248,7 @@ export function ExpenseSheet({
           ensureDraft={draftId ? undefined : () => saveDraft(true)}
         />
       </FormField>
-      {!draftId ? (
+      {form ? (
         <PolicyCheckAlert
           check={precheck.data ? checkFromPrecheck(precheck.data) : null}
           checking={precheck.isFetching}
@@ -209,7 +256,7 @@ export function ExpenseSheet({
       ) : exp ? (
         <PolicyCheckAlert check={exp.policy_check ? checkFromPolicy(exp.policy_check) : null} />
       ) : null}
-      {!draftId && precheck.isError ? (
+      {form && precheck.isError ? (
         <Alert tone="info" title="暂时无法实时校验报销制度">
           提交时 core 仍会按制度校验
         </Alert>

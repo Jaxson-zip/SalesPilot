@@ -3,6 +3,7 @@
  * 预览只用于输入时的即时反馈；保存后总价、毛利、是否需要审批一律以后端（规则代码）返回为准。
  */
 import { fenToYuanInput, parsePositiveInt, yuanToFen } from "@/lib/money"
+import type { PackCatalogItem } from "@/lib/pack-rules"
 import type { QuoteItemsPatch, QuoteLine } from "@/types/api"
 
 /** 自己加的费用（加急费、差旅、第三方服务等目录里没有的）用这个前缀的 sku */
@@ -10,7 +11,7 @@ export const EXTRA_PREFIX = "extra-"
 
 export const isExtraSku = (sku: string) => sku.startsWith(EXTRA_PREFIX)
 
-/** 编辑中的一行（输入框都是字符串）。目录物料只能改数量；自己加的费用名称、单价、成本都能改 */
+/** 编辑中的一行（输入框都是字符串）。目录物料能改单价和数量；自己加的费用名称、单价、成本都能改 */
 export interface DraftRow {
   sku: string
   name: string
@@ -21,6 +22,8 @@ export interface DraftRow {
   /** 成本（元，可不填，按 0 算） */
   cost: string
   extra: boolean
+  /** 目录物料加进来时的单价（分）：改过单价时显示「原价」 */
+  basePrice: number | null
 }
 
 type SourceLine = Pick<QuoteLine, "sku" | "name" | "unit" | "qty" | "unit_price" | "unit_cost">
@@ -34,7 +37,22 @@ export function initialDraft(items: SourceLine[]): DraftRow[] {
     price: fenToYuanInput(it.unit_price),
     cost: it.unit_cost ? fenToYuanInput(it.unit_cost) : "",
     extra: isExtraSku(it.sku),
+    basePrice: isExtraSku(it.sku) ? null : it.unit_price,
   }))
+}
+
+/** 从产品目录加一行（目录价、目录成本） */
+export function catalogRow(item: Pick<PackCatalogItem, "sku" | "name" | "unit" | "cost" | "price">): DraftRow {
+  return {
+    sku: item.sku,
+    name: item.name,
+    unit: item.unit,
+    qty: "1",
+    price: fenToYuanInput(item.price),
+    cost: item.cost ? fenToYuanInput(item.cost) : "",
+    extra: false,
+    basePrice: item.price,
+  }
 }
 
 let seq = 0
@@ -42,7 +60,7 @@ let seq = 0
 export function newExtraRow(): DraftRow {
   seq += 1
   const sku = `${EXTRA_PREFIX}${Date.now().toString(36)}${seq}`
-  return { sku, name: "", unit: "项", qty: "1", price: "", cost: "", extra: true }
+  return { sku, name: "", unit: "项", qty: "1", price: "", cost: "", extra: true, basePrice: null }
 }
 
 /** 折扣输入（百分比，例如 "8" 表示 8%）→ 0–1 的比例；空 = 0；必须 0 ≤ x < 100，最多 1 位小数 */
@@ -86,6 +104,8 @@ export interface AdjustPreview {
   discountAmount: number
   /** 预览合计（分） */
   total: number
+  /** 预估毛利率（合计为 0 时为 null）；保存后以后端为准 */
+  margin: number | null
 }
 
 export function previewAdjust(rows: DraftRow[], discountInput: string): AdjustPreview {
@@ -95,7 +115,10 @@ export function previewAdjust(rows: DraftRow[], discountInput: string): AdjustPr
   const lines = parsed.map((p) => ({ sku: p.sku, qty: p.qty, subtotal: p.unitPrice * p.qty }))
   const listTotal = lines.reduce((s, l) => s + l.subtotal, 0)
   const discountAmount = Math.round(listTotal * (rate ?? 0))
-  return { valid, lines, listTotal, discountAmount, total: listTotal - discountAmount }
+  const total = listTotal - discountAmount
+  const cost = parsed.reduce((s, p) => s + p.unitCost * p.qty, 0)
+  const margin = total > 0 ? (total - cost) / total : null
+  return { valid, lines, listTotal, discountAmount, total, margin }
 }
 
 const sameRow = (a: DraftRow, b: DraftRow) =>
@@ -124,7 +147,7 @@ export function toItemsPatch(rows: DraftRow[], discountInput: string): QuoteItem
   if (rate === null || !previewAdjust(rows, discountInput).valid) return null
   const items = rows.map((r) => {
     const p = parseRow(r)
-    if (!r.extra) return { sku: r.sku, qty: p.qty }
+    if (!r.extra) return { sku: r.sku, qty: p.qty, unit_price: p.unitPrice }
     return {
       sku: r.sku,
       qty: p.qty,

@@ -95,8 +95,9 @@ EXTRA_PREFIX = "extra-"
 
 
 class QuoteLineIn(BaseModel):
-    """一行明细。目录物料只传 sku + 数量；自己加的费用（sku 以 extra- 开头，如加急费、差旅费、
-    第三方服务）还要传名称和单价，成本不填按 0 算。"""
+    """一行明细。目录物料传 sku + 数量，可以带 unit_price 改单价（不带沿用原价）；
+    自己加的费用（sku 以 extra- 开头，如加急费、差旅费、第三方服务）还要传名称和单价，
+    成本不填按 0 算。"""
 
     sku: str = Field(min_length=1, max_length=50)
     qty: int = Field(ge=1, le=100_000)
@@ -109,6 +110,16 @@ class QuoteLineIn(BaseModel):
     @property
     def is_extra(self) -> bool:
         return self.sku.startswith(EXTRA_PREFIX)
+
+
+class QuoteCreate(BaseModel):
+    """不经过 AI，自己从零出一张报价（草稿）。商机和客户至少填一个；填了商机就用商机的客户。"""
+
+    opportunity_id: uuid.UUID | None = None
+    customer_id: uuid.UUID | None = None
+    pack: str = Field(min_length=1, max_length=50)
+    items: list[QuoteLineIn] = Field(min_length=1, max_length=100)
+    discount_rate: float = Field(default=0, ge=0, lt=1)
 
 
 class QuoteItemsUpdate(BaseModel):

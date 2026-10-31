@@ -20,6 +20,13 @@ export interface QuoteItemsPatch {
   discount_rate: number
 }
 
+/** POST /api/quotes：不经过 AI 从零新建草稿报价；商机和客户至少填一个 */
+export interface QuoteCreate extends QuoteItemsPatch {
+  opportunity_id?: string | null
+  customer_id?: string | null
+  pack: string
+}
+
 /* ---------- v3 §11 同事列表 ---------- */
 export interface UserItem {
   id: string

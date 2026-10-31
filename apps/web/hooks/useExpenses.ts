@@ -1,6 +1,7 @@
 "use client"
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 import { notifyError } from "@/hooks/notify"
 import { dashboardKeys } from "@/hooks/useDashboard"
@@ -71,6 +72,21 @@ export function useCreateExpense() {
     mutationFn: (body: ExpenseCreate) => api.post<ExpenseDetail>("/api/expenses", body),
     onSuccess: (exp) => {
       qc.setQueryData(expenseKeys.detail(exp.id), exp)
+      void qc.invalidateQueries({ queryKey: expenseKeys.all })
+    },
+    onError: notifyError,
+  })
+}
+
+/** PUT /api/expenses/{id} —— 修改草稿或被驳回的报销单（整单替换），改完再提交 */
+export function useUpdateExpense() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: ExpenseCreate }) =>
+      api.put<ExpenseDetail>(`/api/expenses/${id}`, body),
+    onSuccess: (exp) => {
+      qc.setQueryData(expenseKeys.detail(exp.id), exp)
+      toast.success("报销单已修改", { description: `${exp.code} · 确认无误后提交` })
       void qc.invalidateQueries({ queryKey: expenseKeys.all })
     },
     onError: notifyError,

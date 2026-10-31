@@ -209,6 +209,12 @@ def decide(
         )
     if decision not in ("approve", "reject"):
         raise BizError(ErrorCode.VALIDATION, f"未知的审批决定：{decision}")
+    if decision == "reject" and not (comment or "").strip():
+        # 员工要知道为什么被驳回才能改
+        msg = "驳回要写明原因"
+        raise BizError(
+            ErrorCode.VALIDATION, msg, {"errors": [{"loc": ["body", "comment"], "msg": msg}]}
+        )
     approval.status = "approved" if decision == "approve" else "rejected"
     approval.approver_id = user.id
     approval.comment = (comment or "").strip() or None

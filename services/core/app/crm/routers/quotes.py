@@ -1,4 +1,4 @@
-"""报价单接口（接口契约 §3）：列表、详情、submit / send / accept / reject。"""
+"""报价单接口（接口契约 §3）：列表、详情、手工新建、submit / send / accept / reject。"""
 
 import uuid
 from typing import Annotated
@@ -10,7 +10,13 @@ from app.common.response import ApiResponse, ok
 from app.common.scope import View
 from app.crm.routers.deps import DbDep, Ids, Multi, PageDep
 from app.crm.schemas.common import Page
-from app.crm.schemas.quote import QuoteDetail, QuoteItemsUpdate, QuoteListItem, QuoteStatus
+from app.crm.schemas.quote import (
+    QuoteCreate,
+    QuoteDetail,
+    QuoteItemsUpdate,
+    QuoteListItem,
+    QuoteStatus,
+)
 from app.crm.services import quote_edit, quote_query, quote_service
 from app.crm.services.listing import FacetOption, SortKey, clean, uuids
 
@@ -54,6 +60,11 @@ def quote_facets(
 ) -> ApiResponse[dict[str, list[FacetOption]]]:
     """列表筛选项：当前范围内出现过的行业包、客户。"""
     return ok(quote_query.facets(db, user, view))
+
+
+@router.post("", response_model=Detail)
+def create_quote(body: QuoteCreate, user: CurrentUserDep, db: DbDep) -> Detail:
+    return ok(quote_edit.create_manual(db, user, body))
 
 
 @router.get("/{quote_id}", response_model=Detail)

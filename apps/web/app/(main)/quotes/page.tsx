@@ -1,6 +1,6 @@
 "use client"
 
-import { FileText, Sparkles } from "lucide-react"
+import { FileText, Plus, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { useMemo, useState } from "react"
 
@@ -40,7 +40,7 @@ const quoteId = (r: QuoteItem) => r.id
 
 export default function QuotesPage() {
   const { role } = useSession()
-  const { canAiWrite } = usePermissions()
+  const { canAiWrite, canCreate } = usePermissions()
   const VIEWS: ViewOption[] = [{ value: "all", label: scopeLabel(role, "报价单") }, ...STATUS_OPTIONS]
   const [view, setView] = useState("all")
   // 页签里的状态、筛选、排序、分页都走接口参数
@@ -79,7 +79,12 @@ export default function QuotesPage() {
     <PageFrame
       title="报价单"
       icon={FileText}
-      actions={canAiWrite ? <FrameAction icon={Sparkles} label="AI 出方案" href="/ai" primary /> : null}
+      actions={
+        <>
+          {canCreate ? <FrameAction icon={Plus} label="新建报价" href="/quotes/new" /> : null}
+          {canAiWrite ? <FrameAction icon={Sparkles} label="AI 出方案" href="/ai" primary /> : null}
+        </>
+      }
     >
       {sel.count ? (
         <BulkBar count={sel.count} onExport={() => lv.exportRows(sel.selected)} onClear={sel.clear} />
@@ -121,7 +126,7 @@ export default function QuotesPage() {
                 title={
                   view === "all" ? "还没有报价单" : `没有「${VIEWS.find((v) => v.value === view)?.label}」的报价单`
                 }
-                description="报价单由 AI 方案工作台生成：描述客户需求，AI 会按行业包出方案并计算价格与毛利。"
+                description="让 AI 按客户需求出方案，或点右上角「新建报价」自己从产品目录选物料。"
                 action={
                   canAiWrite ? (
                     <Button size="sm" asChild>

@@ -38,10 +38,11 @@ from app.crm.services import (
 from app.crm.services.codes import next_code
 from app.crm.services.expense_details import clean_details
 from app.crm.services.listing import SortKey, order
-from app.crm.services.quote_query import count
+from app.crm.services.quote_query import approvals_of, count
 from app.rules import RuleSet, check_expense_policy, load_rules
 
 RULE_MISSING_INVOICE = "expense_missing_invoice"
+RULE_NOT_EDITABLE = "expense_not_editable"
 KIND_LABELS = {"invoice": "发票", "receipt": "小票", "other": "其他票据"}
 # 由后端计算或单独处理的字段（客户端传入的 headcount / participants 被忽略）
 CREATE_DERIVED = {
@@ -215,6 +216,45 @@ def load_expense(
     return expense
 
 
+# 草稿和被驳回的报销单可以修改、补票据、（重新）提交
+EDITABLE_STATUSES = ("draft", "rejected")
+
+
+def ensure_editable(expense: Expense, what: str = "修改") -> None:
+    if expense.status not in EDITABLE_STATUSES:
+        raise BizError(
+            ErrorCode.RULE_VIOLATION,
+            f"报销单已提交，不能再{what}",
+            {"rule": RULE_NOT_EDITABLE, "status": expense.status},
+        )
+
+
+def update_expense(
+    db: Session, user: CurrentUser, expense_id: uuid.UUID, data: ExpenseCreate
+) -> ExpenseDetail:
+    """修改草稿或被驳回的报销单（整单替换），改完再提交；制度校验结果跟着重算。"""
+    expense = load_owned(db, user, expense_id)
+    ensure_editable(expense)
+    customer_id = _check_links(db, user, data)
+    parts = expense_participants.resolve(db, user, data, customer_id)
+    details = clean_details(data.type, data.details)
+    check = policy_check(data.type, data.amount, parts.headcount, load_rules(), details)
+    for key, value in data.model_dump(exclude=CREATE_DERIVED).items():
+        setattr(expense, key, value)
+    expense.details = details
+    expense.customer_id = customer_id
+    expense.headcount = parts.headcount
+    expense.participants = parts.text
+    expense.contact_ids = [c.id for c in parts.contacts]
+    expense.colleague_ids = [u.id for u in parts.colleagues]
+    expense.extra_guests = parts.extra_guests
+    expense.policy_check = check.model_dump()
+    db.flush()
+    content = f"修改报销单：¥{data.amount / 100:,.2f}，{data.reason}"
+    activity_service.record(db, user, "expense", expense.id, "update", content, "manual", expense)
+    return get_expense(db, user, expense.id)
+
+
 def load_owned(db: Session, user: CurrentUser, expense_id: uuid.UUID) -> Expense:
     """取报销单用于修改（上传 / 删除票据、提交）：只有负责人本人可以（接口契约 §0）。"""
     expense = db.get(Expense, expense_id, with_for_update=True)
@@ -239,6 +279,7 @@ def get_expense(db: Session, user: CurrentUser, expense_id: uuid.UUID) -> Expens
         attachments=attachment_query.list_for(db, "expense", expense.id),
         policy_check=_check_of(expense),
         details=ExpenseDetails.model_validate(expense.details) if expense.details else None,
+        approvals=approvals_of(db, "expense", expense.id),
     )
 
 
@@ -289,10 +330,11 @@ def submit_expense(
     db: Session, user: CurrentUser, expense_id: uuid.UUID, source: str = "manual"
 ) -> ExpenseDetail:
     expense = load_owned(db, user, expense_id)
-    if expense.status != "draft":
+    if expense.status not in EDITABLE_STATUSES:
         raise BizError(
             ErrorCode.DUPLICATE, "报销单已提交，请勿重复提交", {"status": expense.status}
         )
+    again = expense.status == "rejected"
     rules = load_rules()
     missing = missing_kinds(db, expense, rules)
     if missing:
@@ -312,14 +354,14 @@ def submit_expense(
         expense.policy_check = check.model_dump()
     if check.passed:
         expense.status = "approved"
-        content = f"提交报销单，制度校验通过：{reason}"
+        content = f"{'重新' if again else ''}提交报销单，制度校验通过：{reason}"
     else:
         expense.status = "pending_approval"
         hint = approval_hints.expense_hint(
             db, expense.customer_id, expense.owner_id, check.over_amount
         )
         approval_service.create_approval(db, "expense", expense, reason, hint)
-        content = f"提交报销单，超标进入主管审批：{reason}"
+        content = f"{'重新' if again else ''}提交报销单，超标进入主管审批：{reason}"
     db.flush()
     activity_service.record(db, user, "expense", expense.id, "submit", content, source, expense)
     return get_expense(db, user, expense.id)

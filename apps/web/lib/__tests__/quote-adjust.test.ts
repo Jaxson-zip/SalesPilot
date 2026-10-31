@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  catalogRow,
   discountToInput,
   initialDraft,
   isAdjustDirty,
@@ -57,11 +58,11 @@ describe("调价预览（只做展示，保存后以后端为准）", () => {
     expect(isAdjustDirty(items, draft, "5", 0)).toBe(true)
     expect(isAdjustDirty(items, [...draft, newExtraRow()], "", 0)).toBe(true)
   })
-  it("请求体：目录物料只带 sku + 数量；非法返回 null", () => {
+  it("请求体：目录物料带 sku、数量、单价；非法返回 null", () => {
     expect(toItemsPatch(withQty(initialDraft(items), "gpu", "3"), "8")).toEqual({
       items: [
-        { sku: "gpu", qty: 3 },
-        { sku: "svc", qty: 1 },
+        { sku: "gpu", qty: 3, unit_price: 100000 },
+        { sku: "svc", qty: 1, unit_price: 50000 },
       ],
       discount_rate: 0.08,
     })
@@ -101,7 +102,29 @@ describe("自己加的费用", () => {
       price: "300.50",
       cost: "250",
       extra: true,
+      basePrice: null,
     })
     expect(isAdjustDirty([saved], initialDraft([saved]), "", 0)).toBe(false)
+  })
+})
+
+describe("目录物料改单价、从目录添加", () => {
+  it("改单价：合计、预估毛利跟着变，请求带新单价", () => {
+    const rows = initialDraft(items).map((r) => (r.sku === "gpu" ? { ...r, price: "800" } : r))
+    const p = previewAdjust(rows, "")
+    expect(p.listTotal).toBe(80000 * 2 + 50000)
+    // 成本 1200 元，合计 2100 元
+    expect(p.margin).toBeCloseTo((210000 - 120000) / 210000)
+    expect(toItemsPatch(rows, "")?.items[0]).toEqual({ sku: "gpu", qty: 2, unit_price: 80000 })
+    expect(rows[0].basePrice).toBe(100000)
+  })
+  it("从目录加一行：目录价和成本", () => {
+    const row = catalogRow({ sku: "ssd", name: "SSD", unit: "块", cost: 30000, price: 45050 })
+    expect(row).toMatchObject({ sku: "ssd", qty: "1", price: "450.50", cost: "300", extra: false, basePrice: 45050 })
+    expect(isAdjustDirty(items, [...initialDraft(items), row], "", 0)).toBe(true)
+  })
+  it("没有明细不能保存", () => {
+    expect(previewAdjust([], "").valid).toBe(false)
+    expect(toItemsPatch([], "")).toBeNull()
   })
 })

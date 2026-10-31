@@ -1279,7 +1279,8 @@ export interface paths {
      */
     get: operations["list_quotes_api_quotes_get"]
     put?: never
-    post?: never
+    /** Create Quote */
+    post: operations["create_quote_api_quotes_post"]
     delete?: never
     options?: never
     head?: never
@@ -1556,7 +1557,8 @@ export interface paths {
     }
     /** Get Expense */
     get: operations["get_expense_api_expenses__expense_id__get"]
-    put?: never
+    /** Update Expense */
+    put: operations["update_expense_api_expenses__expense_id__put"]
     post?: never
     delete?: never
     options?: never
@@ -5101,6 +5103,11 @@ export interface components {
       attachments: components["schemas"]["AttachmentOut"][]
       policy_check: components["schemas"]["PolicyCheck"] | null
       details: components["schemas"]["ExpenseDetails"] | null
+      /**
+       * Approvals
+       * @default []
+       */
+      approvals: components["schemas"]["ApprovalBrief"][]
     }
     /**
      * ExpenseDetails
@@ -6383,6 +6390,25 @@ export interface components {
       /** Error */
       error: string | null
     }
+    /**
+     * QuoteCreate
+     * @description 不经过 AI，自己从零出一张报价（草稿）。商机和客户至少填一个；填了商机就用商机的客户。
+     */
+    QuoteCreate: {
+      /** Opportunity Id */
+      opportunity_id?: string | null
+      /** Customer Id */
+      customer_id?: string | null
+      /** Pack */
+      pack: string
+      /** Items */
+      items: components["schemas"]["QuoteLineIn"][]
+      /**
+       * Discount Rate
+       * @default 0
+       */
+      discount_rate?: number
+    }
     /** QuoteDetail */
     QuoteDetail: {
       /**
@@ -6481,8 +6507,9 @@ export interface components {
     }
     /**
      * QuoteLineIn
-     * @description 一行明细。目录物料只传 sku + 数量；自己加的费用（sku 以 extra- 开头，如加急费、差旅费、
-     *     第三方服务）还要传名称和单价，成本不填按 0 算。
+     * @description 一行明细。目录物料传 sku + 数量，可以带 unit_price 改单价（不带沿用原价）；
+     *     自己加的费用（sku 以 extra- 开头，如加急费、差旅费、第三方服务）还要传名称和单价，
+     *     成本不填按 0 算。
      */
     QuoteLineIn: {
       /** Sku */
@@ -10368,6 +10395,41 @@ export interface operations {
       }
     }
   }
+  create_quote_api_quotes_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["QuoteCreate"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_QuoteDetail_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
   quote_facets_api_quotes_facets_get: {
     parameters: {
       query?: {
@@ -10942,6 +11004,43 @@ export interface operations {
       cookie?: never
     }
     requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ExpenseDetail_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  update_expense_api_expenses__expense_id__put: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        expense_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ExpenseCreate"]
+      }
+    }
     responses: {
       /** @description Successful Response */
       200: {

@@ -407,6 +407,8 @@ export interface ExpenseDetail extends ExpenseItem {
   colleagues?: UserBrief[]
   extra_guests?: number
   details?: ExpenseDetails | null
+  /** 审批记录：被驳回时最后一条是驳回原因 */
+  approvals?: ApprovalBrief[]
 }
 
 export interface ExpenseCreate {

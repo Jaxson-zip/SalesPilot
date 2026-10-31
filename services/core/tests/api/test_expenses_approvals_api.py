@@ -175,10 +175,52 @@ def test_reject_expense(client: TestClient, tracker: Tracker) -> None:
         "data"
     ]
     aid = next(a["id"] for a in pending["items"] if a["target"]["id"] == eid)
-    client.post(f"/api/approvals/{aid}/decide", json={"decision": "reject"}, headers=MANAGER_H)
-    assert (
-        client.get(f"/api/expenses/{eid}", headers=SALES_H).json()["data"]["status"] == "rejected"
-    )
+    url = f"/api/approvals/{aid}/decide"
+    # 驳回必须写原因
+    blank = client.post(url, json={"decision": "reject", "comment": " "}, headers=MANAGER_H)
+    assert blank.json()["code"] == 40001
+    reason = "人均超标，请按 4 人以内重新报"
+    client.post(url, json={"decision": "reject", "comment": reason}, headers=MANAGER_H)
+    e = client.get(f"/api/expenses/{eid}", headers=SALES_H).json()["data"]
+    assert e["status"] == "rejected"
+    # 员工能看到原因
+    assert e["approvals"][-1]["status"] == "rejected" and e["approvals"][-1]["comment"] == reason
+
+
+def test_resubmit_rejected_expense(client: TestClient, tracker: Tracker) -> None:
+    """被驳回的报销单：改金额、补票据后在同一张单上重新提交，两轮审批都留在记录里。"""
+    e = new_expense(client, tracker, amount=86_000)
+    eid = e["id"]
+    with_receipts(client, eid)
+    client.post(f"/api/expenses/{eid}/submit", headers=SALES_H)
+    pending = client.get("/api/approvals?status=pending&page_size=100", headers=MANAGER_H).json()
+    aid = next(a["id"] for a in pending["data"]["items"] if a["target"]["id"] == eid)
+    body = {"decision": "reject", "comment": "超标部分自己承担"}
+    client.post(f"/api/approvals/{aid}/decide", json=body, headers=MANAGER_H)
+
+    # 别人改不了；本人改金额到标准以内
+    edit = {
+        "type": "entertainment",
+        "amount": 60_000,
+        "contact_ids": [str(CONTACT_WANG)],
+        "extra_guests": 2,
+        "occurred_on": "2026-10-24",
+        "customer_id": str(C_MINGLI),
+        "reason": "测试-方案沟通晚餐（超标部分自理）",
+    }
+    assert client.put(f"/api/expenses/{eid}", json=edit, headers=SALES2_H).json()["code"] == 40401
+    changed = client.put(f"/api/expenses/{eid}", json=edit, headers=SALES_H).json()["data"]
+    assert changed["status"] == "rejected" and changed["amount"] == 60_000
+    assert not changed["over_limit"]
+    # 驳回后还能补票据
+    assert upload(client, eid, "other", "说明.png", PNG, "image/png")["code"] == 0
+
+    again = client.post(f"/api/expenses/{eid}/submit", headers=SALES_H).json()["data"]
+    assert again["status"] == "approved"
+    assert [a["status"] for a in again["approvals"]] == ["rejected"]
+    # 通过后不能再改
+    locked = client.put(f"/api/expenses/{eid}", json=edit, headers=SALES_H).json()
+    assert locked["code"] == 42201 and locked["data"]["rule"] == "expense_not_editable"
 
 
 def test_decide_unknown_approval(client: TestClient) -> None:

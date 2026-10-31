@@ -52,6 +52,13 @@ def create_expense(body: ExpenseCreate, user: CurrentUserDep, db: DbDep) -> Deta
     return ok(expense_service.create_expense(db, user, body))
 
 
+@router.put("/expenses/{expense_id}", response_model=Detail)
+def update_expense(
+    expense_id: uuid.UUID, body: ExpenseCreate, user: CurrentUserDep, db: DbDep
+) -> Detail:
+    return ok(expense_service.update_expense(db, user, expense_id, body))
+
+
 @router.post("/expenses/{expense_id}/submit", response_model=Detail)
 def submit_expense(expense_id: uuid.UUID, user: CurrentUserDep, db: DbDep) -> Detail:
     return ok(expense_service.submit_expense(db, user, expense_id))

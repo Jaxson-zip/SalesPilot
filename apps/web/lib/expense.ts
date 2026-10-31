@@ -1,11 +1,13 @@
 /** 报销表单与票据的纯函数：表单转换、票据齐全判断、上传文件校验 */
 import { toDetails, tripErrors, type TripErrors, type TripValues } from "@/lib/expense-trip"
 import { formatFen, localDate } from "@/lib/format"
-import { parsePositiveInt, yuanToFen } from "@/lib/money"
+import { fenToYuanInput, parsePositiveInt, yuanToFen } from "@/lib/money"
 import type {
+  ApprovalBrief,
   AttachmentKind,
   AttachmentOut,
   ExpenseCreate,
+  ExpenseDetail,
   ExpensePrecheck,
   ExpenseType,
   PolicyCheck,
@@ -106,6 +108,36 @@ export function toExpenseCreate(v: ExpenseFormValues, idempotencyKey?: string): 
   if (v.customer_id && v.opportunity_id) body.opportunity_id = v.opportunity_id
   if (idempotencyKey) body.idempotency_key = idempotencyKey
   return { ok: true, value: body }
+}
+
+/** 已保存的报销单 → 表单（修改草稿、驳回后修改用） */
+export function formFromExpense(e: ExpenseDetail): ExpenseFormValues {
+  const d = e.details ?? {}
+  return {
+    type: e.type,
+    amount: fenToYuanInput(e.amount),
+    occurred_on: e.occurred_on,
+    customer_id: e.customer?.id ?? null,
+    opportunity_id: e.opportunity?.id ?? null,
+    contact_ids: (e.contacts ?? []).map((c) => c.id),
+    colleague_ids: (e.colleagues ?? []).map((u) => u.id),
+    extra_guests: e.extra_guests ? String(e.extra_guests) : "",
+    reason: e.reason ?? "",
+    trip: {
+      from_city: d.from_city ?? "",
+      to_city: d.to_city ?? "",
+      transport_mode: d.transport_mode ?? "",
+      city: d.city ?? "",
+      check_in: d.check_in ?? "",
+      check_out: d.check_out ?? "",
+    },
+  }
+}
+
+/** 最近一次审批是驳回时返回它（看驳回原因） */
+export function lastRejection(approvals: ApprovalBrief[] | undefined): ApprovalBrief | null {
+  const last = approvals?.at(-1)
+  return last?.status === "rejected" ? last : null
 }
 
 /** 实时制度校验的请求体：只要金额合法就可以校验（事由等可以还没填）；人数随参与人实时变化 */

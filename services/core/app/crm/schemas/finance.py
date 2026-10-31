@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.crm.schemas.common import AttachmentOut, CodeRef, CustomerBrief, OppBrief, UserBrief
+from app.crm.schemas.quote import ApprovalBrief
 
 # ---------- 合同与提成 ----------
 
@@ -230,6 +231,8 @@ class ExpenseDetail(ExpenseItem):
     attachments: list[AttachmentOut]
     policy_check: PolicyCheck | None
     details: ExpenseDetails | None = None
+    # 审批记录（驳回原因看最后一条）
+    approvals: list[ApprovalBrief] = []
 
 
 # ---------- 审批 ----------

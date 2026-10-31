@@ -24,7 +24,11 @@ import type { QuoteAction, QuoteDetail } from "@/types/api"
 
 /** 报价内容变化（保存调整后后端重新计算）时重新挂载调价面板 */
 function adjustKey(q: QuoteDetail): string {
-  return [q.total_price, q.discount_rate ?? 0, ...q.items.map((it) => `${it.sku}:${it.qty}`)].join("|")
+  return [
+    q.total_price,
+    q.discount_rate ?? 0,
+    ...q.items.map((it) => `${it.sku}:${it.qty}:${it.unit_price}:${it.name}`),
+  ].join("|")
 }
 
 const ACTION_ICON: Record<QuoteAction, LucideIcon> = { submit: Stamp, send: Send, accept: Check, reject: X }

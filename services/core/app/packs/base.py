@@ -13,7 +13,13 @@ from app.rules import RuleSet, check_margin, overrides
 
 Category = Literal["hardware", "software", "service"]
 TierId = Literal["economy", "standard", "premium"]
-TIER_NAMES: dict[str, str] = {"economy": "经济版", "standard": "标准版", "premium": "高配版"}
+# custom：不经过 AI、自己从零出的报价
+TIER_NAMES: dict[str, str] = {
+    "economy": "经济版",
+    "standard": "标准版",
+    "premium": "高配版",
+    "custom": "自定义",
+}
 
 
 class CatalogItem(BaseModel):

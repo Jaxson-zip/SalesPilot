@@ -9,7 +9,15 @@ import { opportunityKeys } from "@/hooks/useOpportunities"
 import { api } from "@/lib/api"
 import { serverQuery, type ServerListParams } from "@/lib/list-view"
 import { QUOTE_ACTIONS, submitResultText } from "@/lib/quote-actions"
-import type { Paged, QuoteAction, QuoteDetail, QuoteItem, QuoteItemsPatch, QuoteListParams } from "@/types/api"
+import type {
+  Paged,
+  QuoteAction,
+  QuoteCreate,
+  QuoteDetail,
+  QuoteItem,
+  QuoteItemsPatch,
+  QuoteListParams,
+} from "@/types/api"
 
 export const quoteKeys = {
   all: ["quotes"] as const,
@@ -69,6 +77,24 @@ export function useQuoteAction(id: string) {
         qc.invalidateQueries({ queryKey: ["approvals"] }),
         // send 会按规则自动建一条跟进任务
         qc.invalidateQueries({ queryKey: ["tasks"] }),
+      ])
+    },
+    onError: notifyError,
+  })
+}
+
+/** POST /api/quotes：自己从零新建草稿报价（不经过 AI） */
+export function useCreateQuote() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: QuoteCreate) => api.post<QuoteDetail>("/api/quotes", body),
+    onSuccess: (quote) => {
+      qc.setQueryData(quoteKeys.detail(quote.id), quote)
+      toast.success(`报价单 ${quote.code} 已创建`, { description: "核对无误后提交" })
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: quoteKeys.all }),
+        qc.invalidateQueries({ queryKey: opportunityKeys.all }),
+        qc.invalidateQueries({ queryKey: activityKeys.all }),
       ])
     },
     onError: notifyError,

@@ -129,6 +129,67 @@ def test_patch_items_extra_charges(client: TestClient, tracker: Tracker) -> None
     assert missing["code"] == 40001 and missing["data"]["errors"][0]["sku"] == "extra-x"
 
 
+def test_patch_items_changes_unit_price(client: TestClient, tracker: Tracker) -> None:
+    """目录物料可以改单价：成本不变，毛利按新单价算；动态里记下改了什么；低于底线照常走审批。"""
+    qid = create_quote(
+        tracker, make_tier(GOOD)
+    )  # T-0 成本 7 万 / 售价 10 万；T-1 成本 2 万 / 售价 5 万
+    body = {"items": [{"sku": "T-0", "qty": 1, "unit_price": 8_000_000}, {"sku": "T-1", "qty": 1}]}
+    data = patch_items(client, qid, body)["data"]
+    assert data["total_price"] == 13_000_000 and data["total_cost"] == 9_000_000
+    t0 = next(i for i in data["items"] if i["sku"] == "T-0")
+    assert t0["unit_price"] == 8_000_000 and t0["unit_cost"] == 7_000_000
+    acts = client.get(f"/api/activities?subject_type=quote&subject_id={qid}", headers=SALES_H)
+    assert "改单价：测试物料0 ¥100,000→¥80,000" in str(acts.json()["data"])
+    # 压到底线以下：提交进审批
+    low = {"items": [{"sku": "T-0", "qty": 1, "unit_price": 7_200_000}]}
+    assert patch_items(client, qid, low)["code"] == 0
+    assert act(client, qid, "submit")["data"]["status"] == "pending_approval"
+
+
+def test_create_quote_from_scratch(client: TestClient, tracker: Tracker) -> None:
+    """不经过 AI 新建报价：目录物料（可改单价）+ 自己加的费用，商机推进到方案阶段。"""
+    opp = new_opp(client, tracker)
+    body = {
+        "opportunity_id": opp["id"],
+        "pack": "llm_deploy",
+        "items": [
+            {"sku": "SRV-L20-2", "qty": 1},
+            {"sku": "SRV-L20-4", "qty": 1, "unit_price": 25_000_000},
+            {"sku": "extra-rush", "qty": 1, "name": "加急实施费", "unit_price": 1_000_000},
+        ],
+        "discount_rate": 0.02,
+    }
+    res = client.post("/api/quotes", json=body, headers=SALES_H).json()
+    assert res["code"] == 0, res
+    q = res["data"]
+    tracker.quotes.append(uuid.UUID(q["id"]))
+    assert q["status"] == "draft" and q["source"] == "manual" and q["tier_name"] == "自定义"
+    assert q["customer"]["id"] == opp["customer"]["id"]
+    assert q["list_price"] == 12_800_000 + 25_000_000 + 1_000_000
+    assert q["total_cost"] == 11_200_000 + 21_800_000
+    after = client.get(f"/api/opportunities/{opp['id']}", headers=SALES_H).json()["data"]
+    assert after["stage"] == "proposal"
+
+
+def test_create_quote_errors(client: TestClient, tracker: Tracker) -> None:
+    line = [{"sku": "SRV-L20-2", "qty": 1}]
+    no_customer = client.post(
+        "/api/quotes", json={"pack": "llm_deploy", "items": line}, headers=SALES_H
+    ).json()
+    assert no_customer["code"] == 40001
+    opp = new_opp(client, tracker)
+    body = {"opportunity_id": opp["id"], "pack": "llm_deploy", "items": line}
+    assert client.post("/api/quotes", json=body, headers=SALES2_H).json()["code"] == 40401
+    assert client.post("/api/quotes", json=body, headers=ADMIN_H).json()["code"] == 40301
+    unknown = {**body, "items": [{"sku": "NOPE", "qty": 1}]}
+    assert client.post("/api/quotes", json=unknown, headers=SALES_H).json()["code"] == 40001
+    assert (
+        client.post("/api/quotes", json={**body, "pack": "nope"}, headers=SALES_H).json()["code"]
+        == 40401
+    )
+
+
 # ---------- §16 转移负责人 ----------
 
 

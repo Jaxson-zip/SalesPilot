@@ -116,6 +116,7 @@ export const requests = {
   JobUpdate: true as Fits<Jobs.JobUpdate, S["JobUpdate"]>,
   TargetUpdate: true as Fits<Tg.TargetUpdate, S["TargetUpdate"]>,
   QuoteItemsPatch: true as Fits<T.QuoteItemsPatch, S["QuoteItemsUpdate"]>,
+  QuoteCreate: true as Fits<T.QuoteCreate, S["QuoteCreate"]>,
   TaskCreate: true as Fits<T.TaskCreate, S["TaskCreate"]>,
   TaskUpdate: true as Fits<T.TaskUpdate, S["TaskUpdate"]>,
   OpportunityCreate: true as Fits<T.OpportunityCreate, S["OpportunityCreate"]>,

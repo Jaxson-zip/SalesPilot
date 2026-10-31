@@ -30,7 +30,8 @@ def _invalid(field: str, msg: str) -> BizError:
 
 
 def _ensure_draft(expense: Expense) -> None:
-    if expense.status != "draft":
+    # 被驳回的也能补票据，再重新提交
+    if expense.status not in ("draft", "rejected"):
         raise BizError(
             ErrorCode.RULE_VIOLATION,
             "报销单已提交，不能再修改票据",

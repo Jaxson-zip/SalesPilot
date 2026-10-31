@@ -14,7 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import type { ApprovalItem } from "@/types/api"
 
-/** 驳回审批：可填写意见（报价驳回后退回草稿，报销驳回后为已驳回） */
+/** 驳回审批：必须写原因，员工照着改（报价驳回后退回草稿，报销驳回后可修改再重新提交） */
 export function RejectDialog({
   approval,
   batch = 0,
@@ -41,10 +41,10 @@ export function RejectDialog({
           <DialogTitle>{batch ? `批量驳回 ${batch} 条` : "驳回审批"}</DialogTitle>
           <DialogDescription>
             {batch
-              ? "选中的单子使用同一条意见：报价单退回草稿，报销变为「已驳回」。"
+              ? "选中的单子使用同一条原因：报价单退回草稿，报销可修改后重新提交。"
               : approval?.target_type === "quote"
                 ? `报价单 ${approval.target.code} 驳回后退回草稿，销售修改后可重新提交。`
-                : `报销 ${approval?.target.code ?? ""} 驳回后状态为「已驳回」。`}
+                : `报销 ${approval?.target.code ?? ""} 驳回后，员工可以修改、补票据再重新提交。`}
           </DialogDescription>
         </DialogHeader>
         <Textarea
@@ -52,7 +52,8 @@ export function RejectDialog({
           rows={3}
           maxLength={500}
           value={comment}
-          placeholder="审批意见（可选），例如：维保改为 1 年后重新提交"
+          aria-label="驳回原因"
+          placeholder="驳回原因（必填，员工会看到），例如：维保改为 1 年后重新提交"
           onChange={(e) => setComment(e.target.value)}
         />
         <DialogFooter>
@@ -61,7 +62,7 @@ export function RejectDialog({
           </Button>
           <Button
             variant="destructive"
-            disabled={pending}
+            disabled={pending || !comment.trim()}
             onClick={() => {
               onConfirm(comment.trim())
               setComment("")

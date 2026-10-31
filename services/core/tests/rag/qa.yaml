@@ -113,3 +113,39 @@ cases:
   - q: 公司配的笔记本电脑丢了要怎么赔偿？          # 近似：办公设备选型指南
     pack: it_office
     no_answer: true
+  # 软件外包行业包
+  - q: 做一个小程序加 App 怎么估工作量？
+    pack: software_outsourcing
+    doc: 软件外包报价说明
+    section: 报价方法
+  - q: 客户开发到一半要加功能，怎么收费？
+    pack: software_outsourcing
+    doc: 需求变更与验收
+    section: 变更怎么处理和收费
+  - q: 客户一直拖着不验收，尾款收不回来怎么办？
+    pack: software_outsourcing
+    doc: 需求变更与验收
+    section: 验收流程
+  - q: 项目做完源码要不要给客户？
+    pack: software_outsourcing
+    doc: 源码与知识产权
+    section: 源码归属
+  - q: 小程序应该用谁的营业执照注册？
+    pack: software_outsourcing
+    doc: 源码与知识产权
+    section: 账号必须用客户主体
+  - q: 审批流程这个功能为什么报价这么高？
+    pack: software_outsourcing
+    doc: 功能模块估算参考
+    section: 哪些模块通常工作量大
+  - q: 维保期内客户让加新功能要免费做吗？
+    pack: software_outsourcing
+    doc: 合同风险条款
+    section: 维保范围
+  - q: 客户迟迟不给素材导致延期算谁的？
+    pack: software_outsourcing
+    doc: 合同风险条款
+    section: 工期顺延
+  - q: 外包项目的软件著作权登记费多少钱？
+    pack: software_outsourcing
+    no_answer: true

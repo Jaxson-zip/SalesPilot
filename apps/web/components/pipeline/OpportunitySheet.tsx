@@ -50,6 +50,7 @@ import {
   STAGE_META,
   STAGE_ORDER,
 } from "@/lib/labels"
+import { customerHref, opportunityExpensesHref } from "@/lib/links"
 import { activityActor } from "@/lib/timeline"
 import { isFinalStage, stageBarState } from "@/lib/pipeline"
 import { staleText } from "@/lib/tasks"
@@ -224,7 +225,7 @@ function Fields({
       {o.profit ? null : (
         <FieldRow icon={Receipt} label="跟单费用">
           {o.expenses?.count ? (
-            <Link href="/expenses" className="tabular-nums hover:underline">
+            <Link href={opportunityExpensesHref(o.id)} className="tabular-nums hover:underline">
               {[
                 o.expenses.approved ? `已批 ${formatFen(o.expenses.approved)}` : "",
                 o.expenses.pending ? `审批中 ${formatFen(o.expenses.pending)}` : "",
@@ -237,13 +238,13 @@ function Fields({
           )}
         </FieldRow>
       )}
-      {o.profit ? <Profit p={o.profit} /> : null}
+      {o.profit ? <Profit p={o.profit} oppId={o.id} /> : null}
     </div>
   )
 }
 
 /** 这单赚多少：报价毛利 − 预估提成 − 跟单费用 */
-function Profit({ p }: { p: OpportunityProfit }) {
+function Profit({ p, oppId }: { p: OpportunityProfit; oppId: string }) {
   const rows: [string, number][] = [
     ["报价毛利", p.gross],
     ["预估提成", -p.commission],
@@ -260,7 +261,15 @@ function Profit({ p }: { p: OpportunityProfit }) {
       <dl className="space-y-1 tabular-nums">
         {rows.map(([label, v]) => (
           <div key={label} className="flex justify-between text-zinc-600">
-            <dt>{label}</dt>
+            <dt>
+              {label === "跟单费用" && v < 0 ? (
+                <Link href={opportunityExpensesHref(oppId)} className="hover:underline">
+                  {label}
+                </Link>
+              ) : (
+                label
+              )}
+            </dt>
             <dd>{v < 0 ? `−${formatFen(-v)}` : formatFen(v)}</dd>
           </div>
         ))}
@@ -401,7 +410,9 @@ export function OpportunitySheet({
             <div className="min-w-0">
               <div className="truncate text-base font-semibold">{o.name}</div>
               <div className="mt-1 flex min-w-0 items-center gap-1.5 text-zinc-500">
-                <Chip name={o.customer.name} logo={o.customer.name.slice(0, 1)} />
+                <Link href={customerHref(o.customer.id)} className="inline-flex min-w-0" title="打开客户">
+                  <Chip name={o.customer.name} logo={o.customer.name.slice(0, 1)} />
+                </Link>
                 <span className="shrink-0">· 更新于 {formatRelative(o.updated_at)}</span>
               </div>
               {staleText(o) ? (

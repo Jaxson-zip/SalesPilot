@@ -18,6 +18,8 @@ import { useOpportunity } from "@/hooks/useOpportunities"
 import { stageConfirm } from "@/lib/confirm-texts"
 import { formatFen } from "@/lib/format"
 import { labelOf, QUOTE_STATUS_META } from "@/lib/labels"
+import { quoteHref } from "@/lib/links"
+import { aiPrefillHref } from "@/lib/thread-history"
 import { cn } from "@/lib/utils"
 import type { OpportunityItem, QuoteItem } from "@/types/api"
 
@@ -40,6 +42,8 @@ export function WonDialog({
 }) {
   const detail = useOpportunity(opp?.id ?? null)
   const quotes = (detail.data?.quotes ?? []).filter((q) => WINNABLE.has(q.status))
+  // 还没审批的报价（草稿 / 待审批）：直接打开它去提交，而不是丢到报价列表里找
+  const unfinished = (detail.data?.quotes ?? []).find((q) => q.status === "draft" || q.status === "pending_approval")
   const [picked, setPicked] = useState<string | null>(null)
   const choice = picked ?? quotes[0]?.id ?? NONE
   const copy = stageConfirm(opp?.name ?? "")
@@ -94,12 +98,28 @@ export function WonDialog({
           <div className="flex items-start gap-1.5 rounded-md bg-amber-50 px-2.5 py-2 text-sm text-amber-800">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
             <span>
-              这个商机还没有已审批或已发送的报价，标记赢单<b>不会生成合同和回款计划</b>，也不会计算提成。 建议先在 AI
-              工作台出方案、提交审批，再回来标记赢单；或在
-              <Link href="/quotes" className="underline">
-                报价单
-              </Link>
-              里点「客户接受」，会自动赢单。
+              这个商机还没有已审批或已发送的报价，标记赢单<b>不会生成合同和回款计划</b>，也不会计算提成。
+              {unfinished ? (
+                <>
+                  报价{" "}
+                  <Link href={quoteHref(unfinished.id)} className="underline">
+                    {unfinished.code}
+                  </Link>{" "}
+                  还是「{labelOf(QUOTE_STATUS_META, unfinished.status).label}
+                  」，审批通过后在报价单里点「客户接受」，会自动赢单并生成合同。
+                </>
+              ) : opp ? (
+                <>
+                  建议先
+                  <Link
+                    href={aiPrefillHref(`按${opp.customer.name}的需求给${opp.name}出方案和报价`, opp.id)}
+                    className="underline"
+                  >
+                    让 AI 出方案和报价
+                  </Link>
+                  ，审批通过后在报价单里点「客户接受」，会自动赢单并生成合同。
+                </>
+              ) : null}
             </span>
           </div>
         )}

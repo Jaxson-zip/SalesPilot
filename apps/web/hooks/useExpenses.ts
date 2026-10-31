@@ -35,6 +35,7 @@ export function useExpenses(params: ExpenseListParams, list?: ServerListParams) 
         {
           view: params.view,
           status: params.status,
+          opportunity_id: params.opportunity_id,
           page: params.page ?? 1,
           page_size: params.page_size ?? 20,
           ...serverQuery(list ?? {}),

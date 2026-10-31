@@ -1,6 +1,6 @@
 "use client"
 
-import { Plus, Receipt } from "lucide-react"
+import { Plus, Receipt, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import { BulkBar } from "@/components/biz/BulkBar"
@@ -15,6 +15,7 @@ import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { useExpenses } from "@/hooks/useExpenses"
 import { useListView } from "@/hooks/useListView"
+import { useOpportunity } from "@/hooks/useOpportunities"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useRowSelection } from "@/hooks/useRowSelection"
 import { EXPENSE_STATUS_META } from "@/lib/labels"
@@ -50,12 +51,22 @@ export default function ExpensesPage() {
   const admin = role === "admin"
   const [view, setView] = useState("all")
   const [sheet, setSheet] = useState<{ open: boolean; id: string | null }>({ open: false, id: null })
-  // 从审批结果 / 动态通知跳转过来：/expenses?id=<报销 id> 直接打开这张报销单（不用 useSearchParams，避免整页需要 Suspense）
+  // 从审批结果 / 动态通知跳转过来：/expenses?id=<报销 id> 直接打开这张报销单；
+  // 从商机侧栏「跟单费用」过来：/expenses?opp=<商机 id> 只看这一单的费用（不用 useSearchParams，避免整页需要 Suspense）
+  const [opp, setOpp] = useState<string | null>(null)
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("id")
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get("id")
     if (id) setSheet({ open: true, id })
+    setOpp(params.get("opp"))
   }, [])
-  const scope = admin ? "all" : "mine"
+  const oppName = useOpportunity(opp).data?.name
+  const clearOpp = () => {
+    setOpp(null)
+    window.history.replaceState(null, "", "/expenses")
+  }
+  // 按商机看时用 all：本人的和（主管）本团队的都算这单的费用，范围仍由后端按权限过滤
+  const scope = admin || opp ? "all" : "mine"
   const status = toStatus(view)
   const allColumns = useMemo(() => expenseColumns((e) => setSheet({ open: true, id: e.id })), [])
   const lv = useListView<ExpenseItem>({
@@ -68,10 +79,19 @@ export default function ExpensesPage() {
     exportName: "报销",
     server: {
       total: () => query.data?.total,
-      fetchAll: (p) => fetchAllPages<ExpenseItem>("/api/expenses", { view: scope, status, ...serverQuery(p) }),
+      fetchAll: (p) =>
+        fetchAllPages<ExpenseItem>("/api/expenses", {
+          view: scope,
+          status,
+          opportunity_id: opp ?? undefined,
+          ...serverQuery(p),
+        }),
     },
   })
-  const query = useExpenses({ view: scope, status, page: lv.pageNo, page_size: PAGE_SIZE }, lv.params)
+  const query = useExpenses(
+    { view: scope, status, opportunity_id: opp ?? undefined, page: lv.pageNo, page_size: PAGE_SIZE },
+    lv.params,
+  )
   const rows = useMemo(() => query.data?.items ?? [], [query.data])
   const columns = useMemo(() => allColumns.filter((c) => !lv.hidden.includes(c.id)), [allColumns, lv.hidden])
   const filtered = Object.keys(lv.bar.activeFilters).length > 0
@@ -107,6 +127,15 @@ export default function ExpensesPage() {
           list={lv.bar}
         />
       )}
+      {opp ? (
+        <div role="status" className="flex items-center gap-2 border-b border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs">
+          <span className="min-w-0 truncate text-zinc-600">只看商机「{oppName ?? "…"}」的跟单费用</span>
+          <Button variant="ghost" size="xs" onClick={clearOpp}>
+            <X />
+            看全部报销
+          </Button>
+        </div>
+      ) : null}
       {query.isError && !query.data ? (
         <QueryError
           error={query.error}

@@ -1,4 +1,5 @@
 import { Building2, Calendar, CircleDot, Coins, MapPin, Tag as TagIcon, Target, Text, Users } from "lucide-react"
+import Link from "next/link"
 
 import { Chip } from "@/components/biz/Chip"
 import { FieldRow } from "@/components/biz/FieldRow"
@@ -6,6 +7,7 @@ import { tripText } from "@/lib/expense-trip"
 import { Tag } from "@/components/biz/Tag"
 import { formatFen } from "@/lib/format"
 import { EXPENSE_STATUS_META, EXPENSE_TYPE_META, labelOf } from "@/lib/labels"
+import { customerHref, opportunityHref } from "@/lib/links"
 import type { ExpenseDetail } from "@/types/api"
 
 /** 已保存报销单的字段（草稿没有修改接口，保存后字段只读） */
@@ -30,10 +32,22 @@ export function ExpenseSummary({ e }: { e: ExpenseDetail }) {
         {e.occurred_on}
       </FieldRow>
       <FieldRow icon={Building2} label="关联客户">
-        {e.customer ? <Chip name={e.customer.name} logo={e.customer.name.slice(0, 1)} /> : "—"}
+        {e.customer ? (
+          <Link href={customerHref(e.customer.id)} className="inline-flex max-w-full">
+            <Chip name={e.customer.name} logo={e.customer.name.slice(0, 1)} />
+          </Link>
+        ) : (
+          "—"
+        )}
       </FieldRow>
       <FieldRow icon={Target} label="关联商机">
-        {e.opportunity?.name ?? "—"}
+        {e.opportunity ? (
+          <Link href={opportunityHref(e.opportunity.id)} className="hover:underline">
+            {e.opportunity.name}
+          </Link>
+        ) : (
+          "—"
+        )}
       </FieldRow>
       {e.type === "entertainment" ? (
         <FieldRow icon={Users} label="参与人">

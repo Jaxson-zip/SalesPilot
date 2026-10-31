@@ -4481,6 +4481,15 @@ paths:
           - $ref: '#/components/schemas/SortKey'
           - type: 'null'
           title: Sort
+      - name: opportunity_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Opportunity Id
       - name: authorization
         in: header
         required: false
@@ -6204,6 +6213,11 @@ components:
           type: string
           format: uuid
           title: Subject Id
+        subject_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subject Name
         actor:
           anyOf:
           - $ref: '#/components/schemas/UserBrief'
@@ -6237,6 +6251,7 @@ components:
       - action
       - content
       - created_at
+      - subject_name
       title: ActivityOut
     ApiResponse_AccountItem_:
       properties:

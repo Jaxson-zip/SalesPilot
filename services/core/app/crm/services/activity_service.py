@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
 from app.common.scope import ScopedModel, View, apply_scope
-from app.crm.models import Activity, User
+from app.crm.models import Activity, Contract, Customer, Expense, Opportunity, Quote, User
 from app.crm.schemas.common import ActivityOut, UserBrief
 
 MAX_LIMIT = 100
@@ -105,7 +105,30 @@ def list_activities(
         stmt = stmt.where(Activity.subject_id == subject_id)
     stmt = apply_scope(stmt, Activity, user, view)
     stmt = stmt.order_by(Activity.created_at.desc(), Activity.id).limit(min(limit, MAX_LIMIT))
-    return [_to_out(r) for r in db.execute(stmt).all()]
+    return _with_names(db, [_to_out(r) for r in db.execute(stmt).all()])
+
+
+# 动态对象 → (模型, 显示的字段)：客户 / 商机显示名称，单据显示编号
+_NAMED: dict[str, tuple[Any, Any]] = {
+    "customer": (Customer, Customer.name),
+    "opportunity": (Opportunity, Opportunity.name),
+    "quote": (Quote, Quote.code),
+    "contract": (Contract, Contract.code),
+    "expense": (Expense, Expense.code),
+}
+
+
+def _with_names(db: Session, rows: list[ActivityOut]) -> list[ActivityOut]:
+    """按对象类型各查一次名称（工作台动态流用，详情页的时间线不需要）。"""
+    for subject_type, (model, column) in _NAMED.items():
+        ids = {r.subject_id for r in rows if r.subject_type == subject_type}
+        if not ids:
+            continue
+        names = {k: v for k, v in db.execute(select(model.id, column).where(model.id.in_(ids)))}
+        for r in rows:
+            if r.subject_type == subject_type:
+                r.subject_name = names.get(r.subject_id)
+    return rows
 
 
 def list_for_subject(db: Session, subject_id: uuid.UUID, limit: int = 50) -> list[ActivityOut]:

@@ -2326,6 +2326,8 @@ export interface components {
        * Format: uuid
        */
       subject_id: string
+      /** Subject Name */
+      subject_name: string | null
       actor: components["schemas"]["UserBrief"] | null
       /**
        * Source
@@ -11592,6 +11594,7 @@ export interface operations {
         status_in?: string[] | null
         over?: string[] | null
         sort?: components["schemas"]["SortKey"] | null
+        opportunity_id?: string | null
       }
       header?: {
         authorization?: string | null

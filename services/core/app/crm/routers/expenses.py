@@ -14,16 +14,20 @@ from app.crm.routers.deps import DbDep, Multi, PageDep
 from app.crm.schemas.common import AttachmentKind, AttachmentOut, Page
 from app.crm.schemas.finance import ExpenseCreate, ExpenseDetail, ExpenseItem, ExpenseStatus
 from app.crm.services import attachment_service, expense_service
-from app.crm.services.expense_service import ExpenseFilter
+from app.crm.services.expense_filter import ExpenseFilter
 from app.crm.services.listing import SortKey, clean
 
 router = APIRouter(prefix="/api", tags=["expenses"])
 
 
 def _filter(
-    type: Multi = None, status_in: Multi = None, over: Multi = None, sort: SortKey | None = None
+    type: Multi = None,
+    status_in: Multi = None,
+    over: Multi = None,
+    sort: SortKey | None = None,
+    opportunity_id: uuid.UUID | None = None,
 ) -> ExpenseFilter:
-    return ExpenseFilter(clean(type), clean(status_in), clean(over), sort)
+    return ExpenseFilter(clean(type), clean(status_in), clean(over), sort, opportunity_id)
 
 
 Detail = ApiResponse[ExpenseDetail]

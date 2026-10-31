@@ -32,6 +32,8 @@ export interface Activity {
   id: string
   subject_type: string
   subject_id: string
+  /** 客户 / 商机名称，报价 / 合同 / 报销编号（工作台动态流用；时间线里没有） */
+  subject_name?: string | null
   actor: UserBrief | null
   source: ActivitySource
   action: string
@@ -446,6 +448,8 @@ export interface ExpensePrecheck {
 export interface ExpenseListParams {
   view: DataView
   status?: ExpenseStatus
+  /** 只看这个商机的跟单费用（从商机侧栏点过来） */
+  opportunity_id?: string
   page?: number
   page_size?: number
 }

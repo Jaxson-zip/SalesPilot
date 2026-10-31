@@ -18,6 +18,7 @@ import { useInvoice, usePaymentPlan, useSavePaymentPlan } from "@/hooks/useContr
 import { formatFen, ownerName } from "@/lib/format"
 import { INVOICE_STATUS_META, invoiceActions, invoiceDetail } from "@/lib/invoice"
 import { PLAN_STATUS_META } from "@/lib/labels"
+import { customerHref, quoteHref } from "@/lib/links"
 import { checkPlan, rowsTotal, toRows, type PlanRow } from "@/lib/payment-plan"
 import type { ContractItem, PaymentPlanItem, PaymentPlanView } from "@/types/api"
 
@@ -229,7 +230,22 @@ export function PaymentPlanSheet({
     body = (
       <div className="space-y-4">
         <div className="text-sm text-zinc-600">
-          {contract.customer?.name ?? "—"} · 负责人 {ownerName(contract.owner)}
+          {contract.customer ? (
+            <Link href={customerHref(contract.customer.id)} className="text-zinc-900 hover:underline">
+              {contract.customer.name}
+            </Link>
+          ) : (
+            "—"
+          )}
+          {contract.quote ? (
+            <>
+              {" · 报价 "}
+              <Link href={quoteHref(contract.quote.id)} className="text-zinc-900 hover:underline">
+                {contract.quote.code}
+              </Link>
+            </>
+          ) : null}
+          {` · 负责人 ${ownerName(contract.owner)}`}
         </div>
         <div className="grid grid-cols-2 gap-3">
           {stats.map(([k, v, alert]) => (

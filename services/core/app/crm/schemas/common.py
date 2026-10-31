@@ -70,6 +70,8 @@ class ActivityOut(BaseModel):
     id: uuid.UUID
     subject_type: str
     subject_id: uuid.UUID
+    # 动态流里显示「哪一单」：客户 / 商机名称，报价 / 合同 / 报销编号；查不到为 None
+    subject_name: str | None = None
     actor: UserBrief | None
     source: Literal["manual", "agent", "system"]
     action: str

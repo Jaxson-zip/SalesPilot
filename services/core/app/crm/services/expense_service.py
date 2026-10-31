@@ -8,11 +8,10 @@
 """
 
 import uuid
-from dataclasses import dataclass, field
 from typing import Any
 
 from pydantic import ValidationError
-from sqlalchemy import ColumnElement, Select, false, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
@@ -39,7 +38,8 @@ from app.crm.services import (
 )
 from app.crm.services.codes import next_code
 from app.crm.services.expense_details import clean_details
-from app.crm.services.listing import SortKey, order
+from app.crm.services.expense_filter import ExpenseFilter, apply_filter
+from app.crm.services.listing import order
 from app.crm.services.quote_query import approvals_of, count
 from app.rules import RuleSet, check_expense_policy, load_rules
 from app.rules.loader import solo_mode
@@ -159,36 +159,6 @@ def to_items(db: Session, expenses: list[Expense]) -> list[ExpenseItem]:
     return items
 
 
-@dataclass(frozen=True)
-class ExpenseFilter:
-    """列表筛选（多选）：类型、状态、是否超标（yes / no）。"""
-
-    type: list[str] = field(default_factory=list)
-    status: list[str] = field(default_factory=list)
-    over: list[str] = field(default_factory=list)
-    sort: SortKey | None = None
-
-
-def over_limit_condition() -> ColumnElement[bool]:
-    """超标：有制度校验结果、未通过且超出金额 > 0（与列表项 over_limit 一致）。"""
-    return (Expense.policy_check["passed"].as_boolean() == false()) & (
-        Expense.policy_check["over_amount"].as_integer() > 0
-    )
-
-
-def _apply_filter(stmt: Select[Any], f: ExpenseFilter | None) -> Select[Any]:
-    if f is None:
-        return stmt
-    if f.type:
-        stmt = stmt.where(Expense.type.in_(f.type))
-    if f.status:
-        stmt = stmt.where(Expense.status.in_(f.status))
-    if len(set(f.over) & {"yes", "no"}) == 1:
-        cond = over_limit_condition()
-        stmt = stmt.where(cond if "yes" in f.over else ~cond | Expense.policy_check.is_(None))
-    return stmt
-
-
 def list_expenses(
     db: Session,
     user: CurrentUser,
@@ -200,7 +170,7 @@ def list_expenses(
     stmt = apply_scope(select(Expense), Expense, user, view)
     if status:
         stmt = stmt.where(Expense.status == status)
-    stmt = _apply_filter(stmt, f)
+    stmt = apply_filter(stmt, f)
     total = count(db, stmt)
     stmt = order(
         stmt,

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { formatFen, formatPercent, formatRelative, ownerName } from "@/lib/format"
 import { APPROVAL_STATUS_META, APPROVAL_TARGET_LABEL, labelOf } from "@/lib/labels"
+import { subjectHref } from "@/lib/links"
 import { cn } from "@/lib/utils"
 import type { ApprovalItem } from "@/types/api"
 
@@ -94,8 +95,8 @@ export function ApprovalRow({
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-2">
               <Tag>{APPROVAL_TARGET_LABEL[a.target_type]}</Tag>
-              {a.target_type === "quote" ? (
-                <Link href={`/quotes/${t.id}`} className="min-w-0 hover:underline">
+              {subjectHref(a.target_type, t.id) ? (
+                <Link href={subjectHref(a.target_type, t.id) ?? ""} className="min-w-0 hover:underline">
                   {title}
                 </Link>
               ) : (

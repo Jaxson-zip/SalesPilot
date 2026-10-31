@@ -27,6 +27,7 @@ import { useActivities } from "@/hooks/useDashboard"
 import { contractHref } from "@/lib/contract"
 import { formatFen, formatPercent, formatRelative, ownerName } from "@/lib/format"
 import { activityActionLabel, APPROVAL_STATUS_META, labelOf, QUOTE_STATUS_META } from "@/lib/labels"
+import { opportunityHref } from "@/lib/links"
 import { defaultScope } from "@/lib/views"
 import type { QuoteDetail, Role } from "@/types/api"
 import { PackName } from "@/components/biz/PackName"
@@ -94,7 +95,13 @@ export function QuoteFields({ q }: { q: QuoteDetail }) {
         )}
       </FieldRow>
       <FieldRow icon={Target} label="商机">
-        {q.opportunity?.name ?? "—"}
+        {q.opportunity ? (
+          <Link href={opportunityHref(q.opportunity.id)} className="hover:underline">
+            {q.opportunity.name}
+          </Link>
+        ) : (
+          "—"
+        )}
       </FieldRow>
       <FieldRow icon={Boxes} label="行业包">
         <PackName id={q.pack} />

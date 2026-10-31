@@ -1,6 +1,7 @@
 "use client"
 
 import { Eye, History } from "lucide-react"
+import Link from "next/link"
 import { useState } from "react"
 
 import { LetterAvatar } from "@/components/biz/Chip"
@@ -11,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useActivities } from "@/hooks/useDashboard"
 import { formatRelative } from "@/lib/format"
 import { activityActionLabel } from "@/lib/labels"
+import { subjectHref } from "@/lib/links"
 import { activityActor } from "@/lib/timeline"
 import type { Activity, DataView } from "@/types/api"
 
@@ -27,6 +29,18 @@ const SUBJECT_LABEL: Record<string, string> = {
 const PAGE = 20
 const MAX = 100
 
+/** 「哪一单」：名称或编号，能打开的做成链接 */
+function SubjectName({ a }: { a: Activity }) {
+  if (!a.subject_name) return null
+  const href = subjectHref(a.subject_type, a.subject_id)
+  if (!href) return <span className="min-w-0 truncate">{a.subject_name}</span>
+  return (
+    <Link href={href} className="min-w-0 truncate text-zinc-900 hover:underline">
+      {a.subject_name}
+    </Link>
+  )
+}
+
 function FeedRow({ a }: { a: Activity }) {
   const by = activityActor(a)
   const isAi = by === "ai"
@@ -41,6 +55,7 @@ function FeedRow({ a }: { a: Activity }) {
           {SUBJECT_LABEL[a.subject_type] ? (
             <span className="rounded bg-zinc-100 px-1.5 text-xs text-zinc-600">{SUBJECT_LABEL[a.subject_type]}</span>
           ) : null}
+          <SubjectName a={a} />
         </div>
         {a.content ? (
           <div className="mt-0.5 line-clamp-2 break-words text-zinc-600" title={a.content}>

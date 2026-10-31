@@ -12,7 +12,6 @@
 import json
 import logging
 from collections.abc import Callable
-from datetime import datetime
 from typing import Any
 
 from langchain_core.messages import (
@@ -29,17 +28,17 @@ from app.agent.deps import AgentDeps
 from app.agent.nodes.common import call_tool, emit, log_tool, node_start
 from app.agent.nodes.crm import run_rule_plan
 from app.agent.prompts import learn_prompt, system_prompt
+from app.agent.runtime import runtime_note
 from app.agent.state import AgentState
 from app.agent.tools import TOOLS, ToolResult, inject_system_args, tools_for
 from app.agent.tools.previews import confirm_preview
-from app.rules.crm_calc import LOCAL_TZ
 
 logger = logging.getLogger("core.agent")
 Node = Callable[[AgentState], dict[str, Any]]
 
 TOOL_RULES = """
 ## 调用工具的规则
-- 今天是 {today}（北京时间），当前用户：{user}（{role}）。
+- 当前用户：{user}（{role}）。
 - 需要客户、商机、联系人的 id 时，先调用 search_customer、get_customer_context 查询，禁止编造 id。
 - search_customer 匹配到多个客户时，列出候选让用户选，不要自己挑。
 - 金额参数一律以「分」为单位（860 元 = 86000）。
@@ -67,12 +66,11 @@ TOOL_RULES = """
 
 def _system(deps: AgentDeps, state: AgentState) -> SystemMessage:
     user = deps.ctx.user
-    rules = TOOL_RULES.format(
-        today=datetime.now(LOCAL_TZ).date().isoformat(), user=user.name, role=user.role.value
-    )
-    if state.get("mode") == "learn":
-        return SystemMessage(content=f"{learn_prompt()}\n\n{rules}")
-    return SystemMessage(content=f"{system_prompt(state.get('pack_id'))}\n\n{rules}")
+    rules = TOOL_RULES.format(user=user.name, role=user.role.value)
+    # 当前时间和这一轮用的模型（原来只写了今天的日期）
+    note = runtime_note(deps.model)
+    base = learn_prompt() if state.get("mode") == "learn" else system_prompt(state.get("pack_id"))
+    return SystemMessage(content=f"{base}\n\n{note}\n\n{rules}")
 
 
 def _tool_content(result: ToolResult) -> str:

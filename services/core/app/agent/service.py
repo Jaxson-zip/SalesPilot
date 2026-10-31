@@ -20,6 +20,7 @@ from app.agent.materials import MaterialIn, compose
 from app.agent.nodes import solution
 from app.agent.nodes.common import now_iso
 from app.agent.runs import Run, RunKind, registry
+from app.agent.runtime import ModelInfo, resolve_model
 from app.agent.sse import iter_graph_events
 from app.agent.state import Mode
 from app.agent.threads import touch_thread
@@ -29,7 +30,7 @@ from app.common.config import get_settings
 from app.common.db import session_scope
 from app.common.errors import BizError, ErrorCode
 from app.crm.services import opportunity_service
-from app.llm.client import get_chat_model, model_available
+from app.llm.client import get_chat_model, list_models, model_available
 from app.rules import load_rules
 
 logger = logging.getLogger("core.agent")
@@ -65,6 +66,15 @@ def make_pack_resolver(user: CurrentUser) -> Any:
     return resolve
 
 
+def served_model(model: str | None, request_id: str) -> ModelInfo:
+    """这一轮会用的模型；读不到网关能力表时只报用户选的别名。"""
+    selected = model or get_settings().llm_default_group
+    try:
+        return resolve_model(selected, list_models(request_id))
+    except BizError:
+        return ModelInfo(selected=selected, served=selected)
+
+
 def build_deps(user: CurrentUser, thread_id: str, request_id: str, model: str | None) -> AgentDeps:
     rules = load_rules()
     ctx = ToolContext(
@@ -74,13 +84,13 @@ def build_deps(user: CurrentUser, thread_id: str, request_id: str, model: str | 
         request_id=request_id,
         default_pack=get_settings().default_pack,
     )
+    # 网关里没有可用模型（未配置 Key）时不创建客户端，各节点走规则 / 模板兜底
+    available = model_available(model, request_id)
     return AgentDeps(
         ctx=ctx,
         resolve_pack=make_pack_resolver(user),
-        # 网关里没有可用模型（未配置 Key）时不创建客户端，各节点走规则 / 模板兜底
-        llm=get_chat_model(model, request_id=request_id)
-        if model_available(model, request_id)
-        else None,
+        llm=get_chat_model(model, request_id=request_id) if available else None,
+        model=served_model(model, request_id) if available else None,
         max_retries=rules.agent.margin_max_retries,
         max_tool_calls=rules.agent.max_tool_calls,
     )

@@ -14,6 +14,7 @@ from app.agent.deps import AgentDeps
 from app.agent.nodes.common import emit, node_start, now_iso
 from app.agent.nodes.solution import recommended_tier
 from app.agent.prompts import system_prompt
+from app.agent.runtime import model_text, now_text, runtime_note
 from app.agent.state import AgentState
 from app.crm.schemas.quote import QUOTE_STATUS_LABELS
 
@@ -23,6 +24,25 @@ Node = Callable[[AgentState], dict[str, Any]]
 
 def _yuan(cents: Any) -> str:
     return f"¥{int(cents or 0) / 100:,.0f}"
+
+
+CHITCHAT_RULE = """
+## 闲聊和业务以外的问题
+直接回答用户这句话本身，简短、如实：时间、日期、你是什么模型按上面的运行信息回答；
+不知道的就说不知道，不要编。和销售工作无关的问题答完即可，不必每次都介绍自己能做什么。
+""".strip()
+
+TIME_WORDS = ("几点", "时间", "几号", "日期", "星期几", "周几", "今天是")
+MODEL_WORDS = ("什么模型", "哪个模型", "什么大模型", "用的模型", "你是谁", "谁做的", "谁开发")
+
+
+def rule_chitchat(text: str) -> str | None:
+    """没有模型时的闲聊兜底：问模型、问时间给真实答案；其它返回 None（用默认问候）。"""
+    if any(w in text for w in MODEL_WORDS):
+        return "我是 SalesPilot 里的 AI 助手。" + model_text(None)
+    if any(w in text for w in TIME_WORDS):
+        return f"现在是 {now_text()}。"
+    return None
 
 
 def template_reply(state: AgentState) -> str:
@@ -40,6 +60,10 @@ def template_reply(state: AgentState) -> str:
     log = state.get("tool_log", [])
     if log:
         return "已完成：" + "；".join(f"{e['tool']}：{e['summary']}" for e in log) + "。"
+    if state.get("intent", "chitchat") == "chitchat" and (
+        rule := rule_chitchat(state.get("user_message", ""))
+    ):
+        return rule
     return "你好，我是 SalesPilot。可以帮你记跟进、查客户、出方案报价、算提成和报销。"
 
 
@@ -77,17 +101,39 @@ def turn_artifacts(state: Mapping[str, Any]) -> list[dict[str, Any]]:
     return arts
 
 
-def _llm_messages(state: AgentState, draft: str) -> list[BaseMessage]:
+def _system(state: AgentState, note: str, *extra: str) -> SystemMessage:
+    parts = [system_prompt(state.get("pack_id")), note, *extra]
+    return SystemMessage(content="\n\n".join(p for p in parts if p))
+
+
+def is_chitchat(state: AgentState) -> bool:
+    return (
+        state.get("intent", "chitchat") == "chitchat"
+        and not state.get("tool_log")
+        and not state.get("error")
+        and not state.get("quote")
+    )
+
+
+def _chat_messages(state: AgentState, note: str) -> list[BaseMessage]:
+    """闲聊：不给固定的参考回复（否则模型会照着它复述自我介绍），让模型直接回答这句话。"""
+    return [_system(state, note, CHITCHAT_RULE), *state.get("messages", [])[-10:]]
+
+
+def _llm_messages(state: AgentState, draft: str, note: str = "") -> list[BaseMessage]:
     context = "\n".join(f"- {e['tool']}：{e['summary']}" for e in state.get("tool_log", []))
     return [
-        SystemMessage(content=system_prompt(state.get("pack_id"))),
+        _system(state, note),
         *state.get("messages", [])[-10:],
         HumanMessage(content=f"【工具结果，只能引用其中的数字】\n{context}\n【参考回复】\n{draft}"),
     ]
 
 
 def _stream_llm(deps: AgentDeps, state: AgentState, draft: str) -> str | None:
-    return _stream(deps, _llm_messages(state, draft))
+    note = runtime_note(deps.model)
+    if is_chitchat(state):
+        return _stream(deps, _chat_messages(state, note))
+    return _stream(deps, _llm_messages(state, draft, note))
 
 
 def _stream(deps: AgentDeps, messages: list[BaseMessage]) -> str | None:
@@ -127,9 +173,9 @@ def explain_draft(state: AgentState) -> str:
     return f"{head}\n{lines}\n\n{tail}"
 
 
-def _explain_messages(state: AgentState, draft: str) -> list[BaseMessage]:
+def _explain_messages(state: AgentState, draft: str, note: str = "") -> list[BaseMessage]:
     return [
-        SystemMessage(content=system_prompt(state.get("pack_id"))),
+        _system(state, note),
         *state.get("messages", [])[-6:],
         HumanMessage(
             content=(
@@ -151,7 +197,7 @@ def make_explain(deps: AgentDeps) -> Node:
     def explain(state: AgentState) -> dict[str, Any]:
         node_start("explain")
         draft = explain_draft(state)
-        text = _stream(deps, _explain_messages(state, draft))
+        text = _stream(deps, _explain_messages(state, draft, runtime_note(deps.model)))
         if text is None:
             text = draft
             emit("message.delta", {"text": text})

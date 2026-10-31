@@ -94,6 +94,12 @@ def check(case: dict[str, Any], o: Outcome) -> list[str]:
     for key, want in (exp.get("args") or {}).items():
         if str(o.args.get(key)) not in resolve(want):
             problems.append(f"参数 {key} 应为 {want}，实际 {o.args.get(key)}")
+    for key in exp.get("args_present") or []:
+        if not o.args.get(key):
+            problems.append(f"参数里应有 {key}")
+    for key in exp.get("args_absent") or []:
+        if o.args.get(key):
+            problems.append(f"参数里不该有 {key}：{o.args.get(key)}")
     if (tools := exp.get("tools")) and not set(tools) & set(o.tools):
         problems.append(f"应调用 {'/'.join(tools)}，实际 {o.tools or '无'}")
     for word in exp.get("request_has") or []:

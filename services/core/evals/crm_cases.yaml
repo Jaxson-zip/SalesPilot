@@ -12,6 +12,7 @@
 #     route     solution（转入出方案）/ write（弹出确认卡）/ read（只调只读工具）/ reply（不调工具直接回答）
 #     action    write 时确认卡对应的工具
 #     args      确认卡参数里必须有的值；customer:xxx / opp:xxx / contact:xxx 换成 seed 里的 id
+#     args_present / args_absent   确认卡参数里必须有 / 不能有的字段（例如跟进里顺带的 next_step、stage）
 #     tools     必须调用过的只读工具（任一）
 #     request_has   转入出方案时，整理的需求里必须包含的内容
 #     not       不能出现的流程（例如 [solution, write]）
@@ -37,6 +38,23 @@ cases:
   - id: stage-by-name
     text: 华南智能制造的质检助手推进到商务谈判
     expect: {route: write, action: update_opportunity_stage, args: {opportunity_id: opp:hnzz, stage: negotiation}}
+
+  - id: progress-compound
+    opp: mingli
+    text: 今天去明理拜访了王律师，他们同意进入商务谈判，我周五前把合同草稿发过去
+    expect:
+      route: write
+      action: add_followup
+      args: {customer_id: customer:mingli, opportunity_id: opp:mingli, type: visit, stage: negotiation}
+      args_present: [next_step]
+
+  - id: progress-no-invented-step
+    text: 刚给华南智能制造的刘经理打了电话，他说质检项目预算已经批下来了
+    expect:
+      route: write
+      action: add_followup
+      args: {customer_id: customer:hnzz, type: phone}
+      args_absent: [stage]
 
   - id: lost-needs-reason
     text: 星河那单丢了

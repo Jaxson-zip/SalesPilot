@@ -160,18 +160,26 @@ def _digest(ctx: ToolContext, a: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _followup(ctx: ToolContext, a: dict[str, Any]) -> dict[str, Any]:
+    """跟进可以顺带下一步和阶段推进：三件事在同一张卡片上确认。"""
+    step = a.get("next_step")
+    return {
+        "customer_name": _customer_name(ctx, a.get("customer_id")),
+        "opportunity_name": _opportunity_name(ctx, a.get("opportunity_id")),
+        "followup_type": FOLLOWUP_TYPE_LABELS.get(a.get("type") or "phone"),
+        "followup": a.get("content"),
+        "next_steps": _step(step) if isinstance(step, dict) else None,
+        "stage": STAGE_LABELS.get(a.get("stage") or "", a.get("stage")),
+    }
+
+
 BUILDERS: dict[str, Callable[[ToolContext, dict[str, Any]], dict[str, Any]]] = {
     "submit_expense": _expense,
     "update_opportunity_stage": _stage,
     "create_task": _task,
     "decide_approval": _approval,
     "digest_material": _digest,
-    "add_followup": lambda ctx, a: {
-        "customer_name": _customer_name(ctx, a.get("customer_id")),
-        "opportunity_name": _opportunity_name(ctx, a.get("opportunity_id")),
-        "followup_type": FOLLOWUP_TYPE_LABELS.get(a.get("type") or "phone"),
-        "followup": a.get("content"),
-    },
+    "add_followup": _followup,
 }
 
 

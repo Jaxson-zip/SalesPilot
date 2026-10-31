@@ -7,6 +7,7 @@ import uuid
 from typing import Any
 
 import pytest
+from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from sqlalchemy import select
@@ -20,12 +21,13 @@ from app.agent.tools.policy_tools import SearchPolicyArgs, search_policy
 from app.common.auth import Role
 from app.common.db import session_scope
 from app.common.errors import BizError
-from app.crm.models import Followup
+from app.crm.models import Followup, Opportunity, Task
 from app.crm.services.demo import DEMO_USERS
 from app.rag import retriever
 from app.rag.retriever import PolicySearchResult
 from seed.data import C_MINGLI
 from tests.api.conftest import Tracker
+from tests.api.test_opportunities_api import new_opp
 from tests.scripted_llm import ScriptedModel, call
 
 ASKS_AGAIN = "请确认卡片，确认后即写入系统。"
@@ -211,3 +213,33 @@ def test_done_links_open_the_written_record() -> None:
     assert href("create_task", task) == "/customers/c1?task=t2"
     # 拿不到 id 时退回列表页
     assert href("submit_expense", {}) == "/expenses"
+
+
+def test_progress_is_one_card_and_one_transaction(client: TestClient, tracker: Tracker) -> None:
+    """「拜访了、同意进商务谈判、周五发合同」：跟进 + 下一步 + 阶段一张卡片确认、一起写入。"""
+    opp = new_opp(client, tracker, stage="proposal")
+    content = f"同意进入商务谈判 {uuid.uuid4().hex[:6]}"
+    args = {
+        "customer_id": str(C_MINGLI),
+        "opportunity_id": opp["id"],
+        "type": "visit",
+        "content": content,
+        "next_step": {"title": "发合同草稿", "due_at": "2026-11-06T18:00:00+08:00"},
+        "stage": "negotiation",
+    }
+    script = [call("add_followup", args, "p1"), AIMessage(content="已记录。")]
+    deps, saver = _deps(ScriptedModel(script=script)), InMemorySaver()
+    events = _run(service.prepare_chat(deps, "拜访完了", None, checkpointer=saver))
+    (pending,) = _of(events, "interrupt")
+    assert pending["preview"]["next_steps"] == "11-06 发合同草稿"
+    assert pending["preview"]["stage"] == "商务谈判"
+
+    events = _run(service.prepare_resume(deps, "approve", saver))
+    (res,) = [a["data"] for a in _of(events, "artifact") if a["type"] == "action_result"]
+    assert res["status"] == "done"
+    assert _followups(content)
+    with session_scope() as db:
+        assert db.get(Opportunity, uuid.UUID(opp["id"])).stage == "negotiation"  # type: ignore[union-attr]
+        task = db.scalar(select(Task).where(Task.subject_id == uuid.UUID(opp["id"])))
+    assert task is not None and task.title == "发合同草稿"
+    tracker.followups += [r.id for r in _followups(content)]

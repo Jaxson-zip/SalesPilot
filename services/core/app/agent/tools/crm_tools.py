@@ -22,11 +22,11 @@ from app.crm.services import (
     expense_participants,
     expense_service,
     finance_service,
-    followup_service,
+    progress_service,
     task_service,
 )
 from app.crm.services import opportunity_service as opp_service
-from app.crm.services.followup_service import FollowupCreate
+from app.crm.services.progress_service import ActiveStage, NextStepIn, ProgressIn
 from app.rules.crm_calc import LOCAL_TZ
 
 
@@ -50,14 +50,35 @@ class AddFollowupArgs(BaseModel):
     opportunity_id: uuid.UUID | None = None
     type: Literal["phone", "visit", "wechat", "ai"] = "phone"
     content: str = Field(min_length=1, max_length=2000)
+    next_step: NextStepIn | None = Field(
+        default=None,
+        description="用户这次说到的下一步（谁什么时候做什么），due_at 用北京时间 ISO 格式；"
+        "没说就不填",
+    )
+    stage: ActiveStage | None = Field(
+        default=None,
+        description="用户明确说商机推进到了某个阶段时才填（需要 opportunity_id）；"
+        "赢单 / 输单不在这里填，用 update_opportunity_stage",
+    )
 
 
 def add_followup(ctx: ToolContext, args: AddFollowupArgs) -> ToolResult:
+    """跟进、下一步、阶段一个事务写入（progress_service），任何一步失败都不留半截数据。"""
     with ctx.session() as db:
-        out = followup_service.add_followup(
-            db, ctx.user, FollowupCreate(**args.model_dump()), source="agent"
+        out = progress_service.record_progress(
+            db, ctx.user, ProgressIn(**args.model_dump()), source="agent"
         )
-    return ToolResult(ok=True, summary="已记录跟进", data=out.model_dump(mode="json"))
+    parts = ["已记录跟进"]
+    if out.task:
+        parts.append(f"安排了「{out.task.title}」")
+    if out.opportunity:
+        parts.append(f"阶段改为「{STAGE_LABELS[out.opportunity.stage]}」")
+    data = {
+        **out.followup.model_dump(mode="json"),
+        "task": out.task.model_dump(mode="json") if out.task else None,
+        "stage": out.opportunity.stage if out.opportunity else None,
+    }
+    return ToolResult(ok=True, summary="，".join(parts), data=data)
 
 
 class UpdateStageArgs(StageChange):
@@ -181,7 +202,10 @@ CRM_TOOLS: list[ToolSpec] = [
     ToolSpec(
         "add_followup",
         "给客户记一条跟进记录。content 写清沟通内容、客户反馈和下一步；"
-        "type：phone 电话、visit 拜访、wechat 微信",
+        "type：phone 电话、visit 拜访、wechat 微信。"
+        "同一次沟通里说到的下一步（next_step）和阶段推进（stage）一起填在这一条里，"
+        "只弹一张确认卡，不要拆成 add_followup + create_task + update_opportunity_stage 多次调用；"
+        "用户没说的下一步和阶段不填，也不要为此追问：直接记，确认卡上用户自己能看到",
         AddFollowupArgs,
         add_followup,
         write=True,
@@ -191,7 +215,9 @@ CRM_TOOLS: list[ToolSpec] = [
         "update_opportunity_stage",
         "修改商机阶段（lead 线索 / qualified 需求确认 / proposal 方案报价 / negotiation 商务谈判 / "
         "won 赢单 / lost 输单，输单必须写 lost_reason）。opportunity_id 来自 get_customer_context。"
-        "赢单时若该商机有已审批 / 已发送的报价，传 quote_id 按该报价成交（生成合同和回款计划）",
+        "赢单时若该商机有已审批 / 已发送的报价，传 quote_id 按该报价成交（生成合同和回款计划）。"
+        "用户同时讲了这次沟通的内容（拜访、电话里客户怎么说）时，非赢单 / 输单的推进"
+        "改用 add_followup 的 stage 一起写",
         UpdateStageArgs,
         update_opportunity_stage,
         write=True,

@@ -10,6 +10,8 @@
   "manager-approvals",
   "no-solution-midway",
   "policy",
+  "progress-compound",
+  "progress-no-invented-step",
   "solution-answer-missing",
   "solution-direct",
   "solution-modify-software",

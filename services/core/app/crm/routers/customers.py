@@ -34,12 +34,14 @@ from app.crm.services import (
     followup_service,
     intel_service,
     pool_service,
+    suggestion_service,
     transfer_service,
 )
 from app.crm.services.customer_import import ImportResult, import_customers
 from app.crm.services.customer_service import CustomerFilter
 from app.crm.services.intel_service import CompanyIntel
 from app.crm.services.listing import FacetOption, SortKey, clean, uuids
+from app.crm.services.suggestion_service import DealSuggestion
 
 router = APIRouter(prefix="/api/customers", tags=["customers"])
 
@@ -159,6 +161,14 @@ def get_customer(
     customer_id: uuid.UUID, user: CurrentUserDep, db: DbDep
 ) -> ApiResponse[CustomerDetail]:
     return ok(customer_service.get_customer(db, user, customer_id))
+
+
+@router.get("/{customer_id}/suggestions", response_model=ApiResponse[list[DealSuggestion]])
+def customer_suggestions(
+    customer_id: uuid.UUID, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[list[DealSuggestion]]:
+    """客户下各商机的下一步建议（规则计算，警示在前）。"""
+    return ok(suggestion_service.customer_suggestions(db, user, customer_id))
 
 
 @router.post("", response_model=ApiResponse[CustomerDetail])

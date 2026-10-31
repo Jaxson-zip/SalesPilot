@@ -17,6 +17,7 @@ import type * as I from "@/components/customers/CustomerIntel"
 import type * as K from "@/hooks/useCompetitors"
 import type * as U from "@/app/(main)/settings/ai-usage/page"
 import type * as D from "@/hooks/useMeddic"
+import type * as SG from "@/hooks/useSuggestions"
 import type * as R from "@/hooks/useReports"
 import type * as W from "@/hooks/useWecom"
 import type * as MK from "@/hooks/useModelConfig"
@@ -86,6 +87,7 @@ export const responses = {
   SampleItem: true as Fits<S["SampleItem"], Smp.SampleItem>,
   AuditItem: true as Fits<S["AuditItem"], A.AuditItem>,
   MeddicOut: true as Fits<S["MeddicOut"], D.MeddicOut>,
+  DealSuggestion: true as Fits<S["DealSuggestion"], SG.DealSuggestion>,
   CompetitorOut: true as Fits<S["CompetitorOut"], K.Competitor>,
   DailyReportOut: true as Fits<S["DailyReportOut"], R.DailyReport>,
   TeamDailyOut: true as Fits<S["TeamDailyOut"], R.TeamDaily>,

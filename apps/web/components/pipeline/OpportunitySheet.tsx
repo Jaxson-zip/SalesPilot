@@ -30,6 +30,7 @@ import { InlineEditRow } from "@/components/biz/InlineEditRow"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { PackName } from "@/components/biz/PackName"
 import { Tag } from "@/components/biz/Tag"
+import { DealSuggestions } from "@/components/biz/DealSuggestions"
 import { CompetitorsCard } from "@/components/pipeline/CompetitorsCard"
 import { MeddicCard } from "@/components/pipeline/MeddicCard"
 import { RequirementSummary } from "@/components/pipeline/RequirementSummary"
@@ -38,6 +39,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useContacts, useFollowups } from "@/hooks/useFollowups"
 import { useOpportunity, useUpdateOpportunity } from "@/hooks/useOpportunities"
+import { useOpportunitySuggestions } from "@/hooks/useSuggestions"
 import { formatFen, formatRelative, ownerName } from "@/lib/format"
 import {
   activityActionLabel,
@@ -325,6 +327,7 @@ export function OpportunitySheet({
   changing?: boolean
 }) {
   const detail = useOpportunity(opp?.id ?? null)
+  const suggestions = useOpportunitySuggestions(opp?.id ?? null)
   const o = detail.data ?? opp
   const [pasting, setPasting] = useState(false)
   // 出方案直接发给 AI：带上这个商机的跟进记录（没有就用这个客户最近的）
@@ -413,6 +416,7 @@ export function OpportunitySheet({
           ) : (
             <StageReadOnly stage={o.stage} />
           )}
+          <DealSuggestions rows={suggestions.data} editable={editable} />
           <Fields o={o} editable={editable} />
           <RequirementSummary oppId={o.id} oppName={o.name} editable={editable} />
           <MeddicCard oppId={o.id} editable={editable} />

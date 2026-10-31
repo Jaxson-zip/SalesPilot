@@ -928,6 +928,26 @@ export interface paths {
     patch: operations["update_customer_api_customers__customer_id__patch"]
     trace?: never
   }
+  "/api/customers/{customer_id}/suggestions": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Customer Suggestions
+     * @description 客户下各商机的下一步建议（规则计算，警示在前）。
+     */
+    get: operations["customer_suggestions_api_customers__customer_id__suggestions_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/customers/{customer_id}/followups": {
     parameters: {
       query?: never
@@ -1158,6 +1178,26 @@ export interface paths {
     head?: never
     /** Update Opportunity */
     patch: operations["update_opportunity_api_opportunities__opportunity_id__patch"]
+    trace?: never
+  }
+  "/api/opportunities/{opportunity_id}/suggestions": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Opportunity Suggestions
+     * @description 这单的下一步建议（规则计算）：每条带一句交给 AI 的话。
+     */
+    get: operations["opportunity_suggestions_api_opportunities__opportunity_id__suggestions_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
     trace?: never
   }
   "/api/opportunities/{opportunity_id}/stage": {
@@ -3790,6 +3830,26 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[list[DealSuggestion]] */
+    ApiResponse_list_DealSuggestion__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: components["schemas"]["DealSuggestion"][] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[list[FeedbackItem]] */
     ApiResponse_list_FeedbackItem__: {
       /**
@@ -4980,6 +5040,40 @@ export interface components {
       target_month: number | null
       /** Funnel */
       funnel: components["schemas"]["PipelineStage"][]
+    }
+    /** DealSuggestion */
+    DealSuggestion: {
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind:
+        | "overdue_payment"
+        | "quote_unsent"
+        | "stale"
+        | "task_overdue"
+        | "no_next_step"
+        | "meddic_gap"
+        | "no_quote"
+        | "competitor"
+      /**
+       * Level
+       * @enum {string}
+       */
+      level: "warn" | "info"
+      /** Title */
+      title: string
+      /** Detail */
+      detail: string | null
+      /** Prompt */
+      prompt: string
+      /**
+       * Opportunity Id
+       * Format: uuid
+       */
+      opportunity_id: string
+      /** Opportunity Name */
+      opportunity_name: string
     }
     /** DefaultPackOut */
     DefaultPackOut: {
@@ -9620,6 +9714,39 @@ export interface operations {
       }
     }
   }
+  customer_suggestions_api_customers__customer_id__suggestions_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        customer_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_DealSuggestion__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
   list_followups_api_customers__customer_id__followups_get: {
     parameters: {
       query?: {
@@ -10230,6 +10357,39 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_OpportunityItem_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  opportunity_suggestions_api_opportunities__opportunity_id__suggestions_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        opportunity_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_DealSuggestion__"]
         }
       }
       /** @description Validation Error */

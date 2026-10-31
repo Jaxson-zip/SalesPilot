@@ -28,10 +28,12 @@ from app.crm.services import (
     opportunity_service,
     prd_service,
     requirement_service,
+    suggestion_service,
     usage_service,
 )
 from app.crm.services.meddic_service import AssessOut, MeddicOut, MeddicUpdate
 from app.crm.services.requirement_service import RequirementOut
+from app.crm.services.suggestion_service import DealSuggestion
 from app.llm.client import get_chat_model, model_available
 
 router = APIRouter(prefix="/api", tags=["opportunities"])
@@ -55,6 +57,16 @@ def get_opportunity(
     opportunity_id: uuid.UUID, user: CurrentUserDep, db: DbDep
 ) -> ApiResponse[OpportunityDetail]:
     return ok(opportunity_service.get_detail(db, user, opportunity_id))
+
+
+@router.get(
+    "/opportunities/{opportunity_id}/suggestions", response_model=ApiResponse[list[DealSuggestion]]
+)
+def opportunity_suggestions(
+    opportunity_id: uuid.UUID, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[list[DealSuggestion]]:
+    """这单的下一步建议（规则计算）：每条带一句交给 AI 的话。"""
+    return ok(suggestion_service.opportunity_suggestions(db, user, opportunity_id))
 
 
 @router.post("/opportunities", response_model=ApiResponse[OpportunityItem])

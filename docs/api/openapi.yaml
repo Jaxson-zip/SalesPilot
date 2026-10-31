@@ -2345,6 +2345,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/customers/{customer_id}/suggestions:
+    get:
+      tags:
+      - customers
+      summary: Customer Suggestions
+      description: 客户下各商机的下一步建议（规则计算，警示在前）。
+      operationId: customer_suggestions_api_customers__customer_id__suggestions_get
+      parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Customer Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_DealSuggestion__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/customers/{customer_id}/followups:
     get:
       tags:
@@ -3083,6 +3119,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_OpportunityItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/opportunities/{opportunity_id}/suggestions:
+    get:
+      tags:
+      - opportunities
+      summary: Opportunity Suggestions
+      description: 这单的下一步建议（规则计算）：每条带一句交给 AI 的话。
+      operationId: opportunity_suggestions_api_opportunities__opportunity_id__suggestions_get
+      parameters:
+      - name: opportunity_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Opportunity Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_DealSuggestion__'
         '422':
           description: Validation Error
           content:
@@ -8043,6 +8115,34 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_list_DealSuggestion__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/DealSuggestion'
+            type: array
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[list[DealSuggestion]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_list_FeedbackItem__:
       properties:
         code:
@@ -10164,6 +10264,54 @@ components:
       - tasks_overdue
       - target_month
       title: Dashboard
+    DealSuggestion:
+      properties:
+        kind:
+          type: string
+          enum:
+          - overdue_payment
+          - quote_unsent
+          - stale
+          - task_overdue
+          - no_next_step
+          - meddic_gap
+          - no_quote
+          - competitor
+          title: Kind
+        level:
+          type: string
+          enum:
+          - warn
+          - info
+          title: Level
+        title:
+          type: string
+          title: Title
+        detail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Detail
+        prompt:
+          type: string
+          title: Prompt
+        opportunity_id:
+          type: string
+          format: uuid
+          title: Opportunity Id
+        opportunity_name:
+          type: string
+          title: Opportunity Name
+      type: object
+      required:
+      - kind
+      - level
+      - title
+      - prompt
+      - opportunity_id
+      - opportunity_name
+      - detail
+      title: DealSuggestion
     DefaultPackOut:
       properties:
         pack:

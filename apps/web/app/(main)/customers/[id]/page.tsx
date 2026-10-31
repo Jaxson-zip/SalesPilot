@@ -14,12 +14,14 @@ import { ContactsPanel } from "@/components/customers/ContactsPanel"
 import { CustomerFields, CustomerOpportunities } from "@/components/customers/CustomerFields"
 import { CustomerIntel } from "@/components/customers/CustomerIntel"
 import { CustomerTimeline, FollowupComposer } from "@/components/customers/CustomerTimeline"
+import { DealSuggestions } from "@/components/biz/DealSuggestions"
 import { ReleaseDialog } from "@/components/customers/ReleaseDialog"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useClaimCustomer, useCustomer } from "@/hooks/useCustomers"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useQuotes } from "@/hooks/useQuotes"
+import { useCustomerSuggestions } from "@/hooks/useSuggestions"
 import { aiPrefillHref, solutionPrompt } from "@/lib/thread-history"
 import { defaultScope } from "@/lib/views"
 import type { Role } from "@/types/api"
@@ -53,6 +55,7 @@ export default function CustomerDetailPage() {
   const { canFollowup: canWriteFollowup, canAiWrite, canEdit } = usePermissions()
   const query = useCustomer(customerId)
   const claim = useClaimCustomer(customerId)
+  const suggestions = useCustomerSuggestions(customerId)
   const [releasing, setReleasing] = useState(false)
   const [tab, setTab] = useState("timeline")
   // 从通知 / 待办点进来：/customers/<id>?task=<id> 定位到这条任务
@@ -104,6 +107,9 @@ export default function CustomerDetailPage() {
             </Alert>
           ) : null}
           <CustomerFields c={cust} editable={canEdit(cust.owner?.id)} focusTaskId={focusTask} />
+          <div className="mt-4">
+            <DealSuggestions rows={suggestions.data} editable={canAiWrite && canEdit(cust.owner?.id)} showOpportunity />
+          </div>
         </div>
         <div className="flex min-w-0 flex-1 flex-col lg:min-h-0">
           <RecordTabs

@@ -5,177 +5,223 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SalesPilot 架构图</title>
 <style>
-  :root { --bg:#f4f4f5; --card:#fff; --line:#d4d4d8; --text:#18181b; --muted:#71717a; }
-  body { margin:0; background:var(--bg); font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; color:var(--text); }
-  .wrap { max-width:1240px; margin:0 auto; padding:24px 16px; }
-  h1 { font-size:20px; margin:0 0 4px; } p.sub { margin:0 0 16px; color:var(--muted); font-size:13px; }
-  .card { background:var(--card); border:1px solid #e4e4e7; border-radius:12px; padding:12px; }
-  svg { width:100%; height:auto; display:block; }
-  svg text { font-family: inherit; }
+  :root {
+    --bg:#f4f4f5; --card:#fff; --line:#e4e4e7; --text:#18181b; --muted:#71717a; --faint:#a1a1aa;
+    --ai:#6d28d9; --ai-bg:#f5f3ff; --ai-line:#ddd6fe;
+    --biz:#0f766e; --biz-bg:#f0fdfa; --biz-line:#99f6e4;
+    --warn:#c2410c; --warn-bg:#fff7ed; --warn-line:#fed7aa;
+    --infra-bg:#fafafa;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+    font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; font-size:13px; line-height:1.5; }
+  .wrap { max-width:1240px; margin:0 auto; padding:24px 16px 40px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  h2 { font-size:15px; margin:28px 0 10px; }
+  .sub { margin:0 0 14px; color:var(--muted); }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+  .chip { border:1px solid var(--line); background:var(--card); border-radius:999px; padding:2px 10px; color:#3f3f46; font-size:12px; }
+  .sheet { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  .layer { display:grid; grid-template-columns:96px 1fr; gap:12px; align-items:stretch; }
+  .layer + .layer { margin-top:6px; }
+  .tag { color:var(--muted); font-weight:600; padding-top:10px; font-size:12px; }
+  .tag small { display:block; font-weight:400; color:var(--faint); }
+  .row { display:grid; gap:10px; }
+  .box { border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--infra-bg); }
+  .box h3 { margin:0 0 4px; font-size:13.5px; }
+  .box p { margin:0; color:var(--muted); font-size:12px; }
+  .box ul { margin:4px 0 0; padding-left:16px; color:#52525b; font-size:12px; }
+  .box li { margin:1px 0; }
+  .ai { background:var(--ai-bg); border-color:var(--ai-line); } .ai h3 { color:var(--ai); }
+  .biz { background:var(--biz-bg); border-color:var(--biz-line); } .biz h3 { color:var(--biz); }
+  .warn { background:var(--warn-bg); border-color:var(--warn-line); } .warn h3 { color:var(--warn); }
+  .group { border:1.5px dashed #d4d4d8; border-radius:14px; padding:12px; }
+  .group > .gtitle { font-weight:600; margin-bottom:8px; display:flex; gap:8px; align-items:baseline; }
+  .group > .gtitle span { color:var(--muted); font-weight:400; font-size:12px; }
+  .link { grid-column:2; display:flex; justify-content:center; gap:28px; color:var(--muted); font-size:12px; padding:2px 0; }
+  .link b { color:var(--faint); font-weight:400; margin-right:4px; }
+  .flow { display:flex; align-items:stretch; gap:0; }
+  .flow .box { flex:1; }
+  .arrow { flex:0 0 26px; display:flex; align-items:center; justify-content:center; color:var(--faint); font-size:16px; }
+  .lanes { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:10px; }
+  .lane { border-radius:10px; padding:10px 12px; border:1px solid var(--line); }
+  .lane h4 { margin:0 0 6px; font-size:13px; }
+  .lane .flow .box { padding:8px 10px; }
+  .lane .flow .box h3 { font-size:12.5px; margin:0; }
+  .steps { display:flex; flex-direction:column; gap:4px; }
+  .steps div { display:flex; gap:6px; align-items:baseline; font-size:12px; color:#3f3f46; }
+  .steps div::before { content:"→"; color:var(--faint); }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; color:var(--muted); font-size:12px; }
+  .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-2px; margin-right:4px; border:1px solid; }
+  .rules { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px 20px; margin:0; padding:0; list-style:none; }
+  .rules li { padding-left:14px; position:relative; color:#3f3f46; font-size:12.5px; }
+  .rules li::before { content:""; position:absolute; left:0; top:7px; width:6px; height:6px; border-radius:2px; background:var(--biz); }
+  .num { font-variant-numeric: tabular-nums; font-weight:600; color:var(--text); }
+  @media (max-width: 760px) {
+    .layer { grid-template-columns:1fr; } .tag { padding-top:0; } .link { grid-column:1; }
+    .row { grid-template-columns:1fr !important; } .lanes, .rules { grid-template-columns:1fr; }
+    .flow { flex-direction:column; } .arrow { flex-basis:18px; transform:rotate(90deg); }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>SalesPilot · AI 销售 CRM 系统架构</h1>
-  <p class="sub">前端 TypeScript（Next.js）· 后端 Python（FastAPI + LangGraph）· 自写网关外壳 + LiteLLM 库 · PostgreSQL + pgvector · Docker Compose 部署</p>
-  <div class="card">
-<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SalesPilot 系统架构图">
-  <defs>
-    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#71717a"/></marker>
-    <marker id="arrV" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
-    <style>
-      .t  { font-size:15px; font-weight:600; fill:#18181b; }
-      .s  { font-size:12px; fill:#52525b; }
-      .xs { font-size:11px; fill:#71717a; }
-      .tag{ font-size:11px; font-weight:600; }
-      .ln { stroke:#a1a1aa; stroke-width:1.5; fill:none; }
-      .lnV{ stroke:#7c3aed; stroke-width:1.5; fill:none; }
-    </style>
-  </defs>
+  <p class="sub">销售用自然语言记跟进、推进商机、出方案报价、报销；AI 通过工具读写真实业务数据，数字由规则代码计算，写操作必须确认。</p>
+  <div class="chips">
+    <span class="chip">Next.js 15 · React 19 · Tailwind · shadcn/ui · TanStack Query</span>
+    <span class="chip">FastAPI · SQLAlchemy 2 · Pydantic</span>
+    <span class="chip">LangGraph · PostgresSaver</span>
+    <span class="chip">自写网关 + LiteLLM</span>
+    <span class="chip">PostgreSQL 16 + pgvector</span>
+    <span class="chip">Docker Compose · Nginx</span>
+  </div>
 
-  <!-- 层标签 -->
-  <g class="xs" font-weight="600">
-    <text x="20" y="80">展示层</text><text x="20" y="96" class="xs">TypeScript</text>
-    <text x="20" y="300">服务层</text><text x="20" y="316" class="xs">Python</text>
-    <text x="20" y="560">数据 / 模型层</text>
-    <text x="20" y="720">外部服务</text>
-  </g>
+  <!-- ========== 分层架构 ========== -->
+  <div class="sheet">
+    <div class="layer">
+      <div class="tag">使用者</div>
+      <div class="row" style="grid-template-columns:repeat(3,1fr)">
+        <div class="box"><h3>销售</h3><p>只看、只改自己的客户和商机</p></div>
+        <div class="box"><h3>主管</h3><p>看团队、审批、登记回款、交接客户</p></div>
+        <div class="box"><h3>管理员</h3><p>成员与团队、行业包、模型、定时任务；业务只读</p></div>
+      </div>
+    </div>
+    <div class="link"><span><b>↓</b>浏览器 · 生产环境经 Nginx :8080</span></div>
 
-  <!-- ===== 展示层：web ===== -->
-  <rect x="110" y="30" width="1070" height="130" rx="12" fill="#f8fafc" stroke="#cbd5e1"/>
-  <text x="130" y="56" class="t">web · Next.js 15 + React 19</text>
-  <text x="130" y="74" class="xs">Tailwind · shadcn/ui · TanStack Query / Table · dnd-kit · sonner · lucide</text>
-  <rect x="130" y="88" width="300" height="56" rx="8" fill="#fff" stroke="#e4e4e7"/>
-  <text x="146" y="112" class="s" font-weight="600" fill="#18181b">CRM 页面</text>
-  <text x="146" y="130" class="xs">工作台 · 客户 · 商机看板 · 报价 · 合同 · 报销</text>
-  <rect x="446" y="88" width="300" height="56" rx="8" fill="#faf5ff" stroke="#ddd6fe"/>
-  <text x="462" y="112" class="s" font-weight="600" fill="#5b21b6">AI 会话 / 侧栏</text>
-  <text x="462" y="130" class="xs">流式正文 · 思维链步骤 · 方案卡片 · 确认卡片</text>
-  <rect x="762" y="88" width="398" height="56" rx="8" fill="#fff" stroke="#e4e4e7"/>
-  <text x="778" y="112" class="s" font-weight="600" fill="#18181b">管理与审批</text>
-  <text x="778" y="130" class="xs">审批中心（主管）· 行业包配置 / 产品线映射（管理员）</text>
+    <div class="layer">
+      <div class="tag">展示层<small>TypeScript</small></div>
+      <div class="group">
+        <div class="gtitle">web · Next.js <span>:3000 · 只调用 core 的 /api/*（Next.js 代理）· 无权操作的按钮隐藏</span></div>
+        <div class="row" style="grid-template-columns:1.2fr 1fr 1fr">
+          <div class="box biz"><h3>CRM 页面</h3><p>工作台 · 客户 · 商机看板 · 报价 · 合同回款 · 报销 · 审批 · 业绩目标 · 报表 · 竞品战卡</p></div>
+          <div class="box ai"><h3>AI 工作台</h3><p>流式回复 · 执行步骤 · 方案卡片 · 确认卡片 · 上传纪要 / 样例图 · 学习问答</p></div>
+          <div class="box"><h3>系统设置</h3><p>成员与团队 · 行业包与规则 · 模型接入 · 知识库 · 定时任务 · 操作日志 · AI 用量</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="link"><span><b>↓</b>REST JSON · SSE 流式 · X-Request-ID 透传 · 金额一律整数「分」</span></div>
 
-  <!-- web → core -->
-  <path d="M280 160 V214" class="ln" marker-end="url(#arr)"/>
-  <text x="290" y="192" class="xs">REST /api/*（JSON）</text>
-  <path d="M596 160 V214" class="lnV" marker-end="url(#arrV)"/>
-  <text x="606" y="192" class="xs" fill="#7c3aed">POST + SSE /api/agent/*</text>
-  <text x="900" y="192" class="xs">Nginx：/ → web　/api → core（SSE 关闭缓冲）</text>
+    <div class="layer">
+      <div class="tag">服务层<small>Python</small></div>
+      <div class="group">
+        <div class="gtitle">core · FastAPI <span>:8000 · 业务 + AI 助手 + 行业包 + 知识库，同一进程</span></div>
+        <div class="row" style="grid-template-columns:1fr 1.25fr 1fr">
+          <div class="box biz">
+            <h3>CRM 业务</h3>
+            <ul>
+              <li>routers 只做参数和响应</li>
+              <li>services：业务规则、状态流转、数据权限过滤</li>
+              <li>models：SQLAlchemy ORM · Alembic 迁移</li>
+              <li>当前这单状态 deal_state · 下一步建议 suggestion</li>
+              <li>定时任务：到期 / 逾期 / 停滞提醒、日报催交、公海回收</li>
+            </ul>
+          </div>
+          <div class="box ai">
+            <h3>AI 助手 · LangGraph 状态图</h3>
+            <ul>
+              <li>一个对话循环处理所有对话；每轮注入「当前这单」</li>
+              <li>工具 = service 的薄包装：<span class="num">7</span> 个写工具 · <span class="num">15</span> 个只读工具</li>
+              <li>写操作 interrupt → 确认卡 → 执行；幂等键防重复</li>
+              <li>出方案：start_solution 交接到固定流程（见下图）</li>
+              <li>会话状态存 PostgresSaver，刷新 / 换设备可续</li>
+            </ul>
+          </div>
+          <div class="box biz">
+            <h3>行业包 · 知识库</h3>
+            <ul>
+              <li>packs/：大模型部署 · 软件外包 · IT 办公</li>
+              <li>每个包：需求字段、配置器、产品目录、rules.yaml</li>
+              <li>新增行业不改 agent 和 CRM 代码</li>
+              <li>RAG：公司制度 + 行业资料，向量检索 + 重排，回答带出处</li>
+            </ul>
+          </div>
+        </div>
+        <div class="box warn" style="margin-top:10px">
+          <h3>规则计算（不交给大模型）</h3>
+          <p>价格 · 毛利 · 是否需审批 · 提成 · 报销超标 · 停滞天数 · 回款逾期；阈值都在 rules.yaml，管理员可改</p>
+        </div>
+      </div>
+    </div>
+    <div class="link"><span><b>↓</b>SQL</span><span><b>↓</b>只经 app/llm/client.py（OpenAI 格式）</span><span><b>→</b>企业微信群推送（可选）</span></div>
 
-  <!-- ===== 服务层：core ===== -->
-  <rect x="110" y="220" width="1070" height="270" rx="12" fill="#ffffff" stroke="#a1a1aa"/>
-  <text x="130" y="246" class="t">core · FastAPI :8000</text>
-  <text x="300" y="246" class="xs">SQLAlchemy 2 · Pydantic v2 · Alembic · PyJWT · sse-starlette</text>
-  <rect x="130" y="258" width="1030" height="32" rx="6" fill="#f4f4f5"/>
-  <text x="146" y="279" class="s">common：JWT 鉴权 · 数据范围过滤（本人 / 团队 / 全公司）· 统一响应与错误码 · request_id</text>
+    <div class="layer">
+      <div class="tag">数据 / 模型</div>
+      <div class="row" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="box"><h3>PostgreSQL 16 + pgvector</h3><p>业务数据 · AI 会话 checkpoint · 知识库向量 · 操作日志</p></div>
+        <div class="box"><h3>模型网关 · :8100</h3><p>models.yaml 注册表 · 分组失败切换 · 兼容层（纯函数）· 用量与成本 · 网页上配置 Key</p></div>
+        <div class="box"><h3>模型厂商</h3><p>对话：DeepSeek · 通义千问 · 混元；向量 / 重排：通义。厂商 SDK 和地址只出现在网关</p></div>
+      </div>
+    </div>
 
-  <!-- crm -->
-  <rect x="130" y="304" width="240" height="170" rx="10" fill="#fff" stroke="#d4d4d8"/>
-  <text x="146" y="328" class="t">crm 业务模块</text>
-  <text x="146" y="350" class="s">客户 · 联系人 · 跟进</text>
-  <text x="146" y="368" class="s">商机 · 报价 · 合同 · 提成</text>
-  <text x="146" y="386" class="s">报销 · 审批 · 任务 · 通知</text>
-  <text x="146" y="414" class="xs">routers → services → models</text>
-  <text x="146" y="432" class="xs">规则引擎：rules.yaml</text>
-  <text x="146" y="450" class="xs">（毛利、折扣、提成、报销标准）</text>
+    <div class="legend">
+      <span><i style="background:var(--biz-bg);border-color:var(--biz-line)"></i>业务与规则</span>
+      <span><i style="background:var(--ai-bg);border-color:var(--ai-line)"></i>AI 相关</span>
+      <span><i style="background:var(--warn-bg);border-color:var(--warn-line)"></i>只能由规则代码计算</span>
+    </div>
+  </div>
 
-  <!-- agent -->
-  <rect x="390" y="304" width="320" height="170" rx="10" fill="#faf5ff" stroke="#c4b5fd"/>
-  <text x="406" y="328" class="t" fill="#5b21b6">agent · LangGraph</text>
-  <g font-size="11">
-    <rect x="406" y="342" width="56" height="24" rx="5" fill="#fff" stroke="#ddd6fe"/><text x="416" y="358" class="xs">router</text>
-    <rect x="474" y="342" width="62" height="24" rx="5" fill="#fff" stroke="#ddd6fe"/><text x="482" y="358" class="xs">configure</text>
-    <rect x="548" y="342" width="56" height="24" rx="5" fill="#fff" stroke="#ddd6fe"/><text x="560" y="358" class="xs">price</text>
-    <rect x="616" y="342" width="78" height="24" rx="5" fill="#fff" stroke="#ddd6fe"/><text x="624" y="358" class="xs">check_margin</text>
-    <path d="M462 354 H472 M536 354 H546 M604 354 H614" stroke="#a78bfa" stroke-width="1.2"/>
-    <path d="M655 366 V382 H505 V368" stroke="#f59e0b" stroke-width="1.2" fill="none" marker-end="url(#arr)"/>
-    <text x="530" y="396" class="xs" fill="#b45309">毛利不达标 → 回退重配（≤2 次）</text>
-    <rect x="474" y="408" width="98" height="24" rx="5" fill="#fff" stroke="#ddd6fe"/><text x="482" y="424" class="xs">interrupt 确认</text>
-    <rect x="584" y="408" width="62" height="24" rx="5" fill="#fff" stroke="#ddd6fe"/><text x="592" y="424" class="xs">respond</text>
-  </g>
-  <text x="406" y="452" class="xs">16 个工具 · checkpointer 存 Postgres</text>
-  <text x="406" y="468" class="xs">function calling 选工具，进程内调 service</text>
+  <!-- ========== AI 助手流程 ========== -->
+  <h2>AI 助手：一句话怎么走完</h2>
+  <div class="sheet">
+    <div class="flow">
+      <div class="box"><h3>用户一句话</h3><p>工作台、商机「出方案」或「需要注意 → 交给 AI」带着商机进来</p></div>
+      <div class="arrow">→</div>
+      <div class="box"><h3>入口 router</h3><p>不调模型：确认过的需求卡、样例图直接出方案；其余进对话循环</p></div>
+      <div class="arrow">→</div>
+      <div class="box ai" style="flex:1.4"><h3>对话循环 tool_agent</h3><p>系统提示词带上「当前这单」（阶段、下一步、最近跟进、赢单要素缺口、报价、回款）和「方案进行中」（上轮追问了什么），所以「好，就这么办」「80 人」能接上</p></div>
+    </div>
+    <div class="lanes">
+      <div class="lane">
+        <h4>直接回答 / 只读工具</h4>
+        <div class="steps">
+          <div>闲聊一次模型调用直接答</div>
+          <div>查客户、商机、MEDDIC、战卡、制度（带出处）、算提成</div>
+          <div>respond 流式输出</div>
+        </div>
+      </div>
+      <div class="lane warn">
+        <h4 style="color:var(--warn)">写操作：先确认</h4>
+        <div class="steps">
+          <div>记跟进（可顺带下一步 + 阶段，一张卡）</div>
+          <div>改阶段 · 建任务 · 报销 · 审批 · 整理纪要</div>
+          <div>确认卡 → 一个事务写入 → 结果交回循环</div>
+          <div>取消则什么都不写</div>
+        </div>
+      </div>
+      <div class="lane biz">
+        <h4 style="color:var(--biz)">start_solution：出方案</h4>
+        <div class="steps">
+          <div>解析需求，缺字段就追问</div>
+          <div>行业包配置器 → 物料清单 → 定价</div>
+          <div>毛利不达标自动重配（≤ 2 次）</div>
+          <div>三档方案说明 → 确认 → 生成报价单</div>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span>模型不可用时：出方案按关键词判断，其余只走只读规则，不会写数据</span>
+    </div>
+  </div>
 
-  <!-- packs -->
-  <rect x="730" y="304" width="200" height="170" rx="10" fill="#fff" stroke="#d4d4d8"/>
-  <text x="746" y="328" class="t">packs 行业包</text>
-  <text x="746" y="350" class="s">Configurator 接口</text>
-  <rect x="746" y="364" width="168" height="26" rx="5" fill="#f4f4f5"/><text x="756" y="381" class="xs">llm_deploy 大模型部署</text>
-  <rect x="746" y="396" width="168" height="26" rx="5" fill="#f4f4f5"/><text x="756" y="413" class="xs">it_office 企业办公 IT</text>
-  <text x="746" y="444" class="xs">catalog · rules · knowledge</text>
-  <text x="746" y="462" class="xs">按商机产品线自动选择</text>
-
-  <!-- rag -->
-  <rect x="950" y="304" width="210" height="170" rx="10" fill="#eff6ff" stroke="#bfdbfe"/>
-  <text x="966" y="328" class="t" fill="#1e40af">rag 知识库</text>
-  <text x="966" y="350" class="s">加载 → 切块 800/120</text>
-  <text x="966" y="368" class="s">→ Embedding → 入库</text>
-  <text x="966" y="386" class="s">检索 top8 → 阈值 → 重排</text>
-  <text x="966" y="414" class="xs">分区：公司制度 / 行业包</text>
-  <text x="966" y="432" class="xs">回答必带出处</text>
-  <text x="966" y="450" class="xs">无命中 → 明确拒答</text>
-
-  <!-- 模块之间 -->
-  <path d="M390 390 H372" class="ln" marker-end="url(#arr)"/>
-  <path d="M710 390 H728" class="ln" marker-end="url(#arr)"/>
-  <path d="M700 474 V482 H1055 V476" class="ln" marker-end="url(#arr)"/>
-  <text x="820" y="482" class="xs" dy="-3">search_policy</text>
-
-  <!-- ===== 数据 / 模型层 ===== -->
-  <!-- DB -->
-  <rect x="110" y="530" width="420" height="140" rx="12" fill="#fff" stroke="#a1a1aa"/>
-  <text x="130" y="556" class="t">PostgreSQL 16 + pgvector :5432</text>
-  <rect x="130" y="570" width="122" height="84" rx="8" fill="#f4f4f5"/>
-  <text x="142" y="594" class="s" font-weight="600" fill="#18181b">业务表</text>
-  <text x="142" y="612" class="xs">客户 / 商机 / 报价</text><text x="142" y="628" class="xs">报销 / 审批 / 动态</text><text x="142" y="644" class="xs">金额以「分」存储</text>
-  <rect x="262" y="570" width="122" height="84" rx="8" fill="#eff6ff"/>
-  <text x="274" y="594" class="s" font-weight="600" fill="#1e40af">kb_chunks</text>
-  <text x="274" y="612" class="xs">vector(N) · HNSW</text><text x="274" y="628" class="xs">scope / 文档 / 章节</text><text x="274" y="644" class="xs">内容哈希去重</text>
-  <rect x="394" y="570" width="122" height="84" rx="8" fill="#faf5ff"/>
-  <text x="406" y="594" class="s" font-weight="600" fill="#5b21b6">会话状态</text>
-  <text x="406" y="612" class="xs">LangGraph</text><text x="406" y="628" class="xs">checkpointer</text><text x="406" y="644" class="xs">中断后可继续</text>
-  <path d="M250 490 V528" class="ln" marker-end="url(#arr)"/><text x="258" y="514" class="xs">SQL</text>
-
-  <!-- gateway -->
-  <rect x="570" y="530" width="370" height="140" rx="12" fill="#fff" stroke="#7c3aed" stroke-width="1.5"/>
-  <text x="590" y="556" class="t" fill="#5b21b6">gateway :8100 · FastAPI + LiteLLM 库</text>
-  <text x="590" y="578" class="s">models.yaml 注册表：别名 · 能力 · 分组</text>
-  <text x="590" y="600" class="xs">兼容层：请求规范化 → Router → 响应 / 流式规范化</text>
-  <text x="590" y="618" class="xs">补 tool id · 修 JSON · 统一 finish_reason · 伪流式</text>
-  <text x="590" y="640" class="xs">双链路：openai_compat ｜ native（LiteLLM 原生适配）</text>
-  <text x="590" y="658" class="xs">首字节前失败切换 · 契约测试 · 调用日志</text>
-  <path d="M550 474 V500 H755 V528" class="lnV" marker-end="url(#arrV)"/>
-  <text x="640" y="496" class="xs" fill="#7c3aed">chat / embeddings</text>
-
-  <!-- storage -->
-  <rect x="980" y="530" width="200" height="140" rx="12" fill="#fff" stroke="#d4d4d8"/>
-  <text x="1000" y="556" class="t">文件与知识源</text>
-  <text x="1000" y="580" class="s">/data/uploads</text>
-  <text x="1000" y="598" class="xs">发票、小票附件（Docker 卷）</text>
-  <text x="1000" y="624" class="s">knowledge/*.md|pdf|xlsx</text>
-  <text x="1000" y="642" class="xs">制度、部署规范、产品手册</text>
-  <text x="1000" y="658" class="xs">→ ingest 入库</text>
-
-  <!-- ===== 外部：模型 ===== -->
-  <g>
-    <rect x="570" y="700" width="112" height="56" rx="10" fill="#f8fafc" stroke="#cbd5e1"/><text x="590" y="725" class="s" font-weight="600" fill="#18181b">腾讯混元</text><text x="590" y="743" class="xs">chat · embedding</text>
-    <rect x="699" y="700" width="112" height="56" rx="10" fill="#f8fafc" stroke="#cbd5e1"/><text x="719" y="725" class="s" font-weight="600" fill="#18181b">DeepSeek</text><text x="719" y="743" class="xs">chat · 工具调用</text>
-    <rect x="828" y="700" width="112" height="56" rx="10" fill="#f8fafc" stroke="#cbd5e1"/><text x="848" y="725" class="s" font-weight="600" fill="#18181b">通义 Qwen</text><text x="848" y="743" class="xs">chat · embedding</text>
-    <path d="M626 670 V698 M755 670 V698 M884 670 V698" class="lnV" marker-end="url(#arrV)"/>
-    <text x="570" y="778" class="xs" fill="#7c3aed">… 接入更多模型（Kimi、智谱、Claude、本地 vLLM 等）只改 models.yaml，不改代码</text>
-  </g>
-
-  <!-- 部署说明 -->
-  <rect x="110" y="700" width="420" height="56" rx="10" fill="#fafafa" stroke="#e4e4e7" stroke-dasharray="4 3"/>
-  <text x="126" y="724" class="s" font-weight="600" fill="#18181b">部署：Docker Compose（web · core · gateway · db）</text>
-  <text x="126" y="744" class="xs">云端：腾讯云轻量服务器 + Nginx；gateway 和 db 只在内网暴露</text>
-
-  <!-- 图例 -->
-  <g transform="translate(980,700)">
-    <line x1="0" y1="14" x2="26" y2="14" class="ln"/><text x="32" y="18" class="xs">普通调用</text>
-    <line x1="0" y1="40" x2="26" y2="40" class="lnV"/><text x="32" y="44" class="xs">AI / 模型相关</text>
-  </g>
-</svg>
+  <!-- ========== 质量保障 ========== -->
+  <h2>质量保障</h2>
+  <div class="sheet">
+    <div class="row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="box"><h3>core 测试</h3><p><span class="num">664</span> 个（pytest，独立测试库，模型用剧本代替）</p></div>
+      <div class="box"><h3>web 测试</h3><p><span class="num">308</span> 个（Vitest）+ Playwright 浏览器测试（逐页扫描按钮）</p></div>
+      <div class="box ai"><h3>AI 评估（真实模型）</h3><p>软件外包拆解 <span class="num">26</span> 条 · CRM 对话 <span class="num">22</span> 条，与基线对比</p></div>
+      <div class="box"><h3>提交前钩子</h3><p>改到 agent / llm / packs / evals 时自动跑评估，有回归拦下提交</p></div>
+    </div>
+    <h2 style="margin-top:16px">硬性约束</h2>
+    <ul class="rules">
+      <li>前端只调 core；core 只经网关调模型</li>
+      <li>数据权限在 service 层统一过滤，不靠前端隐藏</li>
+      <li>价格、毛利、提成等数字只由规则代码计算</li>
+      <li>不可逆操作先确认；普通阶段切换可撤销</li>
+      <li>行业相关的东西只放 packs/&lt;pack_id&gt;/</li>
+      <li>配置只读环境变量，真实 Key 不进仓库</li>
+    </ul>
   </div>
 </div>
 </body>

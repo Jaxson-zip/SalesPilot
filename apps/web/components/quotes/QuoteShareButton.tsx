@@ -63,7 +63,9 @@ function ShareLink({ q, share, onRevoke }: { q: QuoteDetail; share: QuoteShare; 
       </div>
       <div className="space-y-0.5 text-xs text-zinc-500">
         <div>{viewSummary(share.view_count, share.last_viewed_at, formatRelative)}（你自己预览不计入）</div>
-        <div>有效期至 {share.expires_at.slice(0, 10)} 前，客户每天第一次打开会通知你</div>
+        <div>
+          链接有效期跟报价一致{q.valid_until ? `（至 ${q.valid_until.slice(0, 10)}）` : ""}，客户每天第一次打开会通知你
+        </div>
       </div>
       <Button size="sm" variant="ghost" className="text-red-600 hover:text-red-700" onClick={onRevoke}>
         <Unlink />

@@ -8,6 +8,7 @@ import { LetterAvatar } from "@/components/biz/Chip"
 import { EmptyState } from "@/components/biz/EmptyState"
 import { DatePicker, SimpleSelect } from "@/components/biz/FormControls"
 import { QueryError } from "@/components/biz/QueryStatus"
+import { VoiceButton } from "@/components/biz/VoiceButton"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useActivities } from "@/hooks/useDashboard"
@@ -84,6 +85,7 @@ export const FollowupComposer = forwardRef<
         <div className="w-36">
           <DatePicker value={date} onChange={setDate} size="sm" />
         </div>
+        <VoiceButton value={content} onChange={(v) => setContent(v.slice(0, 2000))} />
         {canAi ? (
           <Button variant="ghost" size="sm" className="text-ai" onClick={() => setPasting(true)}>
             <Sparkles />

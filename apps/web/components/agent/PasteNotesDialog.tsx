@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { VoiceButton } from "@/components/biz/VoiceButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -64,8 +65,9 @@ export function PasteNotesDialog({
           placeholder={"例如：\n王总：下季度预算已经批了，最关心数据能不能留在本地…\n我：下周三之前给您发两套部署方案…"}
           className="block w-full resize-y rounded-md border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
         />
-        <div className="flex justify-between text-xs text-zinc-500">
-          <span>
+        <div className="flex items-center justify-between gap-2 text-xs text-zinc-500">
+          <VoiceButton value={text} onChange={setText} />
+          <span className="min-w-0 flex-1">
             {long ? `超过 ${MATERIAL_MAX_CHARS.toLocaleString()} 字，只交给 AI 前面这部分` : "粘贴后可以先删掉无关内容"}
           </span>
           <span className="tabular-nums">{text.trim().length.toLocaleString()} 字</span>

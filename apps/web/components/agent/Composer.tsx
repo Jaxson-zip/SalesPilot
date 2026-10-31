@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { VoiceButton } from "@/components/biz/VoiceButton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAgentModels } from "@/hooks/useAgentModels"
 import { modelOptions, ruleModeHint } from "@/lib/agent-models"
@@ -372,6 +373,7 @@ export function Composer(props: ComposerProps) {
         {!compact && pack ? <PackChip pack={pack} /> : null}
         {onAttach ? <AttachButton uploading={uploading} onPick={onAttach} /> : null}
         {onAttachSamples ? <SamplesButton busy={busy} onPick={onAttachSamples} /> : null}
+        <VoiceButton value={value} onChange={onChange} variant="pill" disabled={streaming} />
         <ModelSelect model={model} onModelChange={onModelChange} />
         <div className="flex-1" />
         <SendButton streaming={streaming} disabled={!streaming && !canSend} onClick={streaming ? onStop : onSubmit} />

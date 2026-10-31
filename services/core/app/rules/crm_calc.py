@@ -49,6 +49,8 @@ class PricedLine(BaseModel):
     qty: int
     unit_cost: int
     unit_price: int
+    # 代垫费用：不打折，不算进毛利率（成本 = 单价，不赚钱，算进去会把毛利率拉低）
+    passthrough: bool = False
 
 
 class QuotePricing(BaseModel):
@@ -70,7 +72,10 @@ def discount_rate_of(list_price: int, total_price: int) -> float:
 def price_quote(
     lines: list[PricedLine], discount_rate: float, rules: RuleSet | None = None
 ) -> QuotePricing:
-    """按明细与整单折扣重算总价和毛利（毛利由 check_margin 计算）。"""
+    """按明细与整单折扣重算总价和毛利（毛利由 check_margin 计算）。
+
+    代垫费用原价照收：整单折扣只打在其余部分上，毛利率也只按其余部分算。
+    """
     if not 0 <= discount_rate < 1:
         raise ValueError("折扣率必须在 [0, 1) 之间")
     if not lines:
@@ -78,14 +83,16 @@ def price_quote(
     for line in lines:
         if line.qty <= 0 or line.unit_cost < 0 or line.unit_price < 0:
             raise ValueError("数量必须大于 0，单价不能为负数")
-    list_price = sum(i.unit_price * i.qty for i in lines)
-    total_cost = sum(i.unit_cost * i.qty for i in lines)
-    total_price = round(list_price * (1 - discount_rate))
-    margin = check_margin(total_cost, total_price, _rules(rules))
+    goods = [i for i in lines if not i.passthrough]
+    passthrough = sum(i.unit_price * i.qty for i in lines if i.passthrough)
+    goods_list = sum(i.unit_price * i.qty for i in goods)
+    goods_cost = sum(i.unit_cost * i.qty for i in goods)
+    goods_total = round(goods_list * (1 - discount_rate))
+    margin = check_margin(goods_cost, goods_total, _rules(rules))
     return QuotePricing(
-        list_price=list_price,
-        total_cost=total_cost,
-        total_price=total_price,
+        list_price=goods_list + passthrough,
+        total_cost=goods_cost + passthrough,
+        total_price=goods_total + passthrough,
         discount_rate=round(discount_rate, 4),
         margin_rate=margin.margin_rate,
         margin_passed=margin.passed,

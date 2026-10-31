@@ -15,8 +15,19 @@ export interface NextTask {
 
 /** PATCH /api/quotes/{id}/items（v3 §14） */
 export interface QuoteItemsPatch {
-  /** 目录物料只传 sku + 数量；自己加的费用（sku 以 extra- 开头）还要传名称、单价，成本可不填 */
-  items: { sku: string; qty: number; name?: string; unit?: string; unit_price?: number; unit_cost?: number }[]
+  /**
+   * 目录物料只传 sku + 数量（可改单价）；自己加的费用（sku 以 extra- 开头）还要传名称、单价，成本可不填；
+   * category=passthrough 是代垫费用（成本 = 单价，不打折、不计提成、不算毛利率）
+   */
+  items: {
+    sku: string
+    qty: number
+    name?: string
+    unit?: string
+    unit_price?: number
+    unit_cost?: number
+    category?: "service" | "passthrough"
+  }[]
   discount_rate: number
 }
 

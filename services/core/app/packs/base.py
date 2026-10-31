@@ -11,7 +11,10 @@ from pydantic import BaseModel, Field
 
 from app.rules import RuleSet, check_margin, overrides
 
-Category = Literal["hardware", "software", "service"]
+# passthrough：代垫费用（替客户垫付的差旅、第三方采购等），只用在自己加的费用上，
+# 按成本价收、不打折、不计提成、不算进毛利率
+Category = Literal["hardware", "software", "service", "passthrough"]
+PASSTHROUGH = "passthrough"
 TierId = Literal["economy", "standard", "premium"]
 # custom：不经过 AI、自己从零出的报价
 TIER_NAMES: dict[str, str] = {

@@ -8909,6 +8909,7 @@ components:
           - hardware
           - software
           - service
+          - passthrough
           title: Category
         unit:
           type: string
@@ -13387,6 +13388,7 @@ components:
             - hardware
             - software
             - service
+            - passthrough
           - type: 'null'
           title: Category
       type: object

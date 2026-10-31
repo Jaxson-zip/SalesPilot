@@ -84,7 +84,10 @@ export function ItemsTable({ items }: { items: QuoteLine[] }) {
         {items.map((it, i) => (
           <tr key={it.sku}>
             <td className={`${TD} tabular-nums`}>{i + 1}</td>
-            <td className={`${TD} break-words`}>{it.name}</td>
+            <td className={`${TD} break-words`}>
+              {it.name}
+              {it.category === "passthrough" ? "（代垫，按实际费用收）" : ""}
+            </td>
             <td className={TD}>{it.unit}</td>
             <td className={`${TD} text-right tabular-nums`}>{it.qty}</td>
             <td className={`${TD} text-right tabular-nums`}>{formatFen(it.unit_price)}</td>

@@ -92,6 +92,7 @@ describe("自己加的费用", () => {
       unit: "项",
       unit_price: 100000,
       unit_cost: 0,
+      category: "service",
     })
   })
   it("已保存的费用行回填名称、单价、成本", () => {
@@ -104,6 +105,7 @@ describe("自己加的费用", () => {
       price: "300.50",
       cost: "250",
       extra: true,
+      passthrough: false,
       basePrice: null,
     })
     expect(isAdjustDirty([saved], initialDraft([saved]), "", 0)).toBe(false)
@@ -133,7 +135,7 @@ describe("目录物料改单价、从目录添加", () => {
 
 describe("审批预判（和后端规则一致）", () => {
   const rules = { floor: 0.25, maxDiscount: 0.1 }
-  const row = (sku: string, price: string, cost: string, extra = false): DraftRow => ({
+  const row = (sku: string, price: string, cost: string, extra = false, passthrough = false): DraftRow => ({
     sku,
     name: sku,
     unit: "台",
@@ -141,6 +143,7 @@ describe("审批预判（和后端规则一致）", () => {
     price,
     cost,
     extra,
+    passthrough,
     basePrice: null,
   })
   const catalog = { "SRV-4": 26_200_000 }
@@ -157,6 +160,21 @@ describe("审批预判（和后端规则一致）", () => {
       "毛利 16.8% 低于底线 25%",
     )
     expect(approvalPreview([row("SRV-4", "abc", "1")], "0", catalog, rules)).toBeNull()
+  })
+  it("代垫费用：原价收、不打折、不拉低毛利率，请求带 category（和后端接口测试同一组数）", () => {
+    const rows = [row("extra-dev", "100000", "70000", true), row("extra-trip", "30000", "1", true, true)]
+    const p = previewAdjust(rows, "10")
+    // 定制开发 10 万打 9 折 = 9 万；差旅 3 万原价
+    expect(p.total).toBe(9_000_000 + 3_000_000)
+    expect(p.passthroughTotal).toBe(3_000_000)
+    expect(p.margin).toBeCloseTo(2_000_000 / 9_000_000)
+    // 不加代垫时毛利率一样，不会因为垫付差旅进审批
+    expect(approvalPreview(rows, "10", {}, rules)).toEqual(approvalPreview(rows.slice(0, 1), "10", {}, rules))
+    expect(toItemsPatch(rows, "10")?.items[1]).toMatchObject({ category: "passthrough", unit_cost: 3_000_000 })
+    // 只有代垫费用不能保存
+    const only = previewAdjust([rows[1]], "")
+    expect(only.valid).toBe(false)
+    expect(only.onlyPassthrough).toBe(true)
   })
   it("从行业包规则里读阈值，缺了返回 null", () => {
     expect(approvalRules({ margin: { floor_rate: 0.2 }, discount: { max_rate: 0.15 } })).toEqual({

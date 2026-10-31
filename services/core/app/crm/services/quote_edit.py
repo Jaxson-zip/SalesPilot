@@ -29,7 +29,7 @@ from app.crm.services import activity_service, quote_query
 from app.crm.services.codes import next_code
 from app.crm.services.opportunity_service import apply_stage, get_owned
 from app.crm.services.quote_service import BEFORE_PROPOSAL, get_quote, rules_for
-from app.packs.base import BomItem, Catalog
+from app.packs.base import PASSTHROUGH, BomItem, Catalog
 from app.packs.registry import get_pack
 from app.rules import load_rules
 from app.rules.crm_calc import PricedLine, QuotePricing, price_quote
@@ -81,22 +81,38 @@ def build_lines(
             lines.append(item)
         else:
             raise _invalid(f"物料不在报价单或行业包目录中：{line.sku}", line.sku)
+    if all(i.category == PASSTHROUGH for i in lines):
+        raise _invalid("报价不能只有代垫费用，至少要有一项物料或服务", lines[0].sku)
     return lines
 
 
 def _extra_line(line: QuoteLineIn) -> BomItem:
-    """自己加的费用：名称、单价必填；成本不填按 0（毛利照常计算，低于底线照常走审批）。"""
+    """自己加的费用：名称、单价必填；成本不填按 0（毛利照常计算，低于底线照常走审批）。
+    代垫费用按成本价收：成本固定等于单价。"""
     if not line.name or line.unit_price is None:
         raise _invalid("自己加的费用要填写名称和单价", line.sku)
+    passthrough = line.category == PASSTHROUGH
     return BomItem(
         sku=line.sku,
         name=line.name.strip(),
         category=line.category or "service",
         unit=(line.unit or "项").strip(),
         qty=line.qty,
-        unit_cost=line.unit_cost or 0,
+        unit_cost=line.unit_price if passthrough else (line.unit_cost or 0),
         unit_price=line.unit_price,
     )
+
+
+def priced_lines(lines: list[BomItem]) -> list[PricedLine]:
+    return [
+        PricedLine(
+            qty=i.qty,
+            unit_cost=i.unit_cost,
+            unit_price=i.unit_price,
+            passthrough=i.category == PASSTHROUGH,
+        )
+        for i in lines
+    ]
 
 
 def _check_editable(quote: Quote) -> None:
@@ -110,11 +126,7 @@ def _check_editable(quote: Quote) -> None:
 
 
 def _price(lines: list[BomItem], discount_rate: float, quote: Quote) -> QuotePricing:
-    return price_quote(
-        [PricedLine(qty=i.qty, unit_cost=i.unit_cost, unit_price=i.unit_price) for i in lines],
-        discount_rate,
-        rules_for(quote),
-    )
+    return price_quote(priced_lines(lines), discount_rate, rules_for(quote))
 
 
 def _save_lines(db: Session, quote: Quote, lines: list[BomItem]) -> None:
@@ -151,7 +163,7 @@ def create_manual(db: Session, user: CurrentUser, data: QuoteCreate) -> QuoteDet
         ensure_owner(db.get(Customer, data.customer_id), user)  # 只能给自己负责的客户出报价
     lines = build_lines([], _catalog(data.pack), data)
     priced = price_quote(
-        [PricedLine(qty=i.qty, unit_cost=i.unit_cost, unit_price=i.unit_price) for i in lines],
+        priced_lines(lines),
         data.discount_rate,
         load_rules(get_pack(data.pack).rules_file, scope=data.pack),
     )

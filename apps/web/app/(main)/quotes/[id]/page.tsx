@@ -27,7 +27,7 @@ function adjustKey(q: QuoteDetail): string {
   return [
     q.total_price,
     q.discount_rate ?? 0,
-    ...q.items.map((it) => `${it.sku}:${it.qty}:${it.unit_price}:${it.name}`),
+    ...q.items.map((it) => `${it.sku}:${it.qty}:${it.unit_price}:${it.name}:${it.category}`),
   ].join("|")
 }
 

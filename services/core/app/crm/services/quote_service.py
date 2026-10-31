@@ -35,7 +35,7 @@ from app.crm.services import (
 )
 from app.crm.services.codes import LOCAL_TZ, local_today, next_code
 from app.crm.services.opportunity_service import apply_stage, get_owned
-from app.packs.base import Catalog, SolutionTier
+from app.packs.base import PASSTHROUGH, Catalog, SolutionTier
 from app.packs.registry import get_pack
 from app.rules import (
     CommissionLine,
@@ -167,8 +167,21 @@ def _load(db: Session, user: CurrentUser, quote_id: uuid.UUID, lock: bool = Fals
     return quote
 
 
+def _passthrough(items: list[QuoteItem]) -> int:
+    """代垫费用合计（分）：原价照收，不打折。"""
+    return sum(i.unit_price * i.qty for i in items if i.category == PASSTHROUGH)
+
+
+def goods_totals(quote: Quote, items: list[QuoteItem]) -> tuple[int, int]:
+    """去掉代垫费用后的成本和成交价：毛利底线、折扣权限、提成都按这部分算。"""
+    pt = _passthrough(items)
+    return quote.total_cost - pt, quote.total_price - pt
+
+
 def commission_lines(items: list[QuoteItem], total_price: int) -> list[CommissionLine]:
-    return allocate_by_category([(i.category, i.unit_price * i.qty) for i in items], total_price)
+    """代垫费用不计提成：从成交价里扣掉，其余按类别分摊。"""
+    goods = [(i.category, i.unit_price * i.qty) for i in items if i.category != PASSTHROUGH]
+    return allocate_by_category(goods, total_price - _passthrough(items))
 
 
 def _contract_of(db: Session, quote_id: uuid.UUID) -> Contract | None:
@@ -230,15 +243,18 @@ def approval_reasons(
 
     折扣按目录价算（base：sku → 目录价）：单价可以手改，只按改后的单价算的话，
     把单价压低、折扣填 0 就能绕过折扣权限。目录外的额外费用按它自己的单价。
+    代垫费用两条都不算（按成本价原价收，算进去会拉低毛利率）。
     """
     reasons: list[str] = []
-    margin = check_margin(quote.total_cost, quote.total_price, rules)
+    cost, price = goods_totals(quote, items)
+    margin = check_margin(cost, price, rules)
     if not margin.passed:
         reasons.append(margin.reason)
     base = base or {}
-    list_price = sum(base.get(i.sku, i.unit_price) * i.qty for i in items)
-    if list_price > 0 and not check_discount(list_price, quote.total_price, rules):
-        discount = (list_price - quote.total_price) / list_price
+    goods = [i for i in items if i.category != PASSTHROUGH]
+    list_price = sum(base.get(i.sku, i.unit_price) * i.qty for i in goods)
+    if list_price > 0 and not check_discount(list_price, price, rules):
+        discount = (list_price - price) / list_price
         reasons.append(f"折扣 {discount:.1%} 超出销售权限 {rules.discount.max_rate:.0%}")
     return reasons
 
@@ -251,7 +267,7 @@ def _submit(db: Session, user: CurrentUser, quote: Quote) -> str:
         return "提交报价单，规则校验通过，自动审批"
     quote.status = "pending_approval"
     rules = rules_for(quote)
-    margin = check_margin(quote.total_cost, quote.total_price, rules)
+    margin = check_margin(*goods_totals(quote, items), rules)
     gap = None if margin.passed else rules.margin.floor_rate - margin.margin_rate
     hint = approval_hints.quote_hint(db, quote.customer_id, quote.owner_id, reasons, gap)
     approval_service.create_approval(db, "quote", quote, "；".join(reasons), hint)

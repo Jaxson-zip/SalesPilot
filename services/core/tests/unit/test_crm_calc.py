@@ -78,6 +78,14 @@ class TestQuotePricing:
         low = price_quote(self.LINES, 0.3)
         assert low.total_price == 10_500_000 and low.margin_rate == 0.1429 and not low.margin_passed
 
+    def test_passthrough_not_discounted_nor_in_margin(self) -> None:
+        """代垫费用 2 万（成本 = 单价）：原价照收，不打折，不拉低毛利率。"""
+        trip = PricedLine(qty=1, unit_cost=2_000_000, unit_price=2_000_000, passthrough=True)
+        p = price_quote([*self.LINES, trip], 0.2)
+        assert p.total_price == 12_000_000 + 2_000_000
+        assert p.total_cost == 9_000_000 + 2_000_000 and p.list_price == 17_000_000
+        assert p.margin_rate == 0.25 and p.margin_passed  # 和没有代垫费用时一样
+
     def test_rounding_to_fen(self) -> None:
         p = price_quote([PricedLine(qty=1, unit_cost=0, unit_price=333)], 0.1)
         assert p.total_price == 300  # 299.7 → 300

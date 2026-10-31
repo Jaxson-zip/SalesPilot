@@ -4320,7 +4320,7 @@ export interface components {
        * Category
        * @enum {string}
        */
-      category: "hardware" | "software" | "service"
+      category: "hardware" | "software" | "service" | "passthrough"
       /** Unit */
       unit: string
       /** Cost */
@@ -6683,7 +6683,7 @@ export interface components {
       /** Unit Cost */
       unit_cost?: number | null
       /** Category */
-      category?: ("hardware" | "software" | "service") | null
+      category?: ("hardware" | "software" | "service" | "passthrough") | null
     }
     /** QuoteListItem */
     QuoteListItem: {

@@ -22,23 +22,36 @@ export interface DraftRow {
   /** 成本（元，可不填，按 0 算） */
   cost: string
   extra: boolean
+  /**
+   * 代垫费用（只用于自己加的费用）：替客户垫付的差旅、第三方采购等，按成本价收——
+   * 成本 = 单价，不打折，不计提成，不算进毛利率
+   */
+  passthrough: boolean
   /** 目录物料加进来时的单价（分）：改过单价时显示「原价」 */
   basePrice: number | null
 }
 
-type SourceLine = Pick<QuoteLine, "sku" | "name" | "unit" | "qty" | "unit_price" | "unit_cost">
+/** 后端的物料类别：代垫费用 */
+export const PASSTHROUGH = "passthrough" as const
+
+type SourceLine = Pick<QuoteLine, "sku" | "name" | "unit" | "qty" | "unit_price" | "unit_cost"> &
+  Partial<Pick<QuoteLine, "category">>
 
 export function initialDraft(items: SourceLine[]): DraftRow[] {
-  return items.map((it) => ({
-    sku: it.sku,
-    name: it.name,
-    unit: it.unit,
-    qty: String(it.qty),
-    price: fenToYuanInput(it.unit_price),
-    cost: it.unit_cost ? fenToYuanInput(it.unit_cost) : "",
-    extra: isExtraSku(it.sku),
-    basePrice: isExtraSku(it.sku) ? null : it.unit_price,
-  }))
+  return items.map((it) => {
+    const passthrough = it.category === PASSTHROUGH
+    return {
+      sku: it.sku,
+      name: it.name,
+      unit: it.unit,
+      qty: String(it.qty),
+      price: fenToYuanInput(it.unit_price),
+      cost: it.unit_cost && !passthrough ? fenToYuanInput(it.unit_cost) : "",
+      extra: isExtraSku(it.sku),
+      passthrough,
+      basePrice: isExtraSku(it.sku) ? null : it.unit_price,
+    }
+  })
 }
 
 /** 从产品目录加一行（目录价、目录成本） */
@@ -51,6 +64,7 @@ export function catalogRow(item: Pick<PackCatalogItem, "sku" | "name" | "unit" |
     price: fenToYuanInput(item.price),
     cost: item.cost ? fenToYuanInput(item.cost) : "",
     extra: false,
+    passthrough: false,
     basePrice: item.price,
   }
 }
@@ -60,7 +74,7 @@ let seq = 0
 export function newExtraRow(): DraftRow {
   seq += 1
   const sku = `${EXTRA_PREFIX}${Date.now().toString(36)}${seq}`
-  return { sku, name: "", unit: "项", qty: "1", price: "", cost: "", extra: true, basePrice: null }
+  return { sku, name: "", unit: "项", qty: "1", price: "", cost: "", extra: true, passthrough: false, basePrice: null }
 }
 
 /** 折扣输入（百分比，例如 "8" 表示 8%）→ 0–1 的比例；空 = 0；必须 0 ≤ x < 100，最多 1 位小数 */
@@ -83,15 +97,18 @@ interface ParsedRow {
   qty: number
   unitPrice: number
   unitCost: number
+  passthrough: boolean
   valid: boolean
 }
 
 function parseRow(r: DraftRow): ParsedRow {
   const qty = parsePositiveInt(r.qty, { min: 1, max: 100000 })
   const price = yuanToFen(r.price)
-  const cost = r.cost.trim() ? yuanToFen(r.cost) : 0
+  const passthrough = r.extra && r.passthrough
+  // 代垫费用按成本价收：成本就是单价
+  const cost = passthrough ? price : r.cost.trim() ? yuanToFen(r.cost) : 0
   const valid = qty !== null && price !== null && cost !== null && (!r.extra || r.name.trim() !== "")
-  return { sku: r.sku, qty: qty ?? 0, unitPrice: price ?? 0, unitCost: cost ?? 0, valid }
+  return { sku: r.sku, qty: qty ?? 0, unitPrice: price ?? 0, unitCost: cost ?? 0, passthrough, valid }
 }
 
 export interface AdjustPreview {
@@ -104,21 +121,47 @@ export interface AdjustPreview {
   discountAmount: number
   /** 预览合计（分） */
   total: number
-  /** 预估毛利率（合计为 0 时为 null）；保存后以后端为准 */
+  /** 代垫费用合计（分）：原价照收，不打折 */
+  passthroughTotal: number
+  /** 去掉代垫费用后的成交价和成本（分）：毛利率、折扣权限按这部分算 */
+  goodsTotal: number
+  goodsCost: number
+  /** 预估毛利率（不含代垫费用；合计为 0 时为 null）；保存后以后端为准 */
   margin: number | null
+  /** 只有代垫费用、没有物料或服务（后端不允许） */
+  onlyPassthrough: boolean
 }
 
+/** 和 core app.rules.crm_calc.price_quote 一致：整单折扣只打在代垫费用以外的部分 */
 export function previewAdjust(rows: DraftRow[], discountInput: string): AdjustPreview {
   const parsed = rows.map(parseRow)
   const rate = parseDiscountPercent(discountInput)
-  const valid = rows.length > 0 && rate !== null && parsed.every((p) => p.valid)
+  const onlyPassthrough = parsed.length > 0 && parsed.every((p) => p.passthrough)
+  const valid = rows.length > 0 && rate !== null && parsed.every((p) => p.valid) && !onlyPassthrough
   const lines = parsed.map((p) => ({ sku: p.sku, qty: p.qty, subtotal: p.unitPrice * p.qty }))
-  const listTotal = lines.reduce((s, l) => s + l.subtotal, 0)
-  const discountAmount = Math.round(listTotal * (rate ?? 0))
-  const total = listTotal - discountAmount
-  const cost = parsed.reduce((s, p) => s + p.unitCost * p.qty, 0)
-  const margin = total > 0 ? (total - cost) / total : null
-  return { valid, lines, listTotal, discountAmount, total, margin }
+  const goods = parsed.filter((p) => !p.passthrough)
+  const sum = (ps: ParsedRow[], f: (p: ParsedRow) => number) => ps.reduce((s, p) => s + f(p) * p.qty, 0)
+  const passthroughTotal = sum(
+    parsed.filter((p) => p.passthrough),
+    (p) => p.unitPrice,
+  )
+  const goodsList = sum(goods, (p) => p.unitPrice)
+  const goodsCost = sum(goods, (p) => p.unitCost)
+  const discountAmount = Math.round(goodsList * (rate ?? 0))
+  const goodsTotal = goodsList - discountAmount
+  const margin = goodsTotal > 0 ? (goodsTotal - goodsCost) / goodsTotal : null
+  return {
+    valid,
+    lines,
+    listTotal: goodsList + passthroughTotal,
+    discountAmount,
+    total: goodsTotal + passthroughTotal,
+    passthroughTotal,
+    goodsTotal,
+    goodsCost,
+    margin,
+    onlyPassthrough,
+  }
 }
 
 export interface ApprovalRules {
@@ -154,14 +197,17 @@ export function approvalPreview(
   const p = previewAdjust(rows, discountInput)
   if (!p.valid) return null
   const reasons: string[] = []
-  const cost = rows.map(parseRow).reduce((s, r) => s + r.unitCost * r.qty, 0)
-  // 后端毛利率保留 4 位小数后再和底线比
-  const margin = p.total > 0 ? Math.round(((p.total - cost) / p.total) * 10000) / 10000 : 0
-  if (!(p.total > 0 && margin >= rules.floor)) {
+  // 代垫费用两条都不算；后端毛利率保留 4 位小数后再和底线比
+  const { goodsTotal: total, goodsCost: cost } = p
+  const margin = total > 0 ? Math.round(((total - cost) / total) * 10000) / 10000 : 0
+  if (!(total > 0 && margin >= rules.floor)) {
     reasons.push(`毛利 ${(margin * 100).toFixed(1)}% 低于底线 ${Math.round(rules.floor * 100)}%`)
   }
-  const base = p.lines.reduce((s, l) => s + (catalogPrices[l.sku] ?? l.subtotal / l.qty) * l.qty, 0)
-  const off = base > 0 ? (base - p.total) / base : 0
+  const pass = new Set(rows.filter((r) => r.extra && r.passthrough).map((r) => r.sku))
+  const base = p.lines
+    .filter((l) => !pass.has(l.sku))
+    .reduce((s, l) => s + (catalogPrices[l.sku] ?? l.subtotal / l.qty) * l.qty, 0)
+  const off = base > 0 ? (base - total) / base : 0
   if (off > rules.maxDiscount + 1e-9) {
     reasons.push(`比目录价低 ${(off * 100).toFixed(1)}%，超出销售折扣权限 ${Math.round(rules.maxDiscount * 100)}%`)
   }
@@ -173,7 +219,8 @@ const sameRow = (a: DraftRow, b: DraftRow) =>
   a.qty.trim() === b.qty.trim() &&
   a.name.trim() === b.name.trim() &&
   a.price.trim() === b.price.trim() &&
-  a.cost.trim() === b.cost.trim()
+  a.cost.trim() === b.cost.trim() &&
+  a.passthrough === b.passthrough
 
 /** 与原报价相比是否有改动（有改动才显示「保存调整」） */
 export function isAdjustDirty(
@@ -202,6 +249,7 @@ export function toItemsPatch(rows: DraftRow[], discountInput: string): QuoteItem
       unit: r.unit.trim() || "项",
       unit_price: p.unitPrice,
       unit_cost: p.unitCost,
+      category: p.passthrough ? PASSTHROUGH : ("service" as const),
     }
   })
   return { items, discount_rate: rate }

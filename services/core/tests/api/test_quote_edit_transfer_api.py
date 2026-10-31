@@ -270,3 +270,46 @@ def test_lowered_unit_price_counts_as_discount(client: TestClient, tracker: Trac
     detail = client.get(f"/api/quotes/{q['id']}", headers=SALES_H).json()["data"]
     reason = detail["approvals"][0]["reason"]
     assert "折扣 11.6% 超出销售权限" in reason and "毛利" not in reason
+
+
+def test_passthrough_expense(client: TestClient, tracker: Tracker) -> None:
+    """代垫费用：按成本价收（成本强制 = 单价），不打折、不计提成、不拉低毛利率，计入总价。"""
+    opp = new_opp(client, tracker)
+    goods = {"sku": "extra-dev", "qty": 1, "name": "定制开发", "unit_price": 10_000_000}
+    trip = {
+        "sku": "extra-trip",
+        "qty": 1,
+        "name": "差旅代垫",
+        "unit_price": 3_000_000,
+        "unit_cost": 1,  # 传了也不算：代垫费用成本 = 单价
+        "category": "passthrough",
+    }
+    body = {
+        "opportunity_id": opp["id"],
+        "pack": "llm_deploy",
+        "items": [{**goods, "unit_cost": 7_000_000}, trip],
+        "discount_rate": 0.1,
+    }
+    res = client.post("/api/quotes", json=body, headers=SALES_H).json()
+    assert res["code"] == 0, res
+    q = res["data"]
+    tracker.quotes.append(uuid.UUID(q["id"]))
+    # 定制开发 1000 万打 9 折 = 900 万；差旅 300 万原价
+    assert q["total_price"] == 9_000_000 + 3_000_000
+    assert q["total_cost"] == 7_000_000 + 3_000_000
+    assert q["margin_rate"] == round(2_000_000 / 9_000_000, 4)
+    line = next(i for i in q["items"] if i["sku"] == "extra-trip")
+    assert line["category"] == "passthrough" and line["unit_cost"] == 3_000_000
+
+    without = client.post(
+        "/api/quotes",
+        json={**body, "items": [{**goods, "unit_cost": 7_000_000}]},
+        headers=SALES_H,
+    ).json()["data"]
+    tracker.quotes.append(uuid.UUID(without["id"]))
+    # 提成只按 900 万算：和没有代垫费用的报价一样
+    assert q["estimated_commission"] == without["estimated_commission"] > 0
+
+    # 只有代垫费用不能单独报价
+    only = client.post("/api/quotes", json={**body, "items": [trip]}, headers=SALES_H).json()
+    assert only["code"] == 40001 and "只有代垫费用" in only["message"]

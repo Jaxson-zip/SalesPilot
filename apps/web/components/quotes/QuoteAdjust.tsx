@@ -3,6 +3,7 @@
 import { Check, ChevronsUpDown, Plus, RotateCcw, Save, Trash2, TriangleAlert } from "lucide-react"
 import { useState, type ReactNode } from "react"
 
+import { SimpleSelect } from "@/components/biz/FormControls"
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Input } from "@/components/ui/input"
@@ -173,7 +174,7 @@ export function QuoteEditor({
 
       <Section
         label="额外费用"
-        hint="目录里没有的：加急、差旅、第三方服务等"
+        hint="目录里没有的：加急、实施服务；替客户垫付的差旅、采购选「代垫费用」"
         add={
           <Button variant="outline" size="sm" onClick={() => setRows((all) => [...all, newExtraRow()])}>
             <Plus />
@@ -194,23 +195,42 @@ export function QuoteEditor({
               label={`单价 ${i + 1}`}
               prefix="单价"
               placeholder="元"
+              className="w-32"
               value={r.price}
               onChange={(v) => edit(r.sku, { price: v })}
             />
-            <LabeledInput
-              label={`成本 ${i + 1}`}
-              prefix="成本"
-              placeholder="可不填"
-              title="这笔费用自己要付出去的钱（如差旅实际花费），用来算毛利；不填按 0"
-              value={r.cost}
-              onChange={(v) => edit(r.sku, { cost: v })}
+            <SimpleSelect<"service" | "passthrough">
+              ariaLabel={`费用类型 ${i + 1}`}
+              size="sm"
+              className="w-24"
+              value={r.passthrough ? "passthrough" : "service"}
+              onChange={(v) => edit(r.sku, { passthrough: v === "passthrough" })}
+              options={EXTRA_KINDS}
             />
+            {r.passthrough ? (
+              <span
+                className="w-32 text-xs text-zinc-500"
+                title="替客户垫付的钱按实际花费收回：成本 = 单价，不打折、不计提成、不算进毛利率"
+              >
+                按成本价收，不计提成
+              </span>
+            ) : (
+              <LabeledInput
+                label={`成本 ${i + 1}`}
+                prefix="成本"
+                placeholder="可不填"
+                className="w-32"
+                title="这笔费用自己要付出去的钱（如差旅实际花费），用来算毛利；不填按 0"
+                value={r.cost}
+                onChange={(v) => edit(r.sku, { cost: v })}
+              />
+            )}
             <LabeledInput
               label={`数量 ${i + 1}`}
               prefix="数量"
               placeholder="1"
               numeric
-              className="w-24"
+              className="w-20"
               value={r.qty}
               onChange={(v) => edit(r.sku, { qty: v })}
             />
@@ -242,6 +262,9 @@ export function QuoteEditor({
         </div>
         <Row label="折前合计" value={formatFen(preview.listTotal)} />
         <Row label="折扣" value={preview.discountAmount ? `-${formatFen(preview.discountAmount)}` : "—"} />
+        {preview.passthroughTotal ? (
+          <Row label="其中代垫费用" value={formatFen(preview.passthroughTotal)} hint="原价收，不打折" />
+        ) : null}
         <Row
           label={showSaved ? "报价合计" : "预览合计"}
           value={formatFen(showSaved ? saved.total : preview.total)}
@@ -273,7 +296,9 @@ export function QuoteEditor({
             </span>
           </p>
         ) : null}
-        {rows.length && !preview.valid ? (
+        {preview.onlyPassthrough ? (
+          <p className="text-xs text-red-600">报价不能只有代垫费用，至少要有一项物料或服务</p>
+        ) : rows.length && !preview.valid ? (
           <p className="text-xs text-red-600">单价为金额、数量为正整数；折扣为 0–99.9 的百分比；额外费用要填名称</p>
         ) : null}
         {dirty ? (
@@ -364,6 +389,11 @@ function CatalogPicker({ catalog, onPick }: { catalog: PackCatalogItem[]; onPick
     </Popover>
   )
 }
+
+const EXTRA_KINDS: { value: "service" | "passthrough"; label: string }[] = [
+  { value: "service", label: "服务费" },
+  { value: "passthrough", label: "代垫费用" },
+]
 
 /** 带前缀文字的小输入框（单价、成本、数量），输入后也看得出是哪一格 */
 function LabeledInput({

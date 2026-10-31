@@ -53,6 +53,17 @@ test("不经过 AI 新建报价：选客户和产品线，从目录加物料并�
   await expect(hint).toContainText("超出销售折扣权限")
   if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/approval-hint.png`, fullPage: true })
 
+  // 再加一笔代垫差旅：选「代垫费用」后成本框换成说明，合计里单列，原价收
+  await extras.getByRole("button", { name: "添加费用" }).click()
+  await extras.getByLabel("费用名称 2").fill("差旅代垫")
+  await extras.getByLabel("单价 2").fill("3000")
+  await extras.getByRole("combobox", { name: "费用类型 2" }).click()
+  await page.getByRole("option", { name: "代垫费用" }).click()
+  await expect(extras.getByLabel("成本 2")).toHaveCount(0)
+  await expect(extras).toContainText("按成本价收，不计提成")
+  await expect(page.getByText("其中代垫费用")).toBeVisible()
+  if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/passthrough.png`, fullPage: true })
+
   await save.click()
   await expect.poll(() => sent).not.toBeNull()
   const body = sent as unknown as {
@@ -65,7 +76,13 @@ test("不经过 AI 新建报价：选客户和产品线，从目录加物料并�
   expect(body.customer_id).toBeTruthy()
   expect(body.opportunity_id).toBeNull()
   expect(body.items[0]).toMatchObject({ qty: 2, unit_price: 100000 })
-  expect(body.items[1]).toMatchObject({ name: "上门安装", unit_price: 80000, qty: 1 })
+  expect(body.items[1]).toMatchObject({ name: "上门安装", unit_price: 80000, qty: 1, category: "service" })
+  expect(body.items[2]).toMatchObject({
+    name: "差旅代垫",
+    unit_price: 300000,
+    unit_cost: 300000,
+    category: "passthrough",
+  })
   await expect(page).toHaveURL(new RegExp(`/quotes/${existing.items[0].id}$`))
 })
 

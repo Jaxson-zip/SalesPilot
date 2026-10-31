@@ -4,7 +4,12 @@ from pydantic import BaseModel
 
 from app.rules import RuleSet
 
-CATEGORY_LABELS = {"hardware": "硬件", "software": "软件", "service": "服务"}
+CATEGORY_LABELS = {
+    "hardware": "硬件",
+    "software": "软件",
+    "service": "服务",
+    "passthrough": "代垫费用",
+}
 
 
 class RuleItem(BaseModel):

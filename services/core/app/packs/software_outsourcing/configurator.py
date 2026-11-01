@@ -23,6 +23,7 @@ from app.packs.base import (
     price_tier,
 )
 from app.packs.software_outsourcing import drafting
+from app.packs.software_outsourcing.budget import fit_budget
 from app.packs.software_outsourcing.extras import (
     client_costs,
     default_questions,
@@ -137,6 +138,9 @@ class SoftwareOutsourcingConfigurator:
             price_tier(self._build_tier(t, r), self.rules)
             for t in ("economy", "standard", "premium")
         ]
+        fit = self.params["tiers"]["economy"].get("fit_budget")
+        if fit and r.budget and tiers[0].total_price > r.budget:
+            tiers[0] = fit_budget(r, r.budget, self._economy) or tiers[0]
         pick = self._recommend(tiers, r.budget)
         out = [t.model_copy(update={"recommended": t.tier == pick}) for t in tiers]
         if poc := self.poc(r):
@@ -149,6 +153,9 @@ class SoftwareOutsourcingConfigurator:
             note = f"（客户预算比经济版少 {gap:.1f} 万，建议砍掉部分功能或分期）"
             out[0] = out[0].model_copy(update={"summary": out[0].summary + note})
         return out
+
+    def _economy(self, r: SoftwareRequirement) -> SolutionTier:
+        return price_tier(self._build_tier("economy", r), self.rules)
 
     @staticmethod
     def _recommend(tiers: list[SolutionTier], budget: int | None) -> str:

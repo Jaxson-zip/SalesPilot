@@ -91,10 +91,41 @@ def test_deadline_and_budget() -> None:
     budget = (eco.total_price + std.total_price) // 2
     picked = [t.tier for t in cfg().configure(req(budget=budget)) if t.recommended]
     assert picked == ["economy"]
-    # 预算连经济版都不够：仍推荐经济版，并提示砍功能或分期
-    low = cfg().configure(req(budget=eco.total_price // 2))
+    # 预算怎么收缩都放不下：经济版保持原样，提示砍功能或分期
+    low = cfg().configure(req(budget=100))
     assert low[0].recommended and "建议砍掉部分功能或分期" in low[0].summary
+    assert low[0].total_price == eco.total_price
     assert "建议砍掉" not in cfg().configure(req(budget=budget))[0].summary
+
+
+def test_budget_simplifies_economy() -> None:
+    """预算略低于经济版：功能改做基础版，价格放进预算，标准版、高配版不变。"""
+    eco, std, pre = cfg().configure(req())
+    tiers = cfg().configure(req(budget=eco.total_price - 1))
+    fit = tiers[0]
+    assert fit.recommended and fit.total_price < eco.total_price
+    assert "按客户预算" in fit.summary and "二期再做" not in fit.summary
+    assert {m["complexity"] for m in fit.specs["modules"]} == {"simple"}
+    assert fit.margin_ok  # 只减范围、不压单价，毛利照常
+    assert (tiers[1].total_price, tiers[2].total_price) == (std.total_price, pre.total_price)
+
+
+def test_budget_defers_modules_to_phase_two() -> None:
+    """基础版还放不下：把排在后面的模块挪到二期，AI 推断的先挪。"""
+    only_login = req(modules=[{"key": "account", "name": "会员登录", "complexity": "simple"}])
+    budget = cfg().configure(only_login)[0].total_price
+    fit = cfg().configure(req(budget=budget))[0]
+    assert fit.total_price <= budget
+    assert [m["name"] for m in fit.specs["modules"]] == ["会员登录"]
+    assert "二期再做：在线预约" in fit.summary
+    mods = [
+        {"key": "booking", "name": "在线预约", "source": "mentioned"},
+        {"key": "account", "name": "会员登录", "source": "inferred"},
+    ]
+    only_booking = req(modules=[{"key": "booking", "name": "在线预约", "complexity": "simple"}])
+    budget = cfg().configure(only_booking)[0].total_price
+    inferred_first = cfg().configure(req(modules=mods, budget=budget))[0]
+    assert [m["name"] for m in inferred_first.specs["modules"]] == ["在线预约"]
 
 
 def test_extract_hint_lists_library() -> None:

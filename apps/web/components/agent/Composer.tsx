@@ -350,7 +350,7 @@ export function Composer(props: ComposerProps) {
             ? `可以补充说明，例如：这是和明理律所的拜访纪要（不填则「${MATERIAL_DEFAULT_ASK}」）`
             : samples
               ? `可以补充说明，例如：报关单据，每天约 200 票，审核后导出（不填则「${SAMPLE_DEFAULT_ASK}」）`
-              : (placeholder ?? "给 SalesPilot 发消息，例如：给明理律所出一份 Qwen3-32B 私有化方案")
+              : (placeholder ?? "给 SalesPilot 发消息，例如：给客户出一份方案、记一条跟进、算一下提成")
         }
         className="w-full resize-none bg-transparent px-4 pt-3.5 text-base outline-none placeholder:text-zinc-400 md:text-[14px]"
       />

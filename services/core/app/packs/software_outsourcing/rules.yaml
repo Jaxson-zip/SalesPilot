@@ -34,7 +34,8 @@ pack:
     buffer: 0.10
   tiers:
     # scope: must 只做首期必须的模块 / all 全部；platforms: first 只做第一个客户端 / all
-    economy:  {scope: must, platforms: first, ops_months: 0, handover: false, ratios: {qa: 0.15, buffer: 0.05}}
+    # fit_budget: 客户预算放不下经济版时，功能改做基础版，再把排在后面的模块挪到二期（只减范围，不压单价）
+    economy:  {scope: must, platforms: first, ops_months: 0, handover: false, fit_budget: true, ratios: {qa: 0.15, buffer: 0.05}}
     standard: {scope: all,  platforms: all,   ops_months: 1, handover: false}
     premium:  {scope: all,  platforms: all,   ops_months: 6, handover: true,  ratios: {qa: 0.30, buffer: 0.15}}
   # 标准模块库：研发人天 [简单, 中等, 复杂]；keywords 用于大模型不可用时的规则识别

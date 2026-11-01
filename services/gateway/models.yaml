@@ -82,9 +82,19 @@ models:
 
   - alias: embed-qwen
     link: openai_compat
-    model: text-embedding-v4             # 通义 Embedding，默认 1024 维；以官方文档为准
+    model: text-embedding-v3             # 通义 Embedding，默认 1024 维；以官方文档为准
     api_base: ${DASHSCOPE_API_BASE:-https://dashscope.aliyuncs.com/compatible-mode/v1}
     api_key: ${DASHSCOPE_API_KEY}
+    capabilities:
+      stream: false
+      embeddings: true
+      dims: 1024
+
+  - alias: embed-sf
+    link: openai_compat
+    model: BAAI/bge-m3                   # 硅基流动 BGE-M3，1024 维
+    api_base: ${SILICONFLOW_API_BASE:-https://api.siliconflow.cn/v1}
+    api_key: ${SILICONFLOW_API_KEY}
     capabilities:
       stream: false
       embeddings: true
@@ -114,8 +124,8 @@ groups:                       # 分组 = 失败切换顺序；core 默认调用�
   chat-agent: [deepseek-chat, qwen-plus, hunyuan-turbo]   # 只放 tools 能力为 true 的模型
   # Embedding 分组只放一个模型：不同模型的向量不能互相比较，失败切换会让检索结果错乱。
   # 换模型时改这里，然后清空知识库重新入库（python -m app.rag.ingest --scope all --reset）
-  embed: [embed-qwen]
-  rerank: [rerank-qwen]      # 重排分数只用于本次排序，可以失败切换
+  embed: [embed-sf]
+  rerank: []      # 阿里云百炼因本地代理网络分流不可达，重排留空；自动回退为纯向量检索顺序
 
 settings:
   timeout_seconds: 30         # 环境变量 GATEWAY_TIMEOUT_SECONDS 显式设置时以环境变量为准

@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 
 import { Skeleton } from "@/components/ui/skeleton"
+import { usePacks } from "@/hooks/useProductLines"
 import { useTemplates } from "@/hooks/useTemplates"
 import type { PromptTemplate } from "@/types/api"
 
@@ -48,9 +49,11 @@ const ICON_RULES: [RegExp, LucideIcon][] = [
   [/商机|客户/, Building2],
 ]
 
-export function promptCardsFrom(templates: PromptTemplate[]): PromptCard[] {
+/** packExample：当前行业包的出方案例句，替换标了 pack_example 的卡片，免得选了软件外包却示例大模型部署 */
+export function promptCardsFrom(templates: PromptTemplate[], packExample?: string): PromptCard[] {
   return templates.map((t) => ({
-    ...t,
+    title: t.title,
+    prompt: t.pack_example && packExample ? packExample : t.prompt,
     icon: ICON_RULES.find(([re]) => re.test(t.title))?.[1] ?? Sparkles,
   }))
 }
@@ -60,10 +63,21 @@ export function promptCardsFrom(templates: PromptTemplate[]): PromptCard[] {
  * 只放 AI 工具真正做得到的事（不放「算我这个月提成」这类没有数据来源的问题）。
  * learn：学习问答模式的引导问题，只放知识库和系统配置能回答的。
  */
-export function PromptCards({ onPick, learn }: { onPick: (prompt: string) => void; learn?: boolean }) {
+export function PromptCards({
+  onPick,
+  learn,
+  packId,
+}: {
+  onPick: (prompt: string) => void
+  learn?: boolean
+  /** 当前出方案用的行业包 */
+  packId?: string | null
+}) {
   const query = useTemplates()
+  const packs = usePacks()
   if (query.isPending) return <Skeleton className="mt-4 h-24 w-full" />
-  const cards = promptCardsFrom((learn ? query.data?.learn_prompts : query.data?.ai_prompts) ?? [])
+  const example = packs.data?.find((p) => p.id === packId)?.example_prompt
+  const cards = promptCardsFrom((learn ? query.data?.learn_prompts : query.data?.ai_prompts) ?? [], example)
   return (
     <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
       {cards.map((p) => (

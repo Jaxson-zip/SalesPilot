@@ -28,6 +28,7 @@ class PackOut(BaseModel):
     description: str
     version: str
     sample_data: bool = False  # 目录价格和知识库是示例资料
+    example_prompt: str = ""  # 「出方案报价」示例卡片的例句
 
 
 def list_installed_packs() -> list[PackOut]:
@@ -38,6 +39,7 @@ def list_installed_packs() -> list[PackOut]:
             description=p.description,
             version=p.version,
             sample_data=p.sample_data,
+            example_prompt=p.example_prompt,
         )
         for p in list_packs().values()
     ]
@@ -106,6 +108,7 @@ def get_pack_detail(pack_id: str, db: Session | None = None) -> PackDetail:
         description=pack.description,
         version=pack.version,
         sample_data=pack.sample_data,
+        example_prompt=pack.example_prompt,
         catalog=settings_service.catalog_rows(pack),
         rules=load_raw_rules(pack.rules_file, scope=pack.id),
         knowledge=_knowledge(pack, counts),

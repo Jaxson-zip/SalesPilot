@@ -36,6 +36,8 @@ export interface TaskTemplate {
 export interface PromptTemplate {
   title: string
   prompt: string
+  /** 出方案类示例：换成当前行业包的例句（prompt 是兜底） */
+  pack_example?: boolean
 }
 
 /** 规则说明（悬浮提示）：数字由后端按 rules.yaml 填入 */

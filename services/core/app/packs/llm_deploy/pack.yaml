@@ -4,6 +4,8 @@ description: 开源大模型私有化：显存估算、GPU 选型、部署实施
 version: 1.2.0
 # 产品目录价格、知识库为演示用示例资料；换成真实资料后改为 false
 sample_data: true
+# AI 工作台「出方案报价」示例卡片的例句
+example_prompt: "给明理律所出一份 Qwen3-32B 私有化方案，50 人并发，做合同审查，预算 40 万以内"
 
 # 管理员可以在「行业包配置 → 业务规则」里修改的参数（默认值在 rules.yaml 的 pack 段）
 settings:

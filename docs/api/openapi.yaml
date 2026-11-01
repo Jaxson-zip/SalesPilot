@@ -12718,6 +12718,10 @@ components:
           type: boolean
           title: Sample Data
           default: false
+        example_prompt:
+          type: string
+          title: Example Prompt
+          default: ''
         catalog:
           items:
             $ref: '#/components/schemas/CatalogRow'
@@ -12742,6 +12746,7 @@ components:
       - rules
       - knowledge
       - sample_data
+      - example_prompt
       title: PackDetail
     PackOut:
       properties:
@@ -12761,6 +12766,10 @@ components:
           type: boolean
           title: Sample Data
           default: false
+        example_prompt:
+          type: string
+          title: Example Prompt
+          default: ''
       type: object
       required:
       - id
@@ -12768,6 +12777,7 @@ components:
       - description
       - version
       - sample_data
+      - example_prompt
       title: PackOut
     Page_ActivityOut_:
       properties:
@@ -13352,10 +13362,15 @@ components:
         prompt:
           type: string
           title: Prompt
+        pack_example:
+          type: boolean
+          title: Pack Example
+          default: false
       type: object
       required:
       - title
       - prompt
+      - pack_example
       title: PromptTemplate
     PublicQuote:
       properties:

@@ -7,8 +7,10 @@ test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true
 
 test("手机上主要页面不横向溢出，打印页整页缩放显示", async ({ page, request }) => {
   const api = await Api.as(request, "sales")
-  const quote = (await api.call<{ items: { id: string }[] }>("GET", "/api/quotes?page_size=1")).items[0]
-  if (!quote) throw new Error("演示数据里没有报价单，请先运行 seed")
+  const quotes = (await api.call<{ items: { id: string; status: string }[] }>("GET", "/api/quotes?page_size=50")).items
+  // 审批通过后才能打印，选一张能打印的
+  const quote = quotes.find((q) => ["approved", "sent", "accepted"].includes(q.status))
+  if (!quote) throw new Error("演示数据里没有已审批的报价单，请先运行 seed")
   await loginAs(page, "sales")
   for (const path of ["/dashboard", "/ai", "/customers", "/pipeline", "/quotes", `/quotes/${quote.id}`, "/contracts"]) {
     await page.goto(path)

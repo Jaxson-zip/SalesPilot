@@ -153,7 +153,7 @@ function AiWorkbench() {
             ? "查询业务数据，例如：本月全公司销售漏斗怎么样"
             : welcome
               ? undefined
-              : "继续追问，例如：换成 DeepSeek-V3 再算一版"
+              : "继续追问，例如：预算再少一点重新算一版，或者生成报价单"
       }
     />
   )
@@ -203,6 +203,7 @@ function AiWorkbench() {
               mode={w.mode}
               onModeChange={goMode}
               streamingModes={w.streaming}
+              packId={opp.data?.product_line?.pack ?? w.packChoice ?? teamPack.data?.pack}
             />
           </div>
         )}

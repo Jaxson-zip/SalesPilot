@@ -119,7 +119,7 @@ learn_prompts:
 # AI 工作台的示例问题（按角色）
 ai_prompts:
   sales:
-    - { title: 出方案报价, prompt: "给明理律所出一份 Qwen3-32B 私有化方案，50 人并发，做合同审查，预算 40 万以内" }
+    - { title: 出方案报价, prompt: "给明理律所出一份 Qwen3-32B 私有化方案，50 人并发，做合同审查，预算 40 万以内", pack_example: true }
     - { title: 对话报销, prompt: "昨晚请明理律所王律师吃饭花了 860 元，一共 4 个人，帮我报销" }
     - { title: 推进商机, prompt: "把星河设计的商机推进到商务谈判" }
     - { title: 记跟进, prompt: "帮我记一下：今天和明理律所王律师通了电话，对方希望下周看演示" }

@@ -25,7 +25,7 @@ import { useQuote } from "@/hooks/useQuotes"
 import { useOpportunityRequirement } from "@/hooks/useRequirement"
 import { formatFen, formatPercent } from "@/lib/format"
 import { useTemplates } from "@/hooks/useTemplates"
-import { PRINT_COMPANY, printDocTitle, printScope, printTotals } from "@/lib/quote-print"
+import { canPrintQuote, PRINT_COMPANY, printDocTitle, printScope, printTotals } from "@/lib/quote-print"
 import { fenToRmbUpper } from "@/lib/rmb"
 import type { QuoteDetail } from "@/types/api"
 
@@ -134,6 +134,13 @@ export default function QuotePrintPage() {
         <QueryError error={query.error} onRetry={() => void query.refetch()} feature="报价单" />
       </div>
     )
+  else if (!canPrintQuote(query.data.status))
+    // 直接打开打印地址也不给打：按钮在详情页已经隐藏
+    body = (
+      <div className="mx-auto my-6 max-w-xl rounded-lg bg-white p-6 text-center text-zinc-600">
+        审批通过后才能打印正式报价单，当前状态的价格还不能发给客户。
+      </div>
+    )
   else body = <QuoteSheet q={query.data} showUpper={showUpper} />
 
   return (
@@ -146,15 +153,21 @@ export default function QuotePrintPage() {
           </Link>
         </Button>
         <span className="min-w-0 flex-1 truncate text-zinc-500">{q ? printDocTitle(q) : "报价单"}</span>
-        <label className="flex items-center gap-2 text-zinc-600">
-          <Checkbox checked={showUpper} onCheckedChange={(v) => setShowUpper(v === true)} aria-label="显示大写金额" />
-          <span className="max-sm:hidden">显示大写金额</span>
-        </label>
-        {q ? (
-          <Button size="sm" onClick={() => window.print()}>
-            <Printer />
-            打印 / 存为 PDF
-          </Button>
+        {q && canPrintQuote(q.status) ? (
+          <>
+            <label className="flex items-center gap-2 text-zinc-600">
+              <Checkbox
+                checked={showUpper}
+                onCheckedChange={(v) => setShowUpper(v === true)}
+                aria-label="显示大写金额"
+              />
+              <span className="max-sm:hidden">显示大写金额</span>
+            </label>
+            <Button size="sm" onClick={() => window.print()}>
+              <Printer />
+              打印 / 存为 PDF
+            </Button>
+          </>
         ) : null}
       </div>
       {body}

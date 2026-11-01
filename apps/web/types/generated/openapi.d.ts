@@ -6332,6 +6332,11 @@ export interface components {
        * @default false
        */
       sample_data: boolean
+      /**
+       * Example Prompt
+       * @default
+       */
+      example_prompt: string
       /** Catalog */
       catalog: components["schemas"]["CatalogRow"][]
       /** Rules */
@@ -6356,6 +6361,11 @@ export interface components {
        * @default false
        */
       sample_data: boolean
+      /**
+       * Example Prompt
+       * @default
+       */
+      example_prompt: string
     }
     /** Page[ActivityOut] */
     Page_ActivityOut_: {
@@ -6671,6 +6681,11 @@ export interface components {
       title: string
       /** Prompt */
       prompt: string
+      /**
+       * Pack Example
+       * @default false
+       */
+      pack_example: boolean
     }
     /** PublicQuote */
     PublicQuote: {

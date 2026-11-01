@@ -1,7 +1,17 @@
 /** 报价单打印页的纯函数：合计、折扣（均来自后端返回的明细与总价，不重新计算价格规则） */
 import type { QuoteDetail, QuoteLine } from "@/types/api"
 
+import { canShareQuote } from "@/lib/share"
+
 export const PRINT_COMPANY = "SalesPilot 演示公司"
+
+/**
+ * 能否打印正式报价单：和分享链接一样，审批通过后才行。
+ * 打印出来的 PDF 就是发给客户的，草稿、待审批、已驳回的价格不能先流出去。
+ */
+export function canPrintQuote(status: string): boolean {
+  return canShareQuote(status)
+}
 
 export interface PrintTotals {
   /** 明细小计之和（折前，分） */

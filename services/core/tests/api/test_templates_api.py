@@ -51,6 +51,16 @@ def test_ai_prompts_by_role(client: TestClient) -> None:
     assert "全公司漏斗" in titles(ADMIN_H)
 
 
+def test_solution_prompt_follows_pack(client: TestClient) -> None:
+    """出方案示例卡片标了 pack_example，每个行业包都给出自己的例句（前端按当前行业包替换）。"""
+    prompts = client.get("/api/templates", headers=SALES_H).json()["data"]["ai_prompts"]
+    assert [p["title"] for p in prompts if p["pack_example"]] == ["出方案报价"]
+    packs = client.get("/api/packs", headers=SALES_H).json()["data"]
+    examples = {p["id"]: p["example_prompt"] for p in packs}
+    assert all(examples.values()) and len(set(examples.values())) == len(examples)
+    assert "小程序" in examples["software_outsourcing"]
+
+
 def test_templates_require_login(client: TestClient) -> None:
     r = client.get("/api/templates")
     assert r.status_code == 401 and r.json()["code"] == 40101

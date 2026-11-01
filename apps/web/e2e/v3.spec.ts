@@ -154,6 +154,15 @@ test.describe("v3：报价调价与打印", () => {
     const quote = await draftQuote(api)
 
     await loginAs(page, "sales")
+    // 草稿不能打印：详情页没有打印按钮，直接打开打印地址只有提示
+    await page.goto(`/quotes/${quote.id}`)
+    await expect(page.getByRole("link", { name: "打印报价单" })).toHaveCount(0)
+    await page.goto(`/quotes/${quote.id}/print`)
+    await expect(page.getByText("审批通过后才能打印正式报价单")).toBeVisible()
+    await expect(page.getByRole("button", { name: "打印 / 存为 PDF" })).toHaveCount(0)
+
+    // 提交后毛利达标自动通过（演示方案毛利高于审批线），再打印
+    await api.call("POST", `/api/quotes/${quote.id}/submit`)
     await page.goto(`/quotes/${quote.id}`)
     await page
       .getByRole("link", { name: "打印报价单" })

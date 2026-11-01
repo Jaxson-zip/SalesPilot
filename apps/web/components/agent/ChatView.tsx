@@ -12,6 +12,7 @@ import type { AgentMode } from "@/lib/agent-mode"
 import { feedbackSlots } from "@/lib/agent-feedback"
 import type { AssistantTurn, ChatTurn } from "@/lib/agent-reducer"
 import type { QtyEdits } from "@/lib/bom-adjust"
+import { nextStick } from "@/lib/chat-scroll"
 import { cn } from "@/lib/utils"
 import type { ResumeDecision } from "@/types/api"
 
@@ -119,8 +120,11 @@ export function ChatView({
     const el = scrollRef.current
     const content = contentRef.current
     if (!el || !content) return
+    let lastTop = el.scrollTop
     const onScroll = () => {
-      stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+      const { scrollTop: top, scrollHeight, clientHeight } = el
+      stick.current = nextStick(stick.current, { lastTop, top, scrollHeight, clientHeight })
+      lastTop = top
     }
     const follow = () => {
       if (!stick.current) return

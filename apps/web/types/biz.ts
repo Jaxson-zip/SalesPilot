@@ -511,4 +511,6 @@ export interface PackOut {
   version: string
   /** 产品目录价格和知识库是演示用的示例资料 */
   sample_data: boolean
+  /** AI 工作台「出方案报价」示例卡片的例句（行业包 pack.yaml） */
+  example_prompt?: string
 }

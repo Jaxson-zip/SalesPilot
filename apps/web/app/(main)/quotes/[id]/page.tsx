@@ -22,6 +22,7 @@ import { quoteActionConfirm } from "@/lib/confirm-texts"
 import { formatRelative } from "@/lib/format"
 import { availableQuoteActions, primaryQuoteAction, QUOTE_ACTIONS, quoteToBom } from "@/lib/quote-actions"
 import { canShareQuote } from "@/lib/share"
+import { canPrintQuote } from "@/lib/quote-print"
 import type { QuoteAction, QuoteDetail } from "@/types/api"
 
 /** 报价内容变化（保存调整后后端重新计算）时重新挂载调价面板 */
@@ -153,7 +154,9 @@ export default function QuoteDetailPage() {
       actions={
         q ? (
           <>
-            <FrameAction icon={Printer} label="打印报价单" href={`/quotes/${encodeURIComponent(q.id)}/print`} />
+            {canPrintQuote(q.status) ? (
+              <FrameAction icon={Printer} label="打印报价单" href={`/quotes/${encodeURIComponent(q.id)}/print`} />
+            ) : null}
             {canEdit(q.owner?.id) && canShareQuote(q.status) ? <QuoteShareButton q={q} /> : null}
             {buttons}
             {q && q.status === "pending_approval" && canEdit(q.owner?.id) ? (

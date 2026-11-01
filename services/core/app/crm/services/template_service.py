@@ -54,6 +54,8 @@ class TaskTemplate(BaseModel):
 class PromptTemplate(BaseModel):
     title: str
     prompt: str
+    # 出方案类示例：前端换成当前行业包的 example_prompt（这里的 prompt 是没有例句时的兜底）
+    pack_example: bool = False
 
 
 class Templates(BaseModel):

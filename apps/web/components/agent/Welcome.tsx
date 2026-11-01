@@ -51,6 +51,7 @@ export function Welcome({
   mode = "work",
   onModeChange,
   streamingModes,
+  packId,
 }: {
   composer: ReactNode
   onPick: (prompt: string) => void
@@ -59,6 +60,8 @@ export function Welcome({
   mode?: AgentMode
   onModeChange?: (mode: AgentMode) => void
   streamingModes?: Partial<Record<AgentMode, boolean>>
+  /** 当前出方案用的行业包：示例卡片按它给例句 */
+  packId?: string | null
 }) {
   const { role } = useSession()
   const learn = mode === "learn"
@@ -81,7 +84,7 @@ export function Welcome({
         </div>
         <p className="mb-6 text-center text-zinc-500">{intro.desc}</p>
         {composer}
-        <PromptCards onPick={onPick} learn={learn} />
+        <PromptCards onPick={onPick} learn={learn} packId={packId} />
         {learn ? <SampleNotice /> : null}
       </div>
     </div>

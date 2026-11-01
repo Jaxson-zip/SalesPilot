@@ -22,6 +22,8 @@ from app.crm.models import AgentThread
 from app.crm.services import settings_service
 from app.crm.services.demo import DEMO_USERS
 from app.packs.registry import list_packs
+from app.rag import retriever
+from app.rag.retriever import PolicySearchResult
 from tests.api.conftest import SALES_H
 from tests.scripted_llm import ScriptedModel, call
 
@@ -134,3 +136,47 @@ def test_templates_and_packs_expose_learn_prompts_and_sample_flag(client: TestCl
     assert packs and all(p["sample_data"] is True for p in packs)
     detail = client.get(f"/api/packs/{packs[0]['id']}", headers=SALES_H).json()["data"]
     assert detail["sample_data"] is True
+
+
+def _capture_scopes(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
+    seen: list[list[str]] = []
+
+    def fake_search(_db: Any, _query: str, scopes: list[str], **_kw: Any) -> PolicySearchResult:
+        seen.append(scopes)
+        return PolicySearchResult(found=False, sources=[])
+
+    monkeypatch.setattr(retriever, "search", fake_search)
+    return seen
+
+
+def test_learn_mode_searches_every_pack(monkeypatch: pytest.MonkeyPatch) -> None:
+    """回归：学习问答原来只查团队默认行业包，问软件外包的问题查不到《需求变更与验收》。"""
+    seen = _capture_scopes(monkeypatch)
+    llm = ScriptedModel(
+        script=[call("search_policy", {"query": "中途加功能怎么收费"}, "c1"), AIMessage("没找到")]
+    )
+    events = _chat(_deps(llm), InMemorySaver(), "客户开发到一半要加功能，怎么收费？", "learn")
+    assert seen == [["company", *(f"pack:{p}" for p in list_packs())]]
+    assert "全部行业资料" in _of(events, "tool.end")[0]["summary"]
+    # 系统注入的字段不暴露给模型
+    assert "all_packs" not in json.dumps(TOOLS["search_policy"].openai_schema())
+
+
+def test_learn_mode_still_honours_named_pack(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen = _capture_scopes(monkeypatch)
+    llm = ScriptedModel(
+        script=[
+            call("search_policy", {"query": "源码", "pack": "software_outsourcing"}, "c1"),
+            AIMessage("没找到"),
+        ]
+    )
+    _chat(_deps(llm), InMemorySaver(), "软件外包的源码给不给客户？", "learn")
+    assert seen == [["company", "pack:software_outsourcing"]]
+
+
+def test_work_mode_searches_current_pack_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen = _capture_scopes(monkeypatch)
+    spec = TOOLS["search_policy"]
+    ctx = ToolContext(user=DEMO_USERS[Role.SALES], session=session_scope, thread_id=THREAD)
+    spec.func(ctx, spec.args_model(query="报销标准", pack_id="llm_deploy"))
+    assert seen == [["company", "pack:llm_deploy"]]

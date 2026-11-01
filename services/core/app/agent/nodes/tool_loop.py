@@ -138,7 +138,11 @@ def _allowed(deps: AgentDeps, state: AgentState) -> set[str]:
 
 def _system_args(deps: AgentDeps, state: AgentState, call_id: str) -> dict[str, Any]:
     pack = state.get("pack_id") or deps.ctx.default_pack
-    return {"idempotency_key": f"agent:{deps.ctx.thread_id}:{call_id}", "pack_id": pack}
+    return {
+        "idempotency_key": f"agent:{deps.ctx.thread_id}:{call_id}",
+        "pack_id": pack,
+        "all_packs": state.get("mode") == "learn",
+    }
 
 
 def _skip(call_id: str, reason: str) -> ToolMessage:

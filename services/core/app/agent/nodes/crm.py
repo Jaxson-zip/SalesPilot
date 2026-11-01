@@ -24,7 +24,8 @@ def _args_for(name: str, text: str, state: AgentState, found: list[dict[str, Any
     if name == "search_customer":
         return {"keyword": text[:200]}
     if name == "search_policy":
-        return {"query": text[:500], "pack_id": state.get("pack_id")}
+        learn = state.get("mode") == "learn"
+        return {"query": text[:500], "pack_id": state.get("pack_id"), "all_packs": learn}
     return {}
 
 

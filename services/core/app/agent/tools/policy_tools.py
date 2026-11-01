@@ -26,6 +26,8 @@ class SearchPolicyArgs(BaseModel):
     query: str = Field(min_length=1, max_length=500)
     # 系统注入：当前会话的行业包（关联商机的产品线 → 团队默认产品线 → 系统默认）
     pack_id: str | None = Field(default=None, description="当前行业包；为空时只查公司制度")
+    # 系统注入：学习问答不绑定商机，查全部行业包（新人要了解所有产品线）
+    all_packs: bool = False
     pack: str | None = Field(
         default=None,
         description=f"用户明确点名的行业包，可选：{_pack_choices()}。"
@@ -33,12 +35,16 @@ class SearchPolicyArgs(BaseModel):
     )
 
 
-def _scope(args: SearchPolicyArgs) -> tuple[str | None, str]:
-    """实际检索的行业包：用户点名的优先，其次是当前会话的；返回 (pack_id, 范围说明)。"""
+def _scope(args: SearchPolicyArgs) -> tuple[str | None, list[str], str]:
+    """实际检索范围：用户点名的行业包优先，其次是学习问答的全部行业包，再次是当前会话的；
+    返回 (pack_id, scopes, 范围说明)。"""
     packs = list_packs()
+    if args.all_packs and args.pack not in packs:
+        scopes = ["company", *(f"pack:{p}" for p in packs)]
+        return None, scopes, "全部行业资料和公司制度"
     pack = args.pack if args.pack in packs else args.pack_id
     label = f"「{packs[pack].name}」行业资料和公司制度" if pack in packs else "公司制度"
-    return pack, label
+    return pack, retriever.scopes_for(pack), label
 
 
 def _rules_fallback(exc: BizError) -> ToolResult:
@@ -55,8 +61,7 @@ def _rules_fallback(exc: BizError) -> ToolResult:
 
 
 def search_policy(ctx: ToolContext, args: SearchPolicyArgs) -> ToolResult:
-    pack, label = _scope(args)
-    scopes = retriever.scopes_for(pack)
+    pack, scopes, label = _scope(args)
     try:
         with ctx.session() as db:
             result = retriever.search(db, args.query, scopes, request_id=ctx.request_id)

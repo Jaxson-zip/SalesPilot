@@ -75,8 +75,9 @@ class ToolSpec:
         }
 
 
-# 由系统填写、不让模型生成的参数：幂等键（模型编的不可靠）、行业包（由商机产品线决定）
-INJECTED_ARGS = frozenset({"idempotency_key", "pack_id"})
+# 由系统填写、不让模型生成的参数：幂等键（模型编的不可靠）、行业包（由商机产品线决定）、
+# 是否查全部行业包（由会话模式决定）
+INJECTED_ARGS = frozenset({"idempotency_key", "pack_id", "all_packs"})
 
 
 def inject_system_args(

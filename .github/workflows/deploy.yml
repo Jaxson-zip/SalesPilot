@@ -73,17 +73,42 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    permissions:
+      packages: read
     steps:
+      - name: Lowercase repository owner
+        id: prep
+        run: echo "owner_lc=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          REG_USER: ${{ github.actor }}
+          REG_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMG: ghcr.io/${{ steps.prep.outputs.owner_lc }}
+          SHA: ${{ github.sha }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
           key: ${{ secrets.SSH_KEY }}
+          envs: REG_USER,REG_TOKEN,IMG,SHA
+          # 任何一步失败就让流水线失败：原来 `pull || true` 把拉镜像失败吞掉，服务器一直跑旧镜像却显示部署成功
           script: |
+            set -e
             cd /srv/salespilot
-            git pull origin main
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || true
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T core alembic upgrade head
+            # 服务器上不改入库文件（HTTPS 配置由 docker-compose.prod.yml 挂载），直接对齐远端；.env、证书不在版本库里，不受影响
+            git fetch origin main
+            git reset --hard origin/main
+            # 拉本次 CI 构建的镜像（按 commit 固定版本），再打成 compose 默认用的 salespilot-*:latest：
+            # 原来直接 pull salespilot-*:latest 会去 Docker Hub 镜像站找，根本不存在；打标签后手动 dc up -d 也用新镜像
+            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+            echo "$REG_TOKEN" | docker login ghcr.io -u "$REG_USER" --password-stdin
+            for s in core web gateway; do
+              docker pull "$IMG/salespilot-$s:$SHA"
+              docker tag "$IMG/salespilot-$s:$SHA" "salespilot-$s:latest"
+            done
+            dc="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+            $dc up -d
+            $dc exec -T core alembic upgrade head
+            $dc ps

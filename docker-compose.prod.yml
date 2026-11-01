@@ -65,4 +65,6 @@ services:
       - "${NGINX_PORT:-80}:80"
       - "${NGINX_HTTPS_PORT:-443}:443"
     volumes:
+      # 同一个容器路径会覆盖基础文件里的挂载：线上用 HTTPS 配置，本地 --profile prod 仍用只有 HTTP 的 default.conf
+      - ./infra/nginx/https.conf:/etc/nginx/conf.d/default.conf:ro
       - ./infra/nginx/certs:/etc/nginx/certs:ro

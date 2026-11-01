@@ -15,7 +15,8 @@ FROM base AS builder
 # rewrites 在构建时求值：/api/* → ${CORE_INTERNAL_URL}/api/*
 ARG CORE_INTERNAL_URL=http://core:8000
 ENV CORE_INTERNAL_URL=${CORE_INTERNAL_URL} \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    NODE_OPTIONS="--max-old-space-size=1024"
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build

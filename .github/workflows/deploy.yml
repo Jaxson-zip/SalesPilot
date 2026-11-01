@@ -73,17 +73,17 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: false # 设置为 true 并在 GitHub Secrets 配置 SSH_HOST, SSH_USER, SSH_KEY 后可全自动一键部署
     steps:
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /srv/salespilot
             git pull origin main
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull || true
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
             docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T core alembic upgrade head

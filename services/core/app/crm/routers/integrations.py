@@ -6,9 +6,7 @@ from starlette.concurrency import run_in_threadpool
 from app.common.auth import CurrentUserDep
 from app.common.response import ApiResponse, ok
 from app.crm.routers.deps import DbDep
-from app.crm.services import model_config_service as models
-from app.crm.services import wecom_service
-from app.crm.services.model_config_service import (
+from app.crm.schemas.model_config import (
     BuiltinIn,
     BuiltinTestIn,
     CustomIn,
@@ -18,6 +16,8 @@ from app.crm.services.model_config_service import (
     ModelConfigOut,
     TestOut,
 )
+from app.crm.services import model_config_service as models
+from app.crm.services import wecom_service
 from app.crm.services.wecom_service import PushOut, WecomConfigIn, WecomConfigOut
 
 router = APIRouter(prefix="/api/integrations", tags=["integrations"])

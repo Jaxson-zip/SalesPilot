@@ -87,3 +87,15 @@ FIELD_LABELS: dict[str, str] = {
     "platforms": "要做哪些端（网站 / 小程序 / App / 管理后台）",
     "modules": "主要功能（例如预约、支付、会员、数据报表）",
 }
+
+
+def dedupe_modules(modules: list[Module]) -> list[Module]:
+    """同一个标准模块只算一次（自定义模块按名称去重）。"""
+    seen: set[str] = set()
+    out: list[Module] = []
+    for m in modules:
+        k = m.key if m.key != "custom" else f"custom:{m.name}"
+        if k not in seen:
+            seen.add(k)
+            out.append(m)
+    return out

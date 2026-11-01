@@ -11,8 +11,12 @@ from sqlalchemy import delete, select
 
 from app.common.config import get_settings
 from app.common.db import session_scope
+from app.common.errors import BizError, ErrorCode
 from app.crm.models import AuditLog, Integration, KbChunk
+from app.crm.services import model_config_reindex as reindex
 from app.crm.services import model_config_service as svc
+from app.crm.services import model_config_store as store
+from app.crm.services import model_config_view as view
 from app.llm import client as llm_client
 from tests.api.conftest import ADMIN_H, MANAGER_H
 
@@ -66,7 +70,7 @@ class FakeGateway:
 
     def __call__(self, method: str, path: str, body: dict[str, Any] | None = None) -> dict:
         if self.down:
-            raise svc.BizError(svc.ErrorCode.UPSTREAM, "down")
+            raise BizError(ErrorCode.UPSTREAM, "down")
         if path == "config" and method == "PUT":
             self.config = dict(body or {})
             self.pushes += 1
@@ -81,7 +85,7 @@ class FakeGateway:
             m = p["models"][0]
             dims = m["capabilities"].get("dims") or 1024 if m["kind"] == "embedding" else None
             caps = {"tools": True, "stream": True, "stream_tools": False, "json_mode": True}
-            alias = svc.custom_alias(p["id"], m["model"])
+            alias = store.custom_alias(p["id"], m["model"])
             ok = p["api_key"] != "sk-wrong-key"
             return {
                 "ok": ok,
@@ -112,7 +116,7 @@ class FakeGateway:
             models = [
                 {
                     **_model(
-                        svc.custom_alias(p["id"], m["model"]),
+                        store.custom_alias(p["id"], m["model"]),
                         m["kind"],
                         m["capabilities"]["tools"],
                         m["capabilities"].get("dims"),
@@ -138,7 +142,7 @@ def gateway(monkeypatch: pytest.MonkeyPatch) -> Iterator[FakeGateway]:
     monkeypatch.setattr(llm_client, "gateway_admin", fake)
     yield fake
     with session_scope() as db:
-        db.execute(delete(Integration).where(Integration.kind == svc.KIND))
+        db.execute(delete(Integration).where(Integration.kind == store.KIND))
 
 
 def _builtin(data: dict, var: str) -> dict:
@@ -147,7 +151,7 @@ def _builtin(data: dict, var: str) -> dict:
 
 def _offline_status() -> dict:
     with session_scope() as db:
-        return svc._status(db, svc._load(db), None).model_dump()
+        return view.status(db, store.load(db), None).model_dump()
 
 
 def _put_builtin(client: TestClient, **body: Any) -> Any:
@@ -180,7 +184,7 @@ def test_builtin_key_encrypted_pushed_and_masked(client: TestClient, gateway: Fa
         gateway.config["builtin"]["HUNYUAN_API_KEY"]["key"] == SECRET and gateway.config["version"]
     )
     with session_scope() as db:
-        row = db.scalar(select(Integration).where(Integration.kind == svc.KIND))
+        row = db.scalar(select(Integration).where(Integration.kind == store.KIND))
         assert row is not None and SECRET not in str(row.config)  # 库里是密文
         log = db.scalar(
             select(AuditLog)
@@ -377,7 +381,7 @@ def chunk() -> Iterator[uuid.UUID]:
 
 def _wait_job() -> None:
     for _ in range(100):
-        if not svc._JOB:
+        if not reindex.JOB:
             return
         time.sleep(0.05)
     raise AssertionError("reindex did not finish")
@@ -386,8 +390,10 @@ def _wait_job() -> None:
 def test_switch_embedding_rebuilds_then_switches(
     client: TestClient, gateway: FakeGateway, chunk: uuid.UUID, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    only_mine = svc._load_chunks
-    monkeypatch.setattr(svc, "_load_chunks", lambda db: [c for c in only_mine(db) if c[0] == chunk])
+    only_mine = reindex.load_chunks
+    monkeypatch.setattr(
+        reindex, "load_chunks", lambda db: [c for c in only_mine(db) if c[0] == chunk]
+    )
     dims = get_settings().embedding_dims
     calls: list[tuple[list[str], str | None]] = []
 
@@ -418,8 +424,10 @@ def test_switch_embedding_rebuilds_then_switches(
 def test_switch_embedding_failure_keeps_old_model(
     client: TestClient, gateway: FakeGateway, chunk: uuid.UUID, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    only_mine = svc._load_chunks
-    monkeypatch.setattr(svc, "_load_chunks", lambda db: [c for c in only_mine(db) if c[0] == chunk])
+    only_mine = reindex.load_chunks
+    monkeypatch.setattr(
+        reindex, "load_chunks", lambda db: [c for c in only_mine(db) if c[0] == chunk]
+    )
     monkeypatch.setattr(llm_client, "embed_texts", lambda texts, **_: [[0.1] * 8 for _ in texts])
     client.put(f"{URL}/custom/kimi", json=KIMI, headers=ADMIN_H)
     client.post(f"{URL}/embedding", json={"alias": "kimi-kimi-embed"}, headers=ADMIN_H)

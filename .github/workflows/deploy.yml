@@ -93,6 +93,8 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           key: ${{ secrets.SSH_KEY }}
           envs: REG_USER,REG_TOKEN,IMG,SHA
+          # 阿里云服务器从 ghcr 拉镜像较慢（core 首次约 9 分钟），默认 10 分钟会超时
+          command_timeout: 40m
           # 任何一步失败就让流水线失败：原来 `pull || true` 把拉镜像失败吞掉，服务器一直跑旧镜像却显示部署成功
           script: |
             set -e

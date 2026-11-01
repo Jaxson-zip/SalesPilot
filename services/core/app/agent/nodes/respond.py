@@ -123,12 +123,25 @@ def _chat_messages(state: AgentState, note: str) -> list[BaseMessage]:
     return [_system(state, note, CHITCHAT_RULE), *state.get("messages", [])[-10:]]
 
 
+# 出方案链路的步骤用中文名交给模型：原来给的是函数名，回复里会写出「已通过 check_margin 校验」
+STEP_LABELS = {
+    "parse_requirement": "理解需求",
+    "configure_solution": "配置方案",
+    "check_margin": "毛利校验",
+    "generate_quote": "生成报价单",
+}
+
+
 def _llm_messages(state: AgentState, draft: str, note: str = "") -> list[BaseMessage]:
-    context = "\n".join(f"- {e['tool']}：{e['summary']}" for e in state.get("tool_log", []))
+    context = "\n".join(
+        f"- {STEP_LABELS.get(e['tool'], e['tool'])}：{e['summary']}"
+        for e in state.get("tool_log", [])
+    )
+    head = "【工具结果，只能引用其中的数字；回复里不要写工具名或英文函数名】"
     return [
         _system(state, note),
         *state.get("messages", [])[-10:],
-        HumanMessage(content=f"【工具结果，只能引用其中的数字】\n{context}\n【参考回复】\n{draft}"),
+        HumanMessage(content=f"{head}\n{context}\n【参考回复】\n{draft}"),
     ]
 
 

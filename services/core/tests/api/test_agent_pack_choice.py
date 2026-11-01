@@ -77,3 +77,16 @@ def test_unknown_pack_rejected(client: TestClient) -> None:
     body = {"thread_id": THREAD, "message": "你好", "pack": "nope"}
     r = client.post("/api/agent/chat", json=body, headers=SALES_H)
     assert r.json()["code"] == ErrorCode.VALIDATION
+
+
+def test_solution_flow_uses_chosen_pack() -> None:
+    """回归：选了软件外包，出方案节点又按团队默认（大模型部署）取行业包，追问并发和模型。"""
+    ctx = ToolContext(user=DEMO_USERS[Role.SALES], session=session_scope, thread_id=THREAD)
+    deps = AgentDeps(ctx=ctx, resolve_pack=lambda _o: "llm_deploy", llm=None)
+    msg = "帮我出方案：做一个蛋糕预订微信小程序，在线支付，会员积分"
+    run = service.prepare_chat(
+        deps, msg, None, checkpointer=InMemorySaver(), pack="software_outsourcing"
+    )
+    events = list(iter_graph_events(run.graph, run.payload, run.config, run.thread_id))
+    card = next(e["data"] for e in events if e["event"] == "artifact")
+    assert card["type"] == "requirement" and card["data"]["pack_id"] == "software_outsourcing"

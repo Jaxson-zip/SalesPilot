@@ -4485,6 +4485,8 @@ export interface components {
        * @enum {string}
        */
       mode?: "work" | "learn"
+      /** Pack */
+      pack?: string | null
     }
     /** ChatModelOut */
     ChatModelOut: {
@@ -7605,6 +7607,8 @@ export interface components {
        * @enum {string}
        */
       mode: "work" | "learn"
+      /** Pack Choice */
+      pack_choice: string | null
       running: components["schemas"]["RunningInfo"] | null
     }
     /** ThreadPage */

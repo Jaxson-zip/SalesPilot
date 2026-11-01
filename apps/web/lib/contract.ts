@@ -1,6 +1,6 @@
 /** 合同回款的纯函数：进度百分比、登记回款前的前端校验（最终以 core 的 42201 为准） */
 import { formatFen } from "@/lib/format"
-import { yuanToFen } from "@/lib/money"
+import { fenToYuanInput, yuanToFen } from "@/lib/money"
 import type { ContractItem } from "@/types/api"
 
 /** paid_ratio（0–1）→ 0–100 的整数百分比，越界时夹紧 */
@@ -16,6 +16,13 @@ export function paidPercent(ratio: number): number {
 
 export function unpaidOf(c: Pick<ContractItem, "amount" | "paid_amount">): number {
   return Math.max(0, c.amount - c.paid_amount)
+}
+
+/** 登记回款时预填的金额（元，输入框格式）：下一期还没收的部分，没有回款计划时为全部未回款；已收齐为空 */
+export function suggestedPayment(c: Pick<ContractItem, "amount" | "paid_amount" | "next_payment">): string {
+  const unpaid = unpaidOf(c)
+  const next = c.next_payment ? Math.min(c.next_payment.amount, unpaid) : unpaid
+  return next > 0 ? fenToYuanInput(next) : ""
 }
 
 export type PaymentCheck = { ok: true; amount: number } | { ok: false; error: string }

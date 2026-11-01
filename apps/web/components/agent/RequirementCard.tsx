@@ -248,7 +248,7 @@ export function RequirementCard({
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-100 px-3.5 py-2.5">
         <span className="text-xs text-zinc-500">
-          {sent ? "已确认，正在生成正式报价" : "价格按模块人天由报价引擎计算，确认后生成三档报价"}
+          {sent ? "需求已确认，正式报价在下方生成" : "价格按模块人天由报价引擎计算，确认后生成三档报价"}
         </span>
         {locked ? null : (
           <Button size="sm" onClick={confirm} disabled={!canConfirm(req)}>

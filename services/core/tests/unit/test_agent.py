@@ -155,6 +155,13 @@ class TestSolutionFlow:
         assert any(e["event"] == "artifact" and e["data"]["type"] == "quote" for e in resumed)
         text = "".join(e["data"]["text"] for e in resumed if e["event"] == "message.delta")
         assert "Q-2026-001" in text and "372,000" in text
+        # 回归：出方案链路生成报价单后没推执行结果，确认卡片一直停在「正在执行…」、也没有报价单入口
+        res = next(
+            e["data"]["data"]
+            for e in resumed
+            if e["event"] == "artifact" and e["data"]["type"] == "action_result"
+        )
+        assert res["status"] == "done" and res["href"].startswith("/quotes/")
 
     def test_approve_with_another_tier(self, tool_ctx: ToolContext, fake_quotes: None) -> None:
         """销售在卡片上另选经济版：报价单按经济版生成；档位不存在则 40001。"""
@@ -330,3 +337,12 @@ class TestClarifyFlow:
         events = run_chat(make_deps(tool_ctx), InMemorySaver(), SOLUTION_MSG)
         arts = [e["data"]["type"] for e in events if e["event"] == "artifact"]
         assert "requirement" not in arts and "solution_tiers" in arts
+
+
+def test_reply_context_uses_chinese_step_names() -> None:
+    """回归：交给回复模型的工具结果用的是函数名，回复里出现「已通过 check_margin 校验」。"""
+    from app.agent.nodes.respond import _llm_messages
+
+    state = {"tool_log": [{"tool": "check_margin", "summary": "毛利达标"}], "messages": []}
+    last = _llm_messages(state, "草稿")[-1].content  # type: ignore[arg-type]
+    assert "毛利校验：毛利达标" in last and "- check_margin" not in last

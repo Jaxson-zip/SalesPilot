@@ -9259,6 +9259,12 @@ components:
           - learn
           title: Mode
           default: work
+        pack:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Pack
       type: object
       required:
       - thread_id
@@ -15084,6 +15090,11 @@ components:
           - learn
           title: Mode
           default: work
+        pack_choice:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pack Choice
         running:
           anyOf:
           - $ref: '#/components/schemas/RunningInfo'
@@ -15095,6 +15106,7 @@ components:
       - pending
       - opportunity_id
       - mode
+      - pack_choice
       - running
       title: ThreadMessages
     ThreadPage:

@@ -91,7 +91,9 @@ def make_parse_requirement(deps: AgentDeps) -> Node:
         linked = link_customer(deps, state)
         opp_id = linked.get("opportunity_id", state.get("opportunity_id"))
         try:
-            pack_id = deps.resolve_pack(opp_id)
+            # 没关联商机时用销售在输入框选的行业包（回归：原来这里又按团队默认重新取了一遍）
+            choice = None if opp_id else state.get("pack_choice")
+            pack_id = choice or deps.resolve_pack(opp_id)
         except BizError as exc:
             return {"error": {"code": exc.code, "message": exc.message}}
         configurator = get_configurator(pack_id)
@@ -419,15 +421,17 @@ def make_save_quote(deps: AgentDeps) -> Node:
             "idempotency_key": key,
         }
         result = call_tool(deps, "generate_quote", args, confirmed=True)  # confirm 节点之后
+        log = log_tool(state, "generate_quote", result)
+        if result.ok:
+            emit("artifact", {"type": "quote", "data": result.data})
         # 确认卡片按执行结果显示「已完成 · 查看报价单」或失败原因（原来一直停在「正在执行…」）
+        # 只推给界面、不写进 state：state 里的 action_result 会让 respond 改用固定的执行结果文案
         emit(
             "artifact",
             {"type": "action_result", "data": action_result("generate_quote", "approve", result)},
         )
-        log = log_tool(state, "generate_quote", result)
         if not result.ok:
             return {"error": tool_error(result), "tool_log": log}
-        emit("artifact", {"type": "quote", "data": result.data})
         return {"quote": result.data, "tool_log": log}
 
     return save_quote

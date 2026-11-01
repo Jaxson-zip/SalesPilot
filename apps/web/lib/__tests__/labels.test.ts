@@ -41,6 +41,10 @@ describe("状态标签（照抄契约 §0）", () => {
     expect(activityActionLabel("approval_approve", "expense")).toBe("主管通过了报销")
     expect(activityActionLabel("payment", "contract")).toBe("登记了回款")
     expect(activityActionLabel("create", "unknown_subject")).toBe("创建了记录")
+    // 回归：工作台动态曾直接显示 share / viewed
+    expect(activityActionLabel("share", "quote")).toBe("生成了报价分享链接")
+    expect(activityActionLabel("viewed", "quote")).toBe("客户查看了报价")
+    expect(activityActionLabel("share_revoked", "quote")).toBe("撤销了报价分享链接")
   })
 
   it("契约 §0 动作代码表里的每个代码都有中文（回归：v3 曾直接显示 task_done）", () => {

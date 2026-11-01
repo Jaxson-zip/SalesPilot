@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { FormField, MoneyInput } from "@/components/biz/FormControls"
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { useRegisterPayment } from "@/hooks/useContracts"
 import { paymentConfirm } from "@/lib/confirm-texts"
-import { checkPayment, unpaidOf } from "@/lib/contract"
+import { checkPayment, suggestedPayment, unpaidOf } from "@/lib/contract"
 import { formatFen } from "@/lib/format"
 import type { ContractItem } from "@/types/api"
 
@@ -25,6 +25,10 @@ export function PaymentDialog({ contract, onClose }: { contract: ContractItem | 
   const [error, setError] = useState<string>()
   const pay = useRegisterPayment()
   const { ask, dialog } = useConfirmAction()
+  // 打开时预填下一期还没收的金额，客户付的不是整期时再改
+  useEffect(() => {
+    if (contract) setAmount(suggestedPayment(contract))
+  }, [contract])
   const close = () => {
     setAmount("")
     setError(undefined)
@@ -52,7 +56,17 @@ export function PaymentDialog({ contract, onClose }: { contract: ContractItem | 
               : ""}
           </DialogDescription>
         </DialogHeader>
-        <FormField label="本次回款金额" required error={error} hint="提成按回款比例自动确认" htmlFor="pay-amount">
+        <FormField
+          label="本次回款金额"
+          required
+          error={error}
+          hint={
+            contract?.next_payment
+              ? `已按下一期「${contract.next_payment.name}」未收金额预填，可修改；提成按回款比例自动确认`
+              : "提成按回款比例自动确认"
+          }
+          htmlFor="pay-amount"
+        >
           <MoneyInput
             id="pay-amount"
             value={amount}

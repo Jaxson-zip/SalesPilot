@@ -2,7 +2,7 @@
 export const TOOL_TITLES: Record<string, string> = {
   start_solution: "转入出方案",
   parse_requirement: "理解需求",
-  configure_solution: "估算算力",
+  configure_solution: "配置方案",
   query_catalog: "查询产品目录",
   check_margin: "毛利校验",
   generate_quote: "生成报价单",

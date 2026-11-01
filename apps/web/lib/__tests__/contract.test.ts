@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { checkPayment, contractHref, paidPercent, unpaidOf } from "@/lib/contract"
+import { checkPayment, contractHref, paidPercent, suggestedPayment, unpaidOf } from "@/lib/contract"
 
 describe("合同回款", () => {
   const c = { amount: 81000000, paid_amount: 32400000 }
@@ -28,5 +28,23 @@ describe("合同回款", () => {
 describe("合同跳转", () => {
   it("报价「查看合同」直接打开这一份合同", () => {
     expect(contractHref("c-1")).toBe("/contracts?plan=c-1")
+  })
+})
+
+describe("登记回款预填金额", () => {
+  const next = {
+    name: "签约首付款",
+    amount: 2_760_000,
+    due_date: "2026-11-01",
+    status: "pending" as const,
+    overdue_days: 0,
+  }
+  it("按下一期没收的金额预填，不超过未回款", () => {
+    expect(suggestedPayment({ amount: 9_200_000, paid_amount: 0, next_payment: next })).toBe("27600")
+    expect(suggestedPayment({ amount: 9_200_000, paid_amount: 9_000_000, next_payment: next })).toBe("2000")
+  })
+  it("没有回款计划时预填全部未回款，已收齐为空", () => {
+    expect(suggestedPayment({ amount: 10_050, paid_amount: 0, next_payment: null })).toBe("100.50")
+    expect(suggestedPayment({ amount: 100, paid_amount: 100, next_payment: null })).toBe("")
   })
 })

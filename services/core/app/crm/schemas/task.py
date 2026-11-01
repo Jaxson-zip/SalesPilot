@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.common.auth import Role
 from app.crm.schemas.common import UserBrief
+from app.crm.schemas.fields import PlanTime, TaskTitle
 
 TaskType = Literal["call", "visit", "email", "meeting", "todo"]
 TaskSubject = Literal["customer", "opportunity"]
@@ -31,8 +32,8 @@ class TaskItem(BaseModel):
 
 
 class TaskCreate(BaseModel):
-    title: str = Field(min_length=1, max_length=200)
-    due_at: datetime  # 不带时区时按北京时间
+    title: TaskTitle
+    due_at: PlanTime  # 不带时区时按北京时间
     subject_type: TaskSubject
     subject_id: uuid.UUID
     type: TaskType = "todo"
@@ -42,8 +43,8 @@ class TaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     """只修改传入的字段；done=true 完成任务（写 Activity task_done），done=false 重新打开。"""
 
-    title: str | None = Field(default=None, min_length=1, max_length=200)
-    due_at: datetime | None = None
+    title: TaskTitle | None = None
+    due_at: PlanTime | None = None
     note: str | None = Field(default=None, max_length=2000)
     type: TaskType | None = None
     done: bool | None = None

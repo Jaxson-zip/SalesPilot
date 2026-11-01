@@ -43,12 +43,12 @@ const TOGGLEABLE = contractColumns()
   .slice(1)
   .map((c) => ({ id: c.id, label: c.label }))
 
-/** StatStrip：本月成交 / 本月预估提成 / 待回款 */
+/** StatStrip：本月成交 / 累计预估提成 / 待回款（提成是全部合同的合计，不是本月；本月数在工作台） */
 function StatStrip({ s, loading }: { s: ContractSummary | undefined; loading: boolean }) {
   const items = [
     { k: "本月成交", v: formatFen(s?.month_amount) },
     {
-      k: "本月预估提成",
+      k: "累计预估提成",
       v: formatFen(s?.estimated_commission),
       sub: s ? `已确认 ${formatFen(s.confirmed_commission)}` : "",
     },

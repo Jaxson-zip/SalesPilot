@@ -4,10 +4,12 @@
 - 电话：去掉首尾空格；空串视为没填；要像电话号码（数字、+、空格、横线、括号，可带分机）
 - 发生日期：不能晚于今天（北京时间）
 - 网站：只接受 http / https 地址（javascript:、data: 等一律拒绝）；只写域名的补成 https://
+- 金额：不超过 100 亿元（多打了几个 0、以及超出数据库 bigint 时返回 500 的问题）
+- 计划日期（预计成交、任务截止）：2000 年以后、今天起 10 年以内（防 1900、2999 这类误填）
 """
 
 import re
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated
 from urllib.parse import urlsplit
 
@@ -80,6 +82,42 @@ def _not_future(v: date | None) -> date | None:
 
 
 PastDate = Annotated[date, AfterValidator(_not_future)]
+
+MAX_AMOUNT_FEN = 10**12  # 100 亿元
+
+
+def _amount(v: int | None) -> int | None:
+    if v is not None and v > MAX_AMOUNT_FEN:
+        raise ValueError("金额不能超过 100 亿元，请检查是否多填了几个 0")
+    return v
+
+
+Amount = Annotated[int, Field(ge=0), AfterValidator(_amount)]
+PositiveAmount = Annotated[int, Field(gt=0), AfterValidator(_amount)]
+
+PLAN_YEARS = 10
+
+
+def _plan_day(v: date) -> date:
+    today = local_today()
+    if v < date(2000, 1, 1) or v > today.replace(year=today.year + PLAN_YEARS):
+        raise ValueError(f"日期不合理：要在 2000 年以后、{PLAN_YEARS} 年以内")
+    return v
+
+
+def _plan_date(v: date | None) -> date | None:
+    return None if v is None else _plan_day(v)
+
+
+def _plan_time(v: datetime | None) -> datetime | None:
+    if v is not None:
+        _plan_day(v.date())
+    return v
+
+
+PlanDate = Annotated[date, AfterValidator(_plan_date)]
+PlanTime = Annotated[datetime, AfterValidator(_plan_time)]
+TaskTitle = Annotated[str, _required("任务标题"), Field(max_length=200)]
 
 
 _BARE_DOMAIN = re.compile(r"^[\w-]+(?:\.[\w-]+)+(?::\d+)?(?:[/?#]\S*)?$")

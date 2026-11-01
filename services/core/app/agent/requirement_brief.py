@@ -11,6 +11,7 @@ from app.agent.money import yuan_text
 from app.common.errors import BizError
 from app.packs.registry import get_configurator, get_pack
 
+ROOT_MISSING_LABEL = "具体要做什么、规模多大"
 _SKIP = {"questions", "samples"}  # 待确认问题、样例汇总不算「已经给过的信息」
 
 
@@ -64,3 +65,25 @@ def solution_progress(pack_id: str | None, requirement: dict[str, Any], confirme
         f"调用 start_solution。用户只是纠正方向（例如「不是电脑采购，是软件开发」）时，"
         f"简短确认现在就是按「{pack}」处理，再提示在需求卡片上核对；不要重复上一轮已经问过的问题。"
     )
+
+
+def missing_labels(
+    pack_id: str | None, missing: list[str], invalid: dict[str, str] | None = None
+) -> list[str]:
+    """追问字段的中文说明（取需求模型字段的 description）。
+
+    整体校验（__root__）用需求模型的 missing_hint，没有时用通用说法；不认识的字段名不外露。
+    """
+    try:
+        model = get_configurator(pack_id or "").requirement_model
+    except Exception:
+        model = None
+    fields = model.model_fields if model else {}
+    root = getattr(model, "missing_hint", None) or ROOT_MISSING_LABEL
+    labels = [(fields[f].description or root) if f in fields else root for f in missing]
+    # 填了但不合理的字段带上原因，别像没听到用户说的数
+    labels = [
+        f"{label}（{(invalid or {})[f]}）" if f in (invalid or {}) else label
+        for f, label in zip(missing, labels, strict=True)
+    ]
+    return list(dict.fromkeys(labels))

@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.crm.schemas.common import UserBrief
-from app.crm.schemas.fields import CustomerName, Website
+from app.crm.schemas.fields import Amount, CustomerName, Website
 
 Level = Literal["A", "B", "C"]
 
@@ -38,7 +38,7 @@ class CustomerCreate(BaseModel):
     size: str | None = Field(default=None, max_length=50)
     address: str | None = Field(default=None, max_length=200)
     website: Website = None
-    annual_budget: int | None = Field(default=None, ge=0)
+    annual_budget: Amount | None = None
     tags: list[str] = Field(default_factory=list, max_length=20)
 
 
@@ -51,7 +51,7 @@ class CustomerUpdate(BaseModel):
     size: str | None = Field(default=None, max_length=50)
     address: str | None = Field(default=None, max_length=200)
     website: Website = None
-    annual_budget: int | None = Field(default=None, ge=0)
+    annual_budget: Amount | None = None
 
 
 class PoolRelease(BaseModel):

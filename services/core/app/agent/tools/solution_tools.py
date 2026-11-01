@@ -31,14 +31,42 @@ def missing_fields(model: type[BaseModel], data: dict[str, Any]) -> list[str]:
     return []
 
 
+_LIMIT_TEXT = {
+    "greater_than": "要大于 {gt}",
+    "greater_than_equal": "不能小于 {ge}",
+    "less_than": "要小于 {lt}",
+    "less_than_equal": "不能超过 {le}",
+}
+
+
+def invalid_fields(model: type[BaseModel], data: dict[str, Any]) -> dict[str, str]:
+    """填了但超出范围的字段 → 说明（「你给的是 1000000，不能超过 10000」）；没填的不算。
+
+    回归：并发填 100 万、-10 时追问「还需要确认：并发用户数」，像是没听到用户说的数。
+    """
+    try:
+        model.model_validate(data)
+    except ValidationError as exc:
+        out: dict[str, str] = {}
+        for e in exc.errors():
+            field = str(e["loc"][0]) if e["loc"] else ""
+            limit = _LIMIT_TEXT.get(e["type"])
+            if field and limit and data.get(field) is not None:
+                out[field] = f"你给的是 {data[field]}，{limit.format(**(e.get('ctx') or {}))}"
+        return out
+    return {}
+
+
 def parse_requirement(ctx: ToolContext, args: ParseRequirementArgs) -> ToolResult:
     configurator = get_configurator(args.pack_id)
     merged = {**args.draft, **configurator.draft_requirement(args.text), **args.extracted}
     if fill := getattr(configurator, "fill_defaults", None):  # 可选：行业包在合并后补默认值
         merged = fill(merged)
     missing = missing_fields(configurator.requirement_model, merged)
-    summary = "需求完整" if not missing else f"缺少：{', '.join(missing)}"
-    return ToolResult(ok=True, summary=summary, data={"requirement": merged, "missing": missing})
+    invalid = invalid_fields(configurator.requirement_model, merged)
+    summary = "需求完整" if not missing else f"缺少或不合理：{', '.join(missing)}"
+    data = {"requirement": merged, "missing": missing, "invalid": invalid}
+    return ToolResult(ok=True, summary=summary, data=data)
 
 
 class ConfigureArgs(BaseModel):

@@ -9,6 +9,7 @@ from app.agent.tools.base import (
     run_tool,
 )
 from app.agent.tools.context_tools import CONTEXT_TOOLS
+from app.agent.tools.contract_tools import CONTRACT_TOOLS
 from app.agent.tools.crm_tools import CRM_TOOLS
 from app.agent.tools.handoff_tools import HANDOFF_TOOL, HANDOFF_TOOLS
 from app.agent.tools.learn_tools import LEARN_TOOLS
@@ -23,6 +24,7 @@ TOOLS: dict[str, ToolSpec] = {
         *CRM_TOOLS,
         *MATERIAL_TOOLS,
         *CONTEXT_TOOLS,
+        *CONTRACT_TOOLS,
         *SOLUTION_TOOLS,
         *POLICY_TOOLS,
         *LEARN_TOOLS,
@@ -46,6 +48,8 @@ CHAT_TOOL_NAMES: tuple[str, ...] = (
     "submit_expense",
     "pipeline_summary",
     "calc_commission",
+    "list_contracts",
+    "team_targets",
     "search_policy",
     "get_business_overview",
     "list_pending_approvals",
@@ -62,6 +66,8 @@ READ_ONLY_TOOLS = frozenset(
         "get_company_intel",
         "pipeline_summary",
         "calc_commission",
+        "list_contracts",
+        "team_targets",
         "search_policy",
         "get_business_overview",
     }

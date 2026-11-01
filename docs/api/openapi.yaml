@@ -14821,7 +14821,6 @@ components:
         title:
           type: string
           maxLength: 200
-          minLength: 1
           title: Title
         due_at:
           type: string
@@ -14958,7 +14957,6 @@ components:
           anyOf:
           - type: string
             maxLength: 200
-            minLength: 1
           - type: 'null'
           title: Title
         due_at:

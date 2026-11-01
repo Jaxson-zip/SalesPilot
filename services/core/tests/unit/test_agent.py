@@ -66,6 +66,8 @@ class TestTools:
             "get_customer_context",
             "list_pending_approvals",
             "get_business_overview",
+            "list_contracts",
+            "team_targets",
         }
         assert set(TOOLS) == expected
         confirm = {n for n, t in TOOLS.items() if t.needs_confirm}

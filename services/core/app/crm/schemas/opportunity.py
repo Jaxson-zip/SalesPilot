@@ -7,7 +7,7 @@ from typing import Literal, Self
 from pydantic import BaseModel, Field, model_validator
 
 from app.crm.schemas.common import ActivityOut, CustomerBrief, ProductLineBrief, UserBrief
-from app.crm.schemas.fields import OpportunityName
+from app.crm.schemas.fields import Amount, OpportunityName, PlanDate
 from app.crm.schemas.quote import QuoteListItem
 from app.crm.schemas.task import NextTask
 
@@ -78,9 +78,9 @@ class OpportunityDetail(OpportunityItem):
 class OpportunityCreate(BaseModel):
     customer_id: uuid.UUID
     name: OpportunityName
-    amount: int = Field(ge=0)
+    amount: Amount
     win_rate: int = Field(default=10, ge=0, le=100)
-    expected_close_date: date | None = None
+    expected_close_date: PlanDate | None = None
     product_line_id: uuid.UUID | None = None
 
 
@@ -88,9 +88,9 @@ class OpportunityUpdate(BaseModel):
     """只修改传入的字段。"""
 
     name: OpportunityName | None = None
-    amount: int | None = Field(default=None, ge=0)
+    amount: Amount | None = None
     win_rate: int | None = Field(default=None, ge=0, le=100)
-    expected_close_date: date | None = None
+    expected_close_date: PlanDate | None = None
     product_line_id: uuid.UUID | None = None
 
 

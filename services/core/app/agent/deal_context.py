@@ -12,7 +12,7 @@ from app.agent.money import yuan_text
 from app.agent.tools.base import ToolContext
 from app.crm.schemas.common import PageParams
 from app.crm.schemas.opportunity import FINAL_STAGES, STAGE_LABELS
-from app.crm.services import customer_service
+from app.crm.services import customer_service, user_service
 from app.crm.services import opportunity_service as opp_service
 from app.crm.services.deal_state_service import DealState, get_deal_state
 from app.rules.crm_calc import LOCAL_TZ
@@ -97,3 +97,23 @@ def deal_brief(ctx: ToolContext, opportunity_id: str | None, customer_id: str | 
     except Exception:
         logger.warning("deal_brief failed opp=%s customer=%s", opportunity_id, customer_id)
     return None
+
+
+ROLE_NAMES = {"sales": "销售", "manager": "主管", "admin": "管理员"}
+
+
+def colleagues_note(ctx: ToolContext) -> str | None:
+    """本团队同事名单（管理员看全部）：让模型分清同事和客户联系人。
+
+    回归：主管说「以张晨的身份记跟进」，模型把销售张晨当成了客户方联系人。
+    """
+    try:
+        with ctx.session() as db:
+            users = user_service.list_users(db, ctx.user).items[:40]
+    except Exception:
+        logger.warning("colleagues_note failed", exc_info=True)
+        return None
+    if not users:
+        return None
+    names = "、".join(f"{u.name}（{ROLE_NAMES.get(u.role.value, u.role.value)}）" for u in users)
+    return f"## 公司内部同事（不是客户联系人）\n{names}"

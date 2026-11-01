@@ -31,6 +31,7 @@ class AgentState(TypedDict):
     # 没关联商机时销售在输入框选的行业包（跨轮次保留；关联了商机以商机产品线为准）
     pack_choice: NotRequired[str | None]
     requirement: NotRequired[dict[str, Any]]  # 跨轮次累积的需求草稿
+    invalid: NotRequired[dict[str, str]]  # 填了但超出范围的字段 → 说明（追问时带上）
     # 需求已由销售在需求卡片上确认（跨轮次保留；功能 / 端变了会回到待确认）
     requirement_confirmed: NotRequired[bool]
     confirmed_requirement: NotRequired[dict[str, Any] | None]  # 本轮从需求卡片提交的确认结果

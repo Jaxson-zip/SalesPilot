@@ -26,9 +26,10 @@ from app.agent.nodes.common import (
 )
 from app.agent.nodes.customer_link import choose_pack, link_customer, request_text
 from app.agent.nodes.requirement_fields import extract_with_llm
+from app.agent.requirement_brief import missing_labels
 from app.agent.samples import describe
 from app.agent.state import AgentState
-from app.agent.tools.solution_tools import missing_fields
+from app.agent.tools.solution_tools import invalid_fields, missing_fields
 from app.common.errors import BizError
 from app.crm.services import requirement_service
 from app.packs.base import MarginHint, SampleSummary, SolutionTier, adjust_tier
@@ -90,6 +91,7 @@ def make_parse_requirement(deps: AgentDeps) -> Node:
             "requirement": requirement,
             "requirement_confirmed": is_confirmed,
             "missing": missing,
+            "invalid": invalid_fields(configurator.requirement_model, requirement),
             "tool_log": log_tool(state, "parse_requirement", result),
         }
         if confirmed and not out["missing"]:
@@ -215,28 +217,14 @@ def clarify_text(card: dict[str, Any]) -> str:
 
 
 # 需求模型整体校验没过（不对应某个字段）时的追问；不能把 __root__ 这类技术字段给用户看
-ROOT_MISSING_LABEL = "具体要做什么、规模多大"
-
-
-def missing_labels(pack_id: str | None, missing: list[str]) -> list[str]:
-    """追问字段的中文说明（取需求模型字段的 description）。
-
-    整体校验（__root__）用需求模型的 missing_hint，没有时用通用说法；不认识的字段名不外露。
-    """
-    try:
-        model = get_configurator(pack_id or "").requirement_model
-    except Exception:
-        model = None
-    fields = model.model_fields if model else {}
-    root = getattr(model, "missing_hint", None) or ROOT_MISSING_LABEL
-    labels = [(fields[f].description or root) if f in fields else root for f in missing]
-    return list(dict.fromkeys(labels))
 
 
 def make_ask_user(deps: AgentDeps) -> Node:
     def ask_user(state: AgentState) -> dict[str, Any]:
         node_start("ask_user")
-        labels = missing_labels(state.get("pack_id"), state.get("missing", []))
+        labels = missing_labels(
+            state.get("pack_id"), state.get("missing", []), state.get("invalid")
+        )
         head = emit_notice(state)
         text = f"为了给出准确的配置和报价，还需要确认：{'；'.join(labels)}。"
         emit("message.delta", {"text": text})

@@ -347,3 +347,19 @@ def search_customers(
     by_name = {r.Customer.name: r for r in candidates}
     ranked = rank_by_similarity(keyword, list(by_name))[:limit]
     return [_brief(by_name[name]) for name in ranked]
+
+
+def search_by_opportunity(
+    db: Session, user: CurrentUser, keyword: str, limit: int = 5
+) -> list[tuple[CustomerSearchItem, str]]:
+    """客户名匹配不到时按商机名找（销售常直接说「质检助手那单」）：返回 (客户, 命中的商机名)。"""
+    pattern = f"%{keyword.strip()}%"
+    stmt = select(Opportunity.customer_id, Opportunity.name).where(Opportunity.name.ilike(pattern))
+    hits = db.execute(apply_scope(stmt, Opportunity, user).limit(limit)).all()
+    names: dict[uuid.UUID, str] = {}
+    for h in hits:
+        names.setdefault(h.customer_id, h.name)
+    if not names:
+        return []
+    rows = db.execute(build_list_query(user, None, None).where(Customer.id.in_(names))).all()
+    return [(_brief(r), names[r.Customer.id]) for r in rows]

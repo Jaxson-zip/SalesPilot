@@ -148,7 +148,7 @@ def test_margin_hint_roundtrip() -> None:
 
 def test_missing_labels_never_show_root() -> None:
     """回归：办公 IT 需求整体校验没过，追问显示成「还需要确认：root」（__root__ 被加粗）。"""
-    from app.agent.nodes.solution import ROOT_MISSING_LABEL, missing_labels
+    from app.agent.requirement_brief import ROOT_MISSING_LABEL, missing_labels
     from app.agent.tools.solution_tools import missing_fields
     from app.packs.it_office.requirement import ItOfficeRequirement
 

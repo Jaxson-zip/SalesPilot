@@ -31,15 +31,23 @@ from app.rules.crm_calc import LOCAL_TZ
 
 
 class SearchCustomerArgs(BaseModel):
-    keyword: str = Field(min_length=1, max_length=200, description="客户名称关键字")
+    keyword: str = Field(
+        min_length=1, max_length=200, description="客户名称关键字；也可以是商机名（如「质检助手」）"
+    )
 
 
 def search_customer(ctx: ToolContext, args: SearchCustomerArgs) -> ToolResult:
+    """按客户名找；找不到再按商机名找（回归：「质检助手那单丢了」查客户名查不到就卡住了）。"""
     with ctx.session() as db:
         found = customer_service.search_customers(db, ctx.user, args.keyword)
+        by_opp = [] if found else customer_service.search_by_opportunity(db, ctx.user, args.keyword)
+    if by_opp:
+        data = [{**c.model_dump(mode="json"), "matched_opportunity": o} for c, o in by_opp]
+        names = "、".join(f"{c.name}（商机「{o}」）" for c, o in by_opp)
+        return ToolResult(ok=True, summary=f"客户名没匹配到，按商机名找到：{names}", data=data)
     data = [c.model_dump(mode="json") for c in found]
     if not found:
-        return ToolResult(ok=True, summary="没有匹配的客户", data=data)
+        return ToolResult(ok=True, summary="没有匹配的客户或商机", data=data)
     if len(found) > 1:
         return ToolResult(ok=True, summary=f"匹配到 {len(found)} 个客户，请确认", data=data)
     return ToolResult(ok=True, summary=found[0].name, data=data)
@@ -107,7 +115,9 @@ def pipeline_summary(ctx: ToolContext, args: EmptyArgs) -> ToolResult:
     with ctx.session() as db:
         out = opp_service.pipeline_summary(db, ctx.user)
     total = sum(s.count for s in out.stages)
-    return ToolResult(ok=True, summary=f"共 {total} 个商机", data=out.model_dump())
+    # 累计口径：不分月份、不按人拆分（回归：模型把累计赢单说成「本月」）
+    summary = f"共 {total} 个商机（累计口径，不分月份、不按人；本月业绩和按人对比用 team_targets）"
+    return ToolResult(ok=True, summary=summary, data=out.model_dump())
 
 
 class CalcCommissionArgs(BaseModel):

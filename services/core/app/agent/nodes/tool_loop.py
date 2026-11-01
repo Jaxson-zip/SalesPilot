@@ -28,15 +28,14 @@ from langchain_core.messages import (
 from langgraph.types import interrupt
 
 from app.agent.action_result import action_result
-from app.agent.deal_context import deal_brief
+from app.agent.deal_context import colleagues_note, deal_brief
 from app.agent.deps import AgentDeps
 from app.agent.money import annotate_money
 from app.agent.nodes.common import call_tool, emit, log_tool, node_start
 from app.agent.nodes.crm import run_rule_plan
 from app.agent.nodes.router import classify_intent
-from app.agent.nodes.solution import missing_labels
 from app.agent.prompts import learn_prompt, role_limits, system_prompt
-from app.agent.requirement_brief import solution_progress
+from app.agent.requirement_brief import missing_labels, solution_progress
 from app.agent.runtime import runtime_note
 from app.agent.state import AgentState
 from app.agent.tools import HANDOFF_TOOL, TOOLS, ToolResult, inject_system_args, tools_for
@@ -53,6 +52,9 @@ TOOL_RULES = """
 - search_customer 匹配到多个客户时，列出候选让用户选，不要自己挑。
 - 金额参数一律以「分」为单位（860 元 = 86000）。
 - 信息不全（例如报销没说金额、日期）时先问用户，不要猜。
+- 时间对不上时先问清楚再写：用户说「明天 / 下周……拜访了、谈好了」这类把将来时间当成已发生的，
+  先确认是已经发生（日期说错了）还是计划（应该建任务）；报销只能报已经发生的费用，
+  发生日期在今天之后的直接说明要等费用发生后再报，不要继续追问报销信息。
 - 写操作（记跟进、改阶段、提交报销、建任务、审批、整理材料）信息齐全时直接调用工具：
   系统会弹出确认卡片，用户确认后才执行。不要先用文字问「确认吗」，否则用户要确认两次。
 - 写工具结果里 status=done 表示已经写入完成：回复「已……」并说明结果，不要再让用户确认；
@@ -109,7 +111,8 @@ def _system(deps: AgentDeps, state: AgentState) -> SystemMessage:
         if learn
         else deal_brief(deps.ctx, state.get("opportunity_id"), state.get("customer_id"))
     )
-    parts = [base, note, deal, None if learn else solution_note(state), rules]
+    team = None if learn else colleagues_note(deps.ctx)
+    parts = [base, note, deal, team, None if learn else solution_note(state), rules]
     return SystemMessage(content="\n\n".join(p for p in parts if p))
 
 

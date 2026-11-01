@@ -26,8 +26,9 @@ services:
     restart: unless-stopped
     logging: *logging
     healthcheck:
-      timeout: 15s
-      interval: 15s
+      timeout: 10s
+      interval: 60s
+      start_period: 30s
 
   core:
     image: ${CORE_IMAGE:-salespilot-core:latest}
@@ -35,8 +36,9 @@ services:
     restart: unless-stopped
     logging: *logging
     healthcheck:
-      timeout: 15s
-      interval: 15s
+      timeout: 10s
+      interval: 60s
+      start_period: 30s
     depends_on:
       db:
         condition: service_healthy

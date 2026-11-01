@@ -36,6 +36,7 @@ from app.agent.nodes.crm import run_rule_plan
 from app.agent.nodes.router import classify_intent
 from app.agent.nodes.solution import missing_labels
 from app.agent.prompts import learn_prompt, role_limits, system_prompt
+from app.agent.requirement_brief import solution_progress
 from app.agent.runtime import runtime_note
 from app.agent.state import AgentState
 from app.agent.tools import HANDOFF_TOOL, TOOLS, ToolResult, inject_system_args, tools_for
@@ -88,11 +89,9 @@ def solution_note(state: AgentState) -> str | None:
             f"## 方案进行中\n上一轮出方案时追问了：{'、'.join(labels)}。"
             "用户这句话如果是在回答这些问题或补充需求，调用 start_solution。"
         )
-    if state.get("requirement"):
-        return (
-            "## 方案进行中\n这个会话已经在出方案（有需求草稿）。用户这句话如果是在补充或修改需求"
-            "（功能模块、端、预算、工期、人数、模型、并发等），调用 start_solution。"
-        )
+    if requirement := state.get("requirement"):
+        confirmed = bool(state.get("requirement_confirmed"))
+        return solution_progress(state.get("pack_id"), requirement, confirmed)
     return None
 
 

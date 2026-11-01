@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { StatCard } from "@/components/biz/StatCard"
+import { pendingCardHint, pendingCardHref } from "@/lib/approvals"
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed"
 import { FunnelChart } from "@/components/dashboard/FunnelChart"
 import { PipelineOverview } from "@/components/dashboard/PipelineOverview"
@@ -60,12 +61,14 @@ export default function DashboardPage() {
       value: formatFen(d?.won_amount_month),
       hint: targetHint(d?.won_amount_month, d?.target_month),
       icon: Trophy,
+      href: "/contracts",
     },
     {
       label: `${prefix}进行中商机`,
       value: String(d?.open_opportunities ?? "—"),
       hint: d ? `预计 ${formatFen(d.open_amount)}` : undefined,
       icon: Target,
+      href: "/pipeline",
     },
     // 个人模式不走审批，不显示这张卡
     ...(solo
@@ -74,13 +77,9 @@ export default function DashboardPage() {
           {
             label: role === "manager" ? "待我审批" : role === "admin" ? "待审批" : "审批中",
             value: String(d?.pending_approvals ?? "—"),
-            hint:
-              role === "manager"
-                ? "需要你处理的报价与报销"
-                : role === "admin"
-                  ? "等待各团队主管处理"
-                  : "你提交、等待主管审批",
+            hint: pendingCardHint(role, d),
             icon: Clock,
+            href: pendingCardHref(role, d),
           },
         ]),
     {
@@ -88,6 +87,7 @@ export default function DashboardPage() {
       value: formatFen(d?.estimated_commission_month),
       hint: d ? `已确认 ${formatFen(d.confirmed_commission_month)}` : undefined,
       icon: Wallet,
+      href: "/contracts",
     },
   ]
 

@@ -38,6 +38,7 @@ type Fits<A, B> = [A] extends [B] ? true : false
 /* ---------- 响应：后端 → 前端 ---------- */
 export const responses = {
   UserBrief: true as Fits<S["UserBrief"], T.UserBrief>,
+  PaymentRecord: true as Fits<S["PaymentRecord"], T.PaymentRecord>,
   CurrentUser: true as Fits<S["UserOut"], T.CurrentUser>,
   MockLoginData: true as Fits<S["LoginResult"], T.MockLoginData>,
   Customer: true as Fits<S["CustomerListItem"], T.Customer>,
@@ -130,6 +131,7 @@ export const requests = {
   PoolRelease: true as Fits<T.PoolRelease, S["PoolRelease"]>,
   StageChange: true as Fits<T.StageChange, S["StageChange"]>,
   PaymentIn: true as Fits<T.PaymentIn, S["PaymentIn"]>,
+  PaymentReverseIn: true as Fits<T.PaymentReverseIn, S["PaymentReverseIn"]>,
   ExpenseCreate: true as Fits<T.ExpenseCreate, S["ExpenseCreate"]>,
   ApprovalDecide: true as Fits<T.ApprovalDecideIn, S["ApprovalDecision"]>,
   ContactIn: true as Fits<T.ContactIn, S["ContactIn"]>,

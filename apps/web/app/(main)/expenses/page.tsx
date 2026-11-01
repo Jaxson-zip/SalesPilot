@@ -59,6 +59,9 @@ export default function ExpensesPage() {
     const id = params.get("id")
     if (id) setSheet({ open: true, id })
     setOpp(params.get("opp"))
+    // 从工作台「审批中」卡片过来：/expenses?view=pending_approval
+    const v = params.get("view")
+    if (v && toStatus(v)) setView(v)
   }, [])
   const oppName = useOpportunity(opp).data?.name
   const clearOpp = () => {

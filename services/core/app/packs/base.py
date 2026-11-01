@@ -168,6 +168,26 @@ class MarginHint(BaseModel):
             return cls()
 
 
+def recommend_for_budget(
+    tiers: list[SolutionTier], budget: int | None, advice: str = "建议和客户确认预算或缩小范围"
+) -> list[SolutionTier]:
+    """按客户预算定推荐档：默认标准版，预算放不下标准版时推荐经济版。
+
+    推荐档也是生成报价单时默认选中的档位，文字说明、卡片标识、确认区都以它为准；
+    连经济版都放不下时在经济版说明里写明差额（不自动压价）。
+    """
+    by = {t.tier: t for t in tiers}
+    std = by.get("standard")
+    pick = "economy" if budget and std and std.total_price > budget else "standard"
+    out = [t.model_copy(update={"recommended": t.tier == pick}) for t in tiers]
+    eco = next((i for i, t in enumerate(out) if t.tier == "economy"), None)
+    if budget and eco is not None and out[eco].total_price > budget:
+        gap = (out[eco].total_price - budget) / 1_000_000
+        note = f"（客户预算比经济版少 {gap:.1f} 万，{advice}）"
+        out[eco] = out[eco].model_copy(update={"summary": out[eco].summary + note})
+    return out
+
+
 def price_tier(tier: SolutionTier, rules: RuleSet) -> SolutionTier:
     """按物料汇总成本与售价，应用整单折扣，并用规则引擎计算毛利。"""
     total_cost = sum(i.total_cost for i in tier.items)

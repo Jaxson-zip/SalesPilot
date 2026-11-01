@@ -1573,10 +1573,28 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    get?: never
+    /** List Payments */
+    get: operations["list_payments_api_contracts__contract_id__payments_get"]
     put?: never
     /** Add Payment */
     post: operations["add_payment_api_contracts__contract_id__payments_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/contracts/{contract_id}/payments/{payment_id}/reverse": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Reverse Payment */
+    post: operations["reverse_payment_api_contracts__contract_id__payments__payment_id__reverse_post"]
     delete?: never
     options?: never
     head?: never
@@ -4051,6 +4069,26 @@ export interface components {
        */
       request_id: string
     }
+    /** ApiResponse[list[PaymentRecord]] */
+    ApiResponse_list_PaymentRecord__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: components["schemas"]["PaymentRecord"][] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
     /** ApiResponse[list[SimilarCustomer]] */
     ApiResponse_list_SimilarCustomer__: {
       /**
@@ -4250,6 +4288,8 @@ export interface components {
       ip: string | null
       /** Target Name */
       target_name: string | null
+      /** Target Type */
+      target_type: string | null
     }
     /** AuthOptions */
     AuthOptions: {
@@ -5125,6 +5165,16 @@ export interface components {
       open_amount: number
       /** Pending Approvals */
       pending_approvals: number
+      /**
+       * Pending Quotes
+       * @default 0
+       */
+      pending_quotes: number
+      /**
+       * Pending Expenses
+       * @default 0
+       */
+      pending_expenses: number
       /** Estimated Commission Month */
       estimated_commission_month: number
       /** Confirmed Commission Month */
@@ -6462,6 +6512,12 @@ export interface components {
     PaymentIn: {
       /** Amount */
       amount: number
+      /** Received On */
+      received_on?: string | null
+      /** Reference No */
+      reference_no?: string | null
+      /** Note */
+      note?: string | null
     }
     /** PaymentPlanItem */
     PaymentPlanItem: {
@@ -6546,6 +6602,45 @@ export interface components {
       items: components["schemas"]["PaymentPlanItem"][]
       /** Rule Ref */
       rule_ref: string
+    }
+    /** PaymentRecord */
+    PaymentRecord: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Amount */
+      amount: number
+      /**
+       * Received On
+       * Format: date
+       */
+      received_on: string
+      /** Reference No */
+      reference_no: string | null
+      /** Note */
+      note: string | null
+      /** Reversal Of */
+      reversal_of: string | null
+      /** Reversed By */
+      reversed_by: string | null
+      /** Reason */
+      reason: string | null
+      created_by: components["schemas"]["UserBrief"] | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
+    /**
+     * PaymentReverseIn
+     * @description 冲正一笔登记错的回款：原记录保留，另记一笔负数，必须写原因。
+     */
+    PaymentReverseIn: {
+      /** Reason */
+      reason: string
     }
     /** PhoneOut */
     PhoneOut: {
@@ -7011,6 +7106,10 @@ export interface components {
     RemindOut: {
       /** Notified */
       notified: number
+      /** Target Type */
+      target_type: ("quote" | "expense") | null
+      /** Target Id */
+      target_id: string | null
     }
     /** RequirementOut */
     RequirementOut: {
@@ -11464,6 +11563,39 @@ export interface operations {
       }
     }
   }
+  list_payments_api_contracts__contract_id__payments_get: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        contract_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_PaymentRecord__"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
   add_payment_api_contracts__contract_id__payments_post: {
     parameters: {
       query?: never
@@ -11478,6 +11610,44 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["PaymentIn"]
+      }
+    }
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_ContractItem_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  reverse_payment_api_contracts__contract_id__payments__payment_id__reverse_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        contract_id: string
+        payment_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PaymentReverseIn"]
       }
     }
     responses: {

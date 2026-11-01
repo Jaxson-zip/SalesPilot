@@ -6,7 +6,14 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from app.packs.base import TIER_NAMES, BomItem, Catalog, SolutionTier, price_tier
+from app.packs.base import (
+    TIER_NAMES,
+    BomItem,
+    Catalog,
+    SolutionTier,
+    price_tier,
+    recommend_for_budget,
+)
 from app.packs.it_office.requirement import ItOfficeRequirement
 from app.rules import RuleSet, load_rules
 from app.rules.loader import load_raw_rules
@@ -44,7 +51,8 @@ class ItOfficeConfigurator:
     def configure(self, req: BaseModel, hint: str | None = None) -> list[SolutionTier]:
         r = ItOfficeRequirement.model_validate(req.model_dump())
         tiers = [self._build_tier(t, r) for t in ("economy", "standard", "premium")]
-        return [price_tier(t, self.rules) for t in tiers]
+        priced = [price_tier(t, self.rules) for t in tiers]
+        return recommend_for_budget(priced, r.budget, "建议分批采购或调整配置")
 
     def _build_tier(self, tier_id: str, r: ItOfficeRequirement) -> SolutionTier:
         cfg = self.params["tiers"][tier_id]

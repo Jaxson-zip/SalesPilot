@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react"
+import Link from "next/link"
 
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -9,15 +10,18 @@ export function StatCard({
   hint,
   icon: Icon,
   loading,
+  href,
 }: {
   label: string
   value: string
   hint?: string
   icon: LucideIcon
   loading?: boolean
+  /** 点进对应的明细列表 */
+  href?: string
 }) {
-  return (
-    <div className="min-w-0 rounded-lg border border-zinc-200 p-4">
+  const body = (
+    <>
       <div className="flex items-center justify-between text-zinc-500">
         <span className="truncate">{label}</span>
         <Icon className="size-4 shrink-0 text-zinc-400" />
@@ -28,6 +32,14 @@ export function StatCard({
         <div className="mt-1.5 truncate text-[22px] font-semibold tabular-nums">{value}</div>
       )}
       {hint ? <div className="text-xs text-zinc-500 max-sm:line-clamp-2 sm:truncate">{hint}</div> : null}
-    </div>
+    </>
+  )
+  const box = "min-w-0 rounded-lg border border-zinc-200 p-4"
+  return href ? (
+    <Link href={href} className={`${box} block hover:border-zinc-300 hover:bg-zinc-50`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={box}>{body}</div>
   )
 }

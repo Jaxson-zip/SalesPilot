@@ -17,8 +17,10 @@ from app.crm.schemas.finance import (
     PaymentIn,
     PaymentPlanUpdate,
     PaymentPlanView,
+    PaymentRecord,
+    PaymentReverseIn,
 )
-from app.crm.services import contract_service, invoice_service
+from app.crm.services import contract_service, invoice_service, payment_service
 from app.crm.services.contract_service import ContractFilter
 from app.crm.services.listing import FacetOption, SortKey, clean, uuids
 
@@ -69,7 +71,27 @@ def get_contract(
 def add_payment(
     contract_id: uuid.UUID, body: PaymentIn, user: CurrentUserDep, db: DbDep
 ) -> ApiResponse[ContractItem]:
-    return ok(contract_service.add_payment(db, user, contract_id, body.amount))
+    return ok(payment_service.add_payment(db, user, contract_id, body))
+
+
+@router.get("/{contract_id}/payments", response_model=ApiResponse[list[PaymentRecord]])
+def list_payments(
+    contract_id: uuid.UUID, user: CurrentUserDep, db: DbDep
+) -> ApiResponse[list[PaymentRecord]]:
+    return ok(payment_service.list_payments(db, user, contract_id))
+
+
+@router.post(
+    "/{contract_id}/payments/{payment_id}/reverse", response_model=ApiResponse[ContractItem]
+)
+def reverse_payment(
+    contract_id: uuid.UUID,
+    payment_id: uuid.UUID,
+    body: PaymentReverseIn,
+    user: CurrentUserDep,
+    db: DbDep,
+) -> ApiResponse[ContractItem]:
+    return ok(payment_service.reverse_payment(db, user, contract_id, payment_id, body.reason))
 
 
 @router.get("/{contract_id}/payment-plan", response_model=ApiResponse[PaymentPlanView])

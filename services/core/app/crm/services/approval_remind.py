@@ -27,6 +27,9 @@ class RemindIn(BaseModel):
 
 class RemindOut(BaseModel):
     notified: int  # 收到提醒的主管人数
+    # 被催办的单据：操作日志按它定位（中间件从响应 data.target_id 取）
+    target_type: Literal["quote", "expense"] | None = None
+    target_id: uuid.UUID | None = None
 
 
 def remind(db: Session, user: CurrentUser, body: RemindIn) -> RemindOut:
@@ -72,4 +75,4 @@ def remind(db: Session, user: CurrentUser, body: RemindIn) -> RemindOut:
         approval.reason,
         link,
     )
-    return RemindOut(notified=n)
+    return RemindOut(notified=n, target_type=body.target_type, target_id=body.target_id)

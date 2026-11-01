@@ -21,6 +21,7 @@ from app.packs.base import (
     SampleSummary,
     SolutionTier,
     price_tier,
+    recommend_for_budget,
 )
 from app.packs.software_outsourcing import drafting
 from app.packs.software_outsourcing.budget import fit_budget
@@ -141,29 +142,15 @@ class SoftwareOutsourcingConfigurator:
         fit = self.params["tiers"]["economy"].get("fit_budget")
         if fit and r.budget and tiers[0].total_price > r.budget:
             tiers[0] = fit_budget(r, r.budget, self._economy) or tiers[0]
-        pick = self._recommend(tiers, r.budget)
-        out = [t.model_copy(update={"recommended": t.tier == pick}) for t in tiers]
+        out = recommend_for_budget(tiers, r.budget, "建议砍掉部分功能或分期")
         if poc := self.poc(r):
             # 识别准确率是这类项目最大的风险：建议先做样例验证，单独报价，不计入三档
             i = next(i for i, t in enumerate(out) if t.recommended)
             out[i] = out[i].model_copy(update={"summary": out[i].summary + "；" + poc["advice"]})
-        if r.budget and r.budget < out[0].total_price:
-            # 预算连经济版都不够：提示砍功能或分期，不自动压价
-            gap = (out[0].total_price - r.budget) / 1_000_000
-            note = f"（客户预算比经济版少 {gap:.1f} 万，建议砍掉部分功能或分期）"
-            out[0] = out[0].model_copy(update={"summary": out[0].summary + note})
         return out
 
     def _economy(self, r: SoftwareRequirement) -> SolutionTier:
         return price_tier(self._build_tier("economy", r), self.rules)
-
-    @staticmethod
-    def _recommend(tiers: list[SolutionTier], budget: int | None) -> str:
-        """默认推荐标准版；客户预算放不下标准版时推荐经济版。"""
-        by = {t.tier: t for t in tiers}
-        if budget and by["standard"].total_price > budget:
-            return "economy"
-        return "standard"
 
     def clarify(self, r: SoftwareRequirement) -> dict[str, Any]:
         """需求确认前的粗估：价格区间 + 建议和客户确认的问题。

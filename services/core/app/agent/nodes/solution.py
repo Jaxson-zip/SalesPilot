@@ -258,14 +258,23 @@ def clarify_text(card: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+# 需求模型整体校验没过（不对应某个字段）时的追问；不能把 __root__ 这类技术字段给用户看
+ROOT_MISSING_LABEL = "具体要做什么、规模多大"
+
+
 def missing_labels(pack_id: str | None, missing: list[str]) -> list[str]:
-    """追问字段的中文说明（取需求模型字段的 description）。"""
+    """追问字段的中文说明（取需求模型字段的 description）。
+
+    整体校验（__root__）用需求模型的 missing_hint，没有时用通用说法；不认识的字段名不外露。
+    """
     try:
         model = get_configurator(pack_id or "").requirement_model
     except Exception:
-        return list(missing)
-    fields = model.model_fields
-    return [(fields[f].description or f) if f in fields else f for f in missing]
+        model = None
+    fields = model.model_fields if model else {}
+    root = getattr(model, "missing_hint", None) or ROOT_MISSING_LABEL
+    labels = [(fields[f].description or root) if f in fields else root for f in missing]
+    return list(dict.fromkeys(labels))
 
 
 def make_ask_user(deps: AgentDeps) -> Node:

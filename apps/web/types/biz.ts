@@ -67,6 +67,9 @@ export interface DashboardData {
   open_opportunities: number
   open_amount: number
   pending_approvals: number
+  /** 待审批按类型分开：工作台卡片点进对应列表 */
+  pending_quotes?: number
+  pending_expenses?: number
   estimated_commission_month: number
   confirmed_commission_month: number
   funnel: FunnelStage[]
@@ -357,6 +360,29 @@ export interface ContractListParams {
 
 export interface PaymentIn {
   amount: number
+  /** 到账日期 YYYY-MM-DD，不传按今天 */
+  received_on?: string | null
+  /** 银行流水号 / 交易单号 */
+  reference_no?: string | null
+  note?: string | null
+}
+
+/** 回款记录：冲正记录 amount 为负数，reversal_of 指向被冲正的那笔 */
+export interface PaymentRecord {
+  id: string
+  amount: number
+  received_on: string
+  reference_no: string | null
+  note: string | null
+  reversal_of: string | null
+  reversed_by?: string | null
+  reason: string | null
+  created_by: UserBrief | null
+  created_at: string
+}
+
+export interface PaymentReverseIn {
+  reason: string
 }
 
 /* ---------- 报销（§5） ---------- */

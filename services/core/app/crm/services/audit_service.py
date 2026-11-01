@@ -94,6 +94,7 @@ ROUTES: dict[tuple[str, str], tuple[str, str]] = {
     ("POST", "/api/quotes/{id}/accept"): ("quote.accept", "客户接受报价"),
     ("POST", "/api/quotes/{id}/reject"): ("quote.reject", "客户拒绝报价"),
     ("POST", "/api/contracts/{id}/payments"): ("payment.create", "登记回款"),
+    ("POST", "/api/contracts/{id}/payments/{seq}/reverse"): ("payment.reverse", "冲正回款"),
     ("PUT", "/api/contracts/{id}/payment-plan"): ("payment.plan", "调整回款计划"),
     ("POST", "/api/contracts/{id}/payment-plan/{seq}/invoice"): ("payment.invoice", "开票"),
     ("POST", "/api/expenses"): ("expense.create", "新建报销"),
@@ -210,6 +211,8 @@ class AuditItem(BaseModel):
     detail: str | None
     ip: str | None
     target_name: str | None = None  # 对象名称（客户名、单号、联系人…），已删除的对象为空
+    # 对象类型（customer / quote / expense …）：前端据此链接到单据
+    target_type: str | None = None
 
 
 class AuditFilter(BaseModel):
@@ -267,38 +270,43 @@ def list_logs(
         .limit(params.page_size)
     )
     items = [AuditItem.model_validate(r, from_attributes=True) for r in rows]
-    names = target_names(db, [i.target_id for i in items])
+    refs = target_refs(db, [i.target_id for i in items])
     for i in items:
-        i.target_name = names.get(i.target_id or "")
+        i.target_name, i.target_type = refs.get(i.target_id or "", (None, None))
     return Page[AuditItem](items=items, total=total)
 
 
-_NAMED: list[tuple[Any, Any]] = [
-    (Customer, Customer.name),
-    (Opportunity, Opportunity.name),
-    (Quote, Quote.code),
-    (Contract, Contract.code),
-    (Expense, Expense.code),
-    (Contact, Contact.name),
-    (Task, Task.title),
+_NAMED: list[tuple[Any, Any, str]] = [
+    (Customer, Customer.name, "customer"),
+    (Opportunity, Opportunity.name, "opportunity"),
+    (Quote, Quote.code, "quote"),
+    (Contract, Contract.code, "contract"),
+    (Expense, Expense.code, "expense"),
+    (Contact, Contact.name, "contact"),
+    (Task, Task.title, "task"),
 ]
 
 
-def target_names(db: Session, ids: list[str | None]) -> dict[str, str]:
-    """按 id 批量查对象名称（日志里存的是 id，展示时换成名称）。"""
+def target_refs(db: Session, ids: list[str | None]) -> dict[str, tuple[str, str]]:
+    """按 id 批量查对象（名称, 类型）：日志里存的是 id，展示时换成名称并链接到单据。"""
     uuids: set[uuid.UUID] = set()
     for raw in ids:
         try:
             uuids.add(uuid.UUID(str(raw)))
         except ValueError:
             continue
-    out: dict[str, str] = {}
+    out: dict[str, tuple[str, str]] = {}
     if not uuids:
         return out
-    for model, col in _NAMED:
+    for model, col, kind in _NAMED:
         for oid, name in db.execute(select(model.id, col).where(model.id.in_(uuids))):
-            out[str(oid)] = name
+            out[str(oid)] = (name, kind)
     return out
+
+
+def target_names(db: Session, ids: list[str | None]) -> dict[str, str]:
+    """按 id 批量查对象名称。"""
+    return {k: name for k, (name, _kind) in target_refs(db, ids).items()}
 
 
 # ---------- 敏感操作 ----------

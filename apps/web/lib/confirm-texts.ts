@@ -66,7 +66,7 @@ export const EXPENSE_SUBMIT_CONFIRM: ConfirmCopy = {
 export function paymentConfirm(amountText: string, code: string): ConfirmCopy {
   return {
     title: "登记回款",
-    description: `将为合同 ${code} 登记回款 ${amountText}，并按回款比例确认提成，登记后不能撤回。`,
+    description: `将为合同 ${code} 登记回款 ${amountText}，并按回款比例确认提成。登记后不能修改，录错了只能由主管冲正（另记一笔负数并写明原因）。`,
     confirmLabel: "确认登记",
   }
 }

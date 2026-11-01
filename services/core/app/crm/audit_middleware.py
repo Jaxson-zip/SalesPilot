@@ -1,7 +1,9 @@
 """操作日志中间件：网页上的每个写请求（含失败、被拒）记一条操作日志。
 
-纯 ASGI 中间件（不包装响应体，SSE 流式接口不受影响）；只看方法、路径和响应状态码，
+纯 ASGI 中间件（不包装响应体，SSE 流式接口不受影响）；只看方法、路径和响应，
 不读请求体。用户身份从 Authorization 解析，令牌无效时记为匿名。
+路径里没有对象 id 的（新建、催办这类 id 在请求体里的），从响应 data.id / data.target_id 取，
+日志才能定位到具体单据。
 """
 
 import json
@@ -17,6 +19,8 @@ from app.common.request_id import get_request_id
 from app.crm.services import audit_service
 
 WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+# 只截响应开头这么多字节：够解析 code / message 和新建对象的 id；更大的响应解析失败就不取 id
+CAPTURE_LIMIT = 16384
 
 
 def _user(scope: Scope) -> CurrentUser | None:
@@ -59,7 +63,7 @@ class AuditMiddleware:
         async def capture(message: Message) -> None:
             if message["type"] == "http.response.start":
                 status["code"] = message["status"]
-            elif message["type"] == "http.response.body" and body["size"] < 4096:
+            elif message["type"] == "http.response.body" and body["size"] < CAPTURE_LIMIT:
                 chunk = message.get("body", b"")
                 body["chunks"].append(chunk)
                 body["size"] += len(chunk)
@@ -69,14 +73,14 @@ class AuditMiddleware:
             await self.app(scope, receive, capture)
         finally:
             action, label, target = hit
-            code, msg = _biz(b"".join(body["chunks"]))
+            code, msg, data_id = _biz(b"".join(body["chunks"]))
             ok = status["code"] < 400 and code == 0
             entry = audit_service.AuditEntry(
                 action=action,
                 label=label,
                 method=method,
                 path=scope.get("path", "")[:300],
-                target_id=target,
+                target_id=target or data_id,
                 status=status["code"] if code in (0, None) else code,
                 ok=ok,
                 detail=None if ok else msg,
@@ -86,13 +90,19 @@ class AuditMiddleware:
             await run_in_threadpool(audit_service.record, _user(scope), entry)
 
 
-def _biz(raw: bytes) -> tuple[int | None, str | None]:
-    """统一响应 {code, message}：业务失败也是 HTTP 200，需要看 code。"""
+def _biz(raw: bytes) -> tuple[int | None, str | None, str | None]:
+    """统一响应 {code, message, data}：业务失败也是 HTTP 200，需要看 code；顺带取对象 id。"""
     try:
-        data = json.loads(raw)
+        resp = json.loads(raw)
     except (ValueError, UnicodeDecodeError):
-        return None, None
-    if not isinstance(data, dict):
-        return None, None
-    code = data.get("code")
-    return (code if isinstance(code, int) else None), data.get("message")
+        return None, None, None
+    if not isinstance(resp, dict):
+        return None, None, None
+    code = resp.get("code")
+    data = resp.get("data")
+    oid = (data.get("id") or data.get("target_id")) if isinstance(data, dict) else None
+    return (
+        (code if isinstance(code, int) else None),
+        resp.get("message"),
+        str(oid)[:100] if oid else None,
+    )

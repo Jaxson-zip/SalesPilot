@@ -59,6 +59,25 @@ class TestLlmDeployConfigurator:
         assert standard.total_price == 37_200_000
         assert premium.summary.startswith("8× H20") and "双机高可用" in premium.summary
 
+    def test_budget_below_standard_recommends_economy(self) -> None:
+        """回归：预算 40 万降到 20 万，文字推荐经济版，卡片和默认选中却还是标准版。"""
+        cfg = get_configurator("llm_deploy")
+        base = cfg.configure(self.req)
+        std, eco = base[1].total_price, base[0].total_price
+        budget = (std + eco) // 2
+        tiers = cfg.configure(self.req.model_copy(update={"budget": budget}))
+        assert [t.tier for t in tiers if t.recommended] == ["economy"]
+        assert "客户预算" not in tiers[0].summary  # 经济版放得下，不提示差额
+        roomy = cfg.configure(self.req.model_copy(update={"budget": std}))
+        assert [t.tier for t in roomy if t.recommended] == ["standard"]
+
+    def test_budget_below_economy_notes_gap(self) -> None:
+        cfg = get_configurator("llm_deploy")
+        eco = cfg.configure(self.req)[0].total_price
+        tiers = cfg.configure(self.req.model_copy(update={"budget": eco - 1_000_000}))
+        assert tiers[0].recommended and "客户预算比经济版少 1.0 万" in tiers[0].summary
+        assert tiers[0].total_price == eco  # 只提示，不压价
+
     def test_economy_below_floor_then_retry_passes(self) -> None:
         cfg = get_configurator("llm_deploy")
         first = cfg.configure(self.req)
@@ -125,3 +144,17 @@ def test_margin_hint_roundtrip() -> None:
     assert MarginHint.parse(hint.dump()) == hint
     assert MarginHint.parse("garbage").attempt == 0
     assert MarginHint.parse(None).attempt == 0
+
+
+def test_missing_labels_never_show_root() -> None:
+    """回归：办公 IT 需求整体校验没过，追问显示成「还需要确认：root」（__root__ 被加粗）。"""
+    from app.agent.nodes.solution import ROOT_MISSING_LABEL, missing_labels
+    from app.agent.tools.solution_tools import missing_fields
+    from app.packs.it_office.requirement import ItOfficeRequirement
+
+    missing = missing_fields(ItOfficeRequirement, {})
+    assert missing == ["__root__"]
+    assert missing_labels("it_office", missing) == [ItOfficeRequirement.missing_hint]
+    assert missing_labels("llm_deploy", ["__root__", "unknown_field"]) == [ROOT_MISSING_LABEL]
+    labels = missing_labels("llm_deploy", ["model_name", "concurrency"])
+    assert all("_" not in label for label in labels)

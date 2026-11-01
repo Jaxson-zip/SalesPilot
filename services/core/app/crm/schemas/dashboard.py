@@ -17,6 +17,9 @@ class Dashboard(BaseModel):
     open_opportunities: int
     open_amount: int
     pending_approvals: int
+    # 待审批按类型分开（报价 / 报销）：工作台卡片点进对应列表
+    pending_quotes: int = 0
+    pending_expenses: int = 0
     estimated_commission_month: int
     confirmed_commission_month: int
     tasks_today: int = 0  # v3 §12：今天到期的未完成任务

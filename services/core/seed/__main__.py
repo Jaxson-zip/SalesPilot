@@ -31,6 +31,7 @@ RESET_TABLES = (
     "approvals",
     "attachments",
     "commissions",
+    "payments",
     "payment_plans",
     "contracts",
     "quote_shares",  # 发给客户的报价链接跟着报价一起清

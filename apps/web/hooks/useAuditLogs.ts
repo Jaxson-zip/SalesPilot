@@ -15,6 +15,8 @@ export interface AuditItem {
   source: "web" | "agent" | string
   target_id: string | null
   target_name?: string | null
+  /** 对象类型（customer / quote / expense …）：链接到单据 */
+  target_type?: string | null
   status: number
   ok: boolean
   detail: string | null

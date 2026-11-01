@@ -4266,6 +4266,88 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - contracts
+      summary: List Payments
+      operationId: list_payments_api_contracts__contract_id__payments_get
+      parameters:
+      - name: contract_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Contract Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_PaymentRecord__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/contracts/{contract_id}/payments/{payment_id}/reverse:
+    post:
+      tags:
+      - contracts
+      summary: Reverse Payment
+      operationId: reverse_payment_api_contracts__contract_id__payments__payment_id__reverse_post
+      parameters:
+      - name: contract_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Contract Id
+      - name: payment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Payment Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentReverseIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ContractItem_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/contracts/{contract_id}/payment-plan:
     get:
       tags:
@@ -8512,6 +8594,34 @@ components:
       - message
       - data
       - request_id
+    ApiResponse_list_PaymentRecord__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/PaymentRecord'
+            type: array
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[list[PaymentRecord]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
     ApiResponse_list_SimilarCustomer__:
       properties:
         code:
@@ -8857,6 +8967,11 @@ components:
           - type: string
           - type: 'null'
           title: Target Name
+        target_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Target Type
       type: object
       required:
       - id
@@ -8872,6 +8987,7 @@ components:
       - detail
       - ip
       - target_name
+      - target_type
       title: AuditItem
     AuthOptions:
       properties:
@@ -10462,6 +10578,14 @@ components:
         pending_approvals:
           type: integer
           title: Pending Approvals
+        pending_quotes:
+          type: integer
+          title: Pending Quotes
+          default: 0
+        pending_expenses:
+          type: integer
+          title: Pending Expenses
+          default: 0
         estimated_commission_month:
           type: integer
           title: Estimated Commission Month
@@ -10495,6 +10619,8 @@ components:
       - estimated_commission_month
       - confirmed_commission_month
       - funnel
+      - pending_quotes
+      - pending_expenses
       - tasks_today
       - tasks_overdue
       - target_month
@@ -12982,6 +13108,24 @@ components:
           type: integer
           exclusiveMinimum: 0.0
           title: Amount
+        received_on:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Received On
+        reference_no:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Reference No
+        note:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Note
       type: object
       required:
       - amount
@@ -13141,6 +13285,79 @@ components:
       - rule_ref
       - invoiced_unpaid_amount
       title: PaymentPlanView
+    PaymentRecord:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        amount:
+          type: integer
+          title: Amount
+        received_on:
+          type: string
+          format: date
+          title: Received On
+        reference_no:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reference No
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+        reversal_of:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Reversal Of
+        reversed_by:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Reversed By
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        created_by:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - amount
+      - received_on
+      - reference_no
+      - note
+      - reversal_of
+      - reason
+      - created_by
+      - created_at
+      - reversed_by
+      title: PaymentRecord
+    PaymentReverseIn:
+      properties:
+        reason:
+          type: string
+          maxLength: 200
+          minLength: 2
+          title: Reason
+      type: object
+      required:
+      - reason
+      title: PaymentReverseIn
+      description: 冲正一笔登记错的回款：原记录保留，另记一笔负数，必须写原因。
     PhoneOut:
       properties:
         phone:
@@ -13985,9 +14202,25 @@ components:
         notified:
           type: integer
           title: Notified
+        target_type:
+          anyOf:
+          - type: string
+            enum:
+            - quote
+            - expense
+          - type: 'null'
+          title: Target Type
+        target_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Target Id
       type: object
       required:
       - notified
+      - target_type
+      - target_id
       title: RemindOut
     RequirementOut:
       properties:

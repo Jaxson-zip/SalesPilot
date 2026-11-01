@@ -25,6 +25,7 @@ import {
   filterApprovals,
   sortApprovals,
   summarizeApprovals,
+  approvalAmountText,
   type ApprovalSort,
   type ApprovalSummary,
   type ApprovalTypeFilter,
@@ -155,7 +156,7 @@ function ApprovalList({
   const approveBatch = () =>
     ask({
       title: `批量通过 ${selected.length} 条`,
-      description: `合计 ${formatFen(selectedSum.amount)}。通过后报价单可以发送客户、报销进入打款流程，结果不能撤回。`,
+      description: `${approvalAmountText(selectedSum)}。通过后报价单可以发送客户、报销进入打款流程，结果不能撤回。`,
       confirmLabel: "确认通过",
       onConfirm: () =>
         batch.mutate(
@@ -205,8 +206,8 @@ function ApprovalList({
             {selected.length ? (
               <>
                 <span>
-                  已选 <b className="tabular-nums">{selected.length}</b> 条 · 合计{" "}
-                  <b className="tabular-nums">{formatFen(selectedSum.amount)}</b>
+                  已选 <b className="tabular-nums">{selected.length}</b> 条 ·{" "}
+                  <b className="tabular-nums">{approvalAmountText(selectedSum)}</b>
                 </span>
                 <div className="ml-auto flex gap-2">
                   <Button
@@ -224,8 +225,8 @@ function ApprovalList({
               </>
             ) : (
               <span className="text-zinc-500">
-                共 <b className="text-zinc-800 tabular-nums">{sum.count}</b> 条 · 合计{" "}
-                <b className="text-zinc-800 tabular-nums">{formatFen(sum.amount)}</b>
+                共 <b className="text-zinc-800 tabular-nums">{sum.count}</b> 条 ·{" "}
+                <b className="text-zinc-800 tabular-nums">{approvalAmountText(sum)}</b>
                 {sum.over ? (
                   <>
                     {" "}

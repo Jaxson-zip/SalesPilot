@@ -9,9 +9,9 @@ from typing import Any
 from sqlalchemy import ColumnElement, Select, and_, exists, func, select
 from sqlalchemy.orm import Session, aliased
 
-from app.common.auth import CurrentUser, Role
+from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
-from app.common.permissions import ensure_owner, ensure_role, ensure_same_team
+from app.common.permissions import ensure_owner
 from app.common.scope import View, apply_scope, ensure_visible
 from app.crm.models import Commission, Contract, PaymentPlan, Quote
 from app.crm.schemas.common import CodeRef, PageParams
@@ -35,7 +35,7 @@ from app.crm.services.payment_plan import (
     default_plan,
     next_due,
 )
-from app.rules import confirm_commission, paid_ratio_of
+from app.rules import paid_ratio_of
 from app.rules.loader import RuleSet, load_rules
 
 RULE_EXCEEDS_BALANCE = "payment_exceeds_balance"
@@ -391,38 +391,3 @@ def get_contract(db: Session, user: CurrentUser, contract_id: uuid.UUID) -> Cont
     assert contract is not None
     db.refresh(contract)
     return to_items(db, [contract])[0]
-
-
-def add_payment(
-    db: Session, user: CurrentUser, contract_id: uuid.UUID, amount: int
-) -> ContractItem:
-    """登记回款（仅 manager 且合同属于本团队）：已确认提成 = 预估 × 回款比例；全部回款后为 paid。"""
-    ensure_role(user, Role.MANAGER, "仅销售主管可以登记回款")
-    contract = db.get(Contract, contract_id, with_for_update=True)
-    ensure_same_team(contract, user)
-    assert contract is not None
-    if amount <= 0:
-        raise BizError(ErrorCode.VALIDATION, "回款金额必须大于 0")
-    balance = contract.amount - contract.paid_amount
-    if amount > balance:
-        raise BizError(
-            ErrorCode.RULE_VIOLATION,
-            f"回款金额超过未回款余额 ¥{balance / 100:,.2f}",
-            {"rule": RULE_EXCEEDS_BALANCE, "balance": balance},
-        )
-    contract.paid_amount += amount
-    if contract.paid_amount >= contract.amount:
-        contract.status = "paid"
-    for c in db.scalars(select(Commission).where(Commission.contract_id == contract.id)):
-        c.confirmed = confirm_commission(c.estimated, contract.paid_amount, contract.amount)
-    db.flush()
-    activity_service.record(
-        db,
-        user,
-        "contract",
-        contract.id,
-        "payment",
-        f"登记回款 ¥{amount / 100:,.2f}，累计回款 {contract.paid_amount / contract.amount:.0%}",
-        subject=contract,
-    )
-    return get_contract(db, user, contract.id)

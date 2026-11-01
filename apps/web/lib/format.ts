@@ -2,7 +2,8 @@
 export function formatFen(fen: number | null | undefined): string {
   if (fen === null || fen === undefined || Number.isNaN(fen)) return "—"
   const hasCents = fen % 100 !== 0
-  return `¥${(fen / 100).toLocaleString("zh-CN", {
+  // 负数（冲正记录）写成 -¥100 而不是 ¥-100
+  return `${fen < 0 ? "-" : ""}¥${(Math.abs(fen) / 100).toLocaleString("zh-CN", {
     minimumFractionDigits: hasCents ? 2 : 0,
     maximumFractionDigits: 2,
   })}`

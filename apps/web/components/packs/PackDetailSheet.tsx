@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { usePackDetail } from "@/hooks/useProductLines"
 import { useDeleteKnowledge, useSettings, useUpdateCatalogItem, useUploadKnowledge } from "@/hooks/useSettings"
+import { knowledgeMissingHint, knowledgeSummary, knowledgeSummaryText } from "@/lib/knowledge"
 import { formatFen } from "@/lib/format"
 import { describeRules, formatBytes, specText, type PackCatalogItem, type PackDetail } from "@/lib/pack-rules"
 import { CATEGORY_LABEL } from "@/lib/settings"
@@ -215,10 +216,13 @@ function Knowledge({ docs, packId }: { docs: PackDetail["knowledge"]; packId: st
   const remove = useDeleteKnowledge(packId)
   const { ask, dialog } = useConfirmAction()
   const fileRef = useRef<HTMLInputElement>(null)
+  const summary = knowledgeSummary(docs)
+  const chunksKnown = docs.some((d) => typeof d.chunks === "number")
+  const missing = knowledgeMissingHint(summary, chunksKnown)
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs text-zinc-500">{docs.filter((d) => d.indexed !== false).length} 份文档参与检索</span>
+        <span className="text-xs text-zinc-500">{knowledgeSummaryText(summary, chunksKnown)}</span>
         <div className="flex items-center gap-2">
           <KnowledgeGuide packId={packId} />
           <input
@@ -242,6 +246,7 @@ function Knowledge({ docs, packId }: { docs: PackDetail["knowledge"]; packId: st
       <p className="text-xs text-zinc-400">
         支持 Markdown、PDF、Excel，单个不超过 10 MB；上传后立即切块入库，AI 出方案和问答时就能引用。
       </p>
+      {missing ? <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">{missing}</p> : null}
       {docs.length === 0 ? (
         <EmptyState icon={BookOpen} title="知识库还没有文档" />
       ) : (

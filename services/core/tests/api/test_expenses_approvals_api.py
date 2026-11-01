@@ -325,6 +325,12 @@ def test_owner_can_remind_manager_once_per_half_hour(client: TestClient, tracker
     assert client.post("/api/approvals/remind", json=body, headers=SALES2_H).json()["code"] != 0
     r = client.post("/api/approvals/remind", json=body, headers=SALES_H).json()
     assert r["code"] == 0 and r["data"]["notified"] >= 1
+    # 回归：催办日志原来只有「催办审批」，看不出是哪张单子
+    logs = client.get(
+        "/api/audit-logs", params={"action": "approval.remind"}, headers=MANAGER_H
+    ).json()["data"]["items"]
+    hit = [i for i in logs if i["target_id"] == e["id"]]
+    assert hit and hit[0]["target_name"] == e["code"] and hit[0]["target_type"] == "expense"
     notes = client.get("/api/notifications", headers=MANAGER_H).json()["data"]["items"]
     assert any(n["type"] == "approval_remind" and e["code"] in n["title"] for n in notes)
     again = client.post("/api/approvals/remind", json=body, headers=SALES_H).json()

@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react"
 
 import { useConfirmAction } from "@/components/biz/ConfirmAction"
-import { FormField, MoneyInput } from "@/components/biz/FormControls"
+import { DatePicker, FormField, MoneyInput } from "@/components/biz/FormControls"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Dialog,
   DialogContent,
@@ -16,12 +17,16 @@ import {
 import { useRegisterPayment } from "@/hooks/useContracts"
 import { paymentConfirm } from "@/lib/confirm-texts"
 import { checkPayment, suggestedPayment, unpaidOf } from "@/lib/contract"
-import { formatFen } from "@/lib/format"
+import { formatFen, localDate } from "@/lib/format"
 import type { ContractItem } from "@/types/api"
 
 /** 登记回款（仅主管 / 管理员）；提成确认金额由 core 按回款比例计算 */
 export function PaymentDialog({ contract, onClose }: { contract: ContractItem | null; onClose: () => void }) {
   const [amount, setAmount] = useState("")
+  // 对账信息：到账日期（默认今天）、银行流水号、备注
+  const [receivedOn, setReceivedOn] = useState(localDate())
+  const [refNo, setRefNo] = useState("")
+  const [note, setNote] = useState("")
   const [error, setError] = useState<string>()
   const pay = useRegisterPayment()
   const { ask, dialog } = useConfirmAction()
@@ -31,6 +36,9 @@ export function PaymentDialog({ contract, onClose }: { contract: ContractItem | 
   }, [contract])
   const close = () => {
     setAmount("")
+    setReceivedOn(localDate())
+    setRefNo("")
+    setNote("")
     setError(undefined)
     onClose()
   }
@@ -39,10 +47,20 @@ export function PaymentDialog({ contract, onClose }: { contract: ContractItem | 
     const r = checkPayment(amount, contract)
     if (!r.ok) return setError(r.error)
     const { id, code } = contract
-    // 回款登记后会确认提成、不能撤回：先二次确认
+    // 回款登记后会确认提成、不能修改（录错只能冲正）：先二次确认
     ask({
       ...paymentConfirm(formatFen(r.amount), code),
-      onConfirm: () => pay.mutate({ id, amount: r.amount }, { onSuccess: close }),
+      onConfirm: () =>
+        pay.mutate(
+          {
+            id,
+            amount: r.amount,
+            received_on: receivedOn || null,
+            reference_no: refNo.trim() || null,
+            note: note.trim() || null,
+          },
+          { onSuccess: close },
+        ),
     })
   }
   return (
@@ -76,6 +94,17 @@ export function PaymentDialog({ contract, onClose }: { contract: ContractItem | 
               setError(undefined)
             }}
           />
+        </FormField>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FormField label="到账日期" required htmlFor="pay-date">
+            <DatePicker value={receivedOn} onChange={setReceivedOn} max={localDate()} ariaLabel="到账日期" />
+          </FormField>
+          <FormField label="银行流水号 / 交易单号" htmlFor="pay-ref">
+            <Input id="pay-ref" value={refNo} maxLength={64} onChange={(e) => setRefNo(e.target.value)} />
+          </FormField>
+        </div>
+        <FormField label="备注" htmlFor="pay-note" hint="例如付款方户名、对应第几期">
+          <Input id="pay-note" value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} />
         </FormField>
         <DialogFooter>
           <Button variant="outline" onClick={close}>

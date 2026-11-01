@@ -14,6 +14,8 @@ import type {
   ContractListParams,
   InvoiceIn,
   PaymentIn,
+  PaymentRecord,
+  PaymentReverseIn,
   PaymentPlanUpdate,
   PaymentPlanView,
 } from "@/types/api"
@@ -23,6 +25,7 @@ export const contractKeys = {
   list: (p: ContractListParams) => ["contracts", "list", p] as const,
   detail: (id: string) => ["contracts", "detail", id] as const,
   plan: (id: string) => ["contracts", "plan", id] as const,
+  payments: (id: string) => ["contracts", "payments", id] as const,
 }
 
 /** GET /api/contracts?view=&status=（data 额外带 summary） */
@@ -62,6 +65,32 @@ export function useRegisterPayment() {
       api.post<ContractItem>(`/api/contracts/${id}/payments`, body),
     onSuccess: (contract, vars) => {
       toast.success("回款已登记", { description: `${contract?.code ?? ""} · ${formatFen(vars.amount)}` })
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: contractKeys.all }),
+        qc.invalidateQueries({ queryKey: dashboardKeys.all }),
+      ])
+    },
+    onError: notifyError,
+  })
+}
+
+/** GET /api/contracts/{id}/payments：回款记录（新的在前，含冲正记录） */
+export function usePayments(id: string | null) {
+  return useQuery({
+    queryKey: contractKeys.payments(id ?? ""),
+    queryFn: ({ signal }) => api.get<PaymentRecord[]>(`/api/contracts/${id}/payments`, undefined, signal),
+    enabled: Boolean(id),
+  })
+}
+
+/** POST /api/contracts/{id}/payments/{pid}/reverse（仅本团队主管）：冲正一笔登记错的回款 */
+export function useReversePayment(contractId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ pid, ...body }: PaymentReverseIn & { pid: string }) =>
+      api.post<ContractItem>(`/api/contracts/${contractId}/payments/${pid}/reverse`, body),
+    onSuccess: (contract) => {
+      toast.success("回款已冲正", { description: contract?.code ?? "" })
       void Promise.all([
         qc.invalidateQueries({ queryKey: contractKeys.all }),
         qc.invalidateQueries({ queryKey: dashboardKeys.all }),

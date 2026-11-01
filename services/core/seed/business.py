@@ -20,6 +20,7 @@ from app.crm.models import (
     Contract,
     Expense,
     Opportunity,
+    Payment,
     PaymentPlan,
     Quote,
     QuoteItem,
@@ -34,7 +35,7 @@ from app.rules import calc_commission, check_expense_policy, check_margin, load_
 from app.rules.crm_calc import headcount_of
 from app.rules.loader import RuleSet
 from seed import business_data as bd
-from seed.data import SALES
+from seed.data import MANAGER, SALES
 from seed.files import invoice_pdf, receipt_png
 from seed.workflow import seed_workflow
 
@@ -120,6 +121,21 @@ def _seed_contract(
             **OWNER,
         )
     )
+    db.flush()
+    # 已回款的合同带一条到账记录；迁移已补过历史记录的不再重复
+    has_payment = db.scalar(select(Payment.id).where(Payment.contract_id == contract_id))
+    if paid and not has_payment:
+        db.add(
+            Payment(
+                id=demo_id(f"payment:{key}"),
+                contract_id=contract_id,
+                amount=paid,
+                received_on=local_today() - timedelta(days=7),
+                reference_no=f"DEMO-{key.upper()}-01",
+                note="演示数据：首付款到账",
+                created_by=MANAGER.id,
+            )
+        )
     db.flush()
     rules = load_rules(get_pack(quote.pack).rules_file)
     _seed_payment_plan(db, db.get(Contract, contract_id), rules, key)

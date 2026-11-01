@@ -11,6 +11,7 @@ import { FormSheet } from "@/components/biz/FormSheet"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { Tag } from "@/components/biz/Tag"
 import { InvoiceDialog, type InvoiceTarget } from "@/components/contracts/InvoiceDialog"
+import { PaymentRecords } from "@/components/contracts/PaymentRecords"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -275,6 +276,7 @@ export function PaymentPlanSheet({
                 <CalendarClock /> 调整计划
               </Button>
             ) : null}
+            <PaymentRecords contractId={contract.id} manager={manager} />
           </>
         )}
       </div>

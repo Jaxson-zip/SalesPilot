@@ -55,10 +55,13 @@ def _commission_kpis(db: Session, user: CurrentUser, view: View | None) -> dict[
 def get_dashboard(db: Session, user: CurrentUser, view: View | None = None) -> Dashboard:
     # 主管的「待审批」始终是待本团队审批的数量，不随视图切换
     approval_view = View.TEAM if user.role is Role.MANAGER else view
+    pending = approval_service.count_pending_by_type(db, user, approval_view)
     return Dashboard(
         **_opportunity_kpis(db, user, view),
         **_commission_kpis(db, user, view),
-        pending_approvals=approval_service.count_pending(db, user, approval_view),
+        pending_approvals=sum(pending.values()),
+        pending_quotes=pending["quote"],
+        pending_expenses=pending["expense"],
         **task_service.count_due(db, user, view),
         funnel=opportunity_service.funnel(db, user, view),
         target_month=target_service.month_target(db, user, view),

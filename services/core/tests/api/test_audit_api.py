@@ -50,7 +50,8 @@ def test_match_route() -> None:
 
 def test_write_requests_are_logged_including_failures(client: TestClient, customer: dict) -> None:
     cid = customer["id"]
-    rows = _logs(action="customer.create", target_id=None, path="/api/customers")
+    # 新建时路径里没有 id：从响应 data.id 取，日志能定位到新客户
+    rows = _logs(action="customer.create", target_id=cid, path="/api/customers")
     assert any(r.user_name == DEMO_USERS[Role.SALES].name and r.ok for r in rows)
 
     r = client.patch(f"/api/customers/{cid}", json={"industry": "法律"}, headers=SALES_H)
@@ -78,6 +79,7 @@ def test_audit_list_permissions(client: TestClient, customer: dict) -> None:
     hit = client.get("/api/audit-logs", params={"action": "customer.update"}, headers=MANAGER_H)
     named = [i for i in hit.json()["data"]["items"] if i["target_id"] == cid]
     assert named and named[0]["target_name"] == customer["name"]
+    assert named[0]["target_type"] == "customer"  # 前端据此链接到客户
 
 
 def test_phone_masked_and_reveal_logged(client: TestClient, customer: dict) -> None:

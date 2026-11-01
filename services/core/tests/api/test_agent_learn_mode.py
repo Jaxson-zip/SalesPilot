@@ -182,3 +182,23 @@ def test_work_mode_searches_current_pack_only(monkeypatch: pytest.MonkeyPatch) -
     ctx = ToolContext(user=DEMO_USERS[Role.SALES], session=session_scope, thread_id=THREAD)
     spec.func(ctx, spec.args_model(query="报销标准", pack_id="llm_deploy"))
     assert seen == [["company", "pack:llm_deploy"]]
+
+
+def test_admin_prompt_explains_read_only_and_who_to_ask() -> None:
+    """回归：管理员让 AI 改商机，AI 却建议「手动修改或联系管理员」。系统提示里写明各角色的权限。"""
+    from app.agent.nodes.tool_loop import _system
+
+    llm = ScriptedModel(script=[])
+    deps = AgentDeps(
+        ctx=ToolContext(user=DEMO_USERS[Role.ADMIN], session=session_scope, thread_id=THREAD),
+        resolve_pack=lambda _o: "llm_deploy",
+        llm=llm,
+    )
+    text = str(_system(deps, {"mode": "work"}).content)  # type: ignore[arg-type]
+    assert "只读" in text and "负责销售或其团队主管" in text
+    sales = AgentDeps(
+        ctx=ToolContext(user=DEMO_USERS[Role.SALES], session=session_scope, thread_id=THREAD),
+        resolve_pack=lambda _o: "llm_deploy",
+        llm=llm,
+    )
+    assert "团队主管" in str(_system(sales, {"mode": "work"}).content)  # type: ignore[arg-type]

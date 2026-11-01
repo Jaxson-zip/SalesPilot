@@ -34,7 +34,7 @@ from app.agent.nodes.common import call_tool, emit, log_tool, node_start
 from app.agent.nodes.crm import run_rule_plan
 from app.agent.nodes.router import classify_intent
 from app.agent.nodes.solution import missing_labels
-from app.agent.prompts import learn_prompt, system_prompt
+from app.agent.prompts import learn_prompt, role_limits, system_prompt
 from app.agent.runtime import runtime_note
 from app.agent.state import AgentState
 from app.agent.tools import HANDOFF_TOOL, TOOLS, ToolResult, inject_system_args, tools_for
@@ -45,7 +45,7 @@ Node = Callable[[AgentState], dict[str, Any]]
 
 TOOL_RULES = """
 ## 调用工具的规则
-- 当前用户：{user}（{role}）。
+- 当前用户：{user}（{role}）。{limits}
 - 打招呼、问时间、问你是什么模型等和业务无关的话，直接简短回答，不调用工具。
 - 需要客户、商机、联系人的 id 时，先调用 search_customer、get_customer_context 查询，禁止编造 id。
 - search_customer 匹配到多个客户时，列出候选让用户选，不要自己挑。
@@ -95,7 +95,8 @@ def solution_note(state: AgentState) -> str | None:
 
 def _system(deps: AgentDeps, state: AgentState) -> SystemMessage:
     user = deps.ctx.user
-    rules = TOOL_RULES.format(user=user.name, role=user.role.value)
+    limits = role_limits(user.role)
+    rules = TOOL_RULES.format(user=user.name, role=user.role.value, limits=limits)
     # 当前时间和这一轮用的模型（原来只写了今天的日期）
     note = runtime_note(deps.model)
     learn = state.get("mode") == "learn"

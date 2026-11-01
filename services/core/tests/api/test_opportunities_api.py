@@ -158,6 +158,8 @@ def test_dashboard(client: TestClient) -> None:
     assert sales["won_amount_month"] == contracts["summary"]["month_amount"]
     assert sales["won_amount_month"] >= 81_000_000 + 28_600_000  # 演示数据：粤海 + 南山本月赢单
     assert sales["open_opportunities"] >= 4 and sales["pending_approvals"] >= 2
+    # 按类型分开计数，合计与总数一致（工作台卡片据此跳到报价 / 报销列表）
+    assert sales["pending_quotes"] + sales["pending_expenses"] == sales["pending_approvals"]
     assert sales["estimated_commission_month"] >= sales["confirmed_commission_month"] > 0
     assert {f["stage"] for f in sales["funnel"]} >= {"lead", "qualified", "proposal", "won"}
     manager = client.get("/api/dashboard?view=team", headers=MANAGER_H).json()["data"]

@@ -1,6 +1,7 @@
 "use client"
 
 import { Bot, ChevronLeft, ChevronRight, ScrollText, Search } from "lucide-react"
+import Link from "next/link"
 import { useState } from "react"
 
 import { EmptyState } from "@/components/biz/EmptyState"
@@ -15,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useDebounced } from "@/hooks/useDebounced"
 import { useAuditLogs, type AuditItem } from "@/hooks/useAuditLogs"
+import { subjectHref } from "@/lib/links"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 50
@@ -45,6 +47,19 @@ function time(iso: string): string {
   return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
+/** 日志里的对象：能打开的单据给链接（报价单、报销、客户…），其余只显示名称 */
+function AuditTarget({ item }: { item: AuditItem }) {
+  const href = item.target_type && item.target_id ? subjectHref(item.target_type, item.target_id) : null
+  const text = `「${item.target_name}」`
+  return href ? (
+    <Link href={href} className="truncate text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline">
+      {text}
+    </Link>
+  ) : (
+    <span className="truncate text-zinc-600">{text}</span>
+  )
+}
+
 function Row({ item }: { item: AuditItem }) {
   const sensitive = item.action === "contact.phone_view" || item.action.startsWith("export.")
   return (
@@ -55,7 +70,7 @@ function Row({ item }: { item: AuditItem }) {
           <span className="font-medium">{item.user_name ?? "匿名"}</span>
           {item.role ? <span className="text-xs text-zinc-400">{ROLE_LABEL[item.role] ?? item.role}</span> : null}
           <span className={cn(sensitive && "text-amber-700")}>{item.label}</span>
-          {item.target_name ? <span className="truncate text-zinc-600">「{item.target_name}」</span> : null}
+          {item.target_name ? <AuditTarget item={item} /> : null}
           {item.source === "agent" ? (
             <span className="inline-flex items-center gap-0.5 rounded bg-violet-50 px-1.5 text-xs text-violet-700">
               <Bot className="size-3" />

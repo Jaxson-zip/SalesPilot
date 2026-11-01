@@ -12,13 +12,14 @@ from app.common.auth import Role
 from app.common.errors import BizError
 from app.crm.models import Opportunity, Quote, QuoteItem
 from app.crm.schemas.dashboard import ProductLineUpdate
+from app.crm.schemas.finance import PaymentIn
 from app.crm.schemas.opportunity import StageChange
 from app.crm.services import (
     approval_service,
     attachment_service,
-    contract_service,
     opportunity_service,
     pack_service,
+    payment_service,
     quote_service,
 )
 from app.crm.services.codes import format_code, month_start, parse_seq
@@ -252,7 +253,7 @@ def test_role_checks() -> None:
         assert exc.value.code == 40301
     approval_service.require_manager(MANAGER)
     with pytest.raises(BizError) as exc:
-        contract_service.add_payment(FakeSession(), SALES, uuid.uuid4(), 1)  # type: ignore[arg-type]
+        payment_service.add_payment(FakeSession(), SALES, uuid.uuid4(), PaymentIn(amount=1))  # type: ignore[arg-type]
     assert exc.value.code == 40301
     with pytest.raises(BizError) as exc:
         pack_service.update_product_line(FakeSession(), MANAGER, uuid.uuid4(), ProductLineUpdate())  # type: ignore[arg-type]

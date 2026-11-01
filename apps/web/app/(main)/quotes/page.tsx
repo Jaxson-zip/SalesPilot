@@ -2,7 +2,7 @@
 
 import { FileText, Plus, Sparkles } from "lucide-react"
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { BulkBar } from "@/components/biz/BulkBar"
 import { DataGrid } from "@/components/biz/DataGrid"
@@ -45,6 +45,11 @@ export default function QuotesPage() {
   const { canAiWrite, canCreate } = usePermissions()
   const VIEWS: ViewOption[] = [{ value: "all", label: scopeLabel(role, "报价单") }, ...STATUS_OPTIONS]
   const [view, setView] = useState("all")
+  // 从工作台「审批中」卡片过来：/quotes?view=pending_approval 直接切到对应状态
+  useEffect(() => {
+    const v = new URLSearchParams(window.location.search).get("view")
+    if (v && toStatus(v)) setView(v)
+  }, [])
   // 页签里的状态、筛选、排序、分页都走接口参数
   const scope = defaultScope(role)
   const status = toStatus(view)

@@ -40,6 +40,7 @@ describe("状态标签（照抄契约 §0）", () => {
     expect(activityActionLabel("attachment_added", "expense")).toBe("上传了票据")
     expect(activityActionLabel("approval_approve", "expense")).toBe("主管通过了报销")
     expect(activityActionLabel("payment", "contract")).toBe("登记了回款")
+    expect(activityActionLabel("payment_reverse", "contract")).toBe("冲正了回款")
     expect(activityActionLabel("create", "unknown_subject")).toBe("创建了记录")
     // 回归：工作台动态曾直接显示 share / viewed
     expect(activityActionLabel("share", "quote")).toBe("生成了报价分享链接")

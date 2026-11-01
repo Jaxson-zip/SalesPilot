@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 
 import pytest
-from sqlalchemy import delete, inspect, select
+from sqlalchemy import delete, inspect, select, update
 from sqlalchemy.orm import Session
 
 from app.common import storage
@@ -28,6 +28,7 @@ from app.crm.models import (
     Followup,
     Notification,
     Opportunity,
+    Payment,
     PaymentPlan,
     Quote,
     QuoteItem,
@@ -129,6 +130,8 @@ def _purge_quotes(db: Session, ids: list[uuid.UUID]) -> None:
     contracts = list(db.scalars(select(Contract.id).where(Contract.quote_id.in_(ids))))
     db.execute(delete(Commission).where(Commission.contract_id.in_(contracts)))
     db.execute(delete(PaymentPlan).where(PaymentPlan.contract_id.in_(contracts)))
+    db.execute(update(Payment).where(Payment.contract_id.in_(contracts)).values(reversal_of=None))
+    db.execute(delete(Payment).where(Payment.contract_id.in_(contracts)))
     db.execute(delete(Activity).where(Activity.subject_id.in_([*ids, *contracts])))
     db.execute(delete(Contract).where(Contract.id.in_(contracts)))
     db.execute(delete(Approval).where(Approval.target_id.in_(ids)))

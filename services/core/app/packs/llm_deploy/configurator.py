@@ -14,6 +14,7 @@ from app.packs.base import (
     MarginHint,
     SolutionTier,
     price_tier,
+    recommend_for_budget,
 )
 from app.packs.llm_deploy.requirement import LlmDeployRequirement
 from app.packs.llm_deploy.vram import GpuPlan, estimate_vram, find_model, model_specs, plan_gpus
@@ -67,7 +68,8 @@ class LlmDeployConfigurator:
             self._build_tier(tier_id, r, margin_hint)
             for tier_id in ("economy", "standard", "premium")
         ]
-        return [price_tier(t, self.rules) for t in tiers]
+        priced = [price_tier(t, self.rules) for t in tiers]
+        return recommend_for_budget(priced, r.budget, "建议降低并发、换小一点的模型或分期采购")
 
     def _build_tier(self, tier_id: str, r: LlmDeployRequirement, hint: MarginHint) -> SolutionTier:
         cfg = self.params["tiers"][tier_id]

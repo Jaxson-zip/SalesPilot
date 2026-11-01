@@ -1,6 +1,7 @@
 "use client"
 
 import { BookOpen, RotateCcw } from "lucide-react"
+import Link from "next/link"
 import type { ReactNode } from "react"
 import { toast } from "sonner"
 
@@ -9,7 +10,7 @@ import { Tag } from "@/components/biz/Tag"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useTemplates } from "@/hooks/useTemplates"
-import { AI_CAN, AI_CANNOT, EXPENSE_FLOW, FAQ, QUICK_START, STAGE_GUIDE } from "@/lib/help-content"
+import { AI_CAN, AI_CANNOT, EXPENSE_FLOW, FAQ, QUICK_START, STAGE_GUIDE, type HelpItem } from "@/lib/help-content"
 import { STAGE_META } from "@/lib/labels"
 import { guideKeys } from "@/lib/onboarding"
 import { writeStorage } from "@/lib/storage"
@@ -33,13 +34,22 @@ function Section({ id, title, children }: { id: string; title: string; children:
   )
 }
 
-function Bullets({ items, ordered }: { items: string[]; ordered?: boolean }) {
+function Bullets({ items, ordered }: { items: HelpItem[]; ordered?: boolean }) {
   const List = ordered ? "ol" : "ul"
   return (
     <List className={`space-y-1.5 pl-5 text-zinc-700 ${ordered ? "list-decimal" : "list-disc"}`}>
-      {items.map((t) => (
-        <li key={t}>{t}</li>
-      ))}
+      {items.map((t) =>
+        typeof t === "string" ? (
+          <li key={t}>{t}</li>
+        ) : (
+          <li key={t.href}>
+            <Link href={t.href} className="font-medium text-zinc-900 underline underline-offset-2">
+              {t.link}
+            </Link>
+            ：{t.text}
+          </li>
+        ),
+      )}
     </List>
   )
 }

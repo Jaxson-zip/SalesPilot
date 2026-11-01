@@ -115,6 +115,29 @@ class ContractList(BaseModel):
 
 class PaymentIn(BaseModel):
     amount: int = Field(gt=0)
+    # 对账信息：到账日期（不传按今天）、银行流水号 / 交易单号、备注
+    received_on: PastDate | None = None
+    reference_no: str | None = Field(default=None, max_length=64)
+    note: str | None = Field(default=None, max_length=200)
+
+
+class PaymentReverseIn(BaseModel):
+    """冲正一笔登记错的回款：原记录保留，另记一笔负数，必须写原因。"""
+
+    reason: str = Field(min_length=2, max_length=200)
+
+
+class PaymentRecord(BaseModel):
+    id: uuid.UUID
+    amount: int  # 冲正记录为负数
+    received_on: date
+    reference_no: str | None
+    note: str | None
+    reversal_of: uuid.UUID | None  # 冲正的是哪一笔
+    reversed_by: uuid.UUID | None = None  # 这笔被哪条冲正记录冲掉了
+    reason: str | None
+    created_by: UserBrief | None
+    created_at: datetime
 
 
 class CommissionLineIn(BaseModel):

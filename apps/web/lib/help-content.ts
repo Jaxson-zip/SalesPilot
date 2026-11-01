@@ -3,7 +3,10 @@
  */
 import type { OpportunityStage, Role } from "@/types/api"
 
-export const QUICK_START: Record<Role, { title: string; steps: string[] }> = {
+/** 一条说明：纯文字，或带一个跳到配置页的链接 */
+export type HelpItem = string | { text: string; href: string; link: string }
+
+export const QUICK_START: Record<Role, { title: string; steps: HelpItem[] }> = {
   sales: {
     title: "销售：每天这样用",
     steps: [
@@ -26,9 +29,19 @@ export const QUICK_START: Record<Role, { title: string; steps: string[] }> = {
   admin: {
     title: "管理员：负责配置，不改业务数据",
     steps: [
-      "在「产品与定价」为每条产品线指定行业包，销售出方案时会自动套用。",
-      "业务页面对管理员只读，可以查看全公司数据，但不能新建或修改。",
-      "报销标准、毛利底线、提成比例等在 rules.yaml 中维护；报销模板、报价条款在 templates.yaml 中维护。",
+      {
+        text: "为每条产品线指定行业包（销售出方案时自动套用），产品价格、报价参数和知识库文档也在这里改。",
+        href: "/settings/packs",
+        link: "行业包与产品",
+      },
+      {
+        text: "毛利底线、折扣权限、提成比例、报销标准、报价有效期等，保存后立即生效。",
+        href: "/settings/rules",
+        link: "业务规则",
+      },
+      { text: "新增成员、调整团队和团队默认产品线。", href: "/settings/accounts", link: "成员与团队" },
+      "业务页面对管理员只读，可以查看全公司数据，但不能新建或修改；业务上的修改请找负责销售或其团队主管。",
+      "报销模板、报价单条款文案目前还没有配置页面，需要开发人员修改 templates.yaml 后发布。",
     ],
   },
 }

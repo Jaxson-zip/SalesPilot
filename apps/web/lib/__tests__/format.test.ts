@@ -9,6 +9,11 @@ describe("formatFen（后端传分，前端格式化）", () => {
     expect(formatFen(0)).toBe("¥0")
   })
 
+  it("负数（冲正记录）写成 -¥100", () => {
+    expect(formatFen(-10000)).toBe("-¥100")
+    expect(formatFen(-123450)).toBe("-¥1,234.50")
+  })
+
   it("空值显示占位符", () => {
     expect(formatFen(null)).toBe("—")
     expect(formatFen(undefined)).toBe("—")

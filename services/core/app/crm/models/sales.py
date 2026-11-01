@@ -84,6 +84,25 @@ class Contract(OwnedMixin, Base):
     status: Mapped[str] = mapped_column(String(20), default="active")
 
 
+class Payment(TimestampMixin, Base):
+    """一笔回款（到账）记录：对账用的到账日期、流水号、备注都留在这里。
+
+    登记错了不改不删，而是登记一笔负数的「冲正」记录（reversal_of 指向原记录，写明原因），
+    原始记录、操作人和原因都保留；合同的 paid_amount 是这些记录的合计。
+    """
+
+    __tablename__ = "payments"
+
+    contract_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("contracts.id"), index=True)
+    amount: Mapped[int] = mapped_column(BigInteger)  # 分；冲正记录为负数
+    received_on: Mapped[date] = mapped_column(Date)
+    reference_no: Mapped[str | None] = mapped_column(String(64))  # 银行流水号 / 交易单号
+    note: Mapped[str | None] = mapped_column(String(200))
+    reversal_of: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("payments.id"), index=True)
+    reason: Mapped[str | None] = mapped_column(String(200))  # 冲正原因
+    created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+
+
 class PaymentPlan(OwnedMixin, Base):
     """合同回款计划的一期（B9）。实收按期次顺序分摊，状态由 payment_plan.allocate 计算，不落库。"""
 

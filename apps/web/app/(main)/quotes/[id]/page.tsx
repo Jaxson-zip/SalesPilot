@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useQuote, useQuoteAction } from "@/hooks/useQuotes"
+import { pendingApprovalId } from "@/lib/approvals"
 import { quoteActionConfirm } from "@/lib/confirm-texts"
 import { formatRelative } from "@/lib/format"
 import { availableQuoteActions, primaryQuoteAction, QUOTE_ACTIONS, quoteToBom } from "@/lib/quote-actions"
@@ -41,12 +42,14 @@ export default function QuoteDetailPage() {
   const { id } = useParams<{ id: string }>()
   const quoteId = decodeURIComponent(id)
   const { role } = useSession()
-  const { canEdit } = usePermissions()
+  const { canEdit, canApprove } = usePermissions()
   const query = useQuote(quoteId)
   const action = useQuoteAction(quoteId)
   const [tab, setTab] = useState("bom")
   const { ask, dialog } = useConfirmAction()
   const q = query.data
+  // 主管：待审批的报价直接跳到审批列表那一条处理
+  const approvalId = q ? pendingApprovalId(q, canApprove) : null
 
   // 发送客户 / 客户接受 / 客户拒绝不可撤回：先确认；提交可被主管驳回，直接执行
   const run = (a: QuoteAction) => {
@@ -154,6 +157,9 @@ export default function QuoteDetailPage() {
       actions={
         q ? (
           <>
+            {approvalId ? (
+              <FrameAction icon={Stamp} label="去审批" href={`/approvals?id=${encodeURIComponent(approvalId)}`} />
+            ) : null}
             {canPrintQuote(q.status) ? (
               <FrameAction icon={Printer} label="打印报价单" href={`/quotes/${encodeURIComponent(q.id)}/print`} />
             ) : null}

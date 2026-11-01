@@ -225,5 +225,17 @@ def decide(
 
 def count_pending(db: Session, user: CurrentUser, view: View | None = None) -> int:
     """工作台：销售 = 自己提交且待审批；主管 = 本团队待审批；管理员 = 全部待审批。"""
-    stmt = apply_scope(select(Approval).where(Approval.status == "pending"), Approval, user, view)
-    return quote_query.count(db, stmt)
+    return sum(count_pending_by_type(db, user, view).values())
+
+
+def count_pending_by_type(
+    db: Session, user: CurrentUser, view: View | None = None
+) -> dict[str, int]:
+    """待审批按类型分开计数（quote / expense）：工作台卡片据此跳到对应列表。"""
+    out = {"quote": 0, "expense": 0}
+    for target_type in out:
+        stmt = select(Approval).where(
+            Approval.status == "pending", Approval.target_type == target_type
+        )
+        out[target_type] = quote_query.count(db, apply_scope(stmt, Approval, user, view))
+    return out

@@ -1,6 +1,7 @@
 """学习问答模式：只给知识类只读工具、提示词要求标出处、模式随会话保留、业务概览不含成本。"""
 
 import json
+import re
 import uuid
 from collections.abc import Iterator
 from typing import Any
@@ -125,7 +126,8 @@ def test_business_overview_has_catalog_rules_and_no_cost() -> None:
     costs = {f"¥{row.cost / 100:,.0f}" for row in _catalog()}
     prices = {f"¥{row.price / 100:,.0f}" for row in _catalog()}
     text = json.dumps(data, ensure_ascii=False)
-    assert not any(c in text for c in costs - prices)
+    # 按完整金额匹配：成本 ¥200 不能误判成目录价 ¥200,000 的前缀
+    assert not any(re.search(re.escape(c) + r"(?![\d,])", text) for c in costs - prices)
 
 
 def test_templates_and_packs_expose_learn_prompts_and_sample_flag(client: TestClient) -> None:

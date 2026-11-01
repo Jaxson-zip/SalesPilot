@@ -15,7 +15,7 @@ pack:
   base_days: 5                # 技术架构与数据库设计（每个项目都有）
   admin_days: 4               # 管理后台基础框架（需要后台时）
   extra_platform_factor: 0.5  # 每多一个客户端，模块人天 × (1 + 0.5)
-  solo_ai_factor: 0.7         # 个人全栈用 AI 编码：研发人天 × 0.7
+  solo_ai_factor: 0.5         # 个人全栈用 AI 编码：研发人天 × 0.5
   ai_tool_cost_per_day: 3000  # AI 编码工具 / token 分摊到每个人天的成本（分），计入成本不单列
   ai_daily_calls: 500         # 交付的软件带 AI 功能时，预计每天调用次数（估上线后月费）
   ai_tokens_per_call: 2000    # 每次调用的 token 数（输入 + 输出）

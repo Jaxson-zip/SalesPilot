@@ -139,7 +139,11 @@ def test_solo_fullstack_pricing() -> None:
     solo = {t.tier: t for t in cfg().configure(req(team_size=1))}["standard"]
     skus = {i.sku for i in solo.items}
     assert "SVC-PM" not in skus and "SVC-PM" in {i.sku for i in team.items}
-    assert {i.unit_price for i in solo.items if i.unit == "人天"} == {150_000}
+    assert {i.unit_price for i in solo.items if i.unit == "人天"} == {40_000}
+    # 部署、运维、交付用个人价；架构不打 AI 提效折扣
+    assert {i.sku for i in solo.items if i.unit != "人天"} == {"SVC-DEPLOY-SOLO", "SVC-OPS-SOLO"}
+    arch = next(i for i in solo.items if i.sku == "SVC-ARCH")
+    assert arch.qty == cfg().params["base_days"]
     assert solo.specs["delivery"] == "solo" and solo.specs["team_size"] == 1
     assert solo.specs["person_days"] < team.specs["person_days"]
     assert solo.specs["weeks"] > team.specs["weeks"]

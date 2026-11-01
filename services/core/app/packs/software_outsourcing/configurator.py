@@ -245,7 +245,8 @@ class SoftwareOutsourcingConfigurator:
 
     def _dev_items(self, plan: _Plan) -> list[BomItem]:
         p, dev, ai = self.params, plan.roles["dev"], plan.ai_factor
-        items = [self._days("SVC-ARCH", "技术架构与数据库设计", dev, p["base_days"] * ai)]
+        # 架构要人想清楚，不打 AI 提效折扣；后台框架、功能模块是写代码，按提效系数算
+        items = [self._days("SVC-ARCH", "技术架构与数据库设计", dev, p["base_days"])]
         if "admin" in plan.platforms:
             items.append(self._days("SVC-ADMIN", "管理后台基础框架", dev, p["admin_days"] * ai))
         for i, m in enumerate(plan.mods):
@@ -276,11 +277,13 @@ class SoftwareOutsourcingConfigurator:
         return items
 
     def _service_items(self, plan: _Plan) -> list[BomItem]:
-        items = [self.catalog.line("SVC-DEPLOY", 1)]
+        # 个人交付用个人价（-SOLO），团队价按团队成本定，个人用会远超人天单价
+        sfx = "-SOLO" if plan.team == 1 else ""
+        items = [self.catalog.line("SVC-DEPLOY" + sfx, 1)]
         if plan.cfg["ops_months"]:
-            items.append(self.catalog.line("SVC-OPS", plan.cfg["ops_months"]))
+            items.append(self.catalog.line("SVC-OPS" + sfx, plan.cfg["ops_months"]))
         if plan.cfg["handover"]:
-            items.append(self.catalog.line("SVC-HANDOVER", 1))
+            items.append(self.catalog.line("SVC-HANDOVER" + sfx, 1))
         return items
 
     def _summary(

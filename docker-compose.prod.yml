@@ -25,12 +25,20 @@ services:
     ports: !reset []
     restart: unless-stopped
     logging: *logging
+    healthcheck:
+      timeout: 15s
+      interval: 15s
 
   core:
     image: ${CORE_IMAGE:-salespilot-core:latest}
     ports: !reset []
     restart: unless-stopped
     logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+      gateway:
+        condition: service_started
     environment:
       TRUST_PROXY_HEADERS: "true"
       DEMO_LOGIN: ${DEMO_LOGIN:-false}

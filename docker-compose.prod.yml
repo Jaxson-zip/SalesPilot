@@ -34,6 +34,9 @@ services:
     ports: !reset []
     restart: unless-stopped
     logging: *logging
+    healthcheck:
+      timeout: 15s
+      interval: 15s
     depends_on:
       db:
         condition: service_healthy
@@ -48,6 +51,9 @@ services:
     ports: !reset []
     restart: unless-stopped
     logging: *logging
+    depends_on:
+      core:
+        condition: service_started
 
   nginx:
     profiles: !reset []

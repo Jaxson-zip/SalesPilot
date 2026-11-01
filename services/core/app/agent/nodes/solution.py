@@ -12,26 +12,25 @@ from typing import Any
 
 from langchain_core.messages import AIMessage
 from langgraph.types import interrupt
-from sqlalchemy import select
 
 from app.agent.action_result import action_result
 from app.agent.deps import AgentDeps
 from app.agent.nodes.common import (
     call_tool,
     emit,
+    emit_notice,
     log_tool,
     node_start,
     now_iso,
     tool_error,
 )
+from app.agent.nodes.customer_link import choose_pack, link_customer, request_text
 from app.agent.nodes.requirement_fields import extract_with_llm
 from app.agent.samples import describe
 from app.agent.state import AgentState
 from app.agent.tools.solution_tools import missing_fields
 from app.common.errors import BizError
-from app.crm.models import Opportunity
-from app.crm.schemas.opportunity import FINAL_STAGES
-from app.crm.services import customer_service, requirement_service
+from app.crm.services import requirement_service
 from app.packs.base import MarginHint, SampleSummary, SolutionTier, adjust_tier
 from app.packs.registry import get_configurator, get_pack
 from app.rules.loader import load_rules
@@ -42,60 +41,14 @@ Node = Callable[[AgentState], dict[str, Any]]
 logger = logging.getLogger(__name__)
 
 
-def request_text(state: AgentState) -> str:
-    """出方案用的需求文字：用户原话；对话循环转入时附上模型结合上文整理的需求（补全了指代）。"""
-    text = state.get("user_message", "")
-    request = (state.get("solution_request") or "").strip()
-    if request and request != text.strip():
-        return f"{text}\n\n结合上文整理的需求：{request}" if text else request
-    return text
-
-
-def link_customer(deps: AgentDeps, state: AgentState) -> dict[str, Any]:
-    """没有从商机进入时，按用户这句话里提到的客户关联报价单。
-
-    只在自己负责的客户里找，且只有唯一匹配才关联（多个或没有都不猜）；
-    该客户恰好只有一个进行中的商机时一并关联商机（行业包随商机产品线）。
-    """
-    if state.get("opportunity_id") or state.get("customer_id"):
-        return {}
-    try:
-        return _match_customer(deps, state)
-    except Exception:
-        logger.warning("link_customer failed; quote will not be linked", exc_info=True)
-        return {}
-
-
-def _match_customer(deps: AgentDeps, state: AgentState) -> dict[str, Any]:
-    with deps.ctx.session() as db:
-        found = customer_service.find_mentioned(db, deps.ctx.user, request_text(state))
-        if len(found) != 1:
-            return {}
-        customer = found[0]
-        opps = db.scalars(
-            select(Opportunity.id).where(
-                Opportunity.customer_id == customer.id,
-                Opportunity.owner_id == deps.ctx.user.id,
-                Opportunity.stage.not_in(FINAL_STAGES),
-            )
-        ).all()
-        out: dict[str, Any] = {"customer_id": str(customer.id), "customer_name": customer.name}
-        if len(opps) == 1:
-            out["opportunity_id"] = str(opps[0])
-        return out
-
-
 def make_parse_requirement(deps: AgentDeps) -> Node:
     def parse_requirement(state: AgentState) -> dict[str, Any]:
         node_start("parse_requirement")
-        linked = link_customer(deps, state)
-        opp_id = linked.get("opportunity_id", state.get("opportunity_id"))
         try:
-            # 没关联商机时用销售在输入框选的行业包（回归：原来这里又按团队默认重新取了一遍）
-            choice = None if opp_id else state.get("pack_choice")
-            pack_id = choice or deps.resolve_pack(opp_id)
+            linked, pack_id, notice = choose_pack(deps, state, link_customer(deps, state))
         except BizError as exc:
             return {"error": {"code": exc.code, "message": exc.message}}
+        opp_id = linked.get("opportunity_id", state.get("opportunity_id"))
         configurator = get_configurator(pack_id)
         saved = load_saved(deps, opp_id, pack_id) if not state.get("requirement") else None
         prev = state.get("requirement") or (saved or {}).get("data") or {}
@@ -132,6 +85,7 @@ def make_parse_requirement(deps: AgentDeps) -> Node:
         is_confirmed = bool(confirmed) or (prev_confirmed and same_scope(prev, requirement))
         out = {
             **linked,
+            "link_notice": notice,
             "pack_id": pack_id,
             "requirement": requirement,
             "requirement_confirmed": is_confirmed,
@@ -224,8 +178,10 @@ def make_clarify(deps: AgentDeps) -> Node:
             price_high=info["price_high"],
             questions=info["questions"],
         )
+        head = emit_notice(state)
         text = clarify_text(card)
         emit("message.delta", {"text": text})
+        text = head + text
         extra = {"artifacts": [{"type": "requirement", "data": card}], "created_at": now_iso()}
         return {
             "clarify": info,
@@ -281,9 +237,13 @@ def make_ask_user(deps: AgentDeps) -> Node:
     def ask_user(state: AgentState) -> dict[str, Any]:
         node_start("ask_user")
         labels = missing_labels(state.get("pack_id"), state.get("missing", []))
+        head = emit_notice(state)
         text = f"为了给出准确的配置和报价，还需要确认：{'；'.join(labels)}。"
         emit("message.delta", {"text": text})
-        return {"messages": [AIMessage(content=text, additional_kwargs={"created_at": now_iso()})]}
+        content = head + text
+        return {
+            "messages": [AIMessage(content=content, additional_kwargs={"created_at": now_iso()})]
+        }
 
     return ask_user
 

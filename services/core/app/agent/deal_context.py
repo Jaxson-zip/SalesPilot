@@ -8,6 +8,7 @@ import logging
 import uuid
 from datetime import datetime
 
+from app.agent.money import yuan_text
 from app.agent.tools.base import ToolContext
 from app.crm.schemas.common import PageParams
 from app.crm.schemas.opportunity import FINAL_STAGES, STAGE_LABELS
@@ -22,7 +23,7 @@ HEAD = "## 当前这单（CRM 里的最新数据，比聊天记录准；调用�
 
 
 def _yuan(cents: int) -> str:
-    return f"{cents / 100:,.0f} 元"
+    return yuan_text(cents)
 
 
 def _day(moment: datetime) -> str:

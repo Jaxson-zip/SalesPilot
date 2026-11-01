@@ -29,6 +29,16 @@ def node_start(name: str) -> None:
     emit("node.start", {"node": name})
 
 
+def emit_notice(state: AgentState) -> str:
+    """本轮的关联说明（parse_requirement 写入）先推送出去；返回要拼到这条回复开头的文字。"""
+    notice = state.get("link_notice")
+    if not notice:
+        return ""
+    text = f"{notice}\n\n"
+    emit("message.delta", {"text": text})
+    return text
+
+
 def sources_of(name: str, result: ToolResult) -> list[dict[str, str]]:
     """制度检索命中时的出处（文档 · 章节 · 页码），其他工具返回空。"""
     if name != "search_policy" or not result.ok or not isinstance(result.data, dict):

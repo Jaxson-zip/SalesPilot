@@ -12,7 +12,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 
 from app.agent.action_result import contradicts, status_text
 from app.agent.deps import AgentDeps
-from app.agent.nodes.common import emit, node_start, now_iso
+from app.agent.nodes.common import emit, emit_notice, node_start, now_iso
 from app.agent.nodes.solution import recommended_tier
 from app.agent.prompts import system_prompt
 from app.agent.runtime import model_text, now_text, runtime_note
@@ -214,10 +214,12 @@ def make_explain(deps: AgentDeps) -> Node:
     def explain(state: AgentState) -> dict[str, Any]:
         node_start("explain")
         draft = explain_draft(state)
+        head = emit_notice(state)
         text = _stream(deps, _explain_messages(state, draft, runtime_note(deps.model)))
         if text is None:
             text = draft
             emit("message.delta", {"text": text})
+        text = head + text
         extra = {"artifacts": turn_artifacts(state), "created_at": now_iso()}
         return {"messages": [AIMessage(content=text, additional_kwargs=extra)]}
 

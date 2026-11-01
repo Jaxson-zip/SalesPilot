@@ -20,6 +20,8 @@ class AgentState(TypedDict):
     opportunity_id: NotRequired[str | None]
     customer_id: NotRequired[str | None]  # 出方案时从对话里识别出的客户（唯一匹配才关联）
     customer_name: NotRequired[str | None]
+    # 本轮给销售的关联说明（手选行业包和客户已有商机对不上时，按新项目处理）
+    link_notice: NotRequired[str | None]
     intent: NotRequired[Intent]
     # 对话循环转入出方案时，模型结合上文整理的需求描述（补全指代，保留数字）
     solution_request: NotRequired[str | None]

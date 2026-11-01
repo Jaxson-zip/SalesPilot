@@ -90,3 +90,32 @@ def test_solution_flow_uses_chosen_pack() -> None:
     events = list(iter_graph_events(run.graph, run.payload, run.config, run.thread_id))
     card = next(e["data"] for e in events if e["event"] == "artifact")
     assert card["type"] == "requirement" and card["data"]["pack_id"] == "software_outsourcing"
+
+
+def _solution(pack: str | None) -> tuple[dict, str, dict]:
+    ctx = ToolContext(user=DEMO_USERS[Role.SALES], session=session_scope, thread_id=THREAD)
+    # 星河设计工作室有唯一进行中的商机「IT 设备换新」，产品线是企业办公 IT
+    deps = AgentDeps(ctx=ctx, resolve_pack=lambda o: "it_office" if o else "llm_deploy", llm=None)
+    msg = "给星河设计工作室做一个微信预约小程序，服务预约、订单查询、管理后台，预算10万元"
+    run = service.prepare_chat(deps, msg, None, checkpointer=InMemorySaver(), pack=pack)
+    events = list(iter_graph_events(run.graph, run.payload, run.config, run.thread_id))
+    text = "".join(e["data"]["text"] for e in events if e["event"] == "message.delta")
+    return run.graph.get_state(run.config).values, text, events
+
+
+def test_chosen_pack_wins_over_auto_linked_opportunity() -> None:
+    """回归：手选软件外包，提到的客户恰好有一个办公 IT 商机，被自动关联后追问「配几台电脑」，
+    纠正后仍重复，重新打开会话也显示企业办公 IT。现在按手选行业包、作为新项目，不关联那个商机。"""
+    state, text, events = _solution("software_outsourcing")
+    assert state["pack_id"] == "software_outsourcing"
+    assert not state.get("opportunity_id") and state["customer_name"] == "星河设计工作室"
+    assert "「IT 设备换新」" in text and "新项目" in text
+    card = next(e["data"] for e in events if e["event"] == "artifact")
+    assert card["data"]["pack_id"] == "software_outsourcing"
+    assert "电脑" not in text
+
+
+def test_auto_linked_opportunity_used_without_choice() -> None:
+    state, text, _ = _solution(None)
+    assert state["pack_id"] == "it_office" and state.get("opportunity_id")
+    assert "新项目" not in text

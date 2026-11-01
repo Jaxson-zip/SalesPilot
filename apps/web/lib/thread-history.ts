@@ -41,6 +41,8 @@ export interface ThreadMessages {
   opportunity_id?: string | null
   /** 会话模式（新建时确定，之后沿用） */
   mode?: AgentMode
+  /** 没关联商机时选的行业包（重新打开后恢复输入框的选择） */
+  pack_choice?: string | null
 }
 
 export interface ThreadRunning {

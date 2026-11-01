@@ -38,6 +38,8 @@ class ChatIn(BaseModel):
     samples: sample_lib.SamplesIn | None = None
     # learn：学习问答（新人带教），只用知识类只读工具；会话新建时确定，之后沿用
     mode: Literal["work", "learn"] = "work"
+    # 没关联商机时销售选的行业包 id（如 software_outsourcing）；不传按团队默认，有商机以商机为准
+    pack: str | None = Field(default=None, max_length=50)
 
 
 class ResumeIn(BaseModel):
@@ -66,6 +68,7 @@ async def chat(body: ChatIn, user: CurrentUserDep, request: Request) -> EventSou
         requirement=body.requirement,
         samples=body.samples,
         mode=body.mode,
+        pack=body.pack,
     )
     return EventSourceResponse(follow_run(service.start_run(run, user)))
 

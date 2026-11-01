@@ -25,6 +25,12 @@ def test_templates_fill_numbers_from_rules(client: TestClient) -> None:
     assert "每晚 500 元" in guides["hotel"]["standard"] and "深圳" in guides["hotel"]["standard"]
     assert not re.search(r"\{[a-z_0-9]+\}", json.dumps(data, ensure_ascii=False))  # 占位符都已填好
     assert f"{rules.quote.valid_days} 天" in data["quote_terms"][0]
+    # 付款方式按回款计划生成，不写死在文案里；行业包可以有自己的一套条款
+    plan = "、".join(f"{s.name} {s.ratio * 100:g}%" for s in rules.payment.schedule)
+    assert any(plan in t for t in data["quote_terms"])
+    software = " ".join(data["pack_quote_terms"]["software_outsourcing"])
+    assert "签约首付款 30%" in software and "到货" not in software
+    assert data["pack_quote_terms"]["llm_deploy"] == data["quote_terms"]
     assert "正式合同" in data["contract_terms"][0]
     assert {t["type"] for t in data["expense_templates"]} == {
         "entertainment",

@@ -14904,6 +14904,14 @@ components:
             type: string
           type: array
           title: Quote Terms
+        pack_quote_terms:
+          additionalProperties:
+            items:
+              type: string
+            type: array
+          type: object
+          title: Pack Quote Terms
+          default: {}
         contract_terms:
           items:
             type: string
@@ -14933,6 +14941,7 @@ components:
       - contract_terms
       - ai_prompts
       - rule_notes
+      - pack_quote_terms
       - learn_prompts
       title: Templates
     TenderItem:

@@ -43,9 +43,19 @@ function ProductLineSelect({ value, onChange }: { value: string | null; onChange
 }
 
 /** 新建商机 Sheet：客户 Combobox、名称、金额、赢率、预计成交日、产品线 Select；初始阶段为线索 */
-export function NewOpportunitySheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
-  const [v, setV] = useState<OpportunityFormValues>(EMPTY)
-  const [customer, setCustomer] = useState<CustomerBrief | null>(null)
+export function NewOpportunitySheet({
+  open,
+  onOpenChange,
+  presetCustomer = null,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  /** 从客户详情新建时预先选好客户 */
+  presetCustomer?: CustomerBrief | null
+}) {
+  const initial = { ...EMPTY, customer_id: presetCustomer?.id ?? null }
+  const [v, setV] = useState<OpportunityFormValues>(initial)
+  const [customer, setCustomer] = useState<CustomerBrief | null>(presetCustomer)
   const [errors, setErrors] = useState<OppFormErrors>({})
   const create = useCreateOpportunity()
   const set = <K extends keyof OpportunityFormValues>(k: K, val: OpportunityFormValues[K]) =>
@@ -53,8 +63,8 @@ export function NewOpportunitySheet({ open, onOpenChange }: { open: boolean; onO
 
   const close = () => {
     onOpenChange(false)
-    setV(EMPTY)
-    setCustomer(null)
+    setV(initial)
+    setCustomer(presetCustomer)
     setErrors({})
   }
   const submit = () => {

@@ -1,13 +1,16 @@
 "use client"
 
-import { Hash, Link as LinkIcon, MapPin, Star, Tag as TagIcon, User, Users, Wallet } from "lucide-react"
+import { Hash, Link as LinkIcon, MapPin, Plus, Star, Tag as TagIcon, User, Users, Wallet } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
 
 import { Chip, LinkChip } from "@/components/biz/Chip"
 import { FieldRow } from "@/components/biz/FieldRow"
 import { InlineEditRow } from "@/components/biz/InlineEditRow"
 import { colorFor, Tag } from "@/components/biz/Tag"
+import { NewOpportunitySheet } from "@/components/pipeline/NewOpportunitySheet"
 import { SubjectTasks } from "@/components/tasks/TaskList"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOpportunities } from "@/hooks/useOpportunities"
 import { useUpdateCustomer } from "@/hooks/useCustomers"
@@ -15,15 +18,41 @@ import { INDUSTRY_OPTIONS, SIZE_OPTIONS } from "@/lib/customer"
 import { displayHost, formatFen } from "@/lib/format"
 import { STAGE_META } from "@/lib/labels"
 import { defaultScope } from "@/lib/views"
-import type { CustomerDetail, CustomerUpdate, Role } from "@/types/api"
+import type { CustomerBrief, CustomerDetail, CustomerUpdate, Role } from "@/types/api"
 
 function levelColor(level: string) {
   const head = level.trim().charAt(0).toUpperCase()
   return head === "A" ? "red" : head === "B" ? "blue" : "gray"
 }
 
-/** 客户的商机（客户详情「商机」标签页） */
-export function CustomerOpportunities({ customerId, role }: { customerId: string; role: Role }) {
+/** 客户的商机（客户详情「商机」标签页）；有新建权限时可以直接给这个客户建商机 */
+export function CustomerOpportunities({
+  customer,
+  role,
+  canCreate,
+}: {
+  customer: CustomerBrief
+  role: Role
+  canCreate: boolean
+}) {
+  const [creating, setCreating] = useState(false)
+  return (
+    <div className="space-y-2">
+      {canCreate ? (
+        <div className="flex justify-end">
+          <Button size="sm" variant="outline" onClick={() => setCreating(true)}>
+            <Plus />
+            新建商机
+          </Button>
+          <NewOpportunitySheet open={creating} onOpenChange={setCreating} presetCustomer={customer} />
+        </div>
+      ) : null}
+      <OpportunityItems customerId={customer.id} role={role} />
+    </div>
+  )
+}
+
+function OpportunityItems({ customerId, role }: { customerId: string; role: Role }) {
   const q = useOpportunities({ view: defaultScope(role), customer_id: customerId, page_size: 20 })
   if (q.isPending) return <Skeleton className="h-16 w-full" />
   if (q.isError) return <div className="text-zinc-400">商机加载失败</div>

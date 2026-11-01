@@ -24,6 +24,9 @@ class PackInfo(BaseModel):
     # 产品目录价格和知识库是演示用的示例资料：页面标「示例」，AI 回答时说明；
     # 换成真实资料后在 pack.yaml 里改为 false
     sample_data: bool = False
+    # 报价单「条款与说明」：为空时用通用模板（rules/templates.yaml 的 quote_terms）；
+    # 占位符 {valid_days}、{payment_plan} 按本行业包生效的规则填入
+    quote_terms: list[str] = []
     path: Path
 
     @property

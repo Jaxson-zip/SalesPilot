@@ -109,7 +109,7 @@ function AiWorkbench() {
   const { stream, input, setInput, model, setModel, title, send } = w
   const { canAiWrite } = usePermissions()
   const { goNew, goMode } = useThreadUrl(w)
-  // 从商机进入：显示该商机产品线对应的行业包；否则显示团队默认行业包（管理员在「成员与团队」里给团队设置）
+  // 从商机进入：显示该商机产品线对应的行业包（锁定）；否则可以选，默认是团队默认产品线的行业包
   const opp = useOpportunity(w.opportunityId)
   const packName = usePackName()
   const teamPack = useDefaultPack()
@@ -140,6 +140,11 @@ function AiWorkbench() {
       model={model}
       onModelChange={setModel}
       pack={learn ? null : pack}
+      packPicker={
+        learn || w.opportunityId || !teamPack.data
+          ? null
+          : { value: w.packChoice ?? teamPack.data.pack, onChange: w.setPackChoice }
+      }
       rows={welcome ? 3 : 2}
       placeholder={
         learn

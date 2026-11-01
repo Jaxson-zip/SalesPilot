@@ -86,10 +86,11 @@ lost_reasons:
   - 没有接触到关键决策人
   - 技术方案不满足要求
 
-# 报价单打印页的「条款与说明」。{valid_days} 由 rules.yaml 的 quote.valid_days 填入
+# 报价单打印页 / 客户分享页的「条款与说明」（硬件类行业包通用；行业包可在 pack.yaml 的 quote_terms 里另写一套）。
+# {valid_days} 由 rules.yaml 的 quote.valid_days 填入，{payment_plan} 按回款计划（payment.schedule）生成
 quote_terms:
   - "本报价有效期 {valid_days} 天，自报价日期起算；逾期需重新确认价格与货期。"
-  - "付款方式：合同签订后预付 30%，到货验收后支付 60%，质保期满后支付 10%。"
+  - "付款方式：{payment_plan}。"
   - "交付周期：合同签订并收到预付款后 4–6 周到货，具体以合同约定为准。"
   - "报价含税（增值税专用发票），含运输、基础安装与调试。"
   - "质保与服务：硬件原厂质保 3 年；软件含 1 年免费升级与远程技术支持。"

@@ -40,7 +40,11 @@ export function useAiWorkbench(mode: AgentMode) {
   const sampleBatch = useRef(0)
   // 从商机「出方案」进入时关联的商机；新对话 / 打开历史会话时清空
   const [opportunityId, setOpportunityId] = useState<string | null>(null)
+  // 没关联商机时在输入框选的行业包；null = 用团队默认（服务端决定）
+  const [packChoice, setPackChoice] = useState<string | null>(null)
   const learning = mode === "learn"
+  // 学习问答查全部行业资料；关联了商机按商机产品线：这两种情况都不带选择
+  const sentPack = learning || opportunityId ? null : packChoice
 
   /** 上传材料：服务端解析成文字（不入库），发送时随消息一起交给 AI */
   const attach = async (file: File) => {
@@ -124,7 +128,7 @@ export function useAiWorkbench(mode: AgentMode) {
     const sampleSet = learning ? null : toSamplesIn(samples)
     const mat = material && !learning ? { name: material.name, text: material.text } : null
     if ((!msg && !mat && !sampleSet) || stream.isStreaming || samplesBusy(samples)) return
-    stream.send(msg, model, mat, learning ? null : opportunityId, null, sampleSet, mode)
+    stream.send(msg, model, mat, learning ? null : opportunityId, null, sampleSet, mode, sentPack)
     setInput("")
     setMaterial(null)
     clearSamples()
@@ -133,7 +137,7 @@ export function useAiWorkbench(mode: AgentMode) {
   /** 需求卡片「确认需求，出报价」：把核对后的需求随消息提交 */
   const confirmRequirement = (requirement: Record<string, unknown>) => {
     if (stream.isStreaming) return
-    stream.send("需求已确认，出正式报价", model, null, opportunityId, requirement, null, mode)
+    stream.send("需求已确认，出正式报价", model, null, opportunityId, requirement, null, mode, sentPack)
   }
 
   const newChat = () => {
@@ -142,12 +146,14 @@ export function useAiWorkbench(mode: AgentMode) {
     setMaterial(null)
     clearSamples()
     setOpportunityId(null)
+    setPackChoice(null)
   }
 
   /** 显示一条历史会话（provider 已取到消息并按会话的模式分到这里） */
   const show = (id: string, data: ThreadMessages) => {
     const turns = messagesToTurns(data)
     setOpportunityId(learning ? null : (data.opportunity_id ?? null))
+    setPackChoice(data.pack_choice ?? null)
     // 这一轮还在后台生成（例如刷新了页面）：先显示之前的内容，再接上本轮
     if (data.running) stream.attach(id, turns, data.running, model)
     else stream.load(id, turns, lastUserText(turns), model)
@@ -192,6 +198,8 @@ export function useAiWorkbench(mode: AgentMode) {
     loading,
     opportunityId,
     setOpportunityId,
+    packChoice,
+    setPackChoice,
     mode,
   }
 }

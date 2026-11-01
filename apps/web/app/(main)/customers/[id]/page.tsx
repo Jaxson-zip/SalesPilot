@@ -52,7 +52,7 @@ export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const customerId = decodeURIComponent(id)
   const { role, userId } = useSession()
-  const { canFollowup: canWriteFollowup, canAiWrite, canEdit } = usePermissions()
+  const { canFollowup: canWriteFollowup, canAiWrite, canEdit, canCreate } = usePermissions()
   const query = useCustomer(customerId)
   const claim = useClaimCustomer(customerId)
   const suggestions = useCustomerSuggestions(customerId)
@@ -143,7 +143,13 @@ export default function CustomerDetailPage() {
                 value: "opportunities",
                 label: "商机",
                 icon: Target,
-                content: <CustomerOpportunities customerId={cust.id} role={role} />,
+                content: (
+                  <CustomerOpportunities
+                    customer={{ id: cust.id, name: cust.name }}
+                    role={role}
+                    canCreate={canCreate && !inPool}
+                  />
+                ),
               },
               {
                 value: "contacts",

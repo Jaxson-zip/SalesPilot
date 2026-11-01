@@ -14,6 +14,7 @@ from langchain_core.messages import AIMessage
 from langgraph.types import interrupt
 from sqlalchemy import select
 
+from app.agent.action_result import action_result
 from app.agent.deps import AgentDeps
 from app.agent.nodes.common import (
     call_tool,
@@ -418,6 +419,11 @@ def make_save_quote(deps: AgentDeps) -> Node:
             "idempotency_key": key,
         }
         result = call_tool(deps, "generate_quote", args, confirmed=True)  # confirm 节点之后
+        # 确认卡片按执行结果显示「已完成 · 查看报价单」或失败原因（原来一直停在「正在执行…」）
+        emit(
+            "artifact",
+            {"type": "action_result", "data": action_result("generate_quote", "approve", result)},
+        )
         log = log_tool(state, "generate_quote", result)
         if not result.ok:
             return {"error": tool_error(result), "tool_log": log}

@@ -31,9 +31,11 @@ import type { QuoteDetail } from "@/types/api"
 
 const DEFAULT_NOTE = "以上报价以人民币计价。如需调整配置或数量，请联系您的客户经理。"
 
-/** 条款与说明：来自 /api/templates（有效期天数由后端按 rules.yaml 填入），管理员改 templates.yaml 即可调整 */
-function QuoteTerms() {
-  const terms = useTemplates().data?.quote_terms ?? []
+/** 条款与说明：来自 /api/templates，按报价单的行业包取（有效期、付款比例由后端按规则填入）；
+ * 行业包在 pack.yaml 写 quote_terms，没写的用 templates.yaml 的通用条款 */
+function QuoteTerms({ pack }: { pack: string }) {
+  const data = useTemplates().data
+  const terms = data?.pack_quote_terms[pack] ?? data?.quote_terms ?? []
   return <TermsList title="条款与说明" terms={terms} />
 }
 
@@ -96,7 +98,7 @@ function QuoteSheet({ q, showUpper }: { q: QuoteDetail; showUpper: boolean }) {
         ) : null}
       </div>
       <ClientCostsTable costs={q.client_costs ?? []} title="运营期客户自付费用预估（不含在本报价内，实报实销）" />
-      <QuoteTerms />
+      <QuoteTerms pack={q.pack} />
       <div className="mt-4">
         <label htmlFor="print-note" className="font-medium">
           备注

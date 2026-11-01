@@ -26,6 +26,8 @@ class AgentState(TypedDict):
     # 上一轮出方案时追问过、用户还没给的字段（本轮开始时从 missing 转存，提示模型用户可能在回答）
     prev_missing: NotRequired[list[str]]
     pack_id: NotRequired[str | None]
+    # 没关联商机时销售在输入框选的行业包（跨轮次保留；关联了商机以商机产品线为准）
+    pack_choice: NotRequired[str | None]
     requirement: NotRequired[dict[str, Any]]  # 跨轮次累积的需求草稿
     # 需求已由销售在需求卡片上确认（跨轮次保留；功能 / 端变了会回到待确认）
     requirement_confirmed: NotRequired[bool]

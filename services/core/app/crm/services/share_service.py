@@ -14,7 +14,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.common.auth import CurrentUser, Role
+from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_owner
 from app.common.scope import ensure_visible
@@ -213,5 +213,5 @@ def public_quote(db: Session, token: str, count_view: bool = True) -> PublicQuot
         total_price=quote.total_price,
         client_costs=quote.client_costs or [],
         scope=_scope(opp, quote.pack),
-        terms=template_service.get_templates(Role.SALES).quote_terms,
+        terms=template_service.quote_terms(quote.pack),
     )

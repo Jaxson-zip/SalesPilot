@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowUp, Boxes, Cpu, FileText, Images, Loader2, Lock, Paperclip, RotateCw, X } from "lucide-react"
+import { ArrowUp, Cpu, FileText, Images, Loader2, Paperclip, RotateCw, X } from "lucide-react"
 import { useRef, type KeyboardEvent } from "react"
 
 import {
@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { PackChip, PackSelect } from "@/components/agent/PackChip"
 import { VoiceButton } from "@/components/biz/VoiceButton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAgentModels } from "@/hooks/useAgentModels"
@@ -39,6 +40,8 @@ interface ComposerProps {
   onModelChange: (model: string) => void
   /** 行业包只读标签（来自商机产品线）；null 不显示 */
   pack?: string | null
+  /** 没关联商机时可以选行业包：传了就显示下拉，代替只读标签 */
+  packPicker?: { value: string; onChange: (pack: string) => void } | null
   compact?: boolean
   rows?: number
   placeholder?: string
@@ -203,25 +206,6 @@ function AttachButton({ uploading, onPick }: { uploading?: boolean; onPick: (fil
   )
 }
 
-/** 行业包只读标签：锁图标，销售不能切换 */
-function PackChip({ pack }: { pack: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex h-8 min-w-0 cursor-help items-center gap-1.5 rounded-full bg-zinc-100 px-3 text-xs text-zinc-600 max-sm:shrink-0 max-sm:px-2.5">
-          <Boxes className="size-3.5 shrink-0" />
-          <span className="truncate max-sm:overflow-visible">
-            {pack}
-            <span className="max-sm:hidden"> · 按商机产品线自动匹配</span>
-          </span>
-          <Lock className="size-3 shrink-0 text-zinc-400 max-sm:hidden" />
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>行业包由管理员配置，根据商机的产品线自动匹配，销售无需也不能切换</TooltipContent>
-    </Tooltip>
-  )
-}
-
 /**
  * 模型选择：pill 变体 Select（只用于 AI 输入框底部）。
  * 选项来自网关能力表；没配 Key 的模型标「未配置」不可选；全部不可用时显示「规则模式」。
@@ -325,6 +309,7 @@ export function Composer(props: ComposerProps) {
     model,
     onModelChange,
     pack,
+    packPicker,
     compact,
     rows = 2,
     placeholder,
@@ -370,7 +355,11 @@ export function Composer(props: ComposerProps) {
         className="w-full resize-none bg-transparent px-4 pt-3.5 text-base outline-none placeholder:text-zinc-400 md:text-[14px]"
       />
       <div className="flex min-w-0 items-center gap-1.5 px-3 pb-3">
-        {!compact && pack ? <PackChip pack={pack} /> : null}
+        {compact ? null : packPicker ? (
+          <PackSelect value={packPicker.value} onChange={packPicker.onChange} />
+        ) : pack ? (
+          <PackChip pack={pack} />
+        ) : null}
         {onAttach ? <AttachButton uploading={uploading} onPick={onAttach} /> : null}
         {onAttachSamples ? <SamplesButton busy={busy} onPick={onAttachSamples} /> : null}
         <VoiceButton value={value} onChange={onChange} variant="pill" disabled={streaming} />

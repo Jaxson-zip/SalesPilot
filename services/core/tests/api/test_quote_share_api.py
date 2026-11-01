@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select, update
 
 from app.common.db import session_scope
-from app.crm.models import Activity, Notification, QuoteShare
+from app.crm.models import Activity, Notification, Quote, QuoteShare
 from tests.api.conftest import MANAGER_H, SALES2_H, SALES_H, Tracker, make_tier
 from tests.api.test_quotes_contracts_api import GOOD, LOW, act, create_quote
 
@@ -95,3 +95,17 @@ def test_only_owner_can_share(client: TestClient, tracker: Tracker) -> None:
     assert _share(client, qid, MANAGER_H)["code"] == 40301  # 主管看得到，但不是负责人
     assert client.delete(f"/api/quotes/{qid}/share", headers=SALES2_H).json()["code"] == 40401
     assert client.get(f"/api/quotes/{qid}/share", headers=MANAGER_H).json()["code"] == 0
+
+
+def test_software_quote_terms_follow_pack(client: TestClient, tracker: Tracker) -> None:
+    """回归：软件外包报价的条款原来是硬件的（到货验收、原厂质保），付款比例和里程碑回款计划对不上。"""
+    qid = _approved(client, tracker)
+    with session_scope() as db:
+        db.execute(
+            update(Quote).where(Quote.id == uuid.UUID(qid)).values(pack="software_outsourcing")
+        )
+    token = _share(client, qid)["data"]["token"]
+    terms = " ".join(client.get(f"/api/public/quotes/{token}").json()["data"]["terms"])
+    assert "签约首付款 30%、原型与 UI 确认款 30%、上线验收款 30%、质保尾款 10%" in terms
+    for hardware in ("到货", "原厂质保", "运输"):
+        assert hardware not in terms

@@ -7505,6 +7505,13 @@ export interface components {
       lost_reasons: string[]
       /** Quote Terms */
       quote_terms: string[]
+      /**
+       * Pack Quote Terms
+       * @default {}
+       */
+      pack_quote_terms: {
+        [key: string]: string[]
+      }
       /** Contract Terms */
       contract_terms: string[]
       /** Ai Prompts */

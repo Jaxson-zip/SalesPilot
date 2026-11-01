@@ -21,11 +21,13 @@ services:
     logging: *logging
 
   gateway:
+    image: ${GATEWAY_IMAGE:-salespilot-gateway:latest}
     ports: !reset []
     restart: unless-stopped
     logging: *logging
 
   core:
+    image: ${CORE_IMAGE:-salespilot-core:latest}
     ports: !reset []
     restart: unless-stopped
     logging: *logging
@@ -34,6 +36,7 @@ services:
       DEMO_LOGIN: ${DEMO_LOGIN:-false}
 
   web:
+    image: ${WEB_IMAGE:-salespilot-web:latest}
     ports: !reset []
     restart: unless-stopped
     logging: *logging

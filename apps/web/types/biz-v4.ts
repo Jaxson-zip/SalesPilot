@@ -53,7 +53,10 @@ export interface Templates {
   followup: FollowupTemplate[]
   task: TaskTemplate[]
   lost_reasons: string[]
+  /** 通用报价条款（报价单没有行业包时用） */
   quote_terms: string[]
+  /** 各行业包的报价条款：行业包 id → 条款，付款方式按该行业包的回款计划生成 */
+  pack_quote_terms: Record<string, string[]>
   /** 合同要素确认单的说明 */
   contract_terms: string[]
   /** 当前角色的 AI 示例问题 */

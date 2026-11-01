@@ -59,6 +59,8 @@ export interface UseAgentStream {
     samples?: SamplesIn | null,
     /** 会话模式：服务端以会话第一轮为准 */
     mode?: AgentMode,
+    /** 没关联商机时选的行业包 id；关联了商机时服务端以商机为准 */
+    pack?: string | null,
   ) => void
   /** tier：确认生成报价单时另选的档位；items：物料清单上调整的数量（sku → 数量，0 为删除） */
   resume: (decision: ResumeDecision, tier?: string, items?: Record<string, number>) => void
@@ -136,6 +138,7 @@ export function useAgentStream(): UseAgentStream {
     requirement?: Record<string, unknown>
     samples?: SamplesIn
     mode?: AgentMode
+    pack?: string
   } | null>(null)
 
   const patch = useCallback<Patch>((fn) => setTurns((ts) => updateLastAssistant(ts, fn)), [])
@@ -162,6 +165,7 @@ export function useAgentStream(): UseAgentStream {
       req?: Record<string, unknown> | null,
       sampleSet?: SamplesIn | null,
       mode?: AgentMode,
+      packChoice?: string | null,
     ) => {
       const fallback = material ? MATERIAL_DEFAULT_ASK : sampleSet ? SAMPLE_DEFAULT_ASK : ""
       const text = message.trim() || fallback
@@ -169,7 +173,8 @@ export function useAgentStream(): UseAgentStream {
       const opportunity_id = opportunityId ?? undefined
       const requirement = req ?? undefined
       const samples = sampleSet ?? undefined
-      lastChat.current = { message: text, model, material, opportunity_id, requirement, samples, mode }
+      const pack = packChoice ?? undefined
+      lastChat.current = { message: text, model, material, opportunity_id, requirement, samples, mode, pack }
       const thread_id = ensureThread()
       const meta = material
         ? { name: material.name, chars: material.text.length }
@@ -189,6 +194,7 @@ export function useAgentStream(): UseAgentStream {
             requirement,
             samples,
             mode,
+            pack,
           },
           o,
         ),
@@ -224,6 +230,7 @@ export function useAgentStream(): UseAgentStream {
           requirement: last.requirement,
           samples: last.samples,
           mode: last.mode,
+          pack: last.pack,
         },
         o,
       ),

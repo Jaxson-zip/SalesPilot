@@ -32,6 +32,7 @@ from app.common.db import session_scope
 from app.common.errors import BizError, ErrorCode
 from app.crm.services import opportunity_service
 from app.llm.client import get_chat_model, list_models, model_available
+from app.packs.registry import list_packs
 from app.rules import load_rules
 
 logger = logging.getLogger("core.agent")
@@ -109,6 +110,18 @@ def _check_owner(graph: CompiledStateGraph, config: RunnableConfig, user: Curren
     return snapshot
 
 
+def _set_pack(
+    deps: AgentDeps, payload: dict[str, Any], linked: str | None, choice: str | None
+) -> None:
+    """每轮定行业包，查资料、出方案都用它：关联商机的产品线 → 没关联商机时销售选的 →
+    团队默认产品线 → 系统默认。产品线没启用行业包时不设：出方案时再报错，普通对话按公司制度回答。"""
+    if choice and not linked:
+        payload["pack_id"] = choice
+        return
+    with contextlib.suppress(BizError):
+        payload["pack_id"] = deps.resolve_pack(linked)
+
+
 def prepare_chat(
     deps: AgentDeps,
     message: str,
@@ -118,7 +131,10 @@ def prepare_chat(
     requirement: dict[str, Any] | None = None,
     samples: sample_lib.SamplesIn | None = None,
     mode: Mode = "work",
+    pack: str | None = None,
 ) -> PreparedRun:
+    if pack is not None and pack not in list_packs():
+        raise BizError(ErrorCode.VALIDATION, f"行业包不存在：{pack}")
     thread_id = deps.ctx.thread_id
     graph = build_graph(deps, checkpointer or get_checkpointer())
     config = _config(thread_id)
@@ -149,11 +165,10 @@ def prepare_chat(
     # 没带商机（例如从历史记录重新打开的会话）时不覆盖：会话之前关联的商机继续有效
     if opportunity_id:
         payload["opportunity_id"] = str(opportunity_id)
-    # 每轮按「关联商机的产品线 → 团队默认产品线 → 系统默认」定行业包，查资料、出方案都用它
     linked = str(opportunity_id) if opportunity_id else existing.get("opportunity_id")
-    # 产品线没启用行业包时不设：出方案时再报错，普通对话按公司制度回答
-    with contextlib.suppress(BizError):
-        payload["pack_id"] = deps.resolve_pack(linked)
+    if pack:
+        payload["pack_choice"] = pack
+    _set_pack(deps, payload, linked, pack or existing.get("pack_choice"))
     touch_thread(deps.ctx.session, deps.ctx.user, thread_id, message, opportunity_id, mode)
     return PreparedRun(
         graph, payload, config, thread_id, "chat", message, build_messages(thread_id, snapshot)

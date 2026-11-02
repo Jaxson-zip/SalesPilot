@@ -61,11 +61,11 @@ export function useStageMove(): {
         onConfirm={(quote) => {
           if (winning)
             change.mutate(
-              { id: winning.id, stage: "won", ...(quote ? { quote_id: quote.id } : {}) },
+              { id: winning.id, stage: "won", quote_id: quote.id },
               {
                 onSuccess: () =>
                   toast.success(stageChangedText("won"), {
-                    description: quote ? `已按报价 ${quote.code} 生成合同和回款计划` : "未生成合同",
+                    description: `已按报价 ${quote.code} 生成合同和回款计划`,
                   }),
               },
             )

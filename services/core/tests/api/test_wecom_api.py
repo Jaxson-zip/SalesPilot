@@ -17,6 +17,7 @@ from app.crm.models import Integration
 from app.crm.services import wecom_service
 from tests.api.conftest import ADMIN_H, MANAGER_H, SALES_H, Tracker
 from tests.api.test_opportunities_api import new_opp
+from tests.api.test_quotes_contracts_api import approved_quote
 
 URL = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=test-0000-1111-2222"
 
@@ -73,9 +74,8 @@ def test_deal_won_pushed_after_commit(
     client: TestClient, tracker: Tracker, wecom: FakeWecom
 ) -> None:
     opp = new_opp(client, tracker)
-    r = client.patch(
-        f"/api/opportunities/{opp['id']}/stage", json={"stage": "won"}, headers=SALES_H
-    )
+    body = {"stage": "won", "quote_id": approved_quote(client, tracker, opp["id"])}
+    r = client.patch(f"/api/opportunities/{opp['id']}/stage", json=body, headers=SALES_H)
     assert r.json()["code"] == 0
     assert any("赢单喜报" in t and opp["name"] in t for t in wecom.texts())
 
@@ -91,8 +91,9 @@ def test_disabled_event_not_pushed(client: TestClient, tracker: Tracker, wecom: 
     body = {"enabled": True, "events": ["approval_pending"]}
     client.put("/api/integrations/wecom", json=body, headers=ADMIN_H)
     opp = new_opp(client, tracker)
-    client.patch(f"/api/opportunities/{opp['id']}/stage", json={"stage": "won"}, headers=SALES_H)
-    assert wecom.sent == []
+    body = {"stage": "won", "quote_id": approved_quote(client, tracker, opp["id"])}
+    r = client.patch(f"/api/opportunities/{opp['id']}/stage", json=body, headers=SALES_H)
+    assert r.json()["code"] == 0 and wecom.sent == []
     assert (
         client.get("/api/integrations/flags", headers=SALES_H).json()["data"]["deal_won"] is False
     )

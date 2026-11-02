@@ -42,6 +42,7 @@ from app.crm.services import (
     opportunity_insights,
     quote_query,
     wecom_service,
+    won_rule,
 )
 from app.rules import load_rules, weighted_amount
 from app.rules.crm_calc import default_win_rate
@@ -311,6 +312,8 @@ def change_stage(
 
         quote_service.win_with_quote(db, user, opp, change.quote_id, source)
     else:
+        if change.stage == "won" and opp.stage not in FINAL_STAGES:
+            won_rule.reject_won_without_quote(db, opp)
         apply_stage(db, user, opp, change, source)
     return get_item(db, user, opp.id)
 

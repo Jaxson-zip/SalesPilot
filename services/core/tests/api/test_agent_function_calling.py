@@ -5,7 +5,6 @@
 
 import json
 import uuid
-from datetime import date
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -20,6 +19,7 @@ from app.agent.tools import ToolContext
 from app.common.auth import Role
 from app.common.db import session_scope
 from app.crm.models import Expense, Opportunity
+from app.crm.services.codes import local_today
 from app.crm.services.demo import DEMO_USERS
 from seed.data import C_MINGLI
 from tests.api.conftest import Tracker
@@ -108,7 +108,7 @@ def test_reject_does_not_write_and_model_is_told(client: TestClient, tracker: Tr
 
 
 def test_expense_via_chat_uses_system_idempotency_key(tracker: Tracker) -> None:
-    today = date.today().isoformat()
+    today = local_today().isoformat()
     args = {
         "type": "entertainment",
         "amount": 86_000,

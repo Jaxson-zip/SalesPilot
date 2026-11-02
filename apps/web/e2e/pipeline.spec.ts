@@ -115,7 +115,7 @@ test.describe("商机看板", () => {
     expect((await api.call<Opportunity>("GET", `/api/opportunities/${opp.id}`)).stage).toBe("lead")
   })
 
-  test("拖到「赢单」要先确认（无报价时提示不生成合同）；点取消阶段不变", async ({ page, request }) => {
+  test("拖到「赢单」要先确认（无报价时不能赢单、不显示确认按钮）；点取消阶段不变", async ({ page, request }) => {
     const api = await Api.as(request, "sales")
     const opp = await newLeadOpportunity(api)
 
@@ -127,7 +127,8 @@ test.describe("商机看板", () => {
     )
     const dialog = page.getByRole("dialog", { name: "标记为赢单" })
     await expect(dialog).toBeVisible()
-    await expect(dialog).toContainText("不会生成合同和回款计划") // 没有报价时明确告知
+    await expect(dialog).toContainText("赢单需要按已审批或已发送的报价成交") // 没有报价时明确告知
+    await expect(dialog.getByRole("button", { name: /确认/ })).toHaveCount(0) // 不放点了也会失败的按钮
     await dialog.getByRole("button", { name: "取消", exact: true }).click()
 
     await expect(dialog).toBeHidden()

@@ -3,6 +3,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import update
 
@@ -10,6 +11,7 @@ from app.common.db import session_scope
 from app.crm.models import Activity, Opportunity
 from app.rules.crm_calc import day_bounds
 from seed.data import C_MINGLI, C_PC3H
+from seed.workflow import seed_tasks
 from tests.api.conftest import ADMIN_H, MANAGER_H, SALES_H, Tracker
 from tests.api.test_opportunities_api import new_opp
 
@@ -121,6 +123,17 @@ def test_due_filters_and_dashboard(client: TestClient, tracker: Tracker) -> None
     assert client.get("/api/tasks?due=bad", headers=SALES_H).json()["code"] == 40001
 
 
+@pytest.fixture
+def tasks_for_today() -> None:
+    """演示任务的到期时间按导入那天的北京日期算（例如「今天 23 点到期」）。
+
+    回归：整套测试跨过北京时间 0 点时，「今天到期」变成了昨天，偶发失败；先按今天重写一遍。
+    """
+    with session_scope() as db:
+        seed_tasks(db)
+
+
+@pytest.mark.usefixtures("tasks_for_today")
 def test_seeded_next_task_and_stale(client: TestClient) -> None:
     items = client.get("/api/opportunities?page_size=100", headers=SALES_H).json()["data"]["items"]
     by_name = {o["name"]: o for o in items}
@@ -180,6 +193,7 @@ def test_stage_change_sets_default_win_rate(client: TestClient, tracker: Tracker
     assert lost["data"]["win_rate"] == 0
 
 
+@pytest.mark.usefixtures("tasks_for_today")
 def test_task_due_notification_generated_once(client: TestClient) -> None:
     def due_titles() -> list[str]:
         data = client.get("/api/notifications?limit=100", headers=SALES_H).json()["data"]

@@ -32,6 +32,7 @@ from app.crm.services import (
     contract_service,
     quote_query,
     task_service,
+    won_rule,
 )
 from app.crm.services.codes import LOCAL_TZ, local_today, next_code
 from app.crm.services.opportunity_service import apply_stage, get_owned, sync_signed_amount
@@ -322,7 +323,7 @@ def _mark_won(db: Session, user: CurrentUser, opportunity_id: uuid.UUID | None, 
         apply_stage(db, user, opp, StageChange(stage="won"), src)
 
 
-WIN_STATUSES = ("approved", "sent")
+WIN_STATUSES = won_rule.WIN_STATUSES
 # 出了报价单还停在这些阶段的商机自动推进到「方案报价」（谈判中的不往回退）
 BEFORE_PROPOSAL = ("lead", "qualified")
 RULE_WIN_QUOTE = "won_quote_invalid"

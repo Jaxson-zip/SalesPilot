@@ -225,7 +225,8 @@ CRM_TOOLS: list[ToolSpec] = [
         "update_opportunity_stage",
         "修改商机阶段（lead 线索 / qualified 需求确认 / proposal 方案报价 / negotiation 商务谈判 / "
         "won 赢单 / lost 输单，输单必须写 lost_reason）。opportunity_id 来自 get_customer_context。"
-        "赢单时若该商机有已审批 / 已发送的报价，传 quote_id 按该报价成交（生成合同和回款计划）。"
+        "赢单必须传 quote_id，按该商机已审批 / 已发送的报价成交（生成合同和回款计划）；"
+        "没有这样的报价就不能标赢单，告诉用户先出报价并审批。"
         "用户同时讲了这次沟通的内容（拜访、电话里客户怎么说）时，非赢单 / 输单的推进"
         "改用 add_followup 的 stage 一起写",
         UpdateStageArgs,

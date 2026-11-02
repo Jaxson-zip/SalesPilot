@@ -49,6 +49,13 @@ def act(client: TestClient, quote_id: str, action: str, headers: dict[str, str] 
     return client.post(f"/api/quotes/{quote_id}/{action}", headers=headers).json()
 
 
+def approved_quote(client: TestClient, tracker: Tracker, opp_id: str) -> str:
+    """商机上一张已审批（毛利达标自动通过）的报价，赢单要按它成交。"""
+    qid = create_quote(tracker, make_tier(GOOD), opp_id)
+    assert act(client, qid, "submit")["data"]["status"] == "approved"
+    return qid
+
+
 def test_full_lifecycle_creates_contract_and_commission(
     client: TestClient, tracker: Tracker
 ) -> None:

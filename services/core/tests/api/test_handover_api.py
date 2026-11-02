@@ -2,7 +2,7 @@
 
 import uuid
 from collections.abc import Iterator
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +10,7 @@ from sqlalchemy import delete, select
 
 from app.common.db import session_scope
 from app.crm.models import Activity, Contract, Customer, Notification, PaymentPlan, Task, User
+from app.crm.services.codes import local_today
 from app.crm.services.demo import EXTRA_SALES, TEAM_SOUTH_ID
 from tests.api.conftest import ADMIN_H, MANAGER_H, SALES_H
 
@@ -44,7 +45,7 @@ def leaver() -> Iterator[dict[str, uuid.UUID]]:
         db.add(
             PaymentPlan(
                 contract_id=ids["active"], seq=1, name="全款", amount=100,
-                due_date=date.today(), **owner,
+                due_date=local_today(), **owner,
             )
         )  # fmt: skip
     yield ids

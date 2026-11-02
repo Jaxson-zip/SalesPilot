@@ -128,12 +128,10 @@ def test_won_amount_follows_contract(client: TestClient, tracker: Tracker) -> No
     opp = new_opp(client, tracker, amount=1_000_000)
     quote = _quote(tracker, opp["id"])
     url = f"/api/opportunities/{opp['id']}"
-    r = client.patch(f"{url}/stage", json={"stage": "won"}, headers=SALES_H)
-    assert r.status_code == 200, r.text
-    # 手工标赢单、还没有合同：漏斗上单独提示，不算本月成交
-    mid = _won(client)
-    assert mid["unsigned_count"] == before["unsigned_count"] + 1
-    assert mid["unsigned_amount"] == before["unsigned_amount"] + 1_000_000
+    # 没指定报价不能赢单（回归：原来能「只标记赢单」，没有合同也发了喜报）
+    r = client.patch(f"{url}/stage", json={"stage": "won"}, headers=SALES_H).json()
+    assert r["code"] == 42201 and r["data"]["rule"] == "won_needs_quote"
+    assert _won(client)["unsigned_count"] == before["unsigned_count"]
 
     from app.common.db import session_scope
 
@@ -145,6 +143,7 @@ def test_won_amount_follows_contract(client: TestClient, tracker: Tracker) -> No
         assert contract is not None
         amount = db.get(Opportunity, uuid.UUID(opp["id"])).amount  # type: ignore[union-attr]
         assert amount == contract.amount != 1_000_000
+        assert db.get(Opportunity, uuid.UUID(opp["id"])).stage == "won"  # type: ignore[union-attr]
     after = _won(client)
     assert after["unsigned_count"] == before["unsigned_count"]
     # 签了合同之后金额按合同算，不能再手改

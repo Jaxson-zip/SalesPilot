@@ -1,4 +1,7 @@
-"""报价单接口（接口契约 §3）：列表、详情、手工新建、submit / send / accept / reject / renew。"""
+"""报价单接口（接口契约 §3）：列表、详情、手工新建、状态流转。
+
+状态流转：submit / send / accept / reject / renew / revise；另有复制新版本、草稿补关联。
+"""
 
 import uuid
 from typing import Annotated
@@ -14,10 +17,11 @@ from app.crm.schemas.quote import (
     QuoteCreate,
     QuoteDetail,
     QuoteItemsUpdate,
+    QuoteLink,
     QuoteListItem,
     QuoteStatus,
 )
-from app.crm.services import quote_edit, quote_query, quote_service
+from app.crm.services import quote_edit, quote_query, quote_revision, quote_service
 from app.crm.services.listing import FacetOption, SortKey, clean, uuids
 
 router = APIRouter(prefix="/api/quotes", tags=["quotes"])
@@ -97,6 +101,26 @@ def accept_quote(quote_id: uuid.UUID, user: CurrentUserDep, db: DbDep) -> Detail
 @router.post("/{quote_id}/reject", response_model=Detail)
 def reject_quote(quote_id: uuid.UUID, user: CurrentUserDep, db: DbDep) -> Detail:
     return ok(quote_service.transition(db, user, quote_id, "reject"))
+
+
+@router.post("/{quote_id}/revise", response_model=Detail)
+def revise_quote(quote_id: uuid.UUID, user: CurrentUserDep, db: DbDep) -> Detail:
+    """已审批、还没发给客户的报价撤回修改：退回草稿，改完重新提交审批。"""
+    return ok(quote_service.transition(db, user, quote_id, "revise"))
+
+
+@router.post("/{quote_id}/revisions", response_model=Detail)
+def copy_revision(quote_id: uuid.UUID, user: CurrentUserDep, db: DbDep) -> Detail:
+    """已发送 / 客户拒绝的报价复制为新版本（草稿）；返回新报价。"""
+    new_id = quote_revision.copy_revision(db, user, quote_id)
+    return ok(quote_service.get_quote(db, user, new_id))
+
+
+@router.patch("/{quote_id}/link", response_model=Detail)
+def link_quote(quote_id: uuid.UUID, body: QuoteLink, user: CurrentUserDep, db: DbDep) -> Detail:
+    """草稿补关联客户或商机（AI 没识别出客户时），明细和价格不变。"""
+    quote_revision.link(db, user, quote_id, body)
+    return ok(quote_service.get_quote(db, user, quote_id))
 
 
 @router.post("/{quote_id}/renew", response_model=Detail)

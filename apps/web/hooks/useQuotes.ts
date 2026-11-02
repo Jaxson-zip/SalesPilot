@@ -58,7 +58,7 @@ export function useQuote(id: string) {
   })
 }
 
-/** POST /api/quotes/{id}/submit|send|accept|reject */
+/** POST /api/quotes/{id}/submit|send|accept|reject|renew|revise */
 export function useQuoteAction(id: string) {
   const qc = useQueryClient()
   return useMutation({
@@ -109,6 +109,42 @@ export function useAdjustQuote(id: string) {
     onSuccess: (quote) => {
       if (quote?.id) qc.setQueryData(quoteKeys.detail(id), quote)
       toast.success("报价已调整", { description: "总价和毛利已按规则重新计算" })
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: quoteKeys.all }),
+        qc.invalidateQueries({ queryKey: activityKeys.all }),
+      ])
+    },
+    onError: notifyError,
+  })
+}
+
+/** PATCH /api/quotes/{id}/link：草稿补关联客户 / 商机（AI 没识别出客户时），明细和价格不变 */
+export function useLinkQuote(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { customer_id?: string; opportunity_id?: string }) =>
+      api.patch<QuoteDetail>(`/api/quotes/${id}/link`, body),
+    onSuccess: (quote) => {
+      if (quote?.id) qc.setQueryData(quoteKeys.detail(id), quote)
+      toast.success("已关联客户", { description: "核对无误后可以提交" })
+      void Promise.all([
+        qc.invalidateQueries({ queryKey: quoteKeys.all }),
+        qc.invalidateQueries({ queryKey: opportunityKeys.all }),
+        qc.invalidateQueries({ queryKey: activityKeys.all }),
+      ])
+    },
+    onError: notifyError,
+  })
+}
+
+/** POST /api/quotes/{id}/revisions：已发送 / 客户拒绝的报价复制为新版本（草稿），返回新报价 */
+export function useCopyRevision(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post<QuoteDetail>(`/api/quotes/${id}/revisions`),
+    onSuccess: (quote) => {
+      qc.setQueryData(quoteKeys.detail(quote.id), quote)
+      toast.success(`已复制为新版本 ${quote.code}`, { description: "改完提交，发送客户后原报价自动关闭" })
       void Promise.all([
         qc.invalidateQueries({ queryKey: quoteKeys.all }),
         qc.invalidateQueries({ queryKey: activityKeys.all }),

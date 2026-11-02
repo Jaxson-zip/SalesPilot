@@ -59,6 +59,10 @@ class Quote(OwnedMixin, Base):
     # 提交审批时固化的对外内容：{"scope": 项目范围 | None, "terms": [条款]}
     # 草稿为 None（按商机当前需求和条款模板显示）
     snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    # 「复制为新版本」时指向原报价；新版本发送后原报价关闭
+    revision_of_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("quotes.id"), nullable=True, index=True
+    )
 
 
 class QuoteItem(TimestampMixin, Base):

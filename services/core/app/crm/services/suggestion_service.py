@@ -124,8 +124,11 @@ WARN: frozenset[str] = frozenset({"overdue_payment", "stale", "task_overdue", "q
 
 
 def suggest(s: DealState) -> list[DealSuggestion]:
-    """纯函数：按紧急程度排好（钱 → 动态 → 赢单要素 / 报价 / 竞品）。终态商机只看回款。"""
+    """纯函数：按紧急程度排好（钱 → 动态 → 赢单要素 / 报价 / 竞品）。
+    赢单只看回款；输单不再给任何推进建议（报价和待办已随输单关闭）。"""
     o = s.opportunity
+    if o.stage == "lost":
+        return []
     rows = _money(s) if o.stage in FINAL_STAGES else [*_money(s), *_activity(s), *_deal(s)]
     return [
         DealSuggestion(

@@ -38,7 +38,10 @@ export function LostReasonDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>标记为输单</DialogTitle>
-          <DialogDescription>「{opp?.name}」标记后为终态，不能再切换阶段。请填写输单原因，便于复盘。</DialogDescription>
+          <DialogDescription>
+            「{opp?.name}
+            」标记后为终态，不能再切换阶段。未成交的报价会关闭（待审批的一并撤回），未完成的待办自动完成，不再提醒推进。请填写输单原因，便于复盘。
+          </DialogDescription>
         </DialogHeader>
         <QuickChips
           label="常见输单原因"

@@ -1,7 +1,20 @@
 "use client"
 
-import { Check, Clock, FileText, List, Printer, RotateCcw, Send, Stamp, X, type LucideIcon } from "lucide-react"
-import { useParams } from "next/navigation"
+import {
+  Check,
+  Clock,
+  Copy,
+  FileText,
+  List,
+  Printer,
+  RotateCcw,
+  Send,
+  Stamp,
+  Undo2,
+  X,
+  type LucideIcon,
+} from "lucide-react"
+import { useParams, useRouter } from "next/navigation"
 import { useState } from "react"
 
 import { BomTable } from "@/components/agent/BomTable"
@@ -11,17 +24,24 @@ import { Crumb, FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { RecordTabs } from "@/components/biz/RecordTabs"
 import { QuoteAdjust } from "@/components/quotes/QuoteAdjust"
+import { QuoteLinkButton } from "@/components/quotes/QuoteLinkDialog"
 import { QuoteShareButton } from "@/components/quotes/QuoteShareButton"
 import { ApprovalRecords, QuoteFields, QuoteTimeline } from "@/components/quotes/QuotePanels"
 import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { usePermissions } from "@/hooks/usePermissions"
-import { useQuote, useQuoteAction } from "@/hooks/useQuotes"
+import { useCopyRevision, useQuote, useQuoteAction } from "@/hooks/useQuotes"
 import { pendingApprovalId } from "@/lib/approvals"
 import { quoteActionConfirm } from "@/lib/confirm-texts"
 import { formatRelative } from "@/lib/format"
-import { availableQuoteActions, primaryQuoteAction, QUOTE_ACTIONS, quoteToBom } from "@/lib/quote-actions"
+import {
+  availableQuoteActions,
+  canCopyRevision,
+  primaryQuoteAction,
+  QUOTE_ACTIONS,
+  quoteToBom,
+} from "@/lib/quote-actions"
 import { canShareQuote } from "@/lib/share"
 import { canPrintQuote } from "@/lib/quote-print"
 import type { QuoteAction, QuoteDetail } from "@/types/api"
@@ -41,6 +61,7 @@ const ACTION_ICON: Record<QuoteAction, LucideIcon> = {
   accept: Check,
   reject: X,
   renew: RotateCcw,
+  revise: Undo2,
 }
 
 /** 报价单记录页：左字段 + 右标签页（物料清单 / 时间线 / 审批记录）；按当前状态只显示可用操作 */
@@ -51,6 +72,8 @@ export default function QuoteDetailPage() {
   const { canEdit, canApprove } = usePermissions()
   const query = useQuote(quoteId)
   const action = useQuoteAction(quoteId)
+  const copy = useCopyRevision(quoteId)
+  const router = useRouter()
   const [tab, setTab] = useState("bom")
   const { ask, dialog } = useConfirmAction()
   const q = query.data
@@ -64,8 +87,10 @@ export default function QuoteDetailPage() {
     ask({ ...copy, onConfirm: () => action.mutate(a) })
   }
 
-  // 报价状态按钮只给负责人本人（契约 §0）
-  const actions = q && canEdit(q.owner?.id) ? availableQuoteActions(q.status, q.expired) : []
+  // 报价状态按钮只给负责人本人（契约 §0）；没关联客户的草稿先「关联客户」，不显示提交
+  const mine = Boolean(q && canEdit(q.owner?.id))
+  const actions =
+    q && mine ? availableQuoteActions(q.status, q.expired).filter((a) => a !== "submit" || q.customer) : []
   const primary = q ? primaryQuoteAction(q.status, q.expired) : null
   const buttons = actions.map((a) => {
     const Icon = ACTION_ICON[a]
@@ -74,8 +99,7 @@ export default function QuoteDetailPage() {
         key={a}
         size="sm"
         variant={a === primary ? "default" : "outline"}
-        // 没有客户的报价单不能提交（后端 42201 quote_no_customer），左侧提示原因
-        disabled={action.isPending || (a === "submit" && !q?.customer)}
+        disabled={action.isPending}
         onClick={() => run(a)}
         title={QUOTE_ACTIONS[a].label}
         className="max-sm:w-8 max-sm:px-0"
@@ -170,6 +194,20 @@ export default function QuoteDetailPage() {
               <FrameAction icon={Printer} label="打印报价单" href={`/quotes/${encodeURIComponent(q.id)}/print`} />
             ) : null}
             {canEdit(q.owner?.id) && canShareQuote(q.status, q.expired) ? <QuoteShareButton q={q} /> : null}
+            {mine && q.status === "draft" && !q.customer ? <QuoteLinkButton quoteId={q.id} /> : null}
+            {mine && canCopyRevision(q) ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={copy.isPending}
+                onClick={() => copy.mutate(undefined, { onSuccess: (n) => router.push(`/quotes/${n.id}`) })}
+                title="复制为新版本"
+                className="max-sm:w-8 max-sm:px-0"
+              >
+                <Copy />
+                <span className="max-sm:hidden">复制为新版本</span>
+              </Button>
+            ) : null}
             {buttons}
             {q && q.status === "pending_approval" && canEdit(q.owner?.id) ? (
               <RemindButton targetType="quote" targetId={q.id} />

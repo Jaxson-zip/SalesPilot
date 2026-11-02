@@ -1467,6 +1467,66 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/quotes/{quote_id}/revise": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Revise Quote
+     * @description 已审批、还没发给客户的报价撤回修改：退回草稿，改完重新提交审批。
+     */
+    post: operations["revise_quote_api_quotes__quote_id__revise_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/quotes/{quote_id}/revisions": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Copy Revision
+     * @description 已发送 / 客户拒绝的报价复制为新版本（草稿）；返回新报价。
+     */
+    post: operations["copy_revision_api_quotes__quote_id__revisions_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/quotes/{quote_id}/link": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    /**
+     * Link Quote
+     * @description 草稿补关联客户或商机（AI 没识别出客户时），明细和价格不变。
+     */
+    patch: operations["link_quote_api_quotes__quote_id__link_patch"]
+    trace?: never
+  }
   "/api/quotes/{quote_id}/renew": {
     parameters: {
       query?: never
@@ -6859,7 +6919,7 @@ export interface components {
        * Status
        * @enum {string}
        */
-      status: "draft" | "pending_approval" | "approved" | "sent" | "accepted" | "rejected"
+      status: "draft" | "pending_approval" | "approved" | "sent" | "accepted" | "rejected" | "closed"
       /** Customer Name */
       customer_name: string | null
       /** Opportunity Name */
@@ -7000,7 +7060,7 @@ export interface components {
        * Status
        * @enum {string}
        */
-      status: "draft" | "pending_approval" | "approved" | "sent" | "accepted" | "rejected"
+      status: "draft" | "pending_approval" | "approved" | "sent" | "accepted" | "rejected" | "closed"
       /**
        * Source
        * @enum {string}
@@ -7048,6 +7108,12 @@ export interface components {
        * @default []
        */
       terms: string[]
+      revision_of: components["schemas"]["QuoteRef"] | null
+      /**
+       * Revisions
+       * @default []
+       */
+      revisions: components["schemas"]["QuoteRef"][]
     }
     /**
      * QuoteItemsUpdate
@@ -7105,6 +7171,16 @@ export interface components {
       /** Category */
       category?: ("hardware" | "software" | "service" | "passthrough") | null
     }
+    /**
+     * QuoteLink
+     * @description 草稿报价补关联：选客户，或选商机（用商机的客户）。至少填一个。
+     */
+    QuoteLink: {
+      /** Customer Id */
+      customer_id?: string | null
+      /** Opportunity Id */
+      opportunity_id?: string | null
+    }
     /** QuoteListItem */
     QuoteListItem: {
       /**
@@ -7132,7 +7208,7 @@ export interface components {
        * Status
        * @enum {string}
        */
-      status: "draft" | "pending_approval" | "approved" | "sent" | "accepted" | "rejected"
+      status: "draft" | "pending_approval" | "approved" | "sent" | "accepted" | "rejected" | "closed"
       /**
        * Source
        * @enum {string}
@@ -7149,6 +7225,21 @@ export interface components {
        * @default false
        */
       expired: boolean
+    }
+    /** QuoteRef */
+    QuoteRef: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string
+      /** Code */
+      code: string
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "draft" | "pending_approval" | "approved" | "sent" | "accepted" | "rejected" | "closed"
     }
     /**
      * QuoteShareOut
@@ -11113,7 +11204,7 @@ export interface operations {
     parameters: {
       query?: {
         view?: components["schemas"]["View"] | null
-        status?: ("draft" | "pending_approval" | "approved" | "sent" | "accepted" | "rejected") | null
+        status?: ("draft" | "pending_approval" | "approved" | "sent" | "accepted" | "rejected" | "closed") | null
         opportunity_id?: string | null
         q?: string | null
         customer_id?: string | null
@@ -11402,6 +11493,109 @@ export interface operations {
       cookie?: never
     }
     requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_QuoteDetail_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  revise_quote_api_quotes__quote_id__revise_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        quote_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_QuoteDetail_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  copy_revision_api_quotes__quote_id__revisions_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        quote_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_QuoteDetail_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  link_quote_api_quotes__quote_id__link_patch: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        quote_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["QuoteLink"]
+      }
+    }
     responses: {
       /** @description Successful Response */
       200: {

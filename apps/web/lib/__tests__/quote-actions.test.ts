@@ -1,16 +1,24 @@
 import { describe, expect, it } from "vitest"
 
-import { availableQuoteActions, primaryQuoteAction, quoteToBom, submitResultText } from "@/lib/quote-actions"
+import {
+  availableQuoteActions,
+  canCopyRevision,
+  primaryQuoteAction,
+  quoteToBom,
+  submitResultText,
+} from "@/lib/quote-actions"
 import type { QuoteAction, QuoteStatus } from "@/types/api"
 
 describe("availableQuoteActions（契约 §3 状态流转）", () => {
   const cases: [QuoteStatus, QuoteAction[]][] = [
     ["draft", ["submit"]],
     ["pending_approval", []],
-    ["approved", ["send"]],
+    // 回归（复测）：审批后没发送前没有撤回修改的路径
+    ["approved", ["revise", "send"]],
     ["sent", ["reject", "accept"]],
     ["accepted", []],
     ["rejected", []],
+    ["closed", []],
   ]
   it.each(cases)("%s → %j", (status, actions) => {
     expect(availableQuoteActions(status)).toEqual(actions)
@@ -27,6 +35,19 @@ describe("availableQuoteActions（契约 §3 状态流转）", () => {
     expect(availableQuoteActions("sent", true)).toEqual(["reject", "renew"])
     expect(primaryQuoteAction("sent", true)).toBe("renew")
     expect(availableQuoteActions("draft", true)).toEqual(["submit"])
+  })
+})
+
+describe("canCopyRevision", () => {
+  // 回归（复测）：已发送的报价发现漏项、客户要求调整，只能重新建单
+  it("已发送 / 客户拒绝可以复制为新版本；已有修订中的新版本时不再复制", () => {
+    expect(canCopyRevision({ status: "sent" })).toBe(true)
+    expect(canCopyRevision({ status: "rejected", revisions: [] })).toBe(true)
+    expect(canCopyRevision({ status: "approved" })).toBe(false)
+    const open = [{ id: "n", code: "Q-2", status: "draft" as const }]
+    expect(canCopyRevision({ status: "sent", revisions: open })).toBe(false)
+    const done = [{ id: "n", code: "Q-2", status: "closed" as const }]
+    expect(canCopyRevision({ status: "rejected", revisions: done })).toBe(true)
   })
 })
 

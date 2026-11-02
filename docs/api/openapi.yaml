@@ -3488,6 +3488,7 @@ paths:
             - sent
             - accepted
             - rejected
+            - closed
             type: string
           - type: 'null'
           title: Status
@@ -3882,6 +3883,120 @@ paths:
           - type: string
           - type: 'null'
           title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_QuoteDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/quotes/{quote_id}/revise:
+    post:
+      tags:
+      - quotes
+      summary: Revise Quote
+      description: 已审批、还没发给客户的报价撤回修改：退回草稿，改完重新提交审批。
+      operationId: revise_quote_api_quotes__quote_id__revise_post
+      parameters:
+      - name: quote_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Quote Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_QuoteDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/quotes/{quote_id}/revisions:
+    post:
+      tags:
+      - quotes
+      summary: Copy Revision
+      description: 已发送 / 客户拒绝的报价复制为新版本（草稿）；返回新报价。
+      operationId: copy_revision_api_quotes__quote_id__revisions_post
+      parameters:
+      - name: quote_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Quote Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_QuoteDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/quotes/{quote_id}/link:
+    patch:
+      tags:
+      - quotes
+      summary: Link Quote
+      description: 草稿补关联客户或商机（AI 没识别出客户时），明细和价格不变。
+      operationId: link_quote_api_quotes__quote_id__link_patch
+      parameters:
+      - name: quote_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Quote Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteLink'
       responses:
         '200':
           description: Successful Response
@@ -13732,6 +13847,7 @@ components:
           - sent
           - accepted
           - rejected
+          - closed
           title: Status
         customer_name:
           anyOf:
@@ -13986,6 +14102,7 @@ components:
           - sent
           - accepted
           - rejected
+          - closed
           title: Status
         source:
           type: string
@@ -14052,6 +14169,16 @@ components:
           type: array
           title: Terms
           default: []
+        revision_of:
+          anyOf:
+          - $ref: '#/components/schemas/QuoteRef'
+          - type: 'null'
+        revisions:
+          items:
+            $ref: '#/components/schemas/QuoteRef'
+          type: array
+          title: Revisions
+          default: []
       type: object
       required:
       - id
@@ -14079,6 +14206,8 @@ components:
       - client_costs
       - scope
       - terms
+      - revision_of
+      - revisions
       title: QuoteDetail
     QuoteItemsUpdate:
       properties:
@@ -14200,6 +14329,23 @@ components:
         自己加的费用（sku 以 extra- 开头，如加急费、差旅费、第三方服务）还要传名称和单价，
 
         成本不填按 0 算。'
+    QuoteLink:
+      properties:
+        customer_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Customer Id
+        opportunity_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Opportunity Id
+      type: object
+      title: QuoteLink
+      description: 草稿报价补关联：选客户，或选商机（用商机的客户）。至少填一个。
     QuoteListItem:
       properties:
         id:
@@ -14244,6 +14390,7 @@ components:
           - sent
           - accepted
           - rejected
+          - closed
           title: Status
         source:
           type: string
@@ -14281,6 +14428,32 @@ components:
       - created_at
       - expired
       title: QuoteListItem
+    QuoteRef:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        code:
+          type: string
+          title: Code
+        status:
+          type: string
+          enum:
+          - draft
+          - pending_approval
+          - approved
+          - sent
+          - accepted
+          - rejected
+          - closed
+          title: Status
+      type: object
+      required:
+      - id
+      - code
+      - status
+      title: QuoteRef
     QuoteShareOut:
       properties:
         token:

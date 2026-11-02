@@ -1,6 +1,7 @@
 "use client"
 
-import { CircleAlert } from "lucide-react"
+import { CircleAlert, Stamp } from "lucide-react"
+import Link from "next/link"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -26,6 +27,7 @@ import {
 } from "@/hooks/useExpenses"
 import { usePermissions } from "@/hooks/usePermissions"
 import { newRequestId } from "@/lib/api"
+import { pendingApprovalId } from "@/lib/approvals"
 import { EXPENSE_SUBMIT_CONFIRM } from "@/lib/confirm-texts"
 import { localDate } from "@/lib/format"
 import {
@@ -94,8 +96,10 @@ export function ExpenseSheet({
   const form = !draftId || editing
   const precheck = useLivePrecheck(values, open && form)
 
-  const { canCreate, canEdit } = usePermissions()
+  const { canCreate, canEdit, canApprove } = usePermissions()
   const exp = detail.data
+  // 主管从审批中心点进来核对票据后，直接回到审批那一条处理
+  const approvalId = exp ? pendingApprovalId({ status: exp.status, approvals: exp.approvals ?? [] }, canApprove) : null
   // 新建：有新建权限；已有报销单：本人的草稿或被驳回的才能修改、补票据和（重新）提交（契约 §0）
   const rejected = exp?.status === "rejected"
   const editable = !draftId ? canCreate : (exp?.status === "draft" || rejected) && canEdit(exp?.owner?.id)
@@ -204,6 +208,14 @@ export function ExpenseSheet({
       <Button variant="outline" onClick={close}>
         关闭
       </Button>
+      {approvalId ? (
+        <Button asChild>
+          <Link href={`/approvals?id=${encodeURIComponent(approvalId)}`}>
+            <Stamp />
+            去审批
+          </Link>
+        </Button>
+      ) : null}
     </>
   )
 

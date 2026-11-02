@@ -19,7 +19,6 @@ from app.crm.models import (
     ProductLine,
     Quote,
     Team,
-    User,
 )
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.opportunity import (
@@ -39,9 +38,9 @@ from app.crm.schemas.opportunity import (
 from app.crm.services import (
     activity_service,
     lookup,
+    opportunity_close,
     opportunity_insights,
     quote_query,
-    wecom_service,
     won_rule,
 )
 from app.rules import load_rules, weighted_amount
@@ -276,27 +275,13 @@ def apply_stage(
     if change.stage == "lost":
         opp.lost_reason = (change.lost_reason or "").strip()
         content += f"（原因：{opp.lost_reason}）"
+        content += opportunity_close.close_lost(db, user, opp)
     db.flush()
     activity_service.record(
         db, user, "opportunity", opp.id, "stage_changed", content, source, subject=opp
     )
     if change.stage == "won":
-        _push_won(db, opp)
-
-
-def _push_won(db: Session, opp: Opportunity) -> None:
-    customer = db.get(Customer, opp.customer_id)
-    owner = db.get(User, opp.owner_id) if opp.owner_id else None
-    wecom_service.queue(
-        db,
-        "deal_won",
-        f"赢单：{opp.name}",
-        f"**🎉 赢单喜报**\n"
-        f"> 客户：{customer.name if customer else '—'}\n"
-        f"> 商机：{opp.name}\n"
-        f'> 金额：<font color="info">¥{opp.amount / 100:,.0f}</font>\n'
-        f"> 负责人：{owner.name if owner else '—'}",
-    )
+        opportunity_close.push_won(db, opp)
 
 
 def change_stage(

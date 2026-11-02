@@ -10,7 +10,9 @@ from app.crm.schemas.common import CustomerBrief, OppBrief, UserBrief
 from app.crm.schemas.fields import ItemName
 from app.packs.base import Category, ClientCost
 
-QuoteStatus = Literal["draft", "pending_approval", "approved", "sent", "accepted", "rejected"]
+QuoteStatus = Literal[
+    "draft", "pending_approval", "approved", "sent", "accepted", "rejected", "closed"
+]
 
 QUOTE_STATUS_LABELS: dict[str, str] = {
     "draft": "草稿",
@@ -19,6 +21,7 @@ QUOTE_STATUS_LABELS: dict[str, str] = {
     "sent": "已发送客户",
     "accepted": "已成交",
     "rejected": "已驳回",
+    "closed": "已关闭",  # 商机输单，或已被新版本替代
 }
 
 
@@ -80,6 +83,12 @@ class QuoteListItem(BaseModel):
     expired: bool = False  # 已审批 / 已发送但过了有效期：不能再发送、成交，要先续期
 
 
+class QuoteRef(BaseModel):
+    id: uuid.UUID
+    code: str
+    status: QuoteStatus
+
+
 class QuoteDetail(QuoteListItem):
     items: list[QuoteLine]
     approvals: list[ApprovalBrief]
@@ -94,6 +103,9 @@ class QuoteDetail(QuoteListItem):
     # 项目范围（已确认的需求清单）和条款：提交审批后是固化的版本，草稿按当前需求和模板
     scope: dict[str, Any] | None = None
     terms: list[str] = []
+    # 版本关系：这张是从哪张复制修订的；从这张复制出的新版本（新的在前）
+    revision_of: QuoteRef | None = None
+    revisions: list[QuoteRef] = []
 
 
 EXTRA_PREFIX = "extra-"
@@ -132,3 +144,10 @@ class QuoteItemsUpdate(BaseModel):
 
     items: list[QuoteLineIn] = Field(min_length=1, max_length=100)
     discount_rate: float = Field(default=0, ge=0, lt=1)
+
+
+class QuoteLink(BaseModel):
+    """草稿报价补关联：选客户，或选商机（用商机的客户）。至少填一个。"""
+
+    customer_id: uuid.UUID | None = None
+    opportunity_id: uuid.UUID | None = None

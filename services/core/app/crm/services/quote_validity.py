@@ -4,16 +4,20 @@
 销售重新确认价格和范围后再提交，按当天重新起算有效期，需要审批的照常走审批。
 """
 
+import uuid
 from datetime import date
 
+from sqlalchemy.orm import Session
+
 from app.common.errors import BizError, ErrorCode
-from app.crm.models import Quote
+from app.crm.models import Opportunity, Quote
 from app.crm.services import quote_snapshot
 from app.crm.services.codes import local_today
 
 RULE_EXPIRED = "quote_expired"
 RULE_RENEW = "quote_renew_not_allowed"
 RENEWABLE = ("approved", "sent")
+RULE_DEAL_LOST = "opportunity_lost"
 
 
 def is_expired(quote: Quote, today: date | None = None) -> bool:
@@ -47,3 +51,15 @@ def renew(quote: Quote) -> str:
     quote.status = "draft"
     quote.snapshot = None
     return f"报价已过有效期（{until:%Y-%m-%d}），退回草稿续期：确认价格后重新提交"
+
+
+def ensure_deal_open(db: Session, opportunity_id: uuid.UUID | None, doing: str) -> None:
+    """商机已输单：不能再出报价、提交、发送或成交（报价随输单关闭）。"""
+    opp = db.get(Opportunity, opportunity_id) if opportunity_id else None
+    if opp is None or opp.stage != "lost":
+        return
+    raise BizError(
+        ErrorCode.RULE_VIOLATION,
+        f"商机「{opp.name}」已输单，不能{doing}；客户重新有需求时请新建商机",
+        {"rule": RULE_DEAL_LOST},
+    )

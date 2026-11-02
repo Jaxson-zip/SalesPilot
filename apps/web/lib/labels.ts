@@ -43,6 +43,7 @@ export const QUOTE_STATUS_META: LabelMap<QuoteStatus> = {
   sent: { label: "已发送客户", color: "blue" },
   accepted: { label: "已成交", color: "green" },
   rejected: { label: "已驳回", color: "red" },
+  closed: { label: "已关闭", color: "gray" },
 }
 
 export const CONTRACT_STATUS_META: LabelMap<ContractStatus> = {
@@ -111,6 +112,11 @@ const ACTIVITY_LABEL_BY_SUBJECT: Record<string, string> = {
   "quote.share": "生成了报价分享链接",
   "quote.share_revoked": "撤销了报价分享链接",
   "quote.viewed": "客户查看了报价",
+  "quote.renew": "续期了报价",
+  "quote.revise": "撤回修改报价",
+  "quote.revision": "复制了新版本报价",
+  "quote.close": "关闭了报价",
+  "quote.link": "关联了客户",
   "contract.create": "生成了合同",
   "contract.payment": "登记了回款",
   "contract.payment_reverse": "冲正了回款",

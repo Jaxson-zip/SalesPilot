@@ -140,6 +140,7 @@ def _purge_quotes(db: Session, ids: list[uuid.UUID]) -> None:
     db.execute(delete(QuoteItem).where(QuoteItem.quote_id.in_(ids)))
     db.execute(delete(QuoteShare).where(QuoteShare.quote_id.in_(ids)))
     db.execute(delete(Notification).where(Notification.link.in_([f"/quotes/{i}" for i in ids])))
+    db.execute(update(Quote).where(Quote.revision_of_id.in_(ids)).values(revision_of_id=None))
     db.execute(delete(Quote).where(Quote.id.in_(ids)))
 
 

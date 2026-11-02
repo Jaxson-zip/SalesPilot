@@ -45,6 +45,11 @@ const QUOTE_CONFIRM: Partial<Record<QuoteAction, ConfirmCopy>> = {
     description: "报价退回草稿：确认价格和范围后重新提交，有效期从今天重新算，需要审批的会重新审批。",
     confirmLabel: "退回草稿续期",
   },
+  revise: {
+    title: "撤回修改报价",
+    description: "报价退回草稿，可以调整物料和价格；改完需要重新提交，触发审批规则的会重新审批。",
+    confirmLabel: "撤回修改",
+  },
 }
 
 export function quoteActionConfirm(action: QuoteAction): ConfirmCopy | null {

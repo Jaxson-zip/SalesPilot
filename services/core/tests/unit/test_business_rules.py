@@ -50,6 +50,9 @@ class FakeSession:
     def flush(self) -> None:
         pass
 
+    def scalars(self, _stmt: Any) -> Any:  # 输单收尾查报价 / 待办：不落库时没有数据
+        return type("Rows", (), {"all": lambda self: []})()
+
 
 # ---------- 规则计算 ----------
 

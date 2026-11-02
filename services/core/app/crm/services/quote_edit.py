@@ -25,7 +25,7 @@ from app.crm.schemas.quote import (
     QuoteItemsUpdate,
     QuoteLineIn,
 )
-from app.crm.services import activity_service, quote_query
+from app.crm.services import activity_service, quote_query, quote_validity
 from app.crm.services.codes import next_code
 from app.crm.services.opportunity_service import apply_stage, get_owned
 from app.crm.services.quote_service import BEFORE_PROPOSAL, get_quote, rules_for
@@ -153,6 +153,7 @@ def create_manual(db: Session, user: CurrentUser, data: QuoteCreate) -> QuoteDet
     是否要审批照常在提交时按规则判定。"""
     ensure_business_writer(user)
     opp = get_owned(db, user, data.opportunity_id) if data.opportunity_id else None
+    quote_validity.ensure_deal_open(db, data.opportunity_id, "出报价")
     if opp is None:
         if data.customer_id is None:
             raise BizError(

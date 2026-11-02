@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  GitBranch,
   BadgePercent,
   Boxes,
   Building2,
@@ -29,7 +30,7 @@ import { formatFen, formatPercent, formatRelative, ownerName } from "@/lib/forma
 import { activityActionLabel, APPROVAL_STATUS_META, labelOf, QUOTE_STATUS_META } from "@/lib/labels"
 import { opportunityHref } from "@/lib/links"
 import { defaultScope } from "@/lib/views"
-import type { QuoteDetail, Role } from "@/types/api"
+import type { QuoteDetail, QuoteRef, Role } from "@/types/api"
 import { PackName } from "@/components/biz/PackName"
 import { RuleHint } from "@/components/biz/RuleHint"
 
@@ -52,7 +53,7 @@ function RuleAlert({ q }: { q: QuoteDetail }) {
   if (q.status === "draft" && !q.customer)
     return (
       <Alert tone="warn" title="还没有关联客户，不能提交">
-        AI 没有从对话里识别出客户。请从商机侧栏点「出方案」，或在 AI 对话里写明客户名称后重新生成。
+        AI 没有从对话里识别出客户。点右上角「关联客户」选择客户或商机，物料和价格保持不变。
       </Alert>
     )
   if (q.status === "draft")
@@ -138,10 +139,32 @@ export function QuoteFields({ q }: { q: QuoteDetail }) {
       <FieldRow icon={User} label="负责人">
         <Chip name={ownerName(q.owner)} />
       </FieldRow>
+      {q.revision_of || q.revisions?.length ? (
+        <FieldRow icon={GitBranch} label="版本">
+          <span className="flex flex-wrap gap-x-3 gap-y-1">
+            {q.revision_of ? <QuoteRefLink prefix="修订自" r={q.revision_of} /> : null}
+            {(q.revisions ?? []).map((r) => (
+              <QuoteRefLink key={r.id} prefix="新版本" r={r} />
+            ))}
+          </span>
+        </FieldRow>
+      ) : null}
       <div className="mt-4">
         <RuleAlert q={q} />
       </div>
     </>
+  )
+}
+
+function QuoteRefLink({ prefix, r }: { prefix: string; r: QuoteRef }) {
+  return (
+    <span className="text-zinc-500">
+      {prefix}{" "}
+      <Link href={`/quotes/${encodeURIComponent(r.id)}`} className="text-zinc-900 hover:underline">
+        {r.code}
+      </Link>
+      （{labelOf(QUOTE_STATUS_META, r.status).label}）
+    </span>
   )
 }
 

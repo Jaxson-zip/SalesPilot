@@ -186,8 +186,15 @@ export interface PipelineSummary {
 }
 
 /* ---------- 报价单（§3） ---------- */
-export type QuoteStatus = "draft" | "pending_approval" | "approved" | "sent" | "accepted" | "rejected"
-export type QuoteAction = "submit" | "send" | "accept" | "reject" | "renew"
+/** closed：商机输单，或已被新版本替代 */
+export type QuoteStatus = "draft" | "pending_approval" | "approved" | "sent" | "accepted" | "rejected" | "closed"
+export type QuoteAction = "submit" | "send" | "accept" | "reject" | "renew" | "revise"
+
+export interface QuoteRef {
+  id: string
+  code: string
+  status: QuoteStatus
+}
 
 export interface QuoteItem {
   id: string
@@ -245,6 +252,9 @@ export interface QuoteDetail extends QuoteItem {
   /** 项目范围（已确认的需求清单）和条款：提交审批时固化，草稿按当前需求和模板 */
   scope?: Record<string, unknown> | null
   terms?: string[]
+  /** 版本关系：从哪张复制修订而来；从这张复制出的新版本（新的在前） */
+  revision_of?: QuoteRef | null
+  revisions?: QuoteRef[]
 }
 
 export interface QuoteListParams {

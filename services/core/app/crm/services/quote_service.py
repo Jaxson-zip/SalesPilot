@@ -30,6 +30,7 @@ from app.crm.services import (
     contract_service,
     quote_followups,
     quote_query,
+    quote_revision,
     quote_snapshot,
     quote_validity,
 )
@@ -64,7 +65,9 @@ ACTION_LABELS = {
     "accept": "客户接受",
     "reject": "客户拒绝",
     "renew": "续期",
+    "revise": "撤回修改",
 }
+SELF_CHECKED = ("renew", "revise")  # 自己校验状态的动作
 
 
 def rules_for(quote: Quote) -> RuleSet:
@@ -122,6 +125,7 @@ def create_from_tier(
     if found := _existing(db, idempotency_key, tier):
         return found
     opp = get_owned(db, user, opportunity_id) if opportunity_id else None
+    quote_validity.ensure_deal_open(db, opportunity_id, "出报价")
     if opp is None and customer_id is not None:
         ensure_owner(db.get(Customer, customer_id), user)  # 只能给自己负责的客户出报价
     total_cost = sum(i.unit_cost * i.qty for i in tier.items)
@@ -233,6 +237,7 @@ def get_quote(db: Session, user: CurrentUser, quote_id: uuid.UUID) -> QuoteDetai
         client_costs=quote.client_costs or [],
         scope=quote_snapshot.scope_of(db, quote),
         terms=quote_snapshot.terms_of(quote),
+        **quote_revision.refs(db, quote),
     )
 
 
@@ -345,7 +350,7 @@ def _mark_won(db: Session, user: CurrentUser, opportunity_id: uuid.UUID | None, 
 
 
 # 出了报价单还停在这些阶段的商机自动推进到「方案报价」（谈判中的不往回退）
-BEFORE_PROPOSAL = ("lead", "qualified")
+BEFORE_PROPOSAL = quote_revision.BEFORE_PROPOSAL
 
 
 def transition(
@@ -357,8 +362,10 @@ def transition(
     quote = db.get(Quote, quote_id, with_for_update=True)
     ensure_owner(quote, user)  # 提交 / 发送 / 接受 / 拒绝：只有负责人本人
     assert quote is not None
-    if action != "renew":
+    if action not in SELF_CHECKED:
         _check_transition(quote, action)
+    if action != "reject":  # 输单后报价已关闭；客户拒绝不受影响
+        quote_validity.ensure_deal_open(db, quote.opportunity_id, ACTION_LABELS[action])
     if action == "send":
         quote_validity.ensure_valid(quote, "发送客户")
     if action == "submit" and quote.customer_id is None:
@@ -373,6 +380,8 @@ def transition(
         content = accept(db, user, quote, source)
     elif action == "renew":
         content = quote_validity.renew(quote)
+    elif action == "revise":
+        content = quote_revision.revise(quote)
     elif action == "reject":
         quote.status = "rejected"
         content = f"报价单{ACTION_LABELS[action]}"
@@ -382,6 +391,7 @@ def transition(
         content = f"报价单{ACTION_LABELS[action]}"
     if action == "send":
         content += quote_followups.schedule_followup(db, user, quote, rules_for(quote))
+        content += quote_revision.supersede(db, user, quote)
     db.flush()
     activity_service.record(db, user, "quote", quote.id, action, content, source, quote)
     return get_quote(db, user, quote.id)

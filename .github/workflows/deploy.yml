@@ -146,7 +146,11 @@ jobs:
         id: prep
         run: echo "owner_lc=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Deploy to Server via SSH
+      # 拉镜像和切换容器分成两步、分别计时：
+      # 原来同一条 SSH 命令里先拉镜像再 up -d，阿里云从 ghcr 拉镜像有时卡 20 分钟以上，
+      # 40 分钟超时正好落在重建 core 的半路，旧容器已删、新容器没起来，线上 502。
+      # 现在拉镜像这一步只下载、不动正在跑的容器，超时或失败时线上仍是旧版本；重跑时已下载的层会复用。
+      - name: Pull images on server
         uses: appleboy/ssh-action@v1.0.3
         env:
           REG_USER: ${{ github.actor }}
@@ -159,22 +163,50 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           key: ${{ secrets.SSH_KEY }}
           envs: REG_USER,REG_TOKEN,IMG,SHA
-          # 阿里云服务器从 ghcr 拉镜像较慢（core 首次约 9 分钟），默认 10 分钟会超时
-          command_timeout: 40m
+          command_timeout: 60m
           # 任何一步失败就让流水线失败：原来 `pull || true` 把拉镜像失败吞掉，服务器一直跑旧镜像却显示部署成功
           script: |
             set -e
+            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+            echo "$REG_TOKEN" | docker login ghcr.io -u "$REG_USER" --password-stdin
+            # 三个镜像并行拉，单个失败重试 3 次（ghcr 偶尔中途断开）
+            pull() {
+              for n in 1 2 3; do
+                docker pull -q "$IMG/salespilot-$1:$SHA" && { echo "$1 拉取完成"; return 0; }
+                echo "$1 第 $n 次拉取失败" >&2
+                sleep 10
+              done
+              return 1
+            }
+            pids=""
+            for s in core web gateway; do pull "$s" & pids="$pids $!"; done
+            for p in $pids; do wait "$p"; done
+
+      # 镜像都在本地后才切换，这一步只有打标签、重建容器、迁移和就绪检查，通常 1 分钟内完成
+      - name: Switch containers on server
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMG: ghcr.io/${{ steps.prep.outputs.owner_lc }}
+          SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: IMG,SHA
+          command_timeout: 15m
+          script: |
+            set -e
             cd /srv/salespilot
+            # 先确认三个镜像都已拉到本地，缺一个就不动线上
+            for s in core web gateway; do docker image inspect "$IMG/salespilot-$s:$SHA" >/dev/null; done
             # 服务器上不改入库文件（HTTPS 配置由 docker-compose.prod.yml 挂载），直接对齐远端；.env、证书不在版本库里，不受影响
             # 对齐到本次构建的提交（不是 origin/main 的最新）：compose 配置、迁移和镜像是同一个版本
             git fetch origin main
             git reset --hard "$SHA"
-            # 拉本次 CI 构建的镜像（按 commit 固定版本），再打成 compose 默认用的 salespilot-*:latest：
+            # 按 commit 固定版本的镜像打成 compose 默认用的 salespilot-*:latest：
             # 原来直接 pull salespilot-*:latest 会去 Docker Hub 镜像站找，根本不存在；打标签后手动 dc up -d 也用新镜像
-            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
-            echo "$REG_TOKEN" | docker login ghcr.io -u "$REG_USER" --password-stdin
             for s in core web gateway; do
-              docker pull "$IMG/salespilot-$s:$SHA"
               docker tag "$IMG/salespilot-$s:$SHA" "salespilot-$s:latest"
             done
             dc="docker compose -f docker-compose.yml -f docker-compose.prod.yml"

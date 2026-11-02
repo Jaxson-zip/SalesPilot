@@ -187,7 +187,7 @@ export interface PipelineSummary {
 
 /* ---------- 报价单（§3） ---------- */
 export type QuoteStatus = "draft" | "pending_approval" | "approved" | "sent" | "accepted" | "rejected"
-export type QuoteAction = "submit" | "send" | "accept" | "reject"
+export type QuoteAction = "submit" | "send" | "accept" | "reject" | "renew"
 
 export interface QuoteItem {
   id: string
@@ -205,6 +205,8 @@ export interface QuoteItem {
   source: ActivitySource
   owner: UserBrief | null
   created_at: string
+  /** 已审批 / 已发送但过了有效期：不能再发送、成交，要先续期（退回草稿） */
+  expired?: boolean
 }
 
 export interface QuoteLine {
@@ -325,6 +327,23 @@ export interface PaymentPlanView {
   invoiced_unpaid_amount?: number
   items: PaymentPlanItem[]
   rule_ref: string
+  /** 开票历史（申请、登记、作废），新的在前 */
+  invoice_events?: InvoiceEvent[]
+}
+
+/** 开票历史一条：作废时 invoice_no / invoiced_on 是被作废的原票，note 是作废原因 */
+export interface InvoiceEvent {
+  seq: number
+  plan_name: string
+  amount: number
+  action: "request" | "issue" | "void"
+  from_status: InvoiceStatus
+  invoice_type: InvoiceType | null
+  invoice_no: string | null
+  invoiced_on: string | null
+  note: string | null
+  actor: UserBrief | null
+  created_at: string
 }
 
 /** POST /api/contracts/{id}/payment-plan/{seq}/invoice */

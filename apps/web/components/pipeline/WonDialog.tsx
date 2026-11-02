@@ -40,7 +40,8 @@ export function WonDialog({
   onConfirm: (quote: QuoteItem) => void
 }) {
   const detail = useOpportunity(opp?.id ?? null)
-  const quotes = (detail.data?.quotes ?? []).filter((q) => WINNABLE.has(q.status))
+  // 过了有效期的不能成交（core quote_expired），要先到报价单里续期
+  const quotes = (detail.data?.quotes ?? []).filter((q) => WINNABLE.has(q.status) && !q.expired)
   // 还没审批的报价（草稿 / 待审批）：直接打开它去提交，而不是丢到报价列表里找
   const unfinished = (detail.data?.quotes ?? []).find((q) => q.status === "draft" || q.status === "pending_approval")
   const [picked, setPicked] = useState<string | null>(null)

@@ -14,25 +14,31 @@ export const QUOTE_ACTIONS: Record<QuoteAction, QuoteActionMeta> = {
   send: { action: "send", label: "发送客户", done: "报价单已发送客户" },
   accept: { action: "accept", label: "客户接受", done: "客户已接受，已生成合同与提成" },
   reject: { action: "reject", label: "客户拒绝", done: "已标记为客户拒绝" },
+  renew: { action: "renew", label: "续期", done: "已退回草稿，确认价格后重新提交" },
 }
 
 /** 动作允许的当前状态（与 core 的 quote_status_transition 规则保持一致） */
-const ALLOWED_FROM: Record<QuoteAction, QuoteStatus> = {
+const ALLOWED_FROM: Record<Exclude<QuoteAction, "renew">, QuoteStatus> = {
   submit: "draft",
   send: "approved",
   accept: "sent",
   reject: "sent",
 }
 
-/** 返回当前状态可用的操作，顺序：次要在前、主要在后（页面最右侧是主按钮） */
-export function availableQuoteActions(status: QuoteStatus): QuoteAction[] {
-  const order: QuoteAction[] = ["reject", "accept", "submit", "send"]
-  return order.filter((a) => ALLOWED_FROM[a] === status)
+/**
+ * 返回当前状态可用的操作，顺序：次要在前、主要在后（页面最右侧是主按钮）。
+ * 过了有效期（core 的 quote_expired）：不能再发送、客户接受，只剩续期（已发送的还能标客户拒绝）。
+ */
+export function availableQuoteActions(status: QuoteStatus, expired = false): QuoteAction[] {
+  const order = ["reject", "accept", "submit", "send"] as const
+  const list: QuoteAction[] = order.filter((a) => ALLOWED_FROM[a] === status)
+  if (!expired || (status !== "approved" && status !== "sent")) return list
+  return [...list.filter((a) => a === "reject"), "renew"]
 }
 
 /** 主按钮：可用操作中的最后一个 */
-export function primaryQuoteAction(status: QuoteStatus): QuoteAction | null {
-  const list = availableQuoteActions(status)
+export function primaryQuoteAction(status: QuoteStatus, expired = false): QuoteAction | null {
+  const list = availableQuoteActions(status, expired)
   return list.length ? list[list.length - 1] : null
 }
 

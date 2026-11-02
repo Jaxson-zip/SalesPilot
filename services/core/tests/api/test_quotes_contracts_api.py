@@ -355,7 +355,10 @@ def test_invoice_request_issue_void_and_unpaid(client: TestClient, tracker: Trac
     plan = client.get(plan_url, headers=SALES_H).json()["data"]
     assert plan["invoiced_unpaid_amount"] == 0 and plan["items"][0]["invoiced_unpaid_days"] == 0
 
-    voided = client.post(url, json={"action": "void"}, headers=MANAGER_H).json()["data"]
+    no_reason = client.post(url, json={"action": "void"}, headers=MANAGER_H).json()
+    assert no_reason["code"] == 40001  # 作废必须写原因
+    void = {"action": "void", "note": "抬头有误"}
+    voided = client.post(url, json=void, headers=MANAGER_H).json()["data"]
     assert voided["items"][0]["invoice_status"] == "none"
     assert voided["items"][0]["invoice_no"] is None
     r = client.post(url, json={"action": "request", "invoice_type": "normal"}, headers=SALES_H)

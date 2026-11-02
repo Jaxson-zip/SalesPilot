@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
-import { invoiceActions, invoiceDetail } from "@/lib/invoice"
-import type { PaymentPlanItem } from "@/types/api"
+import { invoiceActions, invoiceDetail, invoiceEventText } from "@/lib/invoice"
+import type { InvoiceEvent, PaymentPlanItem } from "@/types/api"
 
 const item = (extra: Partial<PaymentPlanItem>): PaymentPlanItem => ({
   seq: 1,
@@ -36,5 +36,41 @@ describe("开票跟踪", () => {
       "普票 · 抬头 A",
     )
     expect(invoiceDetail(item({ invoice_status: "none" }))).toBe("")
+  })
+})
+
+const event = (extra: Partial<InvoiceEvent>): InvoiceEvent => ({
+  seq: 1,
+  plan_name: "预付款",
+  amount: 100,
+  action: "issue",
+  from_status: "none",
+  invoice_type: "special",
+  invoice_no: "No.111",
+  invoiced_on: "2026-10-08",
+  note: null,
+  actor: null,
+  created_at: "2026-10-08T02:00:00Z",
+  ...extra,
+})
+
+describe("开票历史", () => {
+  it("作废记录带原票号码、开票日和原因（作废后期次上的字段已清空）", () => {
+    const voided = event({ action: "void", from_status: "issued", note: "抬头写错" })
+    expect(invoiceEventText(voided)).toBe("作废发票 · 专票 No.111（开票日 2026-10-08） · 原因：抬头写错")
+  })
+  it("撤回申请、申请、登记", () => {
+    const withdraw = event({
+      action: "void",
+      from_status: "requested",
+      invoice_no: null,
+      invoiced_on: null,
+      note: "客户暂不要",
+    })
+    expect(invoiceEventText(withdraw)).toBe("撤回开票申请 · 原因：客户暂不要")
+    expect(invoiceEventText(event({ action: "request", invoice_type: "normal", note: "抬头 A" }))).toBe(
+      "申请开票 · 普票 · 抬头 A",
+    )
+    expect(invoiceEventText(event({}))).toBe("登记开票 · 专票 No.111")
   })
 })

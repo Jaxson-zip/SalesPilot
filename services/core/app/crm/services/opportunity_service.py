@@ -308,9 +308,9 @@ def change_stage(
 ) -> OpportunityItem:
     opp = get_owned(db, user, opportunity_id)
     if change.quote_id is not None:
-        from app.crm.services import quote_service  # quote_service 依赖本模块，延迟导入
+        from app.crm.services import quote_win  # quote_win 依赖本模块，延迟导入
 
-        quote_service.win_with_quote(db, user, opp, change.quote_id, source)
+        quote_win.win_with_quote(db, user, opp, change.quote_id, source)
     else:
         if change.stage == "won" and opp.stage not in FINAL_STAGES:
             won_rule.reject_won_without_quote(db, opp)

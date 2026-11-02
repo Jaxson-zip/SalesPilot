@@ -33,6 +33,7 @@ RESET_TABLES = (
     "commissions",
     "payments",
     "payment_plans",
+    "invoice_events",
     "contracts",
     "quote_shares",  # 发给客户的报价链接跟着报价一起清
     "quote_items",

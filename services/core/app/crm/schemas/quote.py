@@ -77,6 +77,7 @@ class QuoteListItem(BaseModel):
     source: Literal["agent", "manual"]
     owner: UserBrief | None
     created_at: datetime
+    expired: bool = False  # 已审批 / 已发送但过了有效期：不能再发送、成交，要先续期
 
 
 class QuoteDetail(QuoteListItem):

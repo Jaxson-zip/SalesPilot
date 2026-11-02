@@ -46,7 +46,14 @@ export interface PublicQuote {
   discount_rate: number
   total_price: number
   client_costs?: ClientCost[]
-  scope?: { platforms?: string[]; modules?: string[]; team_size?: number | null } | null
+  scope?: {
+    platforms?: string[]
+    modules?: string[]
+    team_size?: number | null
+    /** 需求里有但这一档不含的端、功能（经济版砍掉的、销售删掉的） */
+    excluded_platforms?: string[]
+    excluded_modules?: string[]
+  } | null
   terms?: string[]
 }
 

@@ -23,7 +23,7 @@ from app.packs.base import (
     price_tier,
     recommend_for_budget,
 )
-from app.packs.software_outsourcing import drafting
+from app.packs.software_outsourcing import drafting, scope
 from app.packs.software_outsourcing.budget import fit_budget
 from app.packs.software_outsourcing.extras import (
     client_costs,
@@ -130,6 +130,12 @@ class SoftwareOutsourcingConfigurator:
     def draft_requirement(self, text: str) -> dict[str, Any]:
         """规则兜底：按关键词识别端和标准模块（大模型不可用时也能出一版）。"""
         return drafting.rule_draft(self.params["modules"], text)
+
+    def quote_scope(self, data: dict[str, Any], tier: str, items: scope.Items) -> scope.Scope:
+        """报价单的项目范围（scope.py）；手工报价（custom）按标准版的范围比对明细。"""
+        r = SoftwareRequirement.model_validate(data)
+        plan = self._plan(tier if tier in self.params["tiers"] else "standard", r)
+        return scope.tier_scope(r, plan, items)
 
     # ---------- 配置 ----------
 

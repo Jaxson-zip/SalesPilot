@@ -77,4 +77,14 @@ describe("报价单项目范围", () => {
     })
     expect(printScope({}, []).delivery).toBe("团队")
   })
+
+  it("core 按档位算好的「不含」优先：经济版没报价的 App 也列进去", () => {
+    const scope = {
+      platforms: ["mini_program"],
+      modules: [{ name: "在线预约" }],
+      excluded_platforms: ["app"],
+      excluded_modules: ["会员积分"],
+    }
+    expect(printScope(scope, [{ name: "在线预约（简单）" }]).excluded).toEqual(["App", "会员积分"])
+  })
 })

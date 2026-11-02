@@ -21,6 +21,13 @@ describe("availableQuoteActions（契约 §3 状态流转）", () => {
     expect(primaryQuoteAction("draft")).toBe("submit")
     expect(primaryQuoteAction("accepted")).toBeNull()
   })
+
+  it("过了有效期：不能再发送 / 客户接受，只剩续期（已发送的还能标客户拒绝）", () => {
+    expect(availableQuoteActions("approved", true)).toEqual(["renew"])
+    expect(availableQuoteActions("sent", true)).toEqual(["reject", "renew"])
+    expect(primaryQuoteAction("sent", true)).toBe("renew")
+    expect(availableQuoteActions("draft", true)).toEqual(["submit"])
+  })
 })
 
 describe("submitResultText", () => {

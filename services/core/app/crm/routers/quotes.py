@@ -1,4 +1,4 @@
-"""报价单接口（接口契约 §3）：列表、详情、手工新建、submit / send / accept / reject。"""
+"""报价单接口（接口契约 §3）：列表、详情、手工新建、submit / send / accept / reject / renew。"""
 
 import uuid
 from typing import Annotated
@@ -97,3 +97,9 @@ def accept_quote(quote_id: uuid.UUID, user: CurrentUserDep, db: DbDep) -> Detail
 @router.post("/{quote_id}/reject", response_model=Detail)
 def reject_quote(quote_id: uuid.UUID, user: CurrentUserDep, db: DbDep) -> Detail:
     return ok(quote_service.transition(db, user, quote_id, "reject"))
+
+
+@router.post("/{quote_id}/renew", response_model=Detail)
+def renew_quote(quote_id: uuid.UUID, user: CurrentUserDep, db: DbDep) -> Detail:
+    """已过有效期的报价退回草稿续期（重新提交后按当天起算有效期）。"""
+    return ok(quote_service.transition(db, user, quote_id, "renew"))

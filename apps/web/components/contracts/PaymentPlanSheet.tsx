@@ -5,17 +5,17 @@ import Link from "next/link"
 import { Fragment, useState } from "react"
 
 import { Alert } from "@/components/biz/Alert"
-import { useConfirmAction } from "@/components/biz/ConfirmAction"
 import { DatePicker, MoneyInput } from "@/components/biz/FormControls"
 import { FormSheet } from "@/components/biz/FormSheet"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { Tag } from "@/components/biz/Tag"
 import { InvoiceDialog, type InvoiceTarget } from "@/components/contracts/InvoiceDialog"
+import { InvoiceHistory } from "@/components/contracts/InvoiceHistory"
 import { PaymentRecords } from "@/components/contracts/PaymentRecords"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useInvoice, usePaymentPlan, useSavePaymentPlan } from "@/hooks/useContracts"
+import { usePaymentPlan, useSavePaymentPlan } from "@/hooks/useContracts"
 import { formatFen, ownerName } from "@/lib/format"
 import { INVOICE_STATUS_META, invoiceActions, invoiceDetail } from "@/lib/invoice"
 import { PLAN_STATUS_META } from "@/lib/labels"
@@ -197,21 +197,8 @@ export function PaymentPlanSheet({
   const q = usePaymentPlan(contract?.id ?? null)
   const [editing, setEditing] = useState(false)
   const [invoiceOf, setInvoiceOf] = useState<InvoiceTarget | null>(null)
-  const invoice = useInvoice(contract?.id ?? "")
-  const { ask, dialog } = useConfirmAction()
-  const onInvoice = (item: PaymentPlanItem, action: "request" | "issue" | "void") => {
-    if (action !== "void") return setInvoiceOf({ item, action })
-    ask({
-      title: `作废「${item.name}」的发票？`,
-      description:
-        item.invoice_status === "issued"
-          ? `发票 ${item.invoice_no ?? ""} 将标记为作废（需要在税务系统里另行红冲），这一期回到未开票。`
-          : "撤回这一期的开票申请，回到未开票。",
-      confirmLabel: "确认作废",
-      destructive: true,
-      onConfirm: () => invoice.mutate({ seq: item.seq, body: { action: "void" } }),
-    })
-  }
+  // 作废也走弹框：要写原因（开票历史里留底），弹框本身就是二次确认
+  const onInvoice = (item: PaymentPlanItem, action: "request" | "issue" | "void") => setInvoiceOf({ item, action })
   const close = () => {
     setEditing(false)
     onClose()
@@ -277,6 +264,7 @@ export function PaymentPlanSheet({
               </Button>
             ) : null}
             <PaymentRecords contractId={contract.id} manager={manager} />
+            <InvoiceHistory events={plan.invoice_events ?? []} />
           </>
         )}
       </div>
@@ -308,7 +296,6 @@ export function PaymentPlanSheet({
           onClose={() => setInvoiceOf(null)}
         />
       ) : null}
-      {dialog}
     </FormSheet>
   )
 }

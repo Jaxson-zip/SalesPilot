@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Literal
 
-from app.rules.loader import PaymentRules
+from app.rules.loader import PaymentStage
 
 PlanStatus = Literal["paid", "partial", "overdue", "pending"]
 
@@ -36,8 +36,7 @@ def split_amount(total: int, ratios: list[float]) -> list[int]:
     return [*parts, total - sum(parts)]
 
 
-def default_plan(amount: int, signed_on: date, rules: PaymentRules) -> list[PlanInput]:
-    stages = rules.schedule
+def default_plan(amount: int, signed_on: date, stages: list[PaymentStage]) -> list[PlanInput]:
     amounts = split_amount(amount, [s.ratio for s in stages])
     return [
         PlanInput(s.name, a, signed_on + timedelta(days=s.due_days))

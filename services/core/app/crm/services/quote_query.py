@@ -14,7 +14,7 @@ from app.common.auth import CurrentUser
 from app.common.scope import View, apply_scope
 from app.crm.models import Approval, Customer, Quote, QuoteItem
 from app.crm.schemas.quote import ApprovalBrief, QuoteLine, QuoteListItem
-from app.crm.services import lookup
+from app.crm.services import lookup, quote_validity
 from app.crm.services.listing import FacetOption, SortKey, customer_facet, order, value_facet
 from app.packs.base import TIER_NAMES
 
@@ -111,6 +111,7 @@ def to_items(db: Session, quotes: list[Quote]) -> list[QuoteListItem]:
             source="agent" if x.source == "agent" else "manual",
             owner=lookup.pick(owners, x.owner_id),
             created_at=x.created_at,
+            expired=quote_validity.is_expired(x),
         )
         for x in quotes
     ]

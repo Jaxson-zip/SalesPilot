@@ -1,5 +1,5 @@
 /** 开票跟踪（回款计划每一期）的纯函数：状态文案、可做的操作 */
-import type { InvoiceStatus, InvoiceType, PaymentPlanItem } from "@/types/api"
+import type { InvoiceEvent, InvoiceStatus, InvoiceType, PaymentPlanItem } from "@/types/api"
 
 export const INVOICE_STATUS_META: Record<InvoiceStatus, { label: string; color: "gray" | "orange" | "green" }> = {
   none: { label: "未开票", color: "gray" },
@@ -35,4 +35,19 @@ export function invoiceDetail(item: PaymentPlanItem): string {
   }
   if (item.invoice_status === "requested") return [type, item.invoice_note].filter(Boolean).join(" · ")
   return ""
+}
+
+/**
+ * 开票历史一条的说明。作废记录带原票（号码、开票日）和原因：作废会清空这一期上的发票字段，
+ * 重新开票后只能在这里查到原来那张。
+ */
+export function invoiceEventText(e: InvoiceEvent): string {
+  const type = invoiceTypeName(e.invoice_type)
+  if (e.action === "request") return ["申请开票", type, e.note].filter(Boolean).join(" · ")
+  if (e.action === "issue") return `登记开票 · ${type} ${e.invoice_no ?? ""}`.trim()
+  const what =
+    e.from_status === "issued"
+      ? `作废发票 · ${type} ${e.invoice_no ?? ""}`.trim() + (e.invoiced_on ? `（开票日 ${e.invoiced_on}）` : "")
+      : "撤回开票申请"
+  return e.note ? `${what} · 原因：${e.note}` : what
 }

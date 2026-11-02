@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Clock, FileText, List, Printer, Send, Stamp, X, type LucideIcon } from "lucide-react"
+import { Check, Clock, FileText, List, Printer, RotateCcw, Send, Stamp, X, type LucideIcon } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useState } from "react"
 
@@ -35,7 +35,13 @@ function adjustKey(q: QuoteDetail): string {
   ].join("|")
 }
 
-const ACTION_ICON: Record<QuoteAction, LucideIcon> = { submit: Stamp, send: Send, accept: Check, reject: X }
+const ACTION_ICON: Record<QuoteAction, LucideIcon> = {
+  submit: Stamp,
+  send: Send,
+  accept: Check,
+  reject: X,
+  renew: RotateCcw,
+}
 
 /** 报价单记录页：左字段 + 右标签页（物料清单 / 时间线 / 审批记录）；按当前状态只显示可用操作 */
 export default function QuoteDetailPage() {
@@ -59,8 +65,8 @@ export default function QuoteDetailPage() {
   }
 
   // 报价状态按钮只给负责人本人（契约 §0）
-  const actions = q && canEdit(q.owner?.id) ? availableQuoteActions(q.status) : []
-  const primary = q ? primaryQuoteAction(q.status) : null
+  const actions = q && canEdit(q.owner?.id) ? availableQuoteActions(q.status, q.expired) : []
+  const primary = q ? primaryQuoteAction(q.status, q.expired) : null
   const buttons = actions.map((a) => {
     const Icon = ACTION_ICON[a]
     return (
@@ -163,7 +169,7 @@ export default function QuoteDetailPage() {
             {canPrintQuote(q.status) ? (
               <FrameAction icon={Printer} label="打印报价单" href={`/quotes/${encodeURIComponent(q.id)}/print`} />
             ) : null}
-            {canEdit(q.owner?.id) && canShareQuote(q.status) ? <QuoteShareButton q={q} /> : null}
+            {canEdit(q.owner?.id) && canShareQuote(q.status, q.expired) ? <QuoteShareButton q={q} /> : null}
             {buttons}
             {q && q.status === "pending_approval" && canEdit(q.owner?.id) ? (
               <RemindButton targetType="quote" targetId={q.id} />

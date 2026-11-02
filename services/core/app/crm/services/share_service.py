@@ -28,9 +28,9 @@ from app.crm.services import (
     quote_service,
     quote_snapshot,
 )
-from app.crm.services.codes import LOCAL_TZ
+from app.crm.services.codes import LOCAL_TZ, local_today
 from app.packs.base import TIER_NAMES
-from app.rules.crm_calc import local_date, quote_valid_until
+from app.rules.crm_calc import local_date
 
 SHAREABLE = ("approved", "sent", "accepted")
 RULE_SHARE_STATUS = "quote_share_status"
@@ -66,7 +66,7 @@ def _to_out(share: QuoteShare) -> QuoteShareOut:
 
 
 def _valid_until(quote: Quote) -> date:
-    return quote_valid_until(quote.created_at, quote_service.rules_for(quote))
+    return quote_snapshot.valid_until_of(quote)  # 提交时固化，之后改有效天数不影响
 
 
 def _check_shareable(quote: Quote) -> datetime:
@@ -97,7 +97,7 @@ def create_share(db: Session, user: CurrentUser, quote_id: uuid.UUID) -> QuoteSh
     expires = _check_shareable(quote)
     if (existing := _active(db, quote.id)) is not None:
         return _to_out(existing)
-    quote_snapshot.ensure_frozen(db, quote)
+    quote_snapshot.ensure_frozen(db, quote, local_today())
     if quote.status == "approved":  # 发链接就是发给客户：和点「发送」一样记录并建跟进任务
         quote_service.transition(db, user, quote.id, "send")
     share = QuoteShare(
@@ -156,7 +156,7 @@ def _record_view(db: Session, share: QuoteShare, quote: Quote) -> None:
 
 
 def _scope(db: Session, quote: Quote) -> PublicScope | None:
-    """和打印版一致：提交审批时固化的需求清单（quote_snapshot），不跟着商机后来的修改变。"""
+    """和打印版一致：提交审批时按档位固化的范围（quote_snapshot），不跟着商机后来的修改变。"""
     data = quote_snapshot.scope_of(db, quote)
     if data is None:
         return None
@@ -165,6 +165,8 @@ def _scope(db: Session, quote: Quote) -> PublicScope | None:
         platforms=list(data.get("platforms") or []),
         modules=modules,
         team_size=data.get("team_size"),
+        excluded_platforms=list(data.get("excluded_platforms") or []),
+        excluded_modules=list(data.get("excluded_modules") or []),
     )
 
 

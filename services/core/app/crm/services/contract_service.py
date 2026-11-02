@@ -25,7 +25,7 @@ from app.crm.schemas.finance import (
     PaymentPlanUpdate,
     PaymentPlanView,
 )
-from app.crm.services import activity_service, lookup, quote_query
+from app.crm.services import activity_service, invoice_history, lookup, quote_query
 from app.crm.services.codes import LOCAL_TZ, local_today, month_start
 from app.crm.services.listing import FacetOption, SortKey, customer_facet, order, user_facet
 from app.crm.services.payment_plan import (
@@ -36,7 +36,7 @@ from app.crm.services.payment_plan import (
     next_due,
 )
 from app.rules import paid_ratio_of
-from app.rules.loader import RuleSet, load_rules
+from app.rules.loader import PaymentStage, load_rules
 
 RULE_EXCEEDS_BALANCE = "payment_exceeds_balance"
 RULE_PLAN_TOTAL = "plan_total_mismatch"
@@ -136,10 +136,13 @@ def _next_payment(states: list[PlanState]) -> NextPayment | None:
     )
 
 
-def create_default_plan(db: Session, contract: Contract, rules: RuleSet) -> None:
-    """合同生成时按 rules.yaml 的标准比例拆期（签订日 = 合同创建日）。"""
+def create_default_plan(db: Session, contract: Contract, schedule: list[PaymentStage]) -> None:
+    """合同生成时按回款期次拆期（签订日 = 合同创建日）。
+
+    schedule 来自成交的那一版报价（quote_snapshot.payment_schedule_of），不是当前规则：
+    客户接受的是报价上写的付款方式，管理员后来改了标准比例也不影响。"""
     signed_on = (contract.created_at or datetime.now(UTC)).astimezone(LOCAL_TZ).date()
-    for seq, p in enumerate(default_plan(contract.amount, signed_on, rules.payment), start=1):
+    for seq, p in enumerate(default_plan(contract.amount, signed_on, schedule), start=1):
         db.add(
             PaymentPlan(
                 contract_id=contract.id,
@@ -186,6 +189,7 @@ def get_payment_plan(db: Session, user: CurrentUser, contract_id: uuid.UUID) -> 
             for p, s in zip(plans, states, strict=True)
         ],
         rule_ref=load_rules().payment.rule_ref,
+        invoice_events=invoice_history.events_of(db, contract.id),
     )
 
 

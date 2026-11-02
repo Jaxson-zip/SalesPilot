@@ -3,8 +3,8 @@
 /** 审批通过后才能分享（已审批的生成链接时会记为「已发送客户」） */
 export const SHAREABLE_STATUSES = ["approved", "sent", "accepted"] as const
 
-export function canShareQuote(status: string): boolean {
-  return (SHAREABLE_STATUSES as readonly string[]).includes(status)
+export function canShareQuote(status: string, expired = false): boolean {
+  return !expired && (SHAREABLE_STATUSES as readonly string[]).includes(status)
 }
 
 /** 后端只给路径（/share/q/xxx），按当前打开的域名拼成完整链接 */

@@ -127,6 +127,28 @@ class PaymentPlan(OwnedMixin, Base):
     invoice_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class InvoiceEvent(TimestampMixin, Base):
+    """开票历史（申请、登记、作废各一条，只增不改）：作废会清空期次上的发票字段，
+    原发票号码、日期、类型、操作人和作废原因都留在这里，重新开票后也能追查。
+
+    期次可能被调整回款计划重排，所以记期次名称和金额，不外键到 payment_plans。
+    """
+
+    __tablename__ = "invoice_events"
+
+    contract_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("contracts.id"), index=True)
+    seq: Mapped[int] = mapped_column(Integer)
+    plan_name: Mapped[str] = mapped_column(String(30))
+    amount: Mapped[int] = mapped_column(BigInteger)
+    action: Mapped[str] = mapped_column(String(20))  # request / issue / void
+    from_status: Mapped[str] = mapped_column(String(20))  # 操作前的开票状态
+    invoice_type: Mapped[str | None] = mapped_column(String(20))
+    invoice_no: Mapped[str | None] = mapped_column(String(50))
+    invoiced_on: Mapped[date | None] = mapped_column(Date)
+    note: Mapped[str | None] = mapped_column(String(200))  # 申请备注 / 作废原因
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+
+
 class Commission(OwnedMixin, Base):
     __tablename__ = "commissions"
 

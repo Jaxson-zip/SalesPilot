@@ -118,7 +118,9 @@ function SowAppendix({ c }: { c: ContractItem }) {
   const oppId = quote.data?.opportunity?.id ?? ""
   const prd = usePrd(oppId, Boolean(oppId))
   const req = useOpportunityRequirement(oppId || null)
-  const scope = req.data?.confirmed ? sowScope(req.data.data) : null
+  // 成交报价固化的范围优先（和报价单、分享页一致），迁移前的报价没有才用商机的需求清单
+  const frozen = quote.data?.scope as Parameters<typeof sowScope>[0] | null | undefined
+  const scope = frozen ? sowScope(frozen) : req.data?.confirmed ? sowScope(req.data.data) : null
   if (!prd.data && !scope) return null
   const pending = prd.data ? sowPending(prdForPrint(prd.data.markdown)) : 0
   const warnings = [
@@ -163,6 +165,7 @@ function SowAppendix({ c }: { c: ContractItem }) {
                 ))}
               </tbody>
             </table>
+            {scope.excluded.length ? <Meta label="本合同不含" value={scope.excluded.join("、")} /> : null}
             <p className="text-zinc-600">
               上表以外的功能、与第三方系统的对接不在本合同范围内；需求变更按双方确认的变更单另行计价。
             </p>

@@ -3895,6 +3895,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/quotes/{quote_id}/renew:
+    post:
+      tags:
+      - quotes
+      summary: Renew Quote
+      description: 已过有效期的报价退回草稿续期（重新提交后按当天起算有效期）。
+      operationId: renew_quote_api_quotes__quote_id__renew_post
+      parameters:
+      - name: quote_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Quote Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_QuoteDetail_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/quotes/{quote_id}/share:
     post:
       tags:
@@ -11670,6 +11706,78 @@ components:
       - message
       - warnings
       title: ImportRow
+    InvoiceEventOut:
+      properties:
+        seq:
+          type: integer
+          title: Seq
+        plan_name:
+          type: string
+          title: Plan Name
+        amount:
+          type: integer
+          title: Amount
+        action:
+          type: string
+          enum:
+          - request
+          - issue
+          - void
+          title: Action
+        from_status:
+          type: string
+          enum:
+          - none
+          - requested
+          - issued
+          title: From Status
+        invoice_type:
+          anyOf:
+          - type: string
+            enum:
+            - special
+            - normal
+          - type: 'null'
+          title: Invoice Type
+        invoice_no:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Invoice No
+        invoiced_on:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Invoiced On
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+        actor:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - seq
+      - plan_name
+      - amount
+      - action
+      - from_status
+      - invoice_type
+      - invoice_no
+      - invoiced_on
+      - note
+      - actor
+      - created_at
+      title: InvoiceEventOut
+      description: 开票历史一条：作废时 invoice_no / invoiced_on 是被作废的原票，note 是作废原因。
     InvoiceIn:
       properties:
         action:
@@ -13288,6 +13396,12 @@ components:
         rule_ref:
           type: string
           title: Rule Ref
+        invoice_events:
+          items:
+            $ref: '#/components/schemas/InvoiceEventOut'
+          type: array
+          title: Invoice Events
+          default: []
       type: object
       required:
       - contract_id
@@ -13298,6 +13412,7 @@ components:
       - items
       - rule_ref
       - invoiced_unpaid_amount
+      - invoice_events
       title: PaymentPlanView
     PaymentRecord:
       properties:
@@ -13740,13 +13855,29 @@ components:
           - type: integer
           - type: 'null'
           title: Team Size
+        excluded_platforms:
+          items:
+            type: string
+          type: array
+          title: Excluded Platforms
+          default: []
+        excluded_modules:
+          items:
+            type: string
+          type: array
+          title: Excluded Modules
+          default: []
       type: object
       title: PublicScope
-      description: 需求清单里给甲方看的部分：交付端、功能模块名、交付方式（只有软件外包这类行业包有）。
+      description: '这一档报价的项目范围：交付端、功能模块名、交付方式，以及需求里有但这次不含的
+
+        （经济版砍掉的二期功能、没报价的端）。只有软件外包这类行业包有。'
       required:
       - platforms
       - modules
       - team_size
+      - excluded_platforms
+      - excluded_modules
     PushIn:
       properties:
         content:
@@ -13870,6 +14001,10 @@ components:
           type: string
           format: date-time
           title: Created At
+        expired:
+          type: boolean
+          title: Expired
+          default: false
         items:
           items:
             $ref: '#/components/schemas/QuoteLine'
@@ -13940,6 +14075,7 @@ components:
       - list_price
       - discount_rate
       - valid_until
+      - expired
       - client_costs
       - scope
       - terms
@@ -14123,6 +14259,10 @@ components:
           type: string
           format: date-time
           title: Created At
+        expired:
+          type: boolean
+          title: Expired
+          default: false
       type: object
       required:
       - id
@@ -14139,6 +14279,7 @@ components:
       - source
       - owner
       - created_at
+      - expired
       title: QuoteListItem
     QuoteShareOut:
       properties:

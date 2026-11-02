@@ -165,7 +165,7 @@ INVOICE_DEMO: dict[str, dict[int, tuple[str, int]]] = {
 def _seed_payment_plan(db: Session, contract: Contract | None, rules: RuleSet, key: str) -> None:
     assert contract is not None
     db.execute(delete(PaymentPlan).where(PaymentPlan.contract_id == contract.id))
-    contract_service.create_default_plan(db, contract, rules)
+    contract_service.create_default_plan(db, contract, rules.payment.schedule)
     if key in OVERDUE_DEMO:
         seq, days_ago = OVERDUE_DEMO[key]
         plan = db.scalar(

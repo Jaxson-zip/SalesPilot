@@ -29,11 +29,14 @@ class PublicQuoteLine(BaseModel):
 
 
 class PublicScope(BaseModel):
-    """需求清单里给甲方看的部分：交付端、功能模块名、交付方式（只有软件外包这类行业包有）。"""
+    """这一档报价的项目范围：交付端、功能模块名、交付方式，以及需求里有但这次不含的
+    （经济版砍掉的二期功能、没报价的端）。只有软件外包这类行业包有。"""
 
     platforms: list[str] = []
     modules: list[str] = []
     team_size: int | None = None
+    excluded_platforms: list[str] = []
+    excluded_modules: list[str] = []
 
 
 class PublicQuote(BaseModel):

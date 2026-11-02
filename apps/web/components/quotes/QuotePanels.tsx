@@ -120,6 +120,7 @@ export function QuoteFields({ q }: { q: QuoteDetail }) {
       {q.valid_until ? (
         <FieldRow icon={CalendarClock} label="有效期至">
           {q.valid_until.slice(0, 10)}
+          {q.expired ? <span className="ml-2 text-xs text-red-600">已过期，需续期后再发送或成交</span> : null}
         </FieldRow>
       ) : null}
       <FieldRow icon={Percent} label="毛利率">

@@ -69,6 +69,22 @@ class PaymentPlanItem(BaseModel):
     invoiced_unpaid_days: int = 0  # 已开票未收齐：从开票日起算的天数
 
 
+class InvoiceEventOut(BaseModel):
+    """开票历史一条：作废时 invoice_no / invoiced_on 是被作废的原票，note 是作废原因。"""
+
+    seq: int
+    plan_name: str
+    amount: int
+    action: Literal["request", "issue", "void"]
+    from_status: InvoiceStatus
+    invoice_type: InvoiceType | None
+    invoice_no: str | None
+    invoiced_on: date | None
+    note: str | None
+    actor: UserBrief | None
+    created_at: datetime
+
+
 class PaymentPlanView(BaseModel):
     contract_id: uuid.UUID
     code: str
@@ -78,6 +94,7 @@ class PaymentPlanView(BaseModel):
     invoiced_unpaid_amount: int = 0  # 已开票但还没收齐的金额
     items: list[PaymentPlanItem]
     rule_ref: str
+    invoice_events: list[InvoiceEventOut] = []  # 开票历史，新的在前
 
 
 class InvoiceIn(BaseModel):

@@ -29,6 +29,17 @@ describe("合同附件：需求范围说明书", () => {
       { name: "在线预约", phase: "首期" },
       { name: "数据报表", phase: "二期" },
     ])
+    expect(s.excluded).toEqual([])
+  })
+
+  it("按成交报价固化的范围：列出本合同不含的端和功能", () => {
+    const s = sowScope({
+      platforms: ["mini_program"],
+      modules: [{ name: "在线预约" }],
+      excluded_platforms: ["app"],
+      excluded_modules: ["会员积分"],
+    })
+    expect(s.excluded).toEqual(["App", "会员积分"])
   })
 
   it("附进合同的 PRD 去掉草案提示", () => {

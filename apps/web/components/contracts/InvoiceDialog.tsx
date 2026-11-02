@@ -20,11 +20,20 @@ import type { InvoiceType, PaymentPlanItem } from "@/types/api"
 
 export interface InvoiceTarget {
   item: PaymentPlanItem
-  /** request 负责人申请开票；issue 主管登记已开票 */
-  action: "request" | "issue"
+  /** request 负责人申请开票；issue 主管登记已开票；void 主管作废（必须写原因） */
+  action: "request" | "issue" | "void"
 }
 
-/** 申请开票（选专票 / 普票，备注抬头税号）或登记已开票（发票号码、开票日期） */
+const TITLES = { request: "申请开票", issue: "登记已开票", void: "作废发票" }
+
+/** 作废：说明这一期会怎样，原因必填（留在开票历史里，重新开票后也能查到原票） */
+function voidHint(item: PaymentPlanItem): string {
+  return item.invoice_status === "issued"
+    ? `发票 ${item.invoice_no ?? ""} 将标记为作废（需要在税务系统里另行红冲），这一期回到未开票`
+    : "撤回这一期的开票申请，回到未开票"
+}
+
+/** 申请开票（选专票 / 普票，备注抬头税号）、登记已开票（发票号码、开票日期）或作废（原因） */
 export function InvoiceDialog({
   contractId,
   target,
@@ -36,6 +45,7 @@ export function InvoiceDialog({
 }) {
   const item = target?.item
   const issuing = target?.action === "issue"
+  const voiding = target?.action === "void"
   const [type, setType] = useState<InvoiceType>(item?.invoice_type ?? "special")
   const [no, setNo] = useState("")
   const [date, setDate] = useState(localDate())
@@ -46,9 +56,12 @@ export function InvoiceDialog({
   const submit = () => {
     if (!item || !target) return
     if (issuing && !no.trim()) return setError("请填写发票号码")
-    const body = issuing
-      ? { action: "issue" as const, invoice_type: type, invoice_no: no.trim(), invoiced_on: date }
-      : { action: "request" as const, invoice_type: type, note: note.trim() || undefined }
+    if (voiding && !note.trim()) return setError("请填写作废原因")
+    const body = voiding
+      ? { action: "void" as const, note: note.trim() }
+      : issuing
+        ? { action: "issue" as const, invoice_type: type, invoice_no: no.trim(), invoiced_on: date }
+        : { action: "request" as const, invoice_type: type, note: note.trim() || undefined }
     invoice.mutate({ seq: item.seq, body }, { onSuccess: onClose })
   }
 
@@ -56,16 +69,36 @@ export function InvoiceDialog({
     <Dialog open={target !== null} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{issuing ? "登记已开票" : "申请开票"}</DialogTitle>
+          <DialogTitle>{target ? TITLES[target.action] : ""}</DialogTitle>
           <DialogDescription>
             {item ? `${item.name} · ${formatFen(item.amount)}` : ""}
-            {issuing ? "；登记后负责人会收到通知" : "；提交后本团队主管会收到通知"}
+            {voiding && item
+              ? `；${voidHint(item)}`
+              : issuing
+                ? "；登记后负责人会收到通知"
+                : "；提交后本团队主管会收到通知"}
           </DialogDescription>
         </DialogHeader>
-        <FormField label="发票类型" htmlFor="invoice-type">
-          <SimpleSelect id="invoice-type" value={type} onChange={setType} options={INVOICE_TYPE_OPTIONS} />
-        </FormField>
-        {issuing ? (
+        {voiding ? null : (
+          <FormField label="发票类型" htmlFor="invoice-type">
+            <SimpleSelect id="invoice-type" value={type} onChange={setType} options={INVOICE_TYPE_OPTIONS} />
+          </FormField>
+        )}
+        {voiding ? (
+          <FormField label="作废原因" required error={error} htmlFor="invoice-reason">
+            <Input
+              id="invoice-reason"
+              value={note}
+              maxLength={200}
+              placeholder="例如开票抬头有误、客户要求换开普票"
+              aria-invalid={Boolean(error)}
+              onChange={(e) => {
+                setNote(e.target.value)
+                setError(undefined)
+              }}
+            />
+          </FormField>
+        ) : issuing ? (
           <>
             <FormField label="发票号码" required error={error} htmlFor="invoice-no">
               <Input
@@ -93,8 +126,8 @@ export function InvoiceDialog({
           <Button variant="outline" onClick={onClose}>
             取消
           </Button>
-          <Button onClick={submit} disabled={invoice.isPending}>
-            {invoice.isPending ? "提交中…" : issuing ? "登记" : "提交申请"}
+          <Button variant={voiding ? "destructive" : "default"} onClick={submit} disabled={invoice.isPending}>
+            {invoice.isPending ? "提交中…" : voiding ? "确认作废" : issuing ? "登记" : "提交申请"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -14,7 +14,7 @@ def test_split_keeps_total_and_puts_rounding_on_last() -> None:
 
 
 def test_default_plan_follows_rules_yaml() -> None:
-    plan = default_plan(1_000_000, SIGNED, load_rules().payment)
+    plan = default_plan(1_000_000, SIGNED, load_rules().payment.schedule)
     assert [(p.name, p.amount) for p in plan] == [
         ("预付款", 300_000),
         ("到货验收款", 600_000),

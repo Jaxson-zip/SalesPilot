@@ -5,7 +5,6 @@ accept 时自动生成合同（C-YYYY-NNN）和提成，并把关联商机改为
 """
 
 import uuid
-from datetime import UTC, datetime, time, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -14,7 +13,7 @@ from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_business_writer, ensure_owner
 from app.common.scope import View, ensure_visible
-from app.crm.models import Commission, Contract, Customer, Opportunity, Quote, QuoteItem, Task
+from app.crm.models import Commission, Contract, Customer, Opportunity, Quote, QuoteItem
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.opportunity import FINAL_STAGES, StageChange
 from app.crm.schemas.quote import (
@@ -24,18 +23,17 @@ from app.crm.schemas.quote import (
     QuoteListItem,
     QuoteOut,
 )
-from app.crm.schemas.task import TaskCreate
 from app.crm.services import (
     activity_service,
     approval_hints,
     approval_service,
     contract_service,
+    quote_followups,
     quote_query,
     quote_snapshot,
-    task_service,
-    won_rule,
+    quote_validity,
 )
-from app.crm.services.codes import LOCAL_TZ, local_today, next_code
+from app.crm.services.codes import local_today, next_code
 from app.crm.services.opportunity_service import apply_stage, get_owned, sync_signed_amount
 from app.packs.base import PASSTHROUGH, Catalog, SolutionTier
 from app.packs.registry import get_pack
@@ -48,7 +46,7 @@ from app.rules import (
     check_margin,
     load_rules,
 )
-from app.rules.crm_calc import discount_rate_of, quote_valid_until
+from app.rules.crm_calc import discount_rate_of
 from app.rules.loader import solo_mode
 
 RULE_TRANSITION = "quote_status_transition"
@@ -60,7 +58,13 @@ TRANSITIONS: dict[str, tuple[str, str]] = {
     "reject": ("sent", "rejected"),
 }
 RULE_NO_CUSTOMER = "quote_no_customer"
-ACTION_LABELS = {"submit": "提交", "send": "发送客户", "accept": "客户接受", "reject": "客户拒绝"}
+ACTION_LABELS = {
+    "submit": "提交",
+    "send": "发送客户",
+    "accept": "客户接受",
+    "reject": "客户拒绝",
+    "renew": "续期",
+}
 
 
 def rules_for(quote: Quote) -> RuleSet:
@@ -225,7 +229,7 @@ def get_quote(db: Session, user: CurrentUser, quote_id: uuid.UUID) -> QuoteDetai
         estimated_commission=estimated_commission(db, quote, contract),
         list_price=sum(i.subtotal_price for i in lines),
         discount_rate=quote.discount_rate,
-        valid_until=quote_valid_until(quote.created_at, rules_for(quote)),
+        valid_until=quote_snapshot.valid_until_of(quote),
         client_costs=quote.client_costs or [],
         scope=quote_snapshot.scope_of(db, quote),
         terms=quote_snapshot.terms_of(quote),
@@ -275,7 +279,7 @@ def approval_reasons(
 
 
 def _submit(db: Session, user: CurrentUser, quote: Quote) -> str:
-    quote_snapshot.freeze(db, quote)
+    quote_snapshot.freeze(db, quote, local_today())
     items = quote_query.items_of(db, quote.id)
     reasons = approval_reasons(quote, items, rules_for(quote), catalog_prices(quote.pack))
     if not reasons:
@@ -293,7 +297,10 @@ def _submit(db: Session, user: CurrentUser, quote: Quote) -> str:
     return "提交报价单，进入主管审批：" + "；".join(reasons)
 
 
-def _accept(db: Session, user: CurrentUser, quote: Quote, source: str) -> str:
+def accept(db: Session, user: CurrentUser, quote: Quote, source: str) -> str:
+    """合同金额、回款期次都按报价固化的那一版（客户接受的就是它）。"""
+    quote_validity.ensure_valid(quote, "成交")
+    quote_snapshot.ensure_frozen(db, quote, local_today())
     quote.status = "accepted"
     contract = Contract(
         code=next_code(db, Contract.code, "C"),
@@ -319,9 +326,9 @@ def _accept(db: Session, user: CurrentUser, quote: Quote, source: str) -> str:
             team_id=quote.team_id,
         )
     )
-    contract_service.create_default_plan(db, contract, rules_for(quote))
+    contract_service.create_default_plan(db, contract, quote_snapshot.payment_schedule_of(quote))
     _mark_won(db, user, quote.opportunity_id, source)
-    _close_followups(db, quote, "客户已接受报价")
+    quote_followups.close_followups(db, quote, "客户已接受报价")
     return f"客户接受报价，生成合同 {contract.code}"
 
 
@@ -337,91 +344,23 @@ def _mark_won(db: Session, user: CurrentUser, opportunity_id: uuid.UUID | None, 
         apply_stage(db, user, opp, StageChange(stage="won"), src)
 
 
-WIN_STATUSES = won_rule.WIN_STATUSES
 # 出了报价单还停在这些阶段的商机自动推进到「方案报价」（谈判中的不往回退）
 BEFORE_PROPOSAL = ("lead", "qualified")
-RULE_WIN_QUOTE = "won_quote_invalid"
-
-
-def win_with_quote(
-    db: Session, user: CurrentUser, opp: Opportunity, quote_id: uuid.UUID, source: str
-) -> None:
-    """商机看板标赢单时按报价成交：已审批未发送的先记一次发送，再走「客户接受」生成合同。"""
-    if opp.stage in FINAL_STAGES:
-        apply_stage(db, user, opp, StageChange(stage="won"), source)  # 抛出「已是终态」
-    quote = db.get(Quote, quote_id, with_for_update=True)
-    if quote is None or quote.opportunity_id != opp.id:
-        raise BizError(ErrorCode.NOT_FOUND, "报价单不存在或不属于这个商机")
-    ensure_owner(quote, user)
-    if quote.status not in WIN_STATUSES:
-        current = QUOTE_STATUS_LABELS.get(quote.status, quote.status)
-        raise BizError(
-            ErrorCode.RULE_VIOLATION,
-            f"报价单 {quote.code} 当前为「{current}」，只有已审批或已发送的报价才能直接成交",
-            {"rule": RULE_WIN_QUOTE, "status": quote.status},
-        )
-    if quote.status == "approved":
-        quote.status = "sent"
-        activity_service.record(
-            db, user, "quote", quote.id, "send", "赢单时视为已发送", source, quote
-        )
-    content = _accept(db, user, quote, source)
-    db.flush()
-    activity_service.record(db, user, "quote", quote.id, "accept", content, source, quote)
-
-
-FOLLOWUP_TITLE = "跟进报价 {code}：确认客户意见"
-
-
-def _close_followups(db: Session, quote: Quote, reason: str) -> None:
-    """客户已答复：发送时建的跟进任务自动完成，不再按到期提醒。"""
-    tasks = db.scalars(
-        select(Task).where(
-            Task.done.is_(False),
-            Task.customer_id == quote.customer_id,
-            Task.title == FOLLOWUP_TITLE.format(code=quote.code),
-        )
-    )
-    for task in tasks:
-        task.done, task.done_at = True, datetime.now(UTC)
-        task.note = "\n".join(filter(None, [task.note, f"{reason}，自动完成"]))
-
-
-def _schedule_followup(db: Session, user: CurrentUser, quote: Quote) -> str:
-    """发送报价后建一条电话跟进任务（N 天后上午 10 点到期），返回追加到动态里的说明。"""
-    days = rules_for(quote).quote.followup_days
-    subject_type, subject_id = (
-        ("opportunity", quote.opportunity_id)
-        if quote.opportunity_id
-        else ("customer", quote.customer_id)
-    )
-    if days <= 0 or subject_id is None:
-        return ""
-    due = datetime.combine(local_today() + timedelta(days=days), time(10), tzinfo=LOCAL_TZ)
-    data = TaskCreate(
-        title=FOLLOWUP_TITLE.format(code=quote.code),
-        due_at=due,
-        subject_type=subject_type,  # type: ignore[arg-type]
-        subject_id=subject_id,
-        type="call",
-    )
-    try:
-        task_service.create_task(db, user, data, "auto")
-    except BizError:  # 商机 / 客户已转给别人：不替别人建任务
-        return ""
-    return f"，已建跟进任务（{due:%m-%d}）"
 
 
 def transition(
     db: Session, user: CurrentUser, quote_id: uuid.UUID, action: str, source: str = "manual"
 ) -> QuoteDetail:
     """报价单状态流转：非法流转一律 42201 rule=quote_status_transition。"""
-    if action not in TRANSITIONS:
+    if action not in ACTION_LABELS:
         raise BizError(ErrorCode.VALIDATION, f"未知动作：{action}")
     quote = db.get(Quote, quote_id, with_for_update=True)
     ensure_owner(quote, user)  # 提交 / 发送 / 接受 / 拒绝：只有负责人本人
     assert quote is not None
-    _check_transition(quote, action)
+    if action != "renew":
+        _check_transition(quote, action)
+    if action == "send":
+        quote_validity.ensure_valid(quote, "发送客户")
     if action == "submit" and quote.customer_id is None:
         raise BizError(
             ErrorCode.RULE_VIOLATION,
@@ -431,16 +370,18 @@ def transition(
     if action == "submit":
         content = _submit(db, user, quote)
     elif action == "accept":
-        content = _accept(db, user, quote, source)
+        content = accept(db, user, quote, source)
+    elif action == "renew":
+        content = quote_validity.renew(quote)
     elif action == "reject":
         quote.status = "rejected"
         content = f"报价单{ACTION_LABELS[action]}"
-        _close_followups(db, quote, "客户已拒绝报价")
+        quote_followups.close_followups(db, quote, "客户已拒绝报价")
     else:
         quote.status = TRANSITIONS[action][1]
         content = f"报价单{ACTION_LABELS[action]}"
     if action == "send":
-        content += _schedule_followup(db, user, quote)
+        content += quote_followups.schedule_followup(db, user, quote, rules_for(quote))
     db.flush()
     activity_service.record(db, user, "quote", quote.id, action, content, source, quote)
     return get_quote(db, user, quote.id)

@@ -40,6 +40,11 @@ const QUOTE_CONFIRM: Partial<Record<QuoteAction, ConfirmCopy>> = {
     confirmLabel: "确认客户拒绝",
     destructive: true,
   },
+  renew: {
+    title: "报价续期",
+    description: "报价退回草稿：确认价格和范围后重新提交，有效期从今天重新算，需要审批的会重新审批。",
+    confirmLabel: "退回草稿续期",
+  },
 }
 
 export function quoteActionConfirm(action: QuoteAction): ConfirmCopy | null {

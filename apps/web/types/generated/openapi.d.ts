@@ -1467,6 +1467,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/quotes/{quote_id}/renew": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Renew Quote
+     * @description 已过有效期的报价退回草稿续期（重新提交后按当天起算有效期）。
+     */
+    post: operations["renew_quote_api_quotes__quote_id__renew_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/quotes/{quote_id}/share": {
     parameters: {
       query?: never
@@ -5757,6 +5777,42 @@ export interface components {
       warnings: string[]
     }
     /**
+     * InvoiceEventOut
+     * @description 开票历史一条：作废时 invoice_no / invoiced_on 是被作废的原票，note 是作废原因。
+     */
+    InvoiceEventOut: {
+      /** Seq */
+      seq: number
+      /** Plan Name */
+      plan_name: string
+      /** Amount */
+      amount: number
+      /**
+       * Action
+       * @enum {string}
+       */
+      action: "request" | "issue" | "void"
+      /**
+       * From Status
+       * @enum {string}
+       */
+      from_status: "none" | "requested" | "issued"
+      /** Invoice Type */
+      invoice_type: ("special" | "normal") | null
+      /** Invoice No */
+      invoice_no: string | null
+      /** Invoiced On */
+      invoiced_on: string | null
+      /** Note */
+      note: string | null
+      actor: components["schemas"]["UserBrief"] | null
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string
+    }
+    /**
      * InvoiceIn
      * @description 开票操作：request 负责人申请；issue 主管登记已开票；void 主管作废（红冲或撤回申请）。
      */
@@ -6610,6 +6666,11 @@ export interface components {
       items: components["schemas"]["PaymentPlanItem"][]
       /** Rule Ref */
       rule_ref: string
+      /**
+       * Invoice Events
+       * @default []
+       */
+      invoice_events: components["schemas"]["InvoiceEventOut"][]
     }
     /** PaymentRecord */
     PaymentRecord: {
@@ -6854,7 +6915,8 @@ export interface components {
     }
     /**
      * PublicScope
-     * @description 需求清单里给甲方看的部分：交付端、功能模块名、交付方式（只有软件外包这类行业包有）。
+     * @description 这一档报价的项目范围：交付端、功能模块名、交付方式，以及需求里有但这次不含的
+     *     （经济版砍掉的二期功能、没报价的端）。只有软件外包这类行业包有。
      */
     PublicScope: {
       /**
@@ -6869,6 +6931,16 @@ export interface components {
       modules: string[]
       /** Team Size */
       team_size: number | null
+      /**
+       * Excluded Platforms
+       * @default []
+       */
+      excluded_platforms: string[]
+      /**
+       * Excluded Modules
+       * @default []
+       */
+      excluded_modules: string[]
     }
     /** PushIn */
     PushIn: {
@@ -6940,6 +7012,11 @@ export interface components {
        * Format: date-time
        */
       created_at: string
+      /**
+       * Expired
+       * @default false
+       */
+      expired: boolean
       /** Items */
       items: components["schemas"]["QuoteLine"][]
       /** Approvals */
@@ -7067,6 +7144,11 @@ export interface components {
        * Format: date-time
        */
       created_at: string
+      /**
+       * Expired
+       * @default false
+       */
+      expired: boolean
     }
     /**
      * QuoteShareOut
@@ -11309,6 +11391,39 @@ export interface operations {
     }
   }
   reject_quote_api_quotes__quote_id__reject_post: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        quote_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_QuoteDetail_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  renew_quote_api_quotes__quote_id__renew_post: {
     parameters: {
       query?: never
       header?: {

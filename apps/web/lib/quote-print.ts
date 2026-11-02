@@ -56,13 +56,22 @@ export interface PrintScope {
  * 让客户看清哪些功能不在这次的价格里，避免签约后扯皮。
  */
 export function printScope(
-  req: { platforms?: string[]; modules?: { name: string }[]; team_size?: number | null },
+  req: {
+    platforms?: string[]
+    modules?: { name: string }[]
+    team_size?: number | null
+    excluded_platforms?: string[]
+    excluded_modules?: string[]
+  },
   items: Pick<QuoteLine, "name">[],
 ): PrintScope {
   const quoted = (name: string) => items.some((it) => it.name.startsWith(name))
+  // core 按档位算好了「不含」就用它（经济版只做第一个端）；旧数据按明细比对模块
+  const modules = req.excluded_modules ?? (req.modules ?? []).map((m) => m.name).filter((n) => !quoted(n))
+  const name = (p: string) => PLATFORM_NAMES[p] ?? p
   return {
-    platforms: (req.platforms ?? []).map((p) => PLATFORM_NAMES[p] ?? p).join("、"),
+    platforms: (req.platforms ?? []).map(name).join("、"),
     delivery: req.team_size === 1 ? "个人全栈" : "团队",
-    excluded: (req.modules ?? []).map((m) => m.name).filter((n) => !quoted(n)),
+    excluded: [...(req.excluded_platforms ?? []).map(name), ...modules],
   }
 }

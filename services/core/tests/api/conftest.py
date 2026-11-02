@@ -26,6 +26,7 @@ from app.crm.models import (
     Customer,
     Expense,
     Followup,
+    InvoiceEvent,
     Notification,
     Opportunity,
     Payment,
@@ -130,6 +131,7 @@ def _purge_quotes(db: Session, ids: list[uuid.UUID]) -> None:
     contracts = list(db.scalars(select(Contract.id).where(Contract.quote_id.in_(ids))))
     db.execute(delete(Commission).where(Commission.contract_id.in_(contracts)))
     db.execute(delete(PaymentPlan).where(PaymentPlan.contract_id.in_(contracts)))
+    db.execute(delete(InvoiceEvent).where(InvoiceEvent.contract_id.in_(contracts)))
     db.execute(update(Payment).where(Payment.contract_id.in_(contracts)).values(reversal_of=None))
     db.execute(delete(Payment).where(Payment.contract_id.in_(contracts)))
     db.execute(delete(Activity).where(Activity.subject_id.in_([*ids, *contracts])))

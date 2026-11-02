@@ -17,14 +17,25 @@ export function planGap(items: Pick<PaymentPlanItem, "amount">[], total: number)
   return total - items.reduce((s, it) => s + it.amount, 0)
 }
 
-/** 合同附件里的需求范围（没有 PRD 时按已确认的需求清单列出）：交付端、各模块及首期 / 二期 */
-export function sowScope(req: { platforms?: string[]; modules?: { name: string; must?: boolean }[] }): {
+/**
+ * 合同附件里的需求范围（没有 PRD 时列出）：交付端、各模块及首期 / 二期，以及不含的端和功能。
+ * 优先用成交报价固化的范围（按档位算过：经济版没报价的功能在 excluded 里），没有才用商机的需求清单。
+ */
+export function sowScope(req: {
+  platforms?: string[]
+  modules?: { name: string; must?: boolean }[]
+  excluded_platforms?: string[]
+  excluded_modules?: string[]
+}): {
   platforms: string
   modules: { name: string; phase: string }[]
+  excluded: string[]
 } {
+  const name = (p: string) => PLATFORM_NAMES[p] ?? p
   return {
-    platforms: (req.platforms ?? []).map((p) => PLATFORM_NAMES[p] ?? p).join("、"),
+    platforms: (req.platforms ?? []).map(name).join("、"),
     modules: (req.modules ?? []).map((m) => ({ name: m.name, phase: m.must === false ? "二期" : "首期" })),
+    excluded: [...(req.excluded_platforms ?? []).map(name), ...(req.excluded_modules ?? [])],
   }
 }
 

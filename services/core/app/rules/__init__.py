@@ -11,6 +11,7 @@ from app.rules.calculators import (
     check_expense_policy,
     check_margin,
     confirm_commission,
+    discounted_price,
     paid_ratio_of,
     weighted_amount,
 )
@@ -28,6 +29,7 @@ __all__ = [
     "check_expense_policy",
     "check_margin",
     "confirm_commission",
+    "discounted_price",
     "load_rules",
     "paid_ratio_of",
     "weighted_amount",

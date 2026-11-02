@@ -77,7 +77,7 @@ export function RequirementCard({
 }) {
   const [req, setReq] = useState(data.requirement)
   const [adding, setAdding] = useState("")
-  const [sent, setSent] = useState(false)
+  const [sent, setSent] = useState(Boolean(data.confirmed))
   const locked = readOnly || sent || !onConfirm
   const solo = req.team_size === 1
 
@@ -95,12 +95,17 @@ export function RequirementCard({
     <section aria-label="需求清单" className="rounded-xl border border-zinc-200 bg-white">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-zinc-100 px-3.5 py-2.5">
         <span className="font-medium">需求清单{req.project ? ` · ${req.project}` : ""}</span>
-        <span className="text-xs text-zinc-500">
-          粗估{" "}
-          <span className="font-medium text-zinc-900 tabular-nums">
-            {formatFen(data.price_low)}–{formatFen(data.price_high)}
+        {data.confirmed ? (
+          // 粗估区间按最初拆出的模块算，确认后的价格看下面的三档报价
+          <Tag color="green">已确认</Tag>
+        ) : (
+          <span className="text-xs text-zinc-500">
+            粗估{" "}
+            <span className="font-medium text-zinc-900 tabular-nums">
+              {formatFen(data.price_low)}–{formatFen(data.price_high)}
+            </span>
           </span>
-        </span>
+        )}
       </div>
 
       <div className="space-y-3 px-3.5 py-3">

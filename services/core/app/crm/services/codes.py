@@ -1,12 +1,13 @@
 """业务单号：<前缀>-<年份>-<三位序号>，例如 Q-2026-007、C-2026-001、E-2026-012。
 
-序号取当年已有单号的最大值 + 1（不按行数计数，删除记录后也不会撞号）。
+序号由 code_counters 按「前缀 + 年份」原子分配（INSERT … ON CONFLICT DO UPDATE），
+多人同时新建不会拿到同一个号；计数器落后于已有单号（迁移前的数据）时从已有最大值往后接。
 """
 
 from datetime import UTC, date, datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import InstrumentedAttribute, Session
 
 
@@ -23,12 +24,24 @@ def parse_seq(code: str | None, prefix: str, year: int) -> int:
     return int(tail) if tail.isdigit() else 0
 
 
+_NEXT_SEQ = text(
+    """
+    INSERT INTO code_counters (prefix, year, seq) VALUES (:prefix, :year, :floor + 1)
+    ON CONFLICT (prefix, year)
+    DO UPDATE SET seq = GREATEST(code_counters.seq, :floor) + 1
+    RETURNING seq
+    """
+)
+
+
 def next_code(db: Session, column: InstrumentedAttribute[Any], prefix: str) -> str:
+    """分配下一个单号；计数器这一行锁到本事务提交，同类单号的并发新建排队拿号。"""
     year = datetime.now(UTC).year
     head = f"{prefix}-{year}-"
     codes = db.scalars(select(column).where(column.like(f"{head}%"))).all()
-    seq = max((parse_seq(c, prefix, year) for c in codes), default=0)
-    return format_code(prefix, year, seq + 1)
+    floor = max((parse_seq(c, prefix, year) for c in codes), default=0)
+    seq = db.scalar(_NEXT_SEQ, {"prefix": prefix, "year": year, "floor": floor})
+    return format_code(prefix, year, int(seq))
 
 
 LOCAL_TZ = timezone(timedelta(hours=8), "Asia/Shanghai")

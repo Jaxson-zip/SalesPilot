@@ -168,9 +168,13 @@ export function applyAgentEvent(turn: AssistantTurn, ev: AgentEvent): AssistantT
   }
 }
 
-/** 用户确认 / 取消后：标记决定，等待步骤改为 done，重新进入流式状态 */
-export function applyDecision(turn: AssistantTurn, decision: ResumeDecision): AssistantTurn {
+/**
+ * 用户确认 / 取消后：标记决定，等待步骤改为 done，重新进入流式状态。
+ * 耗时只算执行时间：开始时间往后挪掉等待确认的那段（历史会话里打开的待确认回复从 0 开始算）。
+ */
+export function applyDecision(turn: AssistantTurn, decision: ResumeDecision, now = Date.now()): AssistantTurn {
   if (!turn.interrupt) return turn
+  const ran = turn.endedAt !== null ? Math.max(0, turn.endedAt - turn.startedAt) : 0
   return {
     ...turn,
     interrupt: { ...turn.interrupt, decision },
@@ -178,6 +182,7 @@ export function applyDecision(turn: AssistantTurn, decision: ResumeDecision): As
       s.status === "wait" ? { ...s, status: "done", desc: decision === "approve" ? "已确认执行" : "已取消" } : s,
     ),
     status: "streaming",
+    startedAt: now - ran,
     endedAt: null,
   }
 }

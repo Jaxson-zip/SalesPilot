@@ -11,11 +11,14 @@ export function TierCards({
   tiers,
   selected,
   onSelect,
+  adjusted,
 }: {
   tiers: SolutionTier[]
   /** 选中档位的 key；不传时推荐档为选中 */
   selected?: string
   onSelect?: (key: string) => void
+  /** 物料改过的档位 key：卡片上的价格和配置是原方案，调整后的看物料清单 */
+  adjusted?: string[]
 }) {
   const isSelected = (t: SolutionTier) => (selected ? t.key === selected : Boolean(t.recommended))
   return (
@@ -51,7 +54,10 @@ export function TierCards({
             >
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">{t.name}</span>
-                {t.recommended ? <Tag color="purple">推荐</Tag> : null}
+                <span className="flex gap-1">
+                  {t.key && adjusted?.includes(t.key) ? <Tag color="gray">原方案参考</Tag> : null}
+                  {t.recommended ? <Tag color="purple">推荐</Tag> : null}
+                </span>
               </div>
               <div className="mt-2 text-lg font-semibold tabular-nums">{formatFen(t.price)}</div>
               <div className="text-xs text-zinc-500">毛利 {formatPercent(t.margin)}</div>
@@ -60,7 +66,12 @@ export function TierCards({
           )
         })}
       </div>
-      {onSelect ? <p className="text-xs text-zinc-500">点选档位可以切换方案，确认时按选中的档位生成报价单</p> : null}
+      {onSelect ? (
+        <p className="text-xs text-zinc-500">
+          点选档位可以切换方案，确认时按选中的档位生成报价单
+          {adjusted?.length ? "；标「原方案参考」的档位已调整过物料，调整后的价格看物料清单" : ""}
+        </p>
+      ) : null}
     </div>
   )
 }

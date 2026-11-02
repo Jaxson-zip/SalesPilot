@@ -119,6 +119,8 @@ class PaymentIn(BaseModel):
     received_on: PastDate | None = None
     reference_no: str | None = Field(default=None, max_length=64)
     note: str | None = Field(default=None, max_length=200)
+    # 同一次登记的重试带同一个键（前端每次打开登记框生成一个）：第一次已入账就不再记一笔
+    idempotency_key: str | None = Field(default=None, min_length=8, max_length=100)
 
 
 class PaymentReverseIn(BaseModel):

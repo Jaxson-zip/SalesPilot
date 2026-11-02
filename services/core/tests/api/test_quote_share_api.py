@@ -99,11 +99,12 @@ def test_only_owner_can_share(client: TestClient, tracker: Tracker) -> None:
 
 def test_software_quote_terms_follow_pack(client: TestClient, tracker: Tracker) -> None:
     """回归：软件外包报价的条款原来是硬件的（到货验收、原厂质保），付款比例和里程碑回款计划对不上。"""
-    qid = _approved(client, tracker)
-    with session_scope() as db:
+    qid = create_quote(tracker, make_tier(GOOD))
+    with session_scope() as db:  # 条款在提交审批时固化：先换行业包再提交
         db.execute(
             update(Quote).where(Quote.id == uuid.UUID(qid)).values(pack="software_outsourcing")
         )
+    assert act(client, qid, "submit")["data"]["status"] == "approved"
     token = _share(client, qid)["data"]["token"]
     terms = " ".join(client.get(f"/api/public/quotes/{token}").json()["data"]["terms"])
     assert "签约首付款 30%、原型与 UI 确认款 30%、上线验收款 30%、质保尾款 10%" in terms

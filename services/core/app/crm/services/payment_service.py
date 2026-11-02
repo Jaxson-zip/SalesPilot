@@ -21,6 +21,7 @@ from app.rules import confirm_commission
 
 RULE_EXCEEDS_BALANCE = contract_service.RULE_EXCEEDS_BALANCE
 RULE_ALREADY_REVERSED = "payment_already_reversed"
+RULE_DUPLICATE_REFERENCE = "payment_duplicate_reference"
 
 
 def _locked_contract(db: Session, user: CurrentUser, contract_id: uuid.UUID) -> Contract:
@@ -43,8 +44,15 @@ def _apply(db: Session, contract: Contract, delta: int) -> None:
 def add_payment(
     db: Session, user: CurrentUser, contract_id: uuid.UUID, body: PaymentIn
 ) -> ContractItem:
-    """登记回款（仅 manager 且合同属于本团队）。"""
+    """登记回款（仅 manager 且合同属于本团队）。
+
+    防重复：同一个 idempotency_key 的重试直接返回合同当前状态（第一次已入账、页面没收到响应）；
+    银行流水号已经登记过（且没冲正）时拒绝，提示先核查。合同行锁保证两次请求排队检查。
+    """
     contract = _locked_contract(db, user, contract_id)
+    if _already_recorded(db, contract, body):
+        return contract_service.get_contract(db, user, contract.id)
+    _reject_duplicate_reference(db, body.reference_no)
     balance = contract.amount - contract.paid_amount
     if body.amount > balance:
         raise BizError(
@@ -61,6 +69,7 @@ def add_payment(
             reference_no=(body.reference_no or "").strip() or None,
             note=(body.note or "").strip() or None,
             created_by=user.id,
+            idempotency_key=body.idempotency_key,
         )
     )
     _apply(db, contract, body.amount)
@@ -76,6 +85,42 @@ def add_payment(
         subject=contract,
     )
     return contract_service.get_contract(db, user, contract.id)
+
+
+def _already_recorded(db: Session, contract: Contract, body: PaymentIn) -> bool:
+    """同一次登记的重试：内容一致返回 True（不再记账），内容不同报冲突。"""
+    if not body.idempotency_key:
+        return False
+    done = db.scalar(select(Payment).where(Payment.idempotency_key == body.idempotency_key))
+    if done is None:
+        return False
+    if done.contract_id != contract.id or done.amount != body.amount:
+        raise BizError(
+            ErrorCode.DUPLICATE,
+            f"这次登记已经入账（¥{done.amount / 100:,.2f}），请刷新后核对回款记录",
+        )
+    return True
+
+
+def _reject_duplicate_reference(db: Session, reference_no: str | None) -> None:
+    """同一个银行流水号一般只对应一笔到账：已登记且没冲正的，拦下来让人核查。"""
+    ref = (reference_no or "").strip()
+    if not ref:
+        return
+    reversed_ids = select(Payment.reversal_of).where(Payment.reversal_of.is_not(None))
+    stmt = select(Payment).where(
+        Payment.reference_no == ref, Payment.amount > 0, Payment.id.not_in(reversed_ids)
+    )
+    found = db.scalars(stmt).first()
+    if found is None:
+        return
+    contract = db.get(Contract, found.contract_id)
+    raise BizError(
+        ErrorCode.RULE_VIOLATION,
+        f"流水号 {ref} 已登记过（{contract.code if contract else ''} ¥{found.amount / 100:,.2f}，"
+        f"{found.received_on:%m-%d} 到账），请核查是否重复；如果是录错的那笔，先冲正再登记",
+        {"rule": RULE_DUPLICATE_REFERENCE, "payment_id": str(found.id)},
+    )
 
 
 def reverse_payment(

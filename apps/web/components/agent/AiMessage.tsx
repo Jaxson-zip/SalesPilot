@@ -88,17 +88,22 @@ export function AiMessage({
   const pending = turn.interrupt?.action === "generate_quote" && !turn.interrupt.decision
   const canPick = pending && !readonly && !busy && tiers.length > 1
   const pickedTier = picked ? tiers.find((t) => t.tier === picked) : undefined
-  // 待确认时可以在物料清单上改数量 / 删项；换档位时清空调整
-  const [edits, setEdits] = useState<QtyEdits>({})
+  // 待确认时可以在物料清单上改数量 / 删项；每档的调整各自保留，切走再切回来还在
+  const [editsByTier, setEditsByTier] = useState<Record<string, QtyEdits>>({})
   const canEdit = pending && !readonly && !busy
   const baseTier = pickedTier ?? tiers.find((t) => t.recommended) ?? tiers[0]
+  const edits = (baseTier && editsByTier[baseTier.tier]) || {}
+  const setEdits = (next: QtyEdits) => {
+    if (baseTier) setEditsByTier((m) => ({ ...m, [baseTier.tier]: next }))
+  }
   const changes = baseTier ? changedQty(baseTier, edits) : {}
   const adjusted = baseTier && Object.keys(changes).length ? adjustTier(baseTier, edits) : undefined
   const shownTier = adjusted ?? pickedTier
-  const pick = (key: string) => {
-    setPicked(key)
-    setEdits({})
-  }
+  // 改过物料的档位：档位卡片上的价格是原方案，标出来
+  const adjustedTiers = tiers
+    .filter((t) => Object.keys(changedQty(t, editsByTier[t.tier] ?? {})).length > 0)
+    .map((t) => t.tier)
+  const pick = (key: string) => setPicked(key)
   const preview = turn.interrupt
     ? shownTier && turn.interrupt.action === "generate_quote"
       ? {
@@ -140,7 +145,7 @@ export function AiMessage({
         <Sparkles className="size-3.5" />
       </span>
       <div className={cn("min-w-0 flex-1 space-y-3.5", compact ? "text-sm leading-6" : "text-chat")}>
-        {turn.steps.length > 0 || live ? (
+        {turn.steps.length > 0 || (live && !turn.text) ? (
           <ThinkBlock
             steps={turn.steps}
             live={live && !turn.text}
@@ -172,6 +177,7 @@ export function AiMessage({
                       readonly={readonly || busy}
                       selectedTier={pickedTier?.tier}
                       onSelectTier={canPick ? pick : undefined}
+                      adjustedTiers={canEdit ? adjustedTiers : undefined}
                     />
                   )}
                 </div>

@@ -45,6 +45,8 @@ class AgentState(TypedDict):
     chosen_tier: NotRequired[str | None]  # 确认生成报价时销售另选的档位（tier 键），None 按推荐档
     # 确认时在方案卡上调整的数量（sku → 数量，0 为删除）；None 按原方案
     adjusted_qty: NotRequired[dict[str, int] | None]
+    # 每次确认生成报价的操作 ID：做报价单的幂等键（重试沿用，下一次确认换新的）
+    confirm_id: NotRequired[str | None]
     decision: NotRequired[str | None]
     quote: NotRequired[dict[str, Any] | None]
     tool_log: NotRequired[list[dict[str, Any]]]  # 本轮工具结果摘要，respond 用

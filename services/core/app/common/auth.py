@@ -121,8 +121,12 @@ def verify_token(token: str) -> CurrentUser:
     claimed, version = _claims(token)
     try:
         account = _load_account(claimed.id)
-    except Exception:  # 数据库不可用：退回 token 里的信息
-        logger.warning("user lookup failed, falling back to token claims", exc_info=True)
+    except Exception as exc:
+        # 正式模式：核验不了就不放行（token 里的角色、团队可能已经过时，账号也可能已停用）。
+        # 演示模式沿用 token 里的信息，数据库短暂不可用时页面还能看。
+        logger.warning("user lookup failed", exc_info=True)
+        if not get_settings().demo_login:
+            raise BizError(ErrorCode.UNAVAILABLE, "暂时无法核验账号状态，请稍后再试") from exc
         return claimed
     if account is None or not account.active or account.token_version != version:
         raise BizError(ErrorCode.UNAUTHORIZED, "账号已停用或登录已失效，请重新登录")

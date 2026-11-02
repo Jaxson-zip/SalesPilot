@@ -26,7 +26,7 @@ from app.crm.services import (
     notification_service,
     quote_query,
     quote_service,
-    template_service,
+    quote_snapshot,
 )
 from app.crm.services.codes import LOCAL_TZ
 from app.packs.base import TIER_NAMES
@@ -97,6 +97,7 @@ def create_share(db: Session, user: CurrentUser, quote_id: uuid.UUID) -> QuoteSh
     expires = _check_shareable(quote)
     if (existing := _active(db, quote.id)) is not None:
         return _to_out(existing)
+    quote_snapshot.ensure_frozen(db, quote)
     if quote.status == "approved":  # 发链接就是发给客户：和点「发送」一样记录并建跟进任务
         quote_service.transition(db, user, quote.id, "send")
     share = QuoteShare(
@@ -154,11 +155,10 @@ def _record_view(db: Session, share: QuoteShare, quote: Quote) -> None:
     )
 
 
-def _scope(opp: Opportunity | None, pack: str) -> PublicScope | None:
-    """和打印版一致：只有商机上「已确认」且同一行业包的需求清单才给甲方看。"""
-    req = (opp.requirement or {}) if opp else {}
-    data = req.get("data")
-    if not req.get("confirmed") or req.get("pack") != pack or not isinstance(data, dict):
+def _scope(db: Session, quote: Quote) -> PublicScope | None:
+    """和打印版一致：提交审批时固化的需求清单（quote_snapshot），不跟着商机后来的修改变。"""
+    data = quote_snapshot.scope_of(db, quote)
+    if data is None:
         return None
     modules = [m["name"] for m in data.get("modules") or [] if isinstance(m, dict) and "name" in m]
     return PublicScope(
@@ -212,6 +212,6 @@ def public_quote(db: Session, token: str, count_view: bool = True) -> PublicQuot
         discount_rate=quote.discount_rate,
         total_price=quote.total_price,
         client_costs=quote.client_costs or [],
-        scope=_scope(opp, quote.pack),
-        terms=template_service.quote_terms(quote.pack),
+        scope=_scope(db, quote),
+        terms=quote_snapshot.terms_of(quote),
     )

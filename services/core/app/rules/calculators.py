@@ -72,6 +72,18 @@ def check_margin(total_cost: int, total_price: int, rules: RuleSet | None = None
     )
 
 
+def discounted_price(list_price: int, discount_rate: float) -> int:
+    """整单折后价（分）。统一口径（前端 lib/money.ts discountedPrice 同样算）：
+
+    折扣率按万分之一取整，折扣额 = 原价 × 折扣率，按分四舍五入（半分进位），折后价 = 原价 − 折扣额。
+    全程整数运算：浮点误差和 Python round 的银行家舍入曾让 ¥1.05 打九折在不同界面得到 0.94 / 0.95。
+    """
+    bp = round(discount_rate * 10_000)
+    if list_price <= 0 or bp <= 0:
+        return list_price
+    return list_price - (list_price * bp + 5_000) // 10_000
+
+
 def check_discount(list_price: int, final_price: int, rules: RuleSet | None = None) -> bool:
     """返回是否在销售折扣权限内（True = 无需审批）。"""
     if list_price <= 0:

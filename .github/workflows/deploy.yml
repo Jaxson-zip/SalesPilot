@@ -9,8 +9,74 @@ env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/salespilot
 
+# 连续提交时一次只跑一条发布：后一次排队等前一次部署完，不会两次部署交叉执行
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
 jobs:
+  # 上线门槛：测试不过不构建、不部署
+  test-core:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: crm
+          POSTGRES_PASSWORD: crm
+          POSTGRES_DB: crm
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U crm" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://crm:crm@localhost:5432/crm
+    defaults:
+      run:
+        working-directory: services/core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --frozen
+      - run: uv run ruff check . && uv run ruff format --check .
+      # 需要数据库的用例连不上库时会 skip：先确认库可用，避免「全绿但其实没测」
+      - run: uv run python -c "from app.common.db import check_db; import sys; sys.exit(0 if check_db() else 1)"
+      - run: uv run pytest -q
+
+  test-gateway:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --frozen
+      - run: uv run ruff check . && uv run pytest -q
+
+  test-web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint && pnpm typecheck && pnpm test
+
   build-and-push:
+    needs: [test-core, test-gateway, test-web]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -100,8 +166,9 @@ jobs:
             set -e
             cd /srv/salespilot
             # 服务器上不改入库文件（HTTPS 配置由 docker-compose.prod.yml 挂载），直接对齐远端；.env、证书不在版本库里，不受影响
+            # 对齐到本次构建的提交（不是 origin/main 的最新）：compose 配置、迁移和镜像是同一个版本
             git fetch origin main
-            git reset --hard origin/main
+            git reset --hard "$SHA"
             # 拉本次 CI 构建的镜像（按 commit 固定版本），再打成 compose 默认用的 salespilot-*:latest：
             # 原来直接 pull salespilot-*:latest 会去 Docker Hub 镜像站找，根本不存在；打标签后手动 dc up -d 也用新镜像
             trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
@@ -112,5 +179,25 @@ jobs:
             done
             dc="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
             $dc up -d
+            # 核对每个服务实际跑的是本次镜像：曾出现 gateway 没被重建、还在跑旧镜像，部署却显示成功
+            for s in core web gateway; do
+              want=$(docker image inspect -f '{{.Id}}' "salespilot-$s:latest")
+              have=$(docker inspect -f '{{.Image}}' "$($dc ps -q $s)")
+              if [ "$want" != "$have" ]; then
+                echo "$s 还在跑旧镜像，强制重建"
+                $dc up -d --force-recreate --no-deps "$s"
+                have=$(docker inspect -f '{{.Image}}' "$($dc ps -q $s)")
+                [ "$want" = "$have" ] || { echo "$s 镜像仍不一致" >&2; exit 1; }
+              fi
+            done
             $dc exec -T core alembic upgrade head
             $dc ps
+            # 业务就绪检查：数据库连通、会话存在 Postgres（/health status=ok），最多等 3 分钟
+            ready='import json,sys,urllib.request; d=json.load(urllib.request.urlopen("http://localhost:8000/health"))["data"]; print(d); sys.exit(0 if d["status"]=="ok" else 1)'
+            for i in $(seq 1 36); do
+              if $dc exec -T core python -c "$ready"; then exit 0; fi
+              sleep 5
+            done
+            echo "core 未就绪" >&2
+            $dc logs --tail 100 core
+            exit 1

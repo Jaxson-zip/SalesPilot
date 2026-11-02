@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -90,6 +90,9 @@ class QuoteDetail(QuoteListItem):
     valid_until: date
     # 运营期客户自付费用（实报实销，不含在报价内）
     client_costs: list[ClientCost] = []
+    # 项目范围（已确认的需求清单）和条款：提交审批后是固化的版本，草稿按当前需求和模板
+    scope: dict[str, Any] | None = None
+    terms: list[str] = []
 
 
 EXTRA_PREFIX = "extra-"

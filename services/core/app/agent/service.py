@@ -149,6 +149,9 @@ def prepare_chat(
     if material is not None:
         extra["material"] = {"name": material.name, "chars": len(material.text)}
         content = compose(message, material)
+    if requirement is not None:
+        # 确认时的需求快照：历史记录里的需求卡按它显示，和对应的报价一致
+        extra["requirement"] = requirement
     summary = sample_lib.summarize(samples) if samples else None
     if summary is not None:
         extra["material"] = {"name": sample_lib.label(summary), "chars": 0}  # 名称已含张数

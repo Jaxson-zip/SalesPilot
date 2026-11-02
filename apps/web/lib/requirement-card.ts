@@ -38,6 +38,8 @@ export interface RequirementCardData {
   questions: string[]
   /** 配置器给销售的提醒：额外工作量、报价外的费用、建议先做验证等 */
   notes?: string[]
+  /** 历史记录：已确认，requirement 是确认时的版本 */
+  confirmed?: boolean
 }
 
 export const PLATFORMS: [string, string][] = [

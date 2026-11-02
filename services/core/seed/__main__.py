@@ -45,6 +45,7 @@ RESET_TABLES = (
     "agent_threads",
     "daily_reports",
     "ai_usage",
+    "code_counters",  # 单号从头编
     "ai_feedback",
     "sales_targets",
     "job_runs",  # 运行记录清掉后，当天的定时任务会按新数据重新跑一次

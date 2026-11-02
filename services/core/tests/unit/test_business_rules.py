@@ -306,8 +306,46 @@ class TestAdjustTier:
         assert (out.total_cost, out.total_price) == (210, 270)
         assert out.margin_rate == round((270 - 210) / 270, 4)
         assert out.specs == {"gpu": "L20", "adjusted": True}
+        assert out.summary == "已调整：去掉 监控；改了 1 项数量"
+
+    def test_summary_recounts_person_days(self) -> None:
+        """回归（审查 SP-003）：调整后摘要仍是原来的「约 N 人天」，与物料对不上。"""
+        days = [
+            BomItem(
+                sku=s, name=n, category="service", unit="人天", qty=q, unit_cost=1, unit_price=2
+            )
+            for s, n, q in [("M1", "订单管理", 7), ("M2", "测试", 3)]
+        ]
+        tier = SolutionTier(
+            tier="economy", name="经济版", summary="2 个模块 · 约 10 人天", items=days
+        )
+        out = adjust_tier(tier, {"M1": 8}, load_rules())
+        assert out.summary == "已调整：人天合计 11 人天（原方案约 10 人天）；改了 1 项数量"
+        out = adjust_tier(tier, {"M1": 0}, load_rules())
+        assert out.summary == "已调整：人天合计 3 人天（原方案约 10 人天）；去掉 订单管理"
+        assert adjust_tier(tier, {"M1": 7}, load_rules()).summary == tier.summary
 
     @pytest.mark.parametrize("qty", [{"X": 1}, {"A": -1}, {"A": 10_000}, {"A": 0, "B": 0}])
     def test_invalid(self, qty: dict[str, int]) -> None:
         with pytest.raises(ValueError):
             adjust_tier(self._tier(), qty, load_rules())
+
+
+@pytest.mark.parametrize(
+    ("list_price", "rate", "expected"),
+    [
+        (105, 0.1, 94),  # 回归：折扣额 10.5 分半分进位，折后 94（方案预览曾算成 95）
+        (115, 0.1, 103),
+        (114, 0.1, 103),
+        (100_000, 0.05, 95_000),
+        (999, 0.0333, 966),
+        (500, 0, 500),
+        (1_000_000_000_000, 0.1234, 876_600_000_000),
+        (999_999_999_999, 0.0001, 999_899_999_999),
+    ],
+)
+def test_discounted_price_matches_web(list_price: int, rate: float, expected: int) -> None:
+    """和前端 lib/__tests__/money.test.ts 同一组用例：各个界面和后端的舍入必须一致。"""
+    from app.rules import discounted_price
+
+    assert discounted_price(list_price, rate) == expected

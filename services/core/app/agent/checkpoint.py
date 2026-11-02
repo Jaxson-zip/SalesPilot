@@ -44,6 +44,13 @@ def init_checkpointer(use_postgres: bool) -> BaseCheckpointSaver:
     return _saver
 
 
+def is_persistent() -> bool:
+    """会话是否存在 Postgres（进程重启不丢）。
+
+    退回内存后不会自动切回：/health 报 degraded，重启 core 恢复。"""
+    return _pool is not None
+
+
 def get_checkpointer() -> BaseCheckpointSaver:
     return _saver if _saver is not None else init_checkpointer(use_postgres=False)
 

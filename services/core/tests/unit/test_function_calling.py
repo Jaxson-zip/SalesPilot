@@ -127,3 +127,18 @@ class TestFallback:
         text = "".join(e["data"]["text"] for e in events if e["event"] == "message.delta")
         assert text == "请告诉我客户名称，我来帮你查。"  # 只输出一遍（respond 不再重复生成）
         assert "tool.start" not in names(events)
+
+
+def test_write_key_differs_across_turns() -> None:
+    """回归：有的厂商按序号给工具调用 id（functions.x:0），同一会话后面会再出现，
+    幂等键不能因此命中前面那一笔（会把新的报销当成重复提交）。"""
+    from app.agent.nodes.tool_loop import _system_args
+    from app.crm.services.demo import DEMO_USERS
+
+    ctx = ToolContext(user=DEMO_USERS[Role.SALES], session=None, thread_id="t-key")  # type: ignore[arg-type]
+    deps = make_deps(ctx)
+    one: Any = {"messages": [AIMessage(content="a")]}
+    five: Any = {"messages": [AIMessage(content="a")] * 5}
+    first = _system_args(deps, one, "functions.x:0")["idempotency_key"]
+    later = _system_args(deps, five, "functions.x:0")["idempotency_key"]
+    assert first != later and len(later) <= 100

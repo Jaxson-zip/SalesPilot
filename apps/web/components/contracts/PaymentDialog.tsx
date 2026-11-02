@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { useRegisterPayment } from "@/hooks/useContracts"
 import { paymentConfirm } from "@/lib/confirm-texts"
-import { checkPayment, suggestedPayment, unpaidOf } from "@/lib/contract"
+import { checkPayment, newRequestKey, suggestedPayment, unpaidOf } from "@/lib/contract"
 import { formatFen, localDate } from "@/lib/format"
 import type { ContractItem } from "@/types/api"
 
@@ -28,11 +28,16 @@ export function PaymentDialog({ contract, onClose }: { contract: ContractItem | 
   const [refNo, setRefNo] = useState("")
   const [note, setNote] = useState("")
   const [error, setError] = useState<string>()
+  // 这一次登记的请求键：网络出错后重新提交沿用，后端识别为同一笔
+  const [requestKey, setRequestKey] = useState(newRequestKey)
   const pay = useRegisterPayment()
   const { ask, dialog } = useConfirmAction()
   // 打开时预填下一期还没收的金额，客户付的不是整期时再改
   useEffect(() => {
-    if (contract) setAmount(suggestedPayment(contract))
+    if (contract) {
+      setAmount(suggestedPayment(contract))
+      setRequestKey(newRequestKey())
+    }
   }, [contract])
   const close = () => {
     setAmount("")
@@ -58,6 +63,7 @@ export function PaymentDialog({ contract, onClose }: { contract: ContractItem | 
             received_on: receivedOn || null,
             reference_no: refNo.trim() || null,
             note: note.trim() || null,
+            idempotency_key: requestKey,
           },
           { onSuccess: close },
         ),

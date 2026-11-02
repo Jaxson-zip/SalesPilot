@@ -25,3 +25,16 @@ export function parsePositiveInt(input: string, { min = 1, max = Number.MAX_SAFE
   const n = Number(s)
   return n >= min && n <= max ? n : null
 }
+
+/**
+ * 整单折后价（分），与 core app.rules.calculators.discounted_price 同一口径：
+ * 折扣率按万分之一取整，折扣额 = 原价 × 折扣率，按分四舍五入（半分进位），折后价 = 原价 − 折扣额。
+ * 全程整数：原价拆成 万位 × 10000 + 余数，乘积不会超过安全整数。
+ */
+export function discountedPrice(listPrice: number, discountRate: number): number {
+  const bp = Math.round(discountRate * 10000)
+  if (listPrice <= 0 || bp <= 0) return listPrice
+  const high = Math.floor(listPrice / 10000)
+  const low = listPrice % 10000
+  return listPrice - (high * bp + Math.floor((low * bp + 5000) / 10000))
+}

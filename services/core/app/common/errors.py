@@ -17,6 +17,7 @@ class ErrorCode(IntEnum):
     INTERNAL = 50001
     NOT_IMPLEMENTED = 50101
     UPSTREAM = 50201
+    UNAVAILABLE = 50301
     TIMEOUT = 50401
 
 
@@ -33,6 +34,7 @@ DEFAULT_MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.INTERNAL: "内部错误",
     ErrorCode.NOT_IMPLEMENTED: "未实现",
     ErrorCode.UPSTREAM: "模型网关上游错误",
+    ErrorCode.UNAVAILABLE: "服务暂不可用",
     ErrorCode.TIMEOUT: "模型调用超时",
 }
 

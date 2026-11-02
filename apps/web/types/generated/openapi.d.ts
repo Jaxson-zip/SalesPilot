@@ -2270,7 +2270,8 @@ export interface paths {
     }
     /**
      * Health
-     * @description 服务存活即返回 code=0；数据库不可用时 status=degraded、db=false。
+     * @description 服务存活即返回 code=0。数据库不可用，或会话存储退回到内存（重启会丢会话）时
+     *     status=degraded；发布流水线的就绪检查要求 status=ok。
      */
     get: operations["health_health_get"]
     put?: never
@@ -5696,6 +5697,11 @@ export interface components {
       db: boolean
       /** Checkpointer */
       checkpointer: string
+      /**
+       * Persistent
+       * @default false
+       */
+      persistent: boolean
     }
     /** HistoryMessage */
     HistoryMessage: {
@@ -6518,6 +6524,8 @@ export interface components {
       reference_no?: string | null
       /** Note */
       note?: string | null
+      /** Idempotency Key */
+      idempotency_key?: string | null
     }
     /** PaymentPlanItem */
     PaymentPlanItem: {
@@ -6954,6 +6962,15 @@ export interface components {
        * @default []
        */
       client_costs: components["schemas"]["ClientCost"][]
+      /** Scope */
+      scope: {
+        [key: string]: unknown
+      } | null
+      /**
+       * Terms
+       * @default []
+       */
+      terms: string[]
     }
     /**
      * QuoteItemsUpdate

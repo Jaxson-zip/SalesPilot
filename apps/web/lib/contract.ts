@@ -34,3 +34,12 @@ export function checkPayment(input: string, c: Pick<ContractItem, "amount" | "pa
   if (amount > balance) return { ok: false, error: `超过未回款金额 ${formatFen(balance)}` }
   return { ok: true, amount }
 }
+
+/**
+ * 一次登记的请求键：打开登记框时生成，重试沿用。第一次已入账但页面没收到响应时，
+ * 再点一次不会多记一笔。非 HTTPS 页面没有 randomUUID，退回时间 + 随机数。
+ */
+export function newRequestKey(): string {
+  const uuid = globalThis.crypto?.randomUUID?.()
+  return `pay-${uuid ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`}`
+}

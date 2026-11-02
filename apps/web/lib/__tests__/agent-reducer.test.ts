@@ -67,6 +67,19 @@ describe("applyAgentEvent", () => {
 })
 
 describe("applyDecision", () => {
+  it("回归（审查 SP-004）：耗时不含等待确认的时间", () => {
+    const waiting = { ...run([{ event: "interrupt", data: { action: "generate_quote", preview: {} } }]) }
+    const t0 = 1_000_000
+    // 执行了 5 秒后停下等确认，用户 40 分钟后才点取消
+    const paused = { ...waiting, startedAt: t0, endedAt: t0 + 5_000 }
+    const resumed = applyDecision(paused, "reject", t0 + 2_460_000)
+    expect(resumed.endedAt).toBeNull()
+    expect(resumed.startedAt).toBe(t0 + 2_455_000)
+    // 历史会话里打开的待确认回复（开始 = 结束）：从点击时开始计时
+    const restored = { ...waiting, startedAt: t0, endedAt: t0 }
+    expect(applyDecision(restored, "reject", t0 + 2_460_000).startedAt).toBe(t0 + 2_460_000)
+  })
+
   it("确认后记录决定；没有 interrupt 时原样返回", () => {
     const plain = createAssistantTurn()
     expect(applyDecision(plain, "approve")).toBe(plain)

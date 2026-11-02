@@ -149,8 +149,10 @@ def _allowed(deps: AgentDeps, state: AgentState) -> set[str]:
 
 def _system_args(deps: AgentDeps, state: AgentState, call_id: str) -> dict[str, Any]:
     pack = state.get("pack_id") or deps.ctx.default_pack
+    # 带上消息序号：有的厂商按序号给 id（functions.x:0），同一会话下一轮会重复
+    turn = len(state.get("messages", []))
     return {
-        "idempotency_key": f"agent:{deps.ctx.thread_id}:{call_id}",
+        "idempotency_key": f"agent:{deps.ctx.thread_id}:{turn}:{call_id}"[:100],
         "pack_id": pack,
         "all_packs": state.get("mode") == "learn",
     }

@@ -56,6 +56,9 @@ class Quote(OwnedMixin, Base):
     )
     idempotency_key: Mapped[str | None] = mapped_column(String(100), unique=True)
     source: Mapped[str] = mapped_column(String(10), default="manual")  # manual / agent
+    # 提交审批时固化的对外内容：{"scope": 项目范围 | None, "terms": [条款]}
+    # 草稿为 None（按商机当前需求和条款模板显示）
+    snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
 
 class QuoteItem(TimestampMixin, Base):
@@ -101,6 +104,8 @@ class Payment(TimestampMixin, Base):
     reversal_of: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("payments.id"), index=True)
     reason: Mapped[str | None] = mapped_column(String(200))  # 冲正原因
     created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    # 同一次登记的重试带同一个键：第一次已入账时不再记一笔
+    idempotency_key: Mapped[str | None] = mapped_column(String(100), unique=True)
 
 
 class PaymentPlan(OwnedMixin, Base):
@@ -143,3 +148,13 @@ class QuoteShare(TimestampMixin, Base):
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     view_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     last_viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class CodeCounter(Base):
+    """单号计数器：按「前缀 + 年份」原子分配序号（codes.next_code）。"""
+
+    __tablename__ = "code_counters"
+
+    prefix: Mapped[str] = mapped_column(String(10), primary_key=True)
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)
+    seq: Mapped[int] = mapped_column(Integer)

@@ -91,3 +91,28 @@ def test_reopened_thread_keeps_opportunity(client: TestClient, tracker: Tracker)
     _run(thread, None, "需求已确认", card["requirement"])
     saved = client.get(f"/api/opportunities/{opp_id}/requirement", headers=SALES_H).json()
     assert saved["data"]["confirmed"]
+
+
+def test_history_card_shows_confirmed_version(client: TestClient, tracker: Tracker) -> None:
+    """回归（审查 SP-001）：删模块、加模块后确认，刷新后需求卡恢复成 AI 最初拆出的版本。"""
+    opp_id = _opp(client, tracker)
+    thread = f"req-{uuid.uuid4().hex[:8]}"
+    card = next(e for e in _run(thread, opp_id, MSG) if e["event"] == "artifact")["data"]["data"]
+    edited = dict(card["requirement"])
+    dropped = edited["modules"][0]["name"]
+    added = {"key": "custom", "name": "会员积分", "complexity": "medium", "must": True}
+    edited["modules"] = [*edited["modules"][1:], {**added, "source": "mentioned"}]
+    _run(thread, opp_id, "需求已确认，出正式报价", edited)
+
+    ctx = ToolContext(user=DEMO_USERS[Role.SALES], session=session_scope, thread_id=thread)
+    deps = AgentDeps(ctx=ctx, resolve_pack=lambda _o: "software_outsourcing", llm=None)
+    snapshot = build_graph(deps, SAVER).get_state({"configurable": {"thread_id": thread}})
+    cards = [
+        a.data
+        for m in build_messages(thread, snapshot).messages
+        for a in m.artifacts
+        if a.type == "requirement"
+    ]
+    assert len(cards) == 1 and cards[0]["confirmed"]
+    names = [m["name"] for m in cards[0]["requirement"]["modules"]]
+    assert "会员积分" in names and dropped not in names

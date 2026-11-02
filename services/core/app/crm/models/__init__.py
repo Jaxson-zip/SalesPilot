@@ -11,6 +11,7 @@ from app.crm.models.knowledge import AgentThread, KbChunk
 from app.crm.models.org import ConfigOverride, ProductLine, Team, User
 from app.crm.models.report import DailyReport
 from app.crm.models.sales import (
+    CodeCounter,
     Commission,
     Contract,
     Opportunity,
@@ -32,6 +33,7 @@ __all__ = [
     "Approval",
     "Attachment",
     "AuditLog",
+    "CodeCounter",
     "Commission",
     "Competitor",
     "ConfigOverride",

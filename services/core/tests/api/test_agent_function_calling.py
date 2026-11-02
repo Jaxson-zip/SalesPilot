@@ -128,7 +128,9 @@ def test_expense_via_chat_uses_system_idempotency_key(tracker: Tracker) -> None:
     with session_scope() as db:
         exp = db.scalars(select(Expense).where(Expense.reason == args["reason"])).one()
         tracker.expenses.append(exp.id)
-        assert exp.idempotency_key == f"agent:{deps.ctx.thread_id}:e1"
+        # 键里带消息序号：同一会话后面几轮模型再给出 id=e1 也不会拿到这一张
+        key = exp.idempotency_key or ""
+        assert key.startswith(f"agent:{deps.ctx.thread_id}:") and key.endswith(":e1")
         assert exp.headcount == 4
 
 

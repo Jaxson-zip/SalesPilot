@@ -31,6 +31,7 @@ from app.crm.services import (
     approval_service,
     contract_service,
     quote_query,
+    quote_snapshot,
     task_service,
     won_rule,
 )
@@ -82,11 +83,21 @@ def _to_out(quote: Quote, items: list[QuoteItem]) -> QuoteOut:
     )
 
 
-def _existing(db: Session, key: str) -> QuoteOut | None:
+def _existing(db: Session, key: str, tier: SolutionTier) -> QuoteOut | None:
+    """同一幂等键已经生成过：内容一致返回那一张（重试），内容不同说明键用错了，报冲突。"""
     quote = db.scalar(select(Quote).where(Quote.idempotency_key == key))
     if quote is None:
         return None
-    return _to_out(quote, quote_query.items_of(db, quote.id))
+    items = quote_query.items_of(db, quote.id)
+    same = (quote.tier, quote.total_price, sorted((i.sku, i.qty) for i in items)) == (
+        tier.tier,
+        tier.total_price,
+        sorted((i.sku, i.qty) for i in tier.items),
+    )
+    if not same:
+        msg = f"这次操作已生成报价单 {quote.code}，内容不同，请重新确认"
+        raise BizError(ErrorCode.DUPLICATE, msg)
+    return _to_out(quote, items)
 
 
 def create_from_tier(
@@ -104,7 +115,7 @@ def create_from_tier(
     是否需要审批在 submit 时按规则判定（接口契约 §3），这里一律是 draft。
     """
     ensure_business_writer(user)
-    if found := _existing(db, idempotency_key):
+    if found := _existing(db, idempotency_key, tier):
         return found
     opp = get_owned(db, user, opportunity_id) if opportunity_id else None
     if opp is None and customer_id is not None:
@@ -216,6 +227,8 @@ def get_quote(db: Session, user: CurrentUser, quote_id: uuid.UUID) -> QuoteDetai
         discount_rate=quote.discount_rate,
         valid_until=quote_valid_until(quote.created_at, rules_for(quote)),
         client_costs=quote.client_costs or [],
+        scope=quote_snapshot.scope_of(db, quote),
+        terms=quote_snapshot.terms_of(quote),
     )
 
 
@@ -262,6 +275,7 @@ def approval_reasons(
 
 
 def _submit(db: Session, user: CurrentUser, quote: Quote) -> str:
+    quote_snapshot.freeze(db, quote)
     items = quote_query.items_of(db, quote.id)
     reasons = approval_reasons(quote, items, rules_for(quote), catalog_prices(quote.pack))
     if not reasons:

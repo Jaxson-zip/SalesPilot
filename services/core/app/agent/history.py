@@ -120,9 +120,30 @@ def _merge_turns(messages: list[HistoryMessage]) -> list[HistoryMessage]:
     return out
 
 
+def _confirm_card(messages: list[HistoryMessage], requirement: dict[str, Any]) -> None:
+    """需求卡确认后：上一张需求卡显示确认时的版本（而不是 AI 最初拆出的草稿），并标为已确认。"""
+    for m in reversed(messages):
+        for i, a in enumerate(m.artifacts):
+            if a.type == "requirement" and isinstance(a.data, dict):
+                data = {**a.data, "requirement": requirement, "confirmed": True}
+                m.artifacts[i] = Artifact(type=a.type, data=data)
+                return
+
+
+def _history(messages: list[BaseMessage]) -> list[HistoryMessage]:
+    out: list[HistoryMessage] = []
+    for x in messages:
+        confirmed = (x.additional_kwargs or {}).get("requirement")
+        if isinstance(x, HumanMessage) and isinstance(confirmed, dict):
+            _confirm_card(out, confirmed)
+        if (m := to_history(x)) is not None:
+            out.append(m)
+    return out
+
+
 def build_messages(thread_id: str, snapshot: StateSnapshot) -> ThreadMessages:
     values: dict[str, Any] = snapshot.values or {}
-    raw = [m for m in (to_history(x) for x in values.get("messages", [])) if m is not None]
+    raw = _history(values.get("messages", []))
     messages = _merge_turns(raw)
     pending = _pending(snapshot)
     explained = bool(messages) and messages[-1].role == "assistant"

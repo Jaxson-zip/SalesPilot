@@ -240,6 +240,9 @@ export interface QuoteDetail extends QuoteItem {
   valid_until?: string | null
   /** 运营期客户自付费用（不含在报价内） */
   client_costs?: ClientCost[]
+  /** 项目范围（已确认的需求清单）和条款：提交审批时固化，草稿按当前需求和模板 */
+  scope?: Record<string, unknown> | null
+  terms?: string[]
 }
 
 export interface QuoteListParams {
@@ -365,6 +368,8 @@ export interface PaymentIn {
   /** 银行流水号 / 交易单号 */
   reference_no?: string | null
   note?: string | null
+  /** 同一次登记的重试带同一个键，第一次已入账就不再记一笔 */
+  idempotency_key?: string | null
 }
 
 /** 回款记录：冲正记录 amount 为负数，reversal_of 指向被冲正的那笔 */

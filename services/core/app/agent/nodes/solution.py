@@ -348,13 +348,21 @@ def make_confirm(deps: AgentDeps) -> Node:
         }
         value = interrupt({"action": "generate_quote", "preview": preview})
         # 恢复值：只有决定，或带上另选的档位 {"decision": "approve", "tier": "economy"}
+        # interrupt 之后才生成：确认后这一步连同结果写进 checkpoint，保存报价重试时不变
+        confirm_id = uuid.uuid4().hex
         if isinstance(value, dict):
             return {
                 "decision": str(value.get("decision")),
                 "chosen_tier": value.get("tier"),
                 "adjusted_qty": value.get("items"),
+                "confirm_id": confirm_id,
             }
-        return {"decision": str(value), "chosen_tier": None, "adjusted_qty": None}
+        return {
+            "decision": str(value),
+            "chosen_tier": None,
+            "adjusted_qty": None,
+            "confirm_id": confirm_id,
+        }
 
     return confirm
 
@@ -369,7 +377,9 @@ def make_save_quote(deps: AgentDeps) -> Node:
         tier = chosen_tier(state)
         if qty := state.get("adjusted_qty"):
             tier = adjusted(state["pack_id"], tier, qty)
-        key = f"agent:{deps.ctx.thread_id}:{tier['tier']}:{tier['total_price']}"
+        # 幂等键按「这一次确认」。原来是会话+档位+总价：
+        # 同一会话里改了物料或客户、档位和总价没变时会拿到旧单
+        key = f"agent:{deps.ctx.thread_id}:{state.get('confirm_id') or uuid.uuid4().hex}"
         args = {
             "pack_id": state["pack_id"],
             "tier": tier,

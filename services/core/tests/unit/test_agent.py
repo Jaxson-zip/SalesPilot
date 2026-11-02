@@ -202,6 +202,26 @@ class TestSolutionFlow:
         listed += second["unit_price"] - first["unit_price"] * first["qty"]
         assert quote["total_price"] == round(listed * (1 - rec["discount_rate"]))
 
+    def test_each_confirmation_gets_own_quote_key(
+        self, tool_ctx: ToolContext, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """回归：幂等键曾是「会话 + 档位 + 总价」，同一会话里再出一版同价方案会拿回旧报价单。"""
+        from app.crm.services import quote_service
+        from tests.conftest import fake_create_from_tier
+
+        keys: list[str] = []
+
+        def record(db: Any, user: Any, **kw: Any) -> Any:
+            keys.append(kw["idempotency_key"])
+            return fake_create_from_tier(db, user, **kw)
+
+        monkeypatch.setattr(quote_service, "create_from_tier", record)
+        saver, deps = InMemorySaver(), make_deps(tool_ctx)
+        for _ in range(2):  # 同一句需求、同一档同一价，确认两次
+            run_chat(deps, saver, SOLUTION_MSG)
+            run_resume(deps, saver, "approve")
+        assert len(keys) == 2 and keys[0] != keys[1]
+
     def test_reject_does_not_write(self, tool_ctx: ToolContext, fake_quotes: None) -> None:
         saver, deps = InMemorySaver(), make_deps(tool_ctx)
         run_chat(deps, saver, SOLUTION_MSG)

@@ -6167,7 +6167,9 @@ paths:
       tags:
       - health
       summary: Health
-      description: 服务存活即返回 code=0；数据库不可用时 status=degraded、db=false。
+      description: '服务存活即返回 code=0。数据库不可用，或会话存储退回到内存（重启会丢会话）时
+
+        status=degraded；发布流水线的就绪检查要求 status=ok。'
       operationId: health_health_get
       responses:
         '200':
@@ -11544,11 +11546,16 @@ components:
         checkpointer:
           type: string
           title: Checkpointer
+        persistent:
+          type: boolean
+          title: Persistent
+          default: false
       type: object
       required:
       - status
       - db
       - checkpointer
+      - persistent
       title: Health
     HistoryMessage:
       properties:
@@ -13126,6 +13133,13 @@ components:
             maxLength: 200
           - type: 'null'
           title: Note
+        idempotency_key:
+          anyOf:
+          - type: string
+            maxLength: 100
+            minLength: 8
+          - type: 'null'
+          title: Idempotency Key
       type: object
       required:
       - amount
@@ -13891,6 +13905,18 @@ components:
           type: array
           title: Client Costs
           default: []
+        scope:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Scope
+        terms:
+          items:
+            type: string
+          type: array
+          title: Terms
+          default: []
       type: object
       required:
       - id
@@ -13915,6 +13941,8 @@ components:
       - discount_rate
       - valid_until
       - client_costs
+      - scope
+      - terms
       title: QuoteDetail
     QuoteItemsUpdate:
       properties:

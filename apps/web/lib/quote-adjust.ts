@@ -2,7 +2,7 @@
  * 报价单调价（契约 v3 §14）的纯函数：数量 / 整单折扣 / 自己加的费用的输入解析与实时预览。
  * 预览只用于输入时的即时反馈；保存后总价、毛利、是否需要审批一律以后端（规则代码）返回为准。
  */
-import { fenToYuanInput, parsePositiveInt, yuanToFen } from "@/lib/money"
+import { discountedPrice, fenToYuanInput, parsePositiveInt, yuanToFen } from "@/lib/money"
 import type { PackCatalogItem } from "@/lib/pack-rules"
 import type { QuoteItemsPatch, QuoteLine } from "@/types/api"
 
@@ -147,8 +147,8 @@ export function previewAdjust(rows: DraftRow[], discountInput: string): AdjustPr
   )
   const goodsList = sum(goods, (p) => p.unitPrice)
   const goodsCost = sum(goods, (p) => p.unitCost)
-  const discountAmount = Math.round(goodsList * (rate ?? 0))
-  const goodsTotal = goodsList - discountAmount
+  const goodsTotal = discountedPrice(goodsList, rate ?? 0)
+  const discountAmount = goodsList - goodsTotal
   const margin = goodsTotal > 0 ? (goodsTotal - goodsCost) / goodsTotal : null
   return {
     valid,

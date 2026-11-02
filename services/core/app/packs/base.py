@@ -9,7 +9,7 @@ from typing import Any, Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
-from app.rules import RuleSet, check_margin, overrides
+from app.rules import RuleSet, check_margin, discounted_price, overrides
 
 # passthrough：代垫费用（替客户垫付的差旅、第三方采购等），只用在自己加的费用上，
 # 按成本价收、不打折、不计提成、不算进毛利率
@@ -192,7 +192,7 @@ def price_tier(tier: SolutionTier, rules: RuleSet) -> SolutionTier:
     """按物料汇总成本与售价，应用整单折扣，并用规则引擎计算毛利。"""
     total_cost = sum(i.total_cost for i in tier.items)
     list_price = sum(i.total_price for i in tier.items)
-    total_price = round(list_price * (1 - tier.discount_rate))
+    total_price = discounted_price(list_price, tier.discount_rate)
     margin = check_margin(total_cost, total_price, rules)
     return tier.model_copy(
         update={
@@ -228,6 +228,28 @@ def adjust_tier(tier: SolutionTier, qty: dict[str, int], rules: RuleSet) -> Solu
     if not items:
         raise ValueError("至少保留一项物料")
     specs = {k: v for k, v in tier.specs.items() if k not in STALE_SPECS}
-    return price_tier(
-        tier.model_copy(update={"items": items, "specs": {**specs, "adjusted": True}}), rules
-    )
+    update: dict[str, Any] = {"items": items, "specs": {**specs, "adjusted": True}}
+    if any(qty.get(i.sku, i.qty) != i.qty for i in tier.items):
+        update["summary"] = adjusted_summary(tier, qty)
+    return price_tier(tier.model_copy(update=update), rules)
+
+
+def _person_days(pairs: list[tuple[str, int]]) -> int:
+    return sum(q for unit, q in pairs if unit == "人天")
+
+
+def adjusted_summary(tier: SolutionTier, qty: dict[str, int]) -> str:
+    """调整后的方案摘要：原摘要按原物料写（模块数、人天），改为按当前物料汇总（与前端同口径）。"""
+    after = [(i.name, i.unit, i.qty, qty.get(i.sku, i.qty)) for i in tier.items]
+    removed = [name for name, _, _, q in after if q == 0]
+    changed = sum(1 for _, _, old, q in after if q not in (0, old))
+    before = _person_days([(unit, old) for _, unit, old, _ in after])
+    parts: list[str] = []
+    if before > 0:
+        now = _person_days([(unit, q) for _, unit, _, q in after])
+        parts.append(f"人天合计 {now} 人天（原方案约 {before} 人天）")
+    if removed:
+        parts.append(f"去掉 {'、'.join(removed)}")
+    if changed:
+        parts.append(f"改了 {changed} 项数量")
+    return "已调整：" + "；".join(parts)

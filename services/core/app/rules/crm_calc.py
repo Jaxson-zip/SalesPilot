@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from pydantic import BaseModel
 
-from app.rules.calculators import _rules, check_margin
+from app.rules.calculators import _rules, check_margin, discounted_price
 from app.rules.loader import RuleSet
 
 LOCAL_TZ = timezone(timedelta(hours=8), "Asia/Shanghai")
@@ -87,7 +87,7 @@ def price_quote(
     passthrough = sum(i.unit_price * i.qty for i in lines if i.passthrough)
     goods_list = sum(i.unit_price * i.qty for i in goods)
     goods_cost = sum(i.unit_cost * i.qty for i in goods)
-    goods_total = round(goods_list * (1 - discount_rate))
+    goods_total = discounted_price(goods_list, discount_rate)
     margin = check_margin(goods_cost, goods_total, _rules(rules))
     return QuotePricing(
         list_price=goods_list + passthrough,

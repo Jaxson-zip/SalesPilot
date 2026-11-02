@@ -22,28 +22,22 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { useQuote } from "@/hooks/useQuotes"
-import { useOpportunityRequirement } from "@/hooks/useRequirement"
 import { formatFen, formatPercent } from "@/lib/format"
-import { useTemplates } from "@/hooks/useTemplates"
 import { canPrintQuote, PRINT_COMPANY, printDocTitle, printScope, printTotals } from "@/lib/quote-print"
 import { fenToRmbUpper } from "@/lib/rmb"
 import type { QuoteDetail } from "@/types/api"
 
 const DEFAULT_NOTE = "以上报价以人民币计价。如需调整配置或数量，请联系您的客户经理。"
 
-/** 条款与说明：来自 /api/templates，按报价单的行业包取（有效期、付款比例由后端按规则填入）；
- * 行业包在 pack.yaml 写 quote_terms，没写的用 templates.yaml 的通用条款 */
-function QuoteTerms({ pack }: { pack: string }) {
-  const data = useTemplates().data
-  const terms = data?.pack_quote_terms[pack] ?? data?.quote_terms ?? []
+/** 条款与说明：报价单自带（提交审批时固化，之后改条款模板不影响已发出的这一版；草稿按当前模板） */
+function QuoteTerms({ terms }: { terms: string[] }) {
   return <TermsList title="条款与说明" terms={terms} />
 }
 
-/** 项目范围：只在商机上有「已确认」的需求清单时显示（软件外包），说明交付端、交付方式和本期不含的功能 */
+/** 项目范围：报价单自带的已确认需求清单（提交审批时固化，和分享页一致），说明交付端、交付方式和本期不含的功能 */
 function ProjectScope({ q }: { q: QuoteDetail }) {
-  const { data } = useOpportunityRequirement(q.opportunity?.id ?? null)
-  if (!data?.confirmed || data.pack !== q.pack) return null
-  const s = printScope(data.data, q.items)
+  if (!q.scope) return null
+  const s = printScope(q.scope as Parameters<typeof printScope>[0], q.items)
   return (
     <section className="mt-4 space-y-1" aria-label="项目范围">
       <div className="font-medium">项目范围</div>
@@ -98,7 +92,7 @@ function QuoteSheet({ q, showUpper }: { q: QuoteDetail; showUpper: boolean }) {
         ) : null}
       </div>
       <ClientCostsTable costs={q.client_costs ?? []} title="运营期客户自付费用预估（不含在本报价内，实报实销）" />
-      <QuoteTerms pack={q.pack} />
+      <QuoteTerms terms={q.terms ?? []} />
       <div className="mt-4">
         <label htmlFor="print-note" className="font-medium">
           备注

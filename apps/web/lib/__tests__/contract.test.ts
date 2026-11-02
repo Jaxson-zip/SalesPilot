@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { checkPayment, contractHref, paidPercent, suggestedPayment, unpaidOf } from "@/lib/contract"
+import { checkPayment, contractHref, newRequestKey, paidPercent, suggestedPayment, unpaidOf } from "@/lib/contract"
 
 describe("合同回款", () => {
   const c = { amount: 81000000, paid_amount: 32400000 }
@@ -46,5 +46,14 @@ describe("登记回款预填金额", () => {
   it("没有回款计划时预填全部未回款，已收齐为空", () => {
     expect(suggestedPayment({ amount: 10_050, paid_amount: 0, next_payment: null })).toBe("100.50")
     expect(suggestedPayment({ amount: 100, paid_amount: 100, next_payment: null })).toBe("")
+  })
+})
+
+describe("newRequestKey", () => {
+  it("每次打开登记框不同，长度符合后端 8～100", () => {
+    const a = newRequestKey()
+    expect(a).not.toBe(newRequestKey())
+    expect(a.length).toBeGreaterThanOrEqual(8)
+    expect(a.length).toBeLessThanOrEqual(100)
   })
 })

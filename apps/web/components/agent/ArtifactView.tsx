@@ -29,6 +29,7 @@ export function ArtifactView({
   readonly,
   selectedTier,
   onSelectTier,
+  adjustedTiers,
 }: {
   artifact: AgentArtifact
   /** 需求卡片「确认需求，出报价」 */
@@ -37,13 +38,17 @@ export function ArtifactView({
   /** 三档方案卡：选中的档位，以及可以点选时的回调 */
   selectedTier?: string
   onSelectTier?: (key: string) => void
+  /** 在物料清单上改过数量的档位（卡片上的价格是原方案） */
+  adjustedTiers?: string[]
 }) {
   const { type, data } = artifact
   if (type === "requirement" && isRequirementCard(data))
     return <RequirementCard data={data} onConfirm={onConfirmRequirement} readOnly={readonly} />
   // core 的原始结构（packs/base.py）优先；也兼容已经是视图模型的数据
   if (type === "solution_tiers" && isCoreTiers(data))
-    return <TierCards tiers={toTierCards(data)} selected={selectedTier} onSelect={onSelectTier} />
+    return (
+      <TierCards tiers={toTierCards(data)} selected={selectedTier} onSelect={onSelectTier} adjusted={adjustedTiers} />
+    )
   if (type === "solution_tiers" && isTiers(data)) return <TierCards tiers={data} />
   if (type === "bom" && isCoreTier(data)) return <BomTable bom={toBomData(data)} />
   if (type === "bom" && isBom(data)) return <BomTable bom={data} />

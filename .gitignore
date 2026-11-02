@@ -41,6 +41,8 @@ Thumbs.db
 
 # 课程材料（不进仓库）
 *.pdf
+# 知识库演示文档要进仓库：CI 测试和线上镜像都靠它（曾被上一条规则漏掉，线上知识库缺这份）
+!services/core/seed/knowledge/**/*.pdf
 /.audit/
 
 # AI 评估输出（每次运行重新生成；需要留档的报告复制到 docs/eval/）

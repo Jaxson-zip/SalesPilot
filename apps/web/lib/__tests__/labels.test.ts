@@ -41,6 +41,12 @@ describe("状态标签（照抄契约 §0）", () => {
     expect(activityActionLabel("approval_approve", "expense")).toBe("主管通过了报销")
     expect(activityActionLabel("payment", "contract")).toBe("登记了回款")
     expect(activityActionLabel("payment_reverse", "contract")).toBe("冲正了回款")
+    // 回归（复测 UX03）：工作台开票动态直接显示英文 invoice
+    expect(activityActionLabel("invoice_issue", "contract")).toBe("登记了开票")
+    expect(activityActionLabel("invoice_void", "contract")).toBe("作废了发票")
+    expect(activityActionLabel("invoice_withdraw", "contract")).toBe("撤回了开票申请")
+    expect(activityActionLabel("invoice_request", "contract")).toBe("申请了开票")
+    expect(activityActionLabel("invoice", "contract")).toBe("操作了开票")
     expect(activityActionLabel("create", "unknown_subject")).toBe("创建了记录")
     // 回归：工作台动态曾直接显示 share / viewed
     expect(activityActionLabel("share", "quote")).toBe("生成了报价分享链接")

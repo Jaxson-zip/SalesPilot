@@ -7,12 +7,14 @@ import { AiMessage } from "@/components/agent/AiMessage"
 import type { MsgFeedback } from "@/components/agent/MsgActions"
 import { ModeSwitch } from "@/components/agent/ModeSwitch"
 import { UserMsg } from "@/components/agent/UserMsg"
+import { useSession } from "@/components/shell/SessionProvider"
 import { useMyRatings, useRate } from "@/hooks/useAiFeedback"
 import type { AgentMode } from "@/lib/agent-mode"
 import { feedbackSlots } from "@/lib/agent-feedback"
 import type { AssistantTurn, ChatTurn } from "@/lib/agent-reducer"
 import type { QtyEdits } from "@/lib/bom-adjust"
 import { nextStick } from "@/lib/chat-scroll"
+import { quoteDraftKey } from "@/lib/quote-draft"
 import { cn } from "@/lib/utils"
 import type { ResumeDecision } from "@/types/api"
 
@@ -89,6 +91,8 @@ export function ChatView({
   threadId?: string | null
 }) {
   const learn = mode === "learn"
+  const { userId } = useSession()
+  const draftKey = userId && threadId ? quoteDraftKey(userId, threadId) : null
   const ratings = useMyRatings(threadId).data
   const rate = useRate(threadId, mode)
   const slots = feedbackSlots(turns)
@@ -178,6 +182,7 @@ export function ChatView({
                 prdOpportunity={learn ? undefined : prdOpportunity}
                 readonly={i !== turns.length - 1}
                 feedback={feedbackFor(t)}
+                draftKey={i === turns.length - 1 ? draftKey : null}
               />
             ),
           )}

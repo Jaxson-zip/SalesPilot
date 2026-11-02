@@ -112,3 +112,14 @@ export function parsePages(text: string): number | null {
 export function canConfirm(r: Requirement): boolean {
   return r.platforms.length > 0 && r.modules.length > 0
 }
+
+/**
+ * 卡片标题右侧显示什么：已确认（包括刚点了确认、还没刷新）显示「已确认」，不再显示粗估；
+ * 增删改过模块后，粗估还是按 AI 最初拆出的模块算的，标成「修改前粗估」。
+ */
+export type EstimateBadge = "confirmed" | "estimate" | "stale_estimate"
+
+export function estimateBadge(confirmed: boolean, original: Requirement, current: Requirement): EstimateBadge {
+  if (confirmed) return "confirmed"
+  return JSON.stringify(original) === JSON.stringify(current) ? "estimate" : "stale_estimate"
+}

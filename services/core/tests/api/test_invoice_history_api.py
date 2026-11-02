@@ -49,6 +49,19 @@ def test_void_keeps_original_invoice_and_reason(client: TestClient, tracker: Tra
     assert "No.111" in contents and "抬头写错" in contents
 
 
+def test_invoice_activity_uses_specific_actions(client: TestClient, tracker: Tracker) -> None:
+    """回归（复测 UX03）：申请、登记、作废、撤回都记成 invoice，工作台动态显示英文。"""
+    cid = _accepted_contract(client, tracker)["id"]
+    url = f"/api/contracts/{cid}/payment-plan/1/invoice"
+    client.post(url, json={"action": "request"}, headers=SALES_H)
+    _invoice(client, cid, {"action": "void", "note": "客户暂不需要"})
+    _invoice(client, cid, {"action": "issue", "invoice_no": "No.333"})
+    _invoice(client, cid, {"action": "void", "note": "金额有误"})
+    feed = client.get(f"/api/activities?subject_type=contract&subject_id={cid}", headers=SALES_H)
+    actions = [a["action"] for a in feed.json()["data"]["items"] if "invoice" in a["action"]]
+    assert actions == ["invoice_void", "invoice_issue", "invoice_withdraw", "invoice_request"]
+
+
 def test_plan_change_does_not_overwrite_concurrent_invoice(
     client: TestClient, tracker: Tracker
 ) -> None:

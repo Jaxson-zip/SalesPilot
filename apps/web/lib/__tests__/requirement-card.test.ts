@@ -4,6 +4,7 @@ import {
   addModule,
   canConfirm,
   confirmedRequirement,
+  estimateBadge,
   hasOcr,
   isRequirementCard,
   parsePages,
@@ -78,5 +79,17 @@ describe("图片识别月量", () => {
     expect(parsePages("")).toBeNull()
     expect(parsePages("很多")).toBeNull()
     expect(parsePages("-5")).toBeNull()
+  })
+})
+
+describe("estimateBadge", () => {
+  // 回归（复测 UX02）：点了确认后底部已锁定，标题仍显示修改前的粗估区间，刷新才变成「已确认」
+  it("刚确认（还没刷新）也显示已确认，不再显示旧粗估", () => {
+    expect(estimateBadge(true, req, addModule(req, "数据导出"))).toBe("confirmed")
+  })
+
+  it("改过模块后粗估标成修改前的；没改显示普通粗估", () => {
+    expect(estimateBadge(false, req, addModule(req, "数据导出"))).toBe("stale_estimate")
+    expect(estimateBadge(false, req, { ...req })).toBe("estimate")
   })
 })

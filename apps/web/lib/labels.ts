@@ -114,6 +114,11 @@ const ACTIVITY_LABEL_BY_SUBJECT: Record<string, string> = {
   "contract.create": "生成了合同",
   "contract.payment": "登记了回款",
   "contract.payment_reverse": "冲正了回款",
+  "contract.invoice_request": "申请了开票",
+  "contract.invoice_issue": "登记了开票",
+  "contract.invoice_void": "作废了发票",
+  "contract.invoice_withdraw": "撤回了开票申请",
+  "contract.invoice": "操作了开票", // 旧数据：具体操作看下面的说明
   "expense.create": "新建了报销单",
   "expense.submit": "提交了报销",
   "expense.attachment_added": "上传了票据",

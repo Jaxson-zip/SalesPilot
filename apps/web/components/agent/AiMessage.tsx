@@ -11,6 +11,7 @@ import { MsgActions, type MsgFeedback } from "@/components/agent/MsgActions"
 import { PrdDialog } from "@/components/pipeline/PrdDialog"
 import { ThinkBlock } from "@/components/agent/ThinkBlock"
 import { Button } from "@/components/ui/button"
+import { useQuoteDraft } from "@/hooks/useQuoteDraft"
 import { useSmoothText } from "@/hooks/useSmoothText"
 import { actionResultOf } from "@/lib/action-result"
 import { splitFollowUps } from "@/lib/agent-mode"
@@ -62,6 +63,7 @@ export function AiMessage({
   prdOpportunity,
   readonly,
   feedback,
+  draftKey,
 }: {
   turn: AssistantTurn
   compact?: boolean
@@ -78,18 +80,19 @@ export function AiMessage({
   prdOpportunity?: { id: string; name: string; canGenerate: boolean }
   /** 点赞 / 点踩（会话有 id 后才有） */
   feedback?: MsgFeedback
+  /** 待确认方案的调整存本机用的 key（用户 + 会话）；换页、刷新回来能恢复 */
+  draftKey?: string | null
 }) {
   const [prdOpen, setPrdOpen] = useState(false)
   const live = turn.status === "streaming"
-  // 生成报价单前可以在三档里另选：物料清单和确认卡跟着切换，确认时把选中档带给后端
-  const [picked, setPicked] = useState<string | null>(null)
   const tiers = coreTiers(turn.artifacts)
   const actionResult = actionResultOf(turn.artifacts)
   const pending = turn.interrupt?.action === "generate_quote" && !turn.interrupt.decision
+  // 生成报价单前可以在三档里另选、改物料数量（每档各自保留）；存本机，换页、刷新回来还在
+  const draft = useQuoteDraft(pending && !readonly ? (draftKey ?? null) : null, tiers)
+  const { picked, setPicked, editsByTier, setEditsByTier } = draft
   const canPick = pending && !readonly && !busy && tiers.length > 1
   const pickedTier = picked ? tiers.find((t) => t.tier === picked) : undefined
-  // 待确认时可以在物料清单上改数量 / 删项；每档的调整各自保留，切走再切回来还在
-  const [editsByTier, setEditsByTier] = useState<Record<string, QtyEdits>>({})
   const canEdit = pending && !readonly && !busy
   const baseTier = pickedTier ?? tiers.find((t) => t.recommended) ?? tiers[0]
   const edits = (baseTier && editsByTier[baseTier.tier]) || {}
@@ -117,6 +120,7 @@ export function AiMessage({
       : turn.interrupt.preview
     : {}
   const decide = (decision: ResumeDecision) => {
+    draft.clear()
     if (decision !== "approve") return onDecide(decision)
     const tier = pickedTier && !pickedTier.recommended ? pickedTier.tier : undefined
     onDecide(decision, tier, adjusted ? changes : undefined)
@@ -183,6 +187,7 @@ export function AiMessage({
                 </div>
               ))
           : null}
+        {showCards && pending && draft.notice ? <DraftNoticeLine notice={draft.notice} /> : null}
         {showCards && turn.interrupt ? (
           <ConfirmCard
             title={turn.interrupt.title}
@@ -246,6 +251,18 @@ export function AiMessage({
         ) : null}
       </div>
     </div>
+  )
+}
+
+/** 恢复了离开前的调整，或者方案已更新没法恢复：提示确认前再核对 */
+function DraftNoticeLine({ notice }: { notice: "restored" | "stale" }) {
+  return (
+    <p role="status" className="flex items-center gap-1.5 text-xs text-amber-700">
+      <CircleAlert className="size-3.5 shrink-0" />
+      {notice === "restored"
+        ? "已恢复你离开前选的档位和物料调整，确认前请再核对一遍"
+        : "方案已经重新生成，离开前的档位和物料调整没有恢复，请重新核对后再确认"}
+    </p>
   )
 }
 

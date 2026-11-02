@@ -25,6 +25,9 @@ from app.crm.services import activity_service, contract_service, notification_se
 from app.crm.services.codes import local_today
 
 RULE_INVOICE_STATE = "invoice_bad_state"
+# 动态的动作代码：前端按代码显示中文（申请开票 / 登记开票 / 作废发票 / 撤回开票申请）
+ACTIVITY_ACTIONS = {"request": "invoice_request", "issue": "invoice_issue", "void": "invoice_void"}
+ACTIVITY_WITHDRAW = "invoice_withdraw"
 TYPE_NAMES = {"special": "专票", "normal": "普票"}
 # 每个操作允许的当前状态
 ALLOWED = {"request": ("none",), "issue": ("none", "requested"), "void": ("requested", "issued")}
@@ -144,6 +147,8 @@ def act(
     if body.action == "void" and not reason:
         raise BizError(ErrorCode.VALIDATION, "请填写作废原因（例如开票信息有误、客户要求换票）")
     event = _event(user, contract, plan, body.action)
+    withdraw = body.action == "void" and plan.invoice_status == "requested"
+    activity = ACTIVITY_WITHDRAW if withdraw else ACTIVITY_ACTIONS[body.action]
     if body.action == "request":
         content = _request(db, user, contract, plan, body)
     elif body.action == "issue":
@@ -156,5 +161,5 @@ def act(
     event.note = reason or None
     db.add(event)
     db.flush()
-    activity_service.record(db, user, "contract", contract.id, "invoice", content, subject=contract)
+    activity_service.record(db, user, "contract", contract.id, activity, content, subject=contract)
     return contract_service.get_payment_plan(db, user, contract.id)

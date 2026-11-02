@@ -9,9 +9,7 @@ from starlette.concurrency import run_in_threadpool
 from app.common.auth import CurrentUserDep
 from app.common.response import ApiResponse, ok
 from app.crm.routers.deps import DbDep
-from app.crm.services import report_service, usage_service
-from app.crm.services.codes import local_today
-from app.crm.services.report_service import (
+from app.crm.schemas.report import (
     DailyReportIn,
     DailyReportOut,
     DraftIn,
@@ -21,6 +19,8 @@ from app.crm.services.report_service import (
     SummaryOut,
     TeamDailyOut,
 )
+from app.crm.services import report_service, usage_service
+from app.crm.services.codes import local_today
 from app.crm.services.wecom_service import PushIn, PushOut
 from app.llm.client import get_chat_model, model_available
 

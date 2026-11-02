@@ -4,6 +4,7 @@
 该客户恰好只有一个进行中的商机时一并关联商机（行业包随商机产品线）。
 但销售在输入框手选了行业包、又和那个商机的产品线对不上时，说明是同一客户的新项目：
 以手选为准，不关联商机，并在回复开头说明（回归：选软件外包却被带进电脑采购流程）。
+自动关联发生在前一轮、这一轮才手选行业包时同样处理（回归：纠正并改选软件外包后仍问电脑人数）。
 """
 
 import logging
@@ -59,6 +60,7 @@ def _match_customer(deps: AgentDeps, state: AgentState) -> dict[str, Any]:
         if len(opps) == 1:
             out["opportunity_id"] = str(opps[0].id)
             out["opportunity_name"] = opps[0].name
+            out["opportunity_auto"] = True
         return out
 
 
@@ -80,9 +82,10 @@ def choose_pack(
     linked = dict(linked)
     opp_name = linked.pop("opportunity_name", None)
     choice = state.get("pack_choice")
-    if entered := state.get("opportunity_id"):
+    entered = state.get("opportunity_id")
+    if entered and not state.get("opportunity_auto"):
         return linked, deps.resolve_pack(entered), None
-    auto = linked.get("opportunity_id")
+    auto = linked.get("opportunity_id") or entered  # 本轮或前几轮自动关联的商机
     if not auto:
         return linked, choice or deps.resolve_pack(None), None
     try:
@@ -93,9 +96,10 @@ def choose_pack(
         opp_pack = None
     if not choice or choice == opp_pack:
         return linked, opp_pack or "", None
-    linked.pop("opportunity_id")
+    linked.update(opportunity_id=None, opportunity_auto=False)
+    customer = linked.get("customer_name") or state.get("customer_name") or "这个客户"
     notice = (
-        f"{linked.get('customer_name', '这个客户')}已有进行中的商机「{opp_name}」"
+        f"{customer}已有进行中的商机{f'「{opp_name}」' if opp_name else ''}"
         f"（{_pack_name(opp_pack)}），这次按你选的「{_pack_name(choice)}」当作新项目出方案，"
         "不关联那个商机；如果其实是同一个项目，请从该商机详情进入 AI 工作台。"
     )

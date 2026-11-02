@@ -1535,7 +1535,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/app__crm__services__report_service__RemindIn'
+              $ref: '#/components/schemas/app__crm__schemas__report__RemindIn'
       responses:
         '200':
           description: Successful Response
@@ -16076,6 +16076,16 @@ components:
       - ok
       - error
       title: WecomPush
+    app__crm__schemas__report__RemindIn:
+      properties:
+        date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date
+      type: object
+      title: RemindIn
     app__crm__services__approval_remind__RemindIn:
       properties:
         target_type:
@@ -16092,14 +16102,4 @@ components:
       required:
       - target_type
       - target_id
-      title: RemindIn
-    app__crm__services__report_service__RemindIn:
-      properties:
-        date:
-          anyOf:
-          - type: string
-            format: date
-          - type: 'null'
-          title: Date
-      type: object
       title: RemindIn

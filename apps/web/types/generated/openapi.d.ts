@@ -8124,6 +8124,11 @@ export interface components {
       error: string | null
     }
     /** RemindIn */
+    app__crm__schemas__report__RemindIn: {
+      /** Date */
+      date?: string | null
+    }
+    /** RemindIn */
     app__crm__services__approval_remind__RemindIn: {
       /**
        * Target Type
@@ -8135,11 +8140,6 @@ export interface components {
        * Format: uuid
        */
       target_id: string
-    }
-    /** RemindIn */
-    app__crm__services__report_service__RemindIn: {
-      /** Date */
-      date?: string | null
     }
   }
   responses: never
@@ -9586,7 +9586,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        "application/json": components["schemas"]["app__crm__services__report_service__RemindIn"]
+        "application/json": components["schemas"]["app__crm__schemas__report__RemindIn"]
       }
     }
     responses: {

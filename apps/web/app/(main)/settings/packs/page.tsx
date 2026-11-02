@@ -126,7 +126,7 @@ export default function PacksPage() {
   const { canConfigure } = useSession()
   return (
     <PageFrame title="行业包与产品" icon={Boxes}>
-      <RoleGate roles={["admin"]} config lockedText="行业包由系统管理员统一配置，可在左下角切换为「系统管理员」查看">
+      <RoleGate roles={["admin"]} config lockedText="行业包由系统管理员统一配置">
         {canConfigure ? <PacksContent /> : null}
       </RoleGate>
     </PageFrame>

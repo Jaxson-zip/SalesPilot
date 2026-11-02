@@ -165,17 +165,38 @@ def prepare_chat(
         "samples": summary.model_dump() if summary else None,
         "mode": mode,
     }
-    # 没带商机（例如从历史记录重新打开的会话）时不覆盖：会话之前关联的商机继续有效
-    if opportunity_id:
-        payload["opportunity_id"] = str(opportunity_id)
-    linked = str(opportunity_id) if opportunity_id else existing.get("opportunity_id")
-    if pack:
-        payload["pack_choice"] = pack
-    _set_pack(deps, payload, linked, pack or existing.get("pack_choice"))
+    _apply_link_and_pack(deps, payload, existing, opportunity_id, pack)
     touch_thread(deps.ctx.session, deps.ctx.user, thread_id, message, opportunity_id, mode)
     return PreparedRun(
         graph, payload, config, thread_id, "chat", message, build_messages(thread_id, snapshot)
     )
+
+
+def _apply_link_and_pack(
+    deps: AgentDeps,
+    payload: dict[str, Any],
+    existing: dict[str, Any],
+    opportunity_id: uuid.UUID | None,
+    pack: str | None,
+) -> None:
+    """本轮关联的商机和行业包；没带商机（例如从历史记录重新打开的会话）时不覆盖之前关联的商机。"""
+    if opportunity_id:
+        payload["opportunity_id"] = str(opportunity_id)
+        payload["opportunity_auto"] = False
+    linked = str(opportunity_id) if opportunity_id else existing.get("opportunity_id")
+    if pack:
+        payload["pack_choice"] = pack
+        if not opportunity_id and existing.get("opportunity_auto"):
+            linked = None  # 自动关联的商机不压过手选：出方案时按新项目处理
+    _set_pack(deps, payload, linked, pack or existing.get("pack_choice"))
+    _drop_other_pack_draft(existing, payload)
+
+
+def _drop_other_pack_draft(existing: dict[str, Any], payload: dict[str, Any]) -> None:
+    """行业包换了：上一个行业包的需求草稿和追问不再沿用（字段不通用，会接着问电脑人数）。"""
+    old, new = existing.get("pack_id"), payload.get("pack_id")
+    if existing.get("requirement") and old and new and old != new:
+        payload.update(requirement={}, missing=[], invalid={}, requirement_confirmed=False)
 
 
 def prepare_resume(

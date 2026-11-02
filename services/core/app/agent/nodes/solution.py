@@ -26,12 +26,12 @@ from app.agent.nodes.common import (
 )
 from app.agent.nodes.customer_link import choose_pack, link_customer, request_text
 from app.agent.nodes.requirement_fields import extract_with_llm
+from app.agent.nodes.requirement_store import load_saved, same_scope, save_to_opportunity
 from app.agent.requirement_brief import missing_labels
 from app.agent.samples import describe
 from app.agent.state import AgentState
 from app.agent.tools.solution_tools import invalid_fields, missing_fields
 from app.common.errors import BizError
-from app.crm.services import requirement_service
 from app.packs.base import MarginHint, SampleSummary, SolutionTier, adjust_tier
 from app.packs.registry import get_configurator, get_pack
 from app.rules.loader import load_rules
@@ -99,53 +99,6 @@ def make_parse_requirement(deps: AgentDeps) -> Node:
         return out
 
     return parse_requirement
-
-
-def same_scope(a: dict[str, Any], b: dict[str, Any]) -> bool:
-    """交付端和功能模块（名称、复杂度、是否首期）是否一致。"""
-
-    def scope(r: dict[str, Any]) -> tuple[list[str], list[tuple[str, str, bool]]]:
-        mods = [
-            (str(m.get("name")), str(m.get("complexity", "medium")), bool(m.get("must", True)))
-            for m in r.get("modules") or []
-            if isinstance(m, dict)
-        ]
-        return sorted(r.get("platforms") or []), sorted(mods)
-
-    return scope(a) == scope(b)
-
-
-def load_saved(deps: AgentDeps, opp_id: str | None, pack_id: str) -> dict[str, Any] | None:
-    """从商机进入时读上次保存的需求清单（同一行业包才用），接着上次的往下走。"""
-    if not opp_id:
-        return None
-    try:
-        with deps.ctx.session() as db:
-            rec = requirement_service.get_requirement(db, deps.ctx.user, uuid.UUID(opp_id))
-    except Exception:
-        logger.warning("load saved requirement failed", exc_info=True)
-        return None
-    return rec.model_dump(mode="json") if rec and rec.pack == pack_id else None
-
-
-def save_to_opportunity(deps: AgentDeps, state: AgentState, **extra: Any) -> None:
-    """把需求清单存到商机上（只有负责人本人能存；失败不影响出方案）。"""
-    opp_id = state.get("opportunity_id")
-    if not opp_id:
-        return
-    try:
-        with deps.ctx.session() as db:
-            requirement_service.save_requirement(
-                db,
-                deps.ctx.user,
-                uuid.UUID(opp_id),
-                pack=state.get("pack_id") or "",
-                data=state.get("requirement") or {},
-                confirmed=bool(state.get("requirement_confirmed")),
-                **extra,
-            )
-    except Exception:
-        logger.warning("save requirement failed", exc_info=True)
 
 
 def route_after_parse(state: AgentState) -> str:

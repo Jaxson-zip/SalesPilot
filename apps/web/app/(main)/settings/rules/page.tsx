@@ -70,7 +70,7 @@ export default function RulesPage() {
   const { canConfigure } = useSession()
   return (
     <PageFrame title="业务规则" icon={Scale}>
-      <RoleGate roles={["admin"]} config lockedText="业务规则由系统管理员维护，可在左下角切换为「系统管理员」查看">
+      <RoleGate roles={["admin"]} config lockedText="业务规则由系统管理员维护">
         {canConfigure ? <RulesContent /> : null}
       </RoleGate>
     </PageFrame>

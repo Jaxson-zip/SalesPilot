@@ -119,3 +119,25 @@ def test_auto_linked_opportunity_used_without_choice() -> None:
     state, text, _ = _solution(None)
     assert state["pack_id"] == "it_office" and state.get("opportunity_id")
     assert "新项目" not in text
+
+
+def test_choice_after_auto_link_switches_pack() -> None:
+    """回归：第一轮没选行业包，提到的客户有办公 IT 商机被自动关联，追问采购电脑人数；
+    第二轮纠正并手选软件外包后，仍按企业办公 IT 追问（会话里的自动关联被当成从商机进入）。"""
+    ctx = ToolContext(user=DEMO_USERS[Role.SALES], session=session_scope, thread_id=THREAD)
+    deps = AgentDeps(ctx=ctx, resolve_pack=lambda o: "it_office" if o else "llm_deploy", llm=None)
+    saver = InMemorySaver()
+    msg = "给星河设计工作室做一个微信预约小程序，服务预约、订单查询、管理后台，预算10万元"
+    first = service.prepare_chat(deps, msg, None, checkpointer=saver)
+    list(iter_graph_events(first.graph, first.payload, first.config, first.thread_id))
+    assert first.graph.get_state(first.config).values["pack_id"] == "it_office"
+
+    fix = "不是买电脑，是开发微信小程序：服务预约、订单查询、管理后台"
+    run = service.prepare_chat(deps, fix, None, checkpointer=saver, pack="software_outsourcing")
+    events = list(iter_graph_events(run.graph, run.payload, run.config, run.thread_id))
+    state = run.graph.get_state(run.config).values
+    assert state["pack_id"] == "software_outsourcing" and not state.get("opportunity_id")
+    card = next(e["data"] for e in events if e["event"] == "artifact")
+    assert card["data"]["pack_id"] == "software_outsourcing"
+    text = "".join(e["data"]["text"] for e in events if e["event"] == "message.delta")
+    assert "新项目" in text and "电脑" not in text.split("新项目")[-1]

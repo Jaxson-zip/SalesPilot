@@ -354,7 +354,7 @@ export function Composer(props: ComposerProps) {
         }
         className="w-full resize-none bg-transparent px-4 pt-3.5 text-base outline-none placeholder:text-zinc-400 md:text-[14px]"
       />
-      <div className="flex min-w-0 items-center gap-1.5 px-3 pb-3">
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5 px-3 pb-3">
         {compact ? null : packPicker ? (
           <PackSelect value={packPicker.value} onChange={packPicker.onChange} />
         ) : pack ? (

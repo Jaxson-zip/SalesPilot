@@ -190,7 +190,7 @@ function AiWorkbench() {
             正在加载会话…
           </div>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             {canAiWrite ? (
               <PageTip id="ai" className="mx-4 mt-3">
                 {PAGE_TIPS.ai}

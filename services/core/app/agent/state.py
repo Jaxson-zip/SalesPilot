@@ -18,6 +18,8 @@ class AgentState(TypedDict):
     material: NotRequired[str | None]  # 本轮上传的材料名（材料原文在用户消息里）
     samples: NotRequired[dict[str, Any] | None]  # 本轮上传的客户样例识别汇总（SampleSummary）
     opportunity_id: NotRequired[str | None]
+    # 商机是出方案时按客户自动关联的（不是从商机进入）：之后手选别的行业包仍可改成新项目
+    opportunity_auto: NotRequired[bool]
     customer_id: NotRequired[str | None]  # 出方案时从对话里识别出的客户（唯一匹配才关联）
     customer_name: NotRequired[str | None]
     # 本轮给销售的关联说明（手选行业包和客户已有商机对不上时，按新项目处理）

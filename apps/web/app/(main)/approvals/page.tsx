@@ -342,7 +342,7 @@ export default function ApprovalsPage() {
   const { role } = useSession()
   return (
     <PageFrame title="审批" icon={Stamp}>
-      <RoleGate roles={["manager"]} lockedText="仅销售主管可见，可在左下角切换角色">
+      <RoleGate roles={["manager"]} lockedText="审批仅销售主管可以处理">
         {role === "manager" ? <ApprovalCenter /> : null}
       </RoleGate>
     </PageFrame>

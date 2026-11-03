@@ -1,6 +1,6 @@
 "use client"
 
-import { FileText, Lightbulb, Receipt } from "lucide-react"
+import { FileText, Lightbulb, Receipt, Target } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useRef } from "react"
 
@@ -129,8 +129,14 @@ export function ApprovalRow({
           <div className="mt-2 flex items-start gap-1.5 text-xs text-zinc-500">
             <Lightbulb className="mt-px size-3.5 shrink-0 text-amber-500" />
             <span className="line-clamp-2" title={a.ai_suggestion}>
-              审批建议：{a.ai_suggestion}
+              提交时的审批建议：{a.ai_suggestion}
             </span>
+          </div>
+        ) : null}
+        {a.deal_note ? (
+          <div className="mt-1 flex items-start gap-1.5 text-xs text-zinc-500">
+            <Target className="mt-px size-3.5 shrink-0 text-zinc-400" />
+            <span>{a.deal_note}</span>
           </div>
         ) : null}
 

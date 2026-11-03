@@ -4,15 +4,19 @@
 - 客户等级：A 级（重点客户）可酌情通过；B / C 级倾向按标准处理
 - 申请人本月已有几次超标 / 低毛利审批：多次时提醒
 - 报价：低毛利时按毛利差额、折扣超权限时按折扣给出核对方向
+
+建议在提交时存进审批单；关联商机的当前状态由 deal_notes 在列表里实时给出。
 """
 
 import uuid
+from collections.abc import Iterable
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.crm.models import Approval, Customer
-from app.crm.services.codes import month_start
+from app.crm.models import Approval, Customer, Expense, Opportunity, Quote
+from app.crm.schemas.opportunity import FINAL_STAGES, STAGE_LABELS
+from app.crm.services.codes import local_today, month_start
 
 LEVEL_TEXT = {"A": "A 级重点客户", "B": "B 级客户", "C": "C 级客户"}
 
@@ -77,3 +81,25 @@ def quote_hint(
     if times >= 2:
         parts.append(f"申请人本月已有 {times} 张报价进入审批")
     return "；".join(parts or reasons) + "。"
+
+
+def deal_notes(db: Session, targets: Iterable[Quote | Expense]) -> dict[uuid.UUID, str]:
+    """审批单关联商机的当前状态（按目标 id）。审批建议是提交时写的，商机之后可能已输单 / 赢单。"""
+    by_target = {t.id: t.opportunity_id for t in targets if t.opportunity_id}
+    if not by_target:
+        return {}
+    stmt = select(Opportunity).where(Opportunity.id.in_(set(by_target.values())))
+    opps = {o.id: o for o in db.scalars(stmt)}
+    notes: dict[uuid.UUID, str] = {}
+    for target_id, opp_id in by_target.items():
+        opp = opps.get(opp_id)
+        if opp is not None:
+            notes[target_id] = _deal_note(opp)
+    return notes
+
+
+def _deal_note(opp: Opportunity) -> str:
+    if opp.stage not in FINAL_STAGES:
+        return f"关联商机「{opp.name}」当前处于{STAGE_LABELS[opp.stage]}阶段"
+    when = f"已于 {local_today(opp.closed_at):%m-%d} " if opp.closed_at else "已"
+    return f"关联商机「{opp.name}」{when}{STAGE_LABELS[opp.stage]}，审批建议是提交时的判断"

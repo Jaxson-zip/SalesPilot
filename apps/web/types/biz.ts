@@ -127,8 +127,8 @@ export interface OpportunityExpenses {
 export interface OpportunityProfit {
   quote_id: string
   quote_code: string
-  /** accepted：按客户接受的报价；latest：未成交，按最新报价估算 */
-  basis: "accepted" | "latest"
+  /** accepted：按客户接受的报价；latest：未成交，按最新报价估算；lost：已输单，只算已花的跟单费用 */
+  basis: "accepted" | "latest" | "lost"
   price: number
   gross: number
   commission: number
@@ -537,6 +537,8 @@ export interface ApprovalItem {
   }
   reason: string
   ai_suggestion: string | null
+  /** 关联商机的当前状态（实时）；审批建议是提交时写的 */
+  deal_note?: string | null
   status: ApprovalStatus
   attachments: AttachmentOut[]
   comment?: string | null

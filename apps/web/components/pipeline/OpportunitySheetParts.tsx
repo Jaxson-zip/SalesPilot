@@ -103,19 +103,30 @@ export function KeyContacts({ customerId }: { customerId: string }) {
   )
 }
 
+/** 收益口径：成交后才叫「实际赚」；没成交叫「预计赚」；输单只剩已花的跟单费用 */
+const PROFIT_BASIS: Record<OpportunityProfit["basis"], { note: string; total: string }> = {
+  accepted: { note: "按成交报价", total: "实际赚" },
+  latest: { note: "按最新报价估算", total: "预计赚" },
+  lost: { note: "已输单，报价未成交", total: "输单支出" },
+}
+
 /** 这单赚多少：报价毛利 − 预估提成 − 跟单费用 */
 export function Profit({ p, oppId }: { p: OpportunityProfit; oppId: string }) {
-  const rows: [string, number][] = [
-    ["报价毛利", p.gross],
-    ["预估提成", -p.commission],
-    ["跟单费用", -p.expenses],
-  ]
+  const basis = PROFIT_BASIS[p.basis]
+  const lost = p.basis === "lost"
+  const rows: [string, number][] = lost
+    ? [["跟单费用", -p.expenses]]
+    : [
+        ["报价毛利", p.gross],
+        ["预估提成", -p.commission],
+        ["跟单费用", -p.expenses],
+      ]
   return (
     <section aria-label="这单赚多少" className="mt-3 rounded-lg border border-zinc-200 p-3">
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <span className="font-medium">这单赚多少</span>
         <Link href={`/quotes/${p.quote_id}`} className="text-xs text-zinc-500 hover:underline">
-          {p.basis === "accepted" ? "按成交报价" : "按最新报价估算"} {p.quote_code}
+          {basis.note} {p.quote_code}
         </Link>
       </div>
       <dl className="space-y-1 tabular-nums">
@@ -134,10 +145,10 @@ export function Profit({ p, oppId }: { p: OpportunityProfit; oppId: string }) {
           </div>
         ))}
         <div className="flex justify-between border-t border-zinc-100 pt-1 font-medium">
-          <dt>实际赚</dt>
+          <dt>{basis.total}</dt>
           <dd className={p.net < 0 ? "text-red-600" : undefined}>
             {p.net < 0 ? `−${formatFen(-p.net)}` : formatFen(p.net)}
-            {p.price ? (
+            {p.price && !lost ? (
               <span className="ml-1.5 text-xs font-normal text-zinc-500">{((p.net / p.price) * 100).toFixed(1)}%</span>
             ) : null}
           </dd>

@@ -96,6 +96,7 @@ def list_pending_approvals(ctx: ToolContext, args: PendingApprovalsArgs) -> Tool
             "target": a.target.model_dump(mode="json"),
             "reason": a.reason,
             "ai_suggestion": a.ai_suggestion,
+            "deal_note": a.deal_note,
         }
         for a in page.items
     ]

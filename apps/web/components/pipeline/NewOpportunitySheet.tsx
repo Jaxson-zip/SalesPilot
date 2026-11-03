@@ -11,6 +11,7 @@ import { useCreateOpportunity } from "@/hooks/useOpportunities"
 import { useProductLines } from "@/hooks/useProductLines"
 import { toOpportunityCreate, type OppFormErrors, type OpportunityFormValues } from "@/lib/opportunity"
 import type { CustomerBrief } from "@/types/api"
+import { changedFrom } from "@/lib/form-dirty"
 
 const EMPTY: OpportunityFormValues = {
   customer_id: null,
@@ -78,6 +79,7 @@ export function NewOpportunitySheet({
     <FormSheet
       open={open}
       onOpenChange={(o) => (o ? onOpenChange(true) : close())}
+      dirty={changedFrom(v, initial)}
       title="新建商机"
       footer={
         <>

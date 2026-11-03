@@ -135,7 +135,11 @@ export default function DashboardPage() {
           </div>
         )}
         <div className="mb-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
-          <FunnelChart stages={d?.funnel} loading={loading} />
+          <FunnelChart
+            stages={d?.funnel}
+            loading={loading}
+            onRetry={query.isError && !d ? () => void query.refetch() : undefined}
+          />
           <TodoCard view={view} title={`${prefix}待办`} />
         </div>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">

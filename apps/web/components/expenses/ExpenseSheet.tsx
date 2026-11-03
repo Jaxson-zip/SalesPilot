@@ -43,6 +43,7 @@ import {
 } from "@/lib/expense"
 import { applyTemplate, EMPTY_TRIP } from "@/lib/expense-trip"
 import type { CustomerBrief, ExpenseCreate } from "@/types/api"
+import { changedFrom } from "@/lib/form-dirty"
 
 const today = () => localDate()
 const emptyForm = (): ExpenseFormValues => ({
@@ -106,6 +107,9 @@ export function ExpenseSheet({
   const rejection = rejected ? lastRejection(exp?.approvals) : null
   const attachments = exp?.attachments ?? []
   const missing = exp ? missingAttachmentReason(exp.type, attachments) : "保存草稿后上传票据"
+
+  // 新建时和空表单比，修改已有报销单时和原单比；只看、不在编辑时不拦
+  const dirty = form && changedFrom(values, editing && exp ? formFromExpense(exp) : emptyForm())
 
   const close = () => {
     onClose()
@@ -220,7 +224,7 @@ export function ExpenseSheet({
   )
 
   return (
-    <FormSheet open={open} onOpenChange={(o) => !o && close()} title={title} footer={footer}>
+    <FormSheet open={open} onOpenChange={(o) => !o && close()} dirty={dirty} title={title} footer={footer}>
       {rejection ? (
         <Alert tone="warn" title={`${rejection.approver?.name ?? "主管"}驳回了这张报销`}>
           {rejection.comment || "没有写原因"}

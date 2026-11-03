@@ -59,8 +59,9 @@ class OpportunityProfit(BaseModel):
 
     quote_id: uuid.UUID
     quote_code: str
-    # accepted：按客户已接受的报价；latest：还没成交，按最新一张有效报价估算
-    basis: Literal["accepted", "latest"]
+    # accepted：按客户已接受的报价；latest：还没成交，按最新一张有效报价估算；
+    # lost：已输单，报价毛利和提成都没有发生（记 0），只剩已花的跟单费用
+    basis: Literal["accepted", "latest", "lost"]
     price: int
     gross: int
     commission: int

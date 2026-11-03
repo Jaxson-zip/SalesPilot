@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useSaveCompetitor, type Competitor, type CompetitorInput, type Objection } from "@/hooks/useCompetitors"
+import { changedFrom } from "@/lib/form-dirty"
 
 const lines = (s: string) =>
   s
@@ -44,6 +45,19 @@ export function CompetitorForm({
   const [tactics, setTactics] = useState((initial?.win_tactics ?? []).join("\n"))
   const [objections, setObjections] = useState<Objection[]>(initial?.objections ?? [{ say: "", respond: "" }])
 
+  const dirty = changedFrom(
+    [name, aliases, summary, strengths, weaknesses, tactics, objections],
+    [
+      initial?.name ?? "",
+      (initial?.aliases ?? []).join("、"),
+      initial?.summary ?? "",
+      (initial?.strengths ?? []).join("\n"),
+      (initial?.weaknesses ?? []).join("\n"),
+      (initial?.win_tactics ?? []).join("\n"),
+      initial?.objections ?? [{ say: "", respond: "" }],
+    ],
+  )
+
   const setObj = (i: number, patch: Partial<Objection>) =>
     setObjections((list) => list.map((o, j) => (j === i ? { ...o, ...patch } : o)))
 
@@ -69,6 +83,7 @@ export function CompetitorForm({
     <FormSheet
       open={open}
       onOpenChange={onOpenChange}
+      dirty={dirty}
       wide
       title={initial ? `编辑战卡：${initial.name}` : "新建竞品战卡"}
       description="销售在商机里标注竞品后，可直接查看这里的应对话术；AI 工作台回答时也会引用。"

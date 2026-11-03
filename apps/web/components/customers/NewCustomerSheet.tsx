@@ -18,6 +18,7 @@ import {
   type CustomerFormValues,
 } from "@/lib/customer"
 import type { CustomerLevel } from "@/types/api"
+import { changedFrom } from "@/lib/form-dirty"
 
 const LEVEL_OPTIONS: { value: CustomerLevel; label: string }[] = [
   { value: "A", label: "A 级（重点客户）" },
@@ -74,6 +75,7 @@ export function NewCustomerSheet({ open, onOpenChange }: { open: boolean; onOpen
     <FormSheet
       open={open}
       onOpenChange={(o) => (o ? onOpenChange(true) : close())}
+      dirty={changedFrom(v, EMPTY_CUSTOMER_FORM)}
       title="新建客户"
       footer={
         <>

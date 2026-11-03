@@ -47,7 +47,9 @@ describe("adjustedSummary", () => {
 
   it("按当前物料重算人天（不含按次计的部署），列出删掉的项", () => {
     expect(adjustTier(days, { M1: 8 }).summary).toBe("已调整：人天合计 11 人天（原方案约 10 人天）；改了 1 项数量")
-    expect(adjustedSummary(days, { M1: 0, D: 0 })).toBe("已调整：人天合计 3 人天（原方案约 10 人天）；去掉 订单管理、部署上线")
+    expect(adjustedSummary(days, { M1: 0, D: 0 })).toBe(
+      "已调整：人天合计 3 人天（原方案约 10 人天）；去掉 订单管理、部署上线",
+    )
   })
 
   it("没有人天类物料时不写人天；没改动时保留原摘要", () => {

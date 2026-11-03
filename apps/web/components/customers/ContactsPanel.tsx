@@ -21,6 +21,7 @@ import { api } from "@/lib/api"
 import { deleteContactConfirm } from "@/lib/confirm-texts"
 import { CONTACT_ROLE_META } from "@/lib/labels"
 import type { ContactItem, ContactRole } from "@/types/api"
+import { changedFrom } from "@/lib/form-dirty"
 
 const NO_ROLE = "none"
 const ROLE_OPTIONS: { value: ContactRole | typeof NO_ROLE; label: string }[] = [
@@ -79,6 +80,7 @@ function ContactSheet({
     <FormSheet
       open={target !== null}
       onOpenChange={(o) => !o && onClose()}
+      dirty={changedFrom(v, toForm(editing))}
       title={editing ? `编辑联系人 · ${editing.name}` : "添加联系人"}
       footer={
         <>

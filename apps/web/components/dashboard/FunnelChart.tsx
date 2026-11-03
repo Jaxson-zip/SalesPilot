@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react"
 import Link from "next/link"
 
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatFen } from "@/lib/format"
 import { STAGE_META } from "@/lib/labels"
@@ -17,7 +18,16 @@ const BAR: Record<OpportunityStage, string> = {
   lost: "bg-red-400",
 }
 
-export function FunnelChart({ stages, loading }: { stages: FunnelStage[] | undefined; loading?: boolean }) {
+export function FunnelChart({
+  stages,
+  loading,
+  onRetry,
+}: {
+  stages: FunnelStage[] | undefined
+  loading?: boolean
+  /** 加载失败时传入：显示「暂不可用」，不把没拿到的数据画成 0 */
+  onRetry?: () => void
+}) {
   const rows = normalizeFunnel(stages ?? [])
   const widths = funnelWidths(rows)
   const won = rows.find((s) => s.stage === "won")
@@ -30,33 +40,42 @@ export function FunnelChart({ stages, loading }: { stages: FunnelStage[] | undef
           <ArrowRight className="size-3.5" />
         </Link>
       </div>
-      <div className="space-y-3 p-4">
-        {rows.map((s, i) => (
-          <div key={s.stage} className="flex items-center gap-3">
-            <span className="w-16 shrink-0 text-zinc-500">{STAGE_META[s.stage].label}</span>
-            <div className="h-2 min-w-0 flex-1 rounded-full bg-zinc-100">
-              {loading ? null : (
-                <div className={`h-2 rounded-full ${BAR[s.stage]}`} style={{ width: `${widths[i]}%` }} />
+      {onRetry ? (
+        <div className="flex flex-col items-center gap-2 p-8 text-zinc-500">
+          <span>漏斗数据暂不可用</span>
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            重试
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3 p-4">
+          {rows.map((s, i) => (
+            <div key={s.stage} className="flex items-center gap-3">
+              <span className="w-16 shrink-0 text-zinc-500">{STAGE_META[s.stage].label}</span>
+              <div className="h-2 min-w-0 flex-1 rounded-full bg-zinc-100">
+                {loading ? null : (
+                  <div className={`h-2 rounded-full ${BAR[s.stage]}`} style={{ width: `${widths[i]}%` }} />
+                )}
+              </div>
+              {loading ? (
+                <Skeleton className="h-3.5 w-20" />
+              ) : (
+                <>
+                  <span className="w-6 shrink-0 text-right tabular-nums">{s.count}</span>
+                  <span className="w-24 shrink-0 truncate text-right text-zinc-500 tabular-nums">
+                    {formatFen(s.amount)}
+                  </span>
+                </>
               )}
             </div>
-            {loading ? (
-              <Skeleton className="h-3.5 w-20" />
-            ) : (
-              <>
-                <span className="w-6 shrink-0 text-right tabular-nums">{s.count}</span>
-                <span className="w-24 shrink-0 truncate text-right text-zinc-500 tabular-nums">
-                  {formatFen(s.amount)}
-                </span>
-              </>
-            )}
-          </div>
-        ))}
-        {!loading && won?.unsigned_count ? (
-          <p className="text-xs text-amber-700">
-            赢单里有 {won.unsigned_count} 个还没签合同（{formatFen(won.unsigned_amount ?? 0)}），不计入本月成交
-          </p>
-        ) : null}
-      </div>
+          ))}
+          {!loading && won?.unsigned_count ? (
+            <p className="text-xs text-amber-700">
+              赢单里有 {won.unsigned_count} 个还没签合同（{formatFen(won.unsigned_amount ?? 0)}），不计入本月成交
+            </p>
+          ) : null}
+        </div>
+      )}
     </div>
   )
 }

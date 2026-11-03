@@ -4257,6 +4257,8 @@ export interface components {
       reason: string
       /** Ai Suggestion */
       ai_suggestion: string | null
+      /** Deal Note */
+      deal_note: string | null
       /**
        * Status
        * @enum {string}
@@ -6461,7 +6463,7 @@ export interface components {
        * Basis
        * @enum {string}
        */
-      basis: "accepted" | "latest"
+      basis: "accepted" | "latest" | "lost"
       /** Price */
       price: number
       /** Gross */

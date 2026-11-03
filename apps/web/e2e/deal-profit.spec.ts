@@ -27,6 +27,6 @@ test("商机详情：这单赚多少 = 报价毛利 − 预估提成 − 跟单�
   await expect(box).toContainText("报价毛利¥60,000")
   await expect(box).toContainText("预估提成−¥7,000")
   await expect(box).toContainText("跟单费用−¥860")
-  await expect(box).toContainText("实际赚¥52,140")
+  await expect(box).toContainText("预计赚¥52,140")
   await expect(box).toContainText("34.8%")
 })

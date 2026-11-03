@@ -2,7 +2,7 @@
 
 import { CalendarClock, Plus, Printer, Trash2 } from "lucide-react"
 import Link from "next/link"
-import { Fragment, useState } from "react"
+import { Fragment, useEffect, useState } from "react"
 
 import { Alert } from "@/components/biz/Alert"
 import { DatePicker, MoneyInput } from "@/components/biz/FormControls"
@@ -22,6 +22,7 @@ import { PLAN_STATUS_META } from "@/lib/labels"
 import { customerHref, quoteHref } from "@/lib/links"
 import { checkPlan, rowsTotal, toRows, type PlanRow } from "@/lib/payment-plan"
 import type { ContractItem, PaymentPlanItem, PaymentPlanView } from "@/types/api"
+import { changedFrom } from "@/lib/form-dirty"
 
 /** 每期下面一行发票信息：状态 + 号码 / 备注；按角色给出操作（负责人申请，主管登记或作废） */
 function InvoiceCell({
@@ -114,8 +115,19 @@ function PlanTable({
   )
 }
 
-function PlanEditor({ plan, onDone }: { plan: PaymentPlanView; onDone: () => void }) {
+function PlanEditor({
+  plan,
+  onDone,
+  onDirtyChange,
+}: {
+  plan: PaymentPlanView
+  onDone: () => void
+  /** 改过的计划没保存时，关闭侧栏要先确认 */
+  onDirtyChange: (dirty: boolean) => void
+}) {
   const [rows, setRows] = useState<PlanRow[]>(() => toRows(plan.items))
+  const dirty = changedFrom(rows, toRows(plan.items))
+  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange])
   const [error, setError] = useState<string>()
   const save = useSavePaymentPlan(plan.contract_id)
   const set = (i: number, patch: Partial<PlanRow>) =>
@@ -196,11 +208,13 @@ export function PaymentPlanSheet({
 }) {
   const q = usePaymentPlan(contract?.id ?? null)
   const [editing, setEditing] = useState(false)
+  const [dirty, setDirty] = useState(false)
   const [invoiceOf, setInvoiceOf] = useState<InvoiceTarget | null>(null)
   // 作废也走弹框：要写原因（开票历史里留底），弹框本身就是二次确认
   const onInvoice = (item: PaymentPlanItem, action: "request" | "issue" | "void") => setInvoiceOf({ item, action })
   const close = () => {
     setEditing(false)
+    setDirty(false)
     onClose()
   }
 
@@ -251,7 +265,14 @@ export function PaymentPlanSheet({
           </Alert>
         ) : null}
         {editing ? (
-          <PlanEditor plan={plan} onDone={() => setEditing(false)} />
+          <PlanEditor
+            plan={plan}
+            onDirtyChange={setDirty}
+            onDone={() => {
+              setEditing(false)
+              setDirty(false)
+            }}
+          />
         ) : (
           <>
             <PlanTable plan={plan} who={{ owner: editable, manager }} onInvoice={onInvoice} />
@@ -275,6 +296,7 @@ export function PaymentPlanSheet({
     <FormSheet
       open={contract !== null}
       onOpenChange={(o) => !o && close()}
+      dirty={editing && dirty}
       title={`回款计划 · ${contract?.code ?? ""}`}
       footer={
         contract ? (

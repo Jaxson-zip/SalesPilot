@@ -8911,6 +8911,11 @@ components:
           - type: string
           - type: 'null'
           title: Ai Suggestion
+        deal_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Deal Note
         status:
           type: string
           enum:
@@ -8948,6 +8953,7 @@ components:
       - status
       - attachments
       - created_at
+      - deal_note
       - comment
       - decided_at
       title: ApprovalItem
@@ -12992,6 +12998,7 @@ components:
           enum:
           - accepted
           - latest
+          - lost
           title: Basis
         price:
           type: integer

@@ -19,6 +19,7 @@ from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.finance import EXPENSE_TYPE_LABELS, ApprovalItem, ApprovalTarget
 from app.crm.services import (
     activity_service,
+    approval_hints,
     attachment_query,
     lookup,
     notification_service,
@@ -110,6 +111,7 @@ def to_items(db: Session, approvals: list[Approval]) -> list[ApprovalItem]:
     targets = _targets(db, approvals)
     owners = lookup.users(db, (t.owner_id for t in targets.values()))
     customers = lookup.customers(db, (t.customer_id for t in targets.values()))
+    deals = approval_hints.deal_notes(db, targets.values())
     items: list[ApprovalItem] = []
     for a in approvals:
         t = targets.get(a.target_id)
@@ -138,6 +140,7 @@ def to_items(db: Session, approvals: list[Approval]) -> list[ApprovalItem]:
                 target=target,
                 reason=a.reason,
                 ai_suggestion=a.ai_suggestion,
+                deal_note=deals.get(t.id),
                 status=a.status,  # type: ignore[arg-type]
                 attachments=attachment_query.list_for(db, a.target_type, t.id),
                 comment=a.comment,

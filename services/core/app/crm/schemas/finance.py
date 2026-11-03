@@ -313,6 +313,8 @@ class ApprovalItem(BaseModel):
     target: ApprovalTarget
     reason: str
     ai_suggestion: str | None
+    # 关联商机的当前状态（实时）；审批建议是提交时写的，商机之后可能已输单
+    deal_note: str | None = None
     status: ApprovalStatus
     attachments: list[AttachmentOut]
     comment: str | None = None

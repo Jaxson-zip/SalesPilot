@@ -144,3 +144,11 @@ export const LEAVE_REPORT_CONFIRM: ConfirmCopy = {
   description: "离开后这次的修改不会提交（会暂存在这台电脑的浏览器里，回来时恢复）。建议先点「保存草稿」。",
   confirmLabel: "先离开",
 }
+
+/** 新建 / 编辑表单有没保存的内容时关闭侧栏（Esc、点遮罩、点 ✕） */
+export const DISCARD_FORM_CONFIRM: ConfirmCopy = {
+  title: "放弃没保存的内容？",
+  description: "关闭后这次填写的内容不会保留。",
+  confirmLabel: "放弃并关闭",
+  destructive: true,
+}

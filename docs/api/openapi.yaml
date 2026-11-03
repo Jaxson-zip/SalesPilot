@@ -4576,7 +4576,11 @@ paths:
       tags:
       - contracts
       summary: Replace Payment Plan
-      description: 负责人整体替换回款计划；各期合计必须等于合同金额（42201 plan_total_mismatch）。
+      description: '负责人整体替换回款计划（42201）：合计须等于合同金额（plan_total_mismatch）；
+
+        已收款 / 已开票的期次锁定（plan_paid_locked / plan_invoiced）；
+
+        已有回款、逾期或开票时须写原因（plan_reason_required）。'
       operationId: replace_payment_plan_api_contracts__contract_id__payment_plan_put
       parameters:
       - name: contract_id
@@ -10140,6 +10144,10 @@ components:
           type: integer
           title: Invoice Requested
           default: 0
+        invoice_pending:
+          type: integer
+          title: Invoice Pending
+          default: 0
         invoiced_unpaid_amount:
           type: integer
           title: Invoiced Unpaid Amount
@@ -10160,6 +10168,7 @@ components:
       - next_payment
       - overdue_amount
       - invoice_requested
+      - invoice_pending
       - invoiced_unpaid_amount
       title: ContractItem
     ContractList:
@@ -12601,6 +12610,10 @@ components:
         amount:
           type: integer
           title: Amount
+        plan_amount:
+          type: integer
+          title: Plan Amount
+          default: 0
         due_date:
           type: string
           format: date
@@ -12623,8 +12636,12 @@ components:
       - due_date
       - status
       - overdue_days
+      - plan_amount
       title: NextPayment
-      description: 下一期待收款（合同列表用）：第一期没有收齐的。amount 为该期还差的金额。
+      description: '当前应收（合同列表用）：第一期没有收齐的。
+
+
+        amount 为该期还差的金额，plan_amount 为该期总额。'
     NextTask:
       properties:
         id:
@@ -13549,6 +13566,12 @@ components:
           maxItems: 12
           minItems: 1
           title: Items
+        reason:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Reason
       type: object
       required:
       - items

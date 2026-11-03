@@ -11,7 +11,7 @@ from app.common.auth import Role
 from app.common.db import session_scope
 from app.crm.models import PaymentPlan
 from app.crm.schemas.finance import InvoiceIn, PaymentPlanLineIn, PaymentPlanUpdate
-from app.crm.services import contract_service, invoice_service
+from app.crm.services import invoice_service, payment_plan_change
 from app.crm.services.demo import DEMO_USERS
 from tests.api.conftest import MANAGER_H, SALES_H, Tracker
 from tests.api.test_quotes_contracts_api import _accepted_contract
@@ -91,8 +91,8 @@ def test_plan_change_does_not_overwrite_concurrent_invoice(
         try:
             issued.wait(5)
             with session_scope() as db:
-                data = PaymentPlanUpdate(items=lines)
-                contract_service.replace_payment_plan(db, DEMO_USERS[Role.SALES], cid, data)
+                data = PaymentPlanUpdate(items=lines, reason="并发测试")
+                payment_plan_change.replace_payment_plan(db, DEMO_USERS[Role.SALES], cid, data)
         except BaseException as exc:
             errors.append(exc)
 

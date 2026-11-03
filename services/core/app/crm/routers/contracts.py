@@ -20,7 +20,12 @@ from app.crm.schemas.finance import (
     PaymentRecord,
     PaymentReverseIn,
 )
-from app.crm.services import contract_service, invoice_service, payment_service
+from app.crm.services import (
+    contract_service,
+    invoice_service,
+    payment_plan_change,
+    payment_service,
+)
 from app.crm.services.contract_service import ContractFilter
 from app.crm.services.listing import FacetOption, SortKey, clean, uuids
 
@@ -120,5 +125,7 @@ def invoice(
 def replace_payment_plan(
     contract_id: uuid.UUID, body: PaymentPlanUpdate, user: CurrentUserDep, db: DbDep
 ) -> ApiResponse[PaymentPlanView]:
-    """负责人整体替换回款计划；各期合计必须等于合同金额（42201 plan_total_mismatch）。"""
-    return ok(contract_service.replace_payment_plan(db, user, contract_id, body))
+    """负责人整体替换回款计划（42201）：合计须等于合同金额（plan_total_mismatch）；
+    已收款 / 已开票的期次锁定（plan_paid_locked / plan_invoiced）；
+    已有回款、逾期或开票时须写原因（plan_reason_required）。"""
+    return ok(payment_plan_change.replace_payment_plan(db, user, contract_id, body))

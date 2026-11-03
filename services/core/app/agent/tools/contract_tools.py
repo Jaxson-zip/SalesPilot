@@ -34,7 +34,15 @@ def _row(c: ContractItem) -> dict[str, Any]:
         "estimated": c.commission.estimated,
         "confirmed": c.commission.confirmed,
         "next_payment": (
-            {"name": nxt.name, "amount": nxt.amount, "due_date": str(nxt.due_date)} if nxt else None
+            {
+                "name": nxt.name,
+                "remaining": nxt.amount,  # 本期还差的金额
+                "plan_amount": nxt.plan_amount,  # 本期总额
+                "due_date": str(nxt.due_date),
+                "overdue_days": nxt.overdue_days,
+            }
+            if nxt
+            else None
         ),
     }
 

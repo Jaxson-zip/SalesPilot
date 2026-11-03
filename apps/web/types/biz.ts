@@ -297,7 +297,7 @@ export interface ContractItem {
   commission: { estimated: number; confirmed: number }
   owner: UserBrief | null
   created_at: string
-  /** 下一期待收款（B9）：第一期没有收齐的；amount 为该期还差的金额。全部收齐时为 null */
+  /** 当前应收（B9）：第一期没有收齐的；amount 为该期还差的金额。全部收齐时为 null */
   next_payment: NextPayment | null
   /** 已到期未收齐的金额合计 */
   overdue_amount: number
@@ -305,6 +305,8 @@ export interface ContractItem {
   invoice_requested?: number
   /** 已开票但还没收齐的金额 */
   invoiced_unpaid_amount?: number
+  /** 还没申请开票、但已收过款或已到期的期数（回款收齐了也可能还要开票） */
+  invoice_pending?: number
 }
 
 /** 回款计划一期的状态：已收齐 / 部分到账（未到期） / 逾期 / 待收 */
@@ -316,7 +318,10 @@ export type InvoiceType = "special" | "normal"
 
 export interface NextPayment {
   name: string
+  /** 这一期还差的金额 */
   amount: number
+  /** 这一期的总额 */
+  plan_amount?: number
   due_date: string
   status: PlanStatus
   overdue_days: number
@@ -381,6 +386,8 @@ export interface InvoiceIn {
 /** PUT /api/contracts/{id}/payment-plan：各期合计必须等于合同金额 */
 export interface PaymentPlanUpdate {
   items: { name: string; amount: number; due_date: string }[]
+  /** 合同已有回款、逾期或开票时必填（42201 plan_reason_required） */
+  reason?: string | null
 }
 
 export interface ContractSummary {

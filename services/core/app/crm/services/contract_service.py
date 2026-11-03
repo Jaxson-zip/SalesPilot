@@ -10,8 +10,6 @@ from sqlalchemy import ColumnElement, Select, and_, exists, func, select
 from sqlalchemy.orm import Session, aliased
 
 from app.common.auth import CurrentUser
-from app.common.errors import BizError, ErrorCode
-from app.common.permissions import ensure_owner
 from app.common.scope import View, apply_scope, ensure_visible
 from app.crm.models import Commission, Contract, PaymentPlan, Quote
 from app.crm.schemas.common import CodeRef, PageParams
@@ -22,10 +20,9 @@ from app.crm.schemas.finance import (
     ContractSummary,
     NextPayment,
     PaymentPlanItem,
-    PaymentPlanUpdate,
     PaymentPlanView,
 )
-from app.crm.services import activity_service, invoice_history, lookup, quote_query
+from app.crm.services import invoice_history, lookup, quote_query
 from app.crm.services.codes import LOCAL_TZ, local_today, month_start
 from app.crm.services.listing import FacetOption, SortKey, customer_facet, order, user_facet
 from app.crm.services.payment_plan import (
@@ -39,8 +36,6 @@ from app.rules import paid_ratio_of
 from app.rules.loader import PaymentStage, load_rules
 
 RULE_EXCEEDS_BALANCE = "payment_exceeds_balance"
-RULE_PLAN_TOTAL = "plan_total_mismatch"
-RULE_PLAN_INVOICED = "plan_invoiced"
 INVOICE_FIELDS = (
     "invoice_status",
     "invoice_type",
@@ -82,7 +77,7 @@ def _quote_refs(db: Session, ids: list[uuid.UUID | None]) -> dict[uuid.UUID, Cod
 # ---------- 回款计划（B9） ----------
 
 
-def _plans(db: Session, ids: list[uuid.UUID]) -> dict[uuid.UUID, list[PaymentPlan]]:
+def plans_of(db: Session, ids: list[uuid.UUID]) -> dict[uuid.UUID, list[PaymentPlan]]:
     out: dict[uuid.UUID, list[PaymentPlan]] = {i: [] for i in ids}
     if ids:
         stmt = select(PaymentPlan).where(PaymentPlan.contract_id.in_(ids))
@@ -91,7 +86,7 @@ def _plans(db: Session, ids: list[uuid.UUID]) -> dict[uuid.UUID, list[PaymentPla
     return out
 
 
-def _states(contract: Contract, plans: list[PaymentPlan]) -> list[PlanState]:
+def states_of(contract: Contract, plans: list[PaymentPlan]) -> list[PlanState]:
     inputs = [PlanInput(p.name, p.amount, p.due_date) for p in plans]
     return allocate(inputs, contract.paid_amount, local_today())
 
@@ -100,8 +95,8 @@ def plan_states(
     db: Session, contracts: list[Contract]
 ) -> dict[uuid.UUID, list[tuple[PaymentPlan, PlanState]]]:
     """每份合同的各期回款计划及其状态（回款按期次顺序冲抵）。"""
-    plans = _plans(db, [c.id for c in contracts])
-    return {c.id: list(zip(plans[c.id], _states(c, plans[c.id]), strict=True)) for c in contracts}
+    plans = plans_of(db, [c.id for c in contracts])
+    return {c.id: list(zip(plans[c.id], states_of(c, plans[c.id]), strict=True)) for c in contracts}
 
 
 def _overdue_amount(states: list[PlanState]) -> int:
@@ -114,6 +109,15 @@ def _invoiced_unpaid(plans: list[PaymentPlan], states: list[PlanState]) -> int:
         s.amount - s.paid
         for p, s in zip(plans, states, strict=True)
         if p.invoice_status == "issued" and s.status != "paid"
+    )
+
+
+def _invoice_pending(plans: list[PaymentPlan], states: list[PlanState]) -> int:
+    """还没申请开票、但已经收过款或已经到期的期数（回款收齐了也可能还要开票）。"""
+    today = local_today()
+    return sum(
+        p.invoice_status == "none" and (s.paid > 0 or s.due_date <= today)
+        for p, s in zip(plans, states, strict=True)
     )
 
 
@@ -130,6 +134,7 @@ def _next_payment(states: list[PlanState]) -> NextPayment | None:
     return NextPayment(
         name=s.name,
         amount=s.amount - s.paid,
+        plan_amount=s.amount,
         due_date=s.due_date,
         status=s.status,
         overdue_days=s.overdue_days,
@@ -161,8 +166,8 @@ def get_payment_plan(db: Session, user: CurrentUser, contract_id: uuid.UUID) -> 
     contract = db.get(Contract, contract_id)
     ensure_visible(contract, user)
     assert contract is not None
-    plans = _plans(db, [contract.id])[contract.id]
-    states = _states(contract, plans)
+    plans = plans_of(db, [contract.id])[contract.id]
+    states = states_of(contract, plans)
     return PaymentPlanView(
         contract_id=contract.id,
         code=contract.code,
@@ -193,60 +198,9 @@ def get_payment_plan(db: Session, user: CurrentUser, contract_id: uuid.UUID) -> 
     )
 
 
-def replace_payment_plan(
-    db: Session, user: CurrentUser, contract_id: uuid.UUID, data: PaymentPlanUpdate
-) -> PaymentPlanView:
-    """负责人调整回款计划（期次、金额、到期日）；各期合计必须等于合同金额。"""
-    contract = db.get(Contract, contract_id, with_for_update=True)
-    ensure_owner(contract, user)
-    assert contract is not None
-    total = sum(i.amount for i in data.items)
-    if total != contract.amount:
-        raise BizError(
-            ErrorCode.RULE_VIOLATION,
-            f"各期合计 ¥{total / 100:,.2f}，与合同金额 ¥{contract.amount / 100:,.2f} 不一致",
-            {"rule": RULE_PLAN_TOTAL, "expected": contract.amount, "actual": total},
-        )
-    old_plans = {p.seq: p for p in _plans(db, [contract.id])[contract.id]}
-    # 开票信息按期次带过去；已申请 / 已开票的期次不能删、不能改金额（发票金额已经定了）
-    for seq, old in old_plans.items():
-        if old.invoice_status == "none":
-            continue
-        new = data.items[seq - 1] if seq <= len(data.items) else None
-        if new is None or new.amount != old.amount:
-            raise BizError(
-                ErrorCode.RULE_VIOLATION,
-                f"「{old.name}」已申请或已开票，不能删除或修改金额；需要改请先让主管作废发票",
-                {"rule": RULE_PLAN_INVOICED, "seq": seq},
-            )
-    for old in old_plans.values():
-        db.delete(old)
-    db.flush()
-    for seq, item in enumerate(data.items, start=1):
-        kept = old_plans.get(seq)
-        db.add(
-            PaymentPlan(
-                contract_id=contract.id,
-                seq=seq,
-                name=item.name.strip(),
-                amount=item.amount,
-                due_date=item.due_date,
-                owner_id=contract.owner_id,
-                team_id=contract.team_id,
-                **(invoice_fields(kept) if kept else {}),
-            )
-        )
-    db.flush()
-    summary = "；".join(f"{i.name} ¥{i.amount / 100:,.0f}（{i.due_date}）" for i in data.items)
-    activity_service.record(
-        db, user, "contract", contract.id, "payment_plan", summary, subject=contract
-    )
-    return get_payment_plan(db, user, contract.id)
-
-
 def to_items(db: Session, contracts: list[Contract]) -> list[ContractItem]:
-    plans = _plans(db, [c.id for c in contracts])
-    states = {c.id: _states(c, plans[c.id]) for c in contracts}
+    plans = plans_of(db, [c.id for c in contracts])
+    states = {c.id: states_of(c, plans[c.id]) for c in contracts}
     commissions = _commissions(db, [c.id for c in contracts])
     quotes = _quote_refs(db, [c.quote_id for c in contracts])
     customers = lookup.customers(db, (c.customer_id for c in contracts))
@@ -267,6 +221,7 @@ def to_items(db: Session, contracts: list[Contract]) -> list[ContractItem]:
             next_payment=_next_payment(states[c.id]),
             overdue_amount=_overdue_amount(states[c.id]),
             invoice_requested=sum(p.invoice_status == "requested" for p in plans[c.id]),
+            invoice_pending=_invoice_pending(plans[c.id], states[c.id]),
             invoiced_unpaid_amount=_invoiced_unpaid(plans[c.id], states[c.id]),
         )
         for c in contracts

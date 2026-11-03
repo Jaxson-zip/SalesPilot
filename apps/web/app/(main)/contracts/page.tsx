@@ -43,16 +43,19 @@ const TOGGLEABLE = contractColumns()
   .slice(1)
   .map((c) => ({ id: c.id, label: c.label }))
 
-/** StatStrip：本月成交 / 累计预估提成 / 待回款（提成是全部合同的合计，不是本月；本月数在工作台） */
+/**
+ * StatStrip：本月成交 / 全部合同的预估提成 / 全部合同的待回款。
+ * 每格写明时间范围：只有第一格按本月，后两格是全部合同（本月提成在工作台）；都不受页签和筛选影响。
+ */
 function StatStrip({ s, loading }: { s: ContractSummary | undefined; loading: boolean }) {
   const items = [
-    { k: "本月成交", v: formatFen(s?.month_amount) },
+    { k: "本月成交", v: formatFen(s?.month_amount), sub: "本月新签合同金额" },
     {
-      k: "累计预估提成",
+      k: "预估提成 · 全部合同",
       v: formatFen(s?.estimated_commission),
       sub: s ? `已确认 ${formatFen(s.confirmed_commission)}` : "",
     },
-    { k: "待回款", v: formatFen(s?.unpaid_amount), sub: "点合同编号查看回款计划", wideOnly: true },
+    { k: "待回款 · 全部合同", v: formatFen(s?.unpaid_amount), sub: "不受筛选影响", wideOnly: true },
   ]
   return (
     // 手机上也是一行三格（原来竖排三块占掉半屏）

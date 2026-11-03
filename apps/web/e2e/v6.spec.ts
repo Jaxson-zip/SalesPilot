@@ -92,7 +92,9 @@ test.describe("B7 联系人角色 · U11 客户详情标签页", () => {
 })
 
 test.describe("B9 回款计划", () => {
-  test("合同列表显示下期回款；点编号看三期计划；调整时合计不等不能保存（不改演示数据）", async ({ page }) => {
+  test("合同列表显示当前应收；点编号看三期计划；已收齐的期次锁定；合计不等不能保存（不改演示数据）", async ({
+    page,
+  }) => {
     await loginAs(page, "sales")
     await page.goto("/contracts")
     const row = page.getByRole("row").filter({ hasText: "C-2026-001" })
@@ -106,8 +108,11 @@ test.describe("B9 回款计划", () => {
     await expect(table).toContainText("已收齐") // 已回款 40%，预付款 30% 收齐
 
     await sheet.getByRole("button", { name: "调整计划" }).click()
-    const first = sheet.getByRole("group", { name: "第 1 期" })
-    await first.getByRole("textbox").nth(1).fill("1")
+    // 预付款已收齐：只显示，没有输入框
+    await expect(sheet.getByRole("group", { name: "第 1 期" }).getByRole("textbox")).toHaveCount(0)
+    await expect(sheet.getByLabel("调整原因")).toBeVisible() // 已有回款要写原因
+    const last = sheet.getByRole("group", { name: "第 3 期" })
+    await last.getByRole("textbox").nth(1).fill("1")
     await expect(sheet.getByText(/还差 ¥/)).toBeVisible()
     await sheet.getByRole("button", { name: "保存计划" }).click()
     await expect(sheet.getByRole("status").filter({ hasText: "还不能保存" })).toContainText("各期合计要等于合同金额")

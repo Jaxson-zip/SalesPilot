@@ -26,10 +26,13 @@ InvoiceType = Literal["special", "normal"]
 
 
 class NextPayment(BaseModel):
-    """下一期待收款（合同列表用）：第一期没有收齐的。amount 为该期还差的金额。"""
+    """当前应收（合同列表用）：第一期没有收齐的。
+
+    amount 为该期还差的金额，plan_amount 为该期总额。"""
 
     name: str
     amount: int
+    plan_amount: int = 0
     due_date: date
     status: PlanStatus
     overdue_days: int
@@ -50,6 +53,7 @@ class ContractItem(BaseModel):
     next_payment: NextPayment | None = None
     overdue_amount: int = 0  # 已到期未收齐的金额合计
     invoice_requested: int = 0  # 已申请、等主管开票的期数
+    invoice_pending: int = 0  # 还没申请开票、但已收过款或已到期的期数
     invoiced_unpaid_amount: int = 0  # 已开票但还没收齐的金额
 
 
@@ -115,6 +119,8 @@ class PaymentPlanLineIn(BaseModel):
 
 class PaymentPlanUpdate(BaseModel):
     items: list[PaymentPlanLineIn] = Field(min_length=1, max_length=12)
+    # 合同已有回款、逾期或开票时必填（42201 plan_reason_required），写进合同动态
+    reason: str | None = Field(default=None, max_length=200)
 
 
 class ContractSummary(BaseModel):

@@ -248,7 +248,7 @@ def test_payment_plan_default_overdue_and_replace(client: TestClient, tracker: T
     listed = client.get(f"/api/contracts/{contract['id']}", headers=SALES_H).json()["data"]
     assert listed["overdue_amount"] == 2_000_000
     assert listed["next_payment"] == {
-        "name": "首付款", "amount": 2_000_000, "due_date": "2026-01-01",
+        "name": "首付款", "amount": 2_000_000, "plan_amount": 6_000_000, "due_date": "2026-01-01",
         "status": "overdue", "overdue_days": listed["next_payment"]["overdue_days"],
     }  # fmt: skip
 
@@ -346,7 +346,8 @@ def test_invoice_request_issue_void_and_unpaid(client: TestClient, tracker: Trac
     bad = client.put(plan_url, json={"items": changed}, headers=SALES_H).json()
     assert bad["code"] == 42201 and bad["data"]["rule"] == "plan_invoiced"
     moved = [items[0], {**items[1], "due_date": "2099-01-01"}, items[2]]
-    kept = client.put(plan_url, json={"items": moved}, headers=SALES_H).json()["data"]
+    body = {"items": moved, "reason": "客户要求第二期延后"}
+    kept = client.put(plan_url, json=body, headers=SALES_H).json()["data"]
     assert kept["items"][0]["invoice_no"] == "No.12345678"
 
     # 回款收齐第一期：不再算已开票未回款

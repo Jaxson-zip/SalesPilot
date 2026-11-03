@@ -1715,7 +1715,9 @@ export interface paths {
     get: operations["get_payment_plan_api_contracts__contract_id__payment_plan_get"]
     /**
      * Replace Payment Plan
-     * @description 负责人整体替换回款计划；各期合计必须等于合同金额（42201 plan_total_mismatch）。
+     * @description 负责人整体替换回款计划（42201）：合计须等于合同金额（plan_total_mismatch）；
+     *     已收款 / 已开票的期次锁定（plan_paid_locked / plan_invoiced）；
+     *     已有回款、逾期或开票时须写原因（plan_reason_required）。
      */
     put: operations["replace_payment_plan_api_contracts__contract_id__payment_plan_put"]
     post?: never
@@ -4929,6 +4931,11 @@ export interface components {
        */
       invoice_requested: number
       /**
+       * Invoice Pending
+       * @default 0
+       */
+      invoice_pending: number
+      /**
        * Invoiced Unpaid Amount
        * @default 0
        */
@@ -6240,13 +6247,20 @@ export interface components {
     }
     /**
      * NextPayment
-     * @description 下一期待收款（合同列表用）：第一期没有收齐的。amount 为该期还差的金额。
+     * @description 当前应收（合同列表用）：第一期没有收齐的。
+     *
+     *     amount 为该期还差的金额，plan_amount 为该期总额。
      */
     NextPayment: {
       /** Name */
       name: string
       /** Amount */
       amount: number
+      /**
+       * Plan Amount
+       * @default 0
+       */
+      plan_amount: number
       /**
        * Due Date
        * Format: date
@@ -6743,6 +6757,8 @@ export interface components {
     PaymentPlanUpdate: {
       /** Items */
       items: components["schemas"]["PaymentPlanLineIn"][]
+      /** Reason */
+      reason?: string | null
     }
     /** PaymentPlanView */
     PaymentPlanView: {

@@ -22,21 +22,24 @@ import { CONTRACT_STATUS_META, labelOf } from "@/lib/labels"
 import { fenToYuan, type CsvColumn, type FilterDef, type FilterOption } from "@/lib/list-view"
 import type { ContractItem } from "@/types/api"
 
-/** 下期回款（B9）：期次 + 还差金额 + 到期日；逾期标红 */
+/** 当前应收（B9）：第一期没收齐的期次 + 还差金额 + 到期日；收过一部分时注明本期总额和已收；逾期标红 */
 function NextPaymentCell({ c }: { c: ContractItem }) {
   const n = c.next_payment
   if (!n) return <span className="text-zinc-400">已收齐</span>
+  const total = n.plan_amount ?? n.amount
+  const detail = total > n.amount ? `本期 ${formatFen(total)} · 已收 ${formatFen(total - n.amount)}` : ""
   return (
     // 手机卡片里半宽放不下时「逾期 N 天」换到下一行（原来被截掉）
-    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5" title={detail || undefined}>
       <span>
-        {n.name} {formatFen(n.amount)}
+        {n.name} 待收 {formatFen(n.amount)}
       </span>
       {n.status === "overdue" ? (
         <Tag color="red">逾期 {n.overdue_days} 天</Tag>
       ) : (
         <span className="text-xs text-zinc-500">{n.due_date.slice(5)} 到期</span>
       )}
+      {detail ? <span className="w-full text-xs text-zinc-500">{detail}</span> : null}
     </span>
   )
 }
@@ -64,8 +67,18 @@ export function contractColumns(
             </button>
             {/* 有期次申请了开票、等主管登记 */}
             {c.invoice_requested ? (
-              <button type="button" onClick={() => onOpenPlan(c)} title="有开票申请待处理">
-                <Tag color="orange">待开票</Tag>
+              <button type="button" onClick={() => onOpenPlan(c)} title="有开票申请等主管登记">
+                <Tag color="orange">开票申请中</Tag>
+              </button>
+            ) : null}
+            {/* 已收过款或已到期、还没申请开票的期次（回款收齐了也可能还要开票） */}
+            {c.invoice_pending ? (
+              <button
+                type="button"
+                onClick={() => onOpenPlan(c)}
+                title={`${c.invoice_pending} 期已收款或已到期，还没申请开票`}
+              >
+                <Tag color="yellow">待开票 {c.invoice_pending} 期</Tag>
               </button>
             ) : null}
           </span>
@@ -101,9 +114,9 @@ export function contractColumns(
     },
     {
       id: "next_payment",
-      label: "下期回款",
+      label: "当前应收",
       icon: CalendarClock,
-      width: "w-[210px]",
+      width: "w-[220px]",
       cell: (c) => <NextPaymentCell c={c} />,
     },
     {
@@ -122,13 +135,13 @@ export function contractColumns(
     },
     {
       id: "commission",
-      label: "提成",
+      label: "提成 已确认/预估",
       icon: Wallet,
       align: "right",
-      width: "w-[150px]",
-      // 已确认 / 预估：两列合成一列，给负责人列腾出位置
+      width: "w-[160px]",
+      // 已确认（按回款比例）/ 预估总额：两列合成一列，给负责人列腾出位置
       cell: (c) => (
-        <span title="已确认 / 预估" className="tabular-nums">
+        <span title="已确认（按回款比例确认）/ 预估总额" className="tabular-nums">
           {formatFen(c.commission.confirmed)}
           <span className="text-zinc-400"> / {formatFen(c.commission.estimated)}</span>
         </span>
@@ -199,9 +212,13 @@ export const contractCsv: CsvColumn<ContractItem>[] = [
   { label: "已回款（元）", value: (c) => fenToYuan(c.paid_amount) },
   { label: "回款比例", value: (c) => `${paidPercent(c.paid_ratio)}%` },
   {
-    label: "下期回款",
-    value: (c) => (c.next_payment ? `${c.next_payment.name} ${c.next_payment.due_date}` : "已收齐"),
+    label: "当前应收",
+    value: (c) =>
+      c.next_payment
+        ? `${c.next_payment.name} 待收 ${fenToYuan(c.next_payment.amount)} 元 ${c.next_payment.due_date}`
+        : "已收齐",
   },
+  { label: "待开票期数", value: (c) => String(c.invoice_pending ?? 0) },
   { label: "逾期未收（元）", value: (c) => fenToYuan(c.overdue_amount) },
   { label: "预估提成（元）", value: (c) => fenToYuan(c.commission.estimated) },
   { label: "已确认提成（元）", value: (c) => fenToYuan(c.commission.confirmed) },

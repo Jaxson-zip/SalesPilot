@@ -226,6 +226,9 @@ def apply_stage(
         opp.lost_reason = (change.lost_reason or "").strip()
         content += f"（原因：{opp.lost_reason}）"
         content += opportunity_close.close_lost(db, user, opp)
+    elif change.stage == "won":
+        # 按报价成交时那张已是「已接受」，不在关闭范围内
+        content += opportunity_close.close_won_siblings(db, user, opp)
     db.flush()
     activity_service.record(
         db, user, "opportunity", opp.id, "stage_changed", content, source, subject=opp

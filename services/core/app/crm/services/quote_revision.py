@@ -17,7 +17,7 @@ from app.common.permissions import ensure_business_writer, ensure_owner
 from app.crm.models import Customer, Opportunity, Quote, QuoteItem
 from app.crm.schemas.opportunity import StageChange
 from app.crm.schemas.quote import QuoteLink, QuoteRef
-from app.crm.services import activity_service, quote_followups, quote_validity
+from app.crm.services import activity_service, quote_closing, quote_validity
 from app.crm.services.codes import next_code
 from app.crm.services.opportunity_service import apply_stage
 
@@ -86,10 +86,8 @@ def supersede(db: Session, user: CurrentUser, quote: Quote) -> str:
     old = db.get(Quote, quote.revision_of_id) if quote.revision_of_id else None
     if old is None or old.status not in ("approved", "sent"):
         return ""
-    old.status = "closed"
-    quote_followups.close_followups(db, old, f"已被新版本 {quote.code} 替代")
     msg = f"已被新版本 {quote.code} 替代，报价关闭"
-    activity_service.record(db, user, "quote", old.id, "close", msg, subject=old)
+    quote_closing.close_quote(db, user, old, msg, f"已被新版本 {quote.code} 替代")
     return f"，原报价 {old.code} 已关闭"
 
 

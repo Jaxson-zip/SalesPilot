@@ -6,14 +6,14 @@ is_decision_maker 由 role 派生，保留给旧接口和报销参与人使用�
 
 import uuid
 
-from sqlalchemy import case, select
+from sqlalchemy import any_, case, select
 from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_owner
 from app.common.scope import ensure_visible
-from app.crm.models import Contact, Customer
+from app.crm.models import Contact, Customer, Expense
 from app.crm.schemas.common import Page
 from app.crm.schemas.dashboard import (
     CONTACT_ROLE_LABELS,
@@ -134,10 +134,35 @@ def update_contact(
     return to_item(contact)
 
 
+RULE_CONTACT_IN_EXPENSE = "contact_in_open_expense"
+OPEN_EXPENSES = ("draft", "pending_approval", "rejected")
+
+
+def _ensure_not_in_open_expense(db: Session, contact: Contact) -> None:
+    """还能修改的报销单（草稿 / 待审批 / 被驳回）里用到的联系人不能删。
+
+    删了以后重新编辑报销单，这位客户方参与人会消失，人数和人均金额跟着变，可能变成超标。
+    已审批的报销单另存了参与人文字，不受影响。
+    """
+    codes = db.scalars(
+        select(Expense.code).where(
+            contact.id == any_(Expense.contact_ids), Expense.status.in_(OPEN_EXPENSES)
+        )
+    ).all()
+    if codes:
+        raise BizError(
+            ErrorCode.RULE_VIOLATION,
+            f"{contact.name} 是报销单 {'、'.join(codes[:3])} 的客户方参与人，"
+            "这些报销单处理完之前不能删除",
+            {"rule": RULE_CONTACT_IN_EXPENSE, "expenses": list(codes)},
+        )
+
+
 def delete_contact(
     db: Session, user: CurrentUser, customer_id: uuid.UUID, contact_id: uuid.UUID
 ) -> None:
     customer, contact = _owned_contact(db, user, customer_id, contact_id)
+    _ensure_not_in_open_expense(db, contact)
     name = contact.name
     db.delete(contact)
     db.flush()

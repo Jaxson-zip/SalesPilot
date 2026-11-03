@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.crm.models import Contract, Customer, DailyReport, Followup, Opportunity, Task, User
 from app.crm.schemas.opportunity import FINAL_STAGES
-from app.crm.services import activity_service, notification_service, wecom_service
+from app.crm.services import activity_service, notification_service, pool_service, wecom_service
 from app.crm.services.contract_service import due_soon_condition, overdue_condition, plan_states
 from app.crm.services.opportunity_insights import last_activity
 from app.crm.services.transfer_service import move_customer
@@ -250,8 +250,11 @@ def _pool_recycle(db: Session, now: datetime, options: dict[str, Any]) -> str:
     for c in customers:
         owner_id = c.owner_id
         assert owner_id is not None
+        closed = pool_service.close_open_work(db, None, c)
         move_customer(db, c, {"owner_id": None, "team_id": c.team_id})
-        activity_service.record_system(db, "customer", c.id, "pool_release", reason, c.team_id)
+        activity_service.record_system(
+            db, "customer", c.id, "pool_release", reason + closed, c.team_id
+        )
         notification_service.notify_once(
             db,
             owner_id,

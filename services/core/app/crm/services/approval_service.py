@@ -222,6 +222,7 @@ def decide(
     approval.approver_id = user.id
     approval.comment = (comment or "").strip() or None
     approval.decided_at = datetime.now(UTC)
+    notification_service.resolve_approval(db, approval.id)  # 其他主管的「待审批」提醒一并消掉
     _apply_to_target(db, user, approval, decision, source)
     return to_items(db, [approval])[0]
 

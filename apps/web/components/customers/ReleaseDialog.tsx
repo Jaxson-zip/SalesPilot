@@ -49,7 +49,7 @@ export function ReleaseDialog({
         <DialogHeader>
           <DialogTitle>退回公海</DialogTitle>
           <DialogDescription>
-            「{customer.name}」退回后没有负责人，本团队的销售可以领取，主管也可以直接分配。联系人和跟进记录会保留。
+            「{customer.name}」退回后没有负责人，本团队的销售可以领取，主管也可以直接分配。联系人和跟进记录会保留；还没成交的报价会关闭，未完成的待办会标为完成。
           </DialogDescription>
         </DialogHeader>
         {openOpps.length ? (

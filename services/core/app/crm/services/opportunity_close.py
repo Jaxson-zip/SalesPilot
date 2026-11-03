@@ -1,21 +1,18 @@
-"""商机进入终态后的收尾：赢单推喜报；输单关闭未成交的报价、待审批和未完成的待办。
+"""商机进入终态后的收尾：赢单推喜报、关闭同商机的其他报价；输单关闭未成交的报价、待审批和未完成的待办。
 
 输单后不应再有「报价已审批，还没发给客户」「跟进报价」这类推进提醒：
 - 草稿 / 待审批 / 已审批 / 已发送的报价改为「已关闭」，待审批的审批单一并驳回；
 - 商机下未完成的待办（含发送报价时自动建的跟进任务）自动完成，备注写明原因。
 """
 
-from datetime import UTC, datetime
-
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
-from app.crm.models import Approval, Customer, Opportunity, Quote, Task, User
-from app.crm.services import activity_service, quote_followups, wecom_service
+from app.crm.models import Customer, Opportunity, Quote, Task, User
+from app.crm.services import quote_closing, wecom_service
 
-OPEN_QUOTES = ("draft", "pending_approval", "approved", "sent")
 LOST_NOTE = "商机已输单，自动关闭"
+WON_NOTE = "商机已按其他报价赢单，自动关闭"
 
 
 def push_won(db: Session, opp: Opportunity) -> None:
@@ -33,35 +30,23 @@ def push_won(db: Session, opp: Opportunity) -> None:
     )
 
 
-def _close_approvals(db: Session, quote: Quote, now: datetime) -> None:
-    stmt = select(Approval).where(
-        Approval.target_type == "quote",
-        Approval.target_id == quote.id,
-        Approval.status == "pending",
-    )
-    for a in db.scalars(stmt):
-        a.status, a.comment, a.decided_at = "rejected", LOST_NOTE, now
-
-
 def close_lost(db: Session, user: CurrentUser, opp: Opportunity) -> str:
     """关闭输单商机下未成交的报价和未完成的待办，返回追加到阶段动态里的说明。"""
-    now = datetime.now(UTC)
-    quotes = db.scalars(
-        select(Quote).where(Quote.opportunity_id == opp.id, Quote.status.in_(OPEN_QUOTES))
-    ).all()
-    for q in quotes:
-        _close_approvals(db, q, now)
-        q.status = "closed"
-        quote_followups.close_followups(db, q, "商机已输单")
-        activity_service.record(db, user, "quote", q.id, "close", LOST_NOTE, subject=q)
-    tasks = db.scalars(
-        select(Task).where(
-            Task.subject_type == "opportunity", Task.subject_id == opp.id, Task.done.is_(False)
-        )
-    ).all()
-    for t in tasks:
-        t.done, t.done_at = True, now
-        t.note = "\n".join(filter(None, [t.note, LOST_NOTE]))
-    parts = [f"关闭报价 {len(quotes)} 张"] if quotes else []
-    parts += [f"完成待办 {len(tasks)} 条"] if tasks else []
-    return f"；{'、'.join(parts)}" if parts else ""
+    quotes = quote_closing.close_open_quotes(
+        db, user, Quote.opportunity_id == opp.id, LOST_NOTE, "商机已输单"
+    )
+    tasks = quote_closing.complete_tasks(
+        db, (Task.subject_type == "opportunity") & (Task.subject_id == opp.id), LOST_NOTE
+    )
+    return quote_closing.summary(quotes, tasks)
+
+
+def close_won_siblings(db: Session, user: CurrentUser, opp: Opportunity) -> str:
+    """赢单后同一商机下其他还没成交的报价（别的版本 / 档位）关闭，客户手里只剩成交的那一份。
+
+    商机下的其他待办不动：赢单后还有签合同、交付对接等事要做。
+    """
+    quotes = quote_closing.close_open_quotes(
+        db, user, Quote.opportunity_id == opp.id, WON_NOTE, "商机已赢单"
+    )
+    return quote_closing.summary(quotes, 0)

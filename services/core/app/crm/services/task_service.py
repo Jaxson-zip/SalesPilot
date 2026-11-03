@@ -19,7 +19,7 @@ from app.common.scope import View, apply_scope
 from app.crm.models import Customer, Opportunity, Task
 from app.crm.schemas.common import Page, PageParams
 from app.crm.schemas.task import TaskCreate, TaskItem, TaskUpdate
-from app.crm.services import activity_service, lookup
+from app.crm.services import activity_service, lookup, notification_service
 from app.crm.services.quote_query import count
 from app.rules.crm_calc import LOCAL_TZ, day_bounds, is_task_overdue
 
@@ -157,6 +157,8 @@ def update_task(
         task.note = changes["note"]
     if changes.get("done") is not None:
         _set_done(db, user, task, bool(changes["done"]), source)
+    if task.done or changes.get("due_at") is not None:
+        notification_service.resolve_tasks(db, [task.id])  # 完成 / 改期后旧的到期提醒失效
     db.flush()
     db.refresh(task)
     return to_items(db, [task])[0]
@@ -167,6 +169,7 @@ def delete_task(db: Session, user: CurrentUser, task_id: uuid.UUID) -> None:
     task = _load_owned(db, user, task_id)
     if task.done:
         raise BizError(ErrorCode.RULE_VIOLATION, "已完成的任务不能删除", {"rule": RULE_TASK_DONE})
+    notification_service.resolve_tasks(db, [task.id])
     db.delete(task)
     db.flush()
 

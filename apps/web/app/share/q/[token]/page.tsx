@@ -11,6 +11,7 @@ import { isApiError } from "@/lib/api"
 import { formatFen, formatPercent } from "@/lib/format"
 import { PRINT_COMPANY, printScope } from "@/lib/quote-print"
 import { fenToRmbUpper } from "@/lib/rmb"
+import { isExpiredShare } from "@/lib/share"
 
 function Row({ label, value }: { label: string; value: string | null | undefined }) {
   if (!value) return null
@@ -86,6 +87,11 @@ function QuoteView({ q }: { q: PublicQuote }) {
         {q.status === "accepted" ? (
           <div className="mt-2 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
             已确认成交
+          </div>
+        ) : null}
+        {isExpiredShare(q.status) ? (
+          <div role="alert" className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            这份报价已失效，价格和条款不再有效，请联系 {q.owner_name ?? "销售"} 获取最新报价。
           </div>
         ) : null}
         <div className="mt-2 text-sm">

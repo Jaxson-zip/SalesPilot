@@ -28,7 +28,7 @@ from app.crm.schemas.report import (
     TeamDailyOut,
     TeamMemberReport,
 )
-from app.crm.services import audit_service, wecom_service
+from app.crm.services import audit_service, notification_service, wecom_service
 from app.crm.services.codes import LOCAL_TZ, local_today
 from app.crm.services.wecom_service import PushIn, PushOut
 
@@ -162,6 +162,7 @@ def save_daily(db: Session, user: CurrentUser, body: DailyReportIn) -> DailyRepo
     if body.submit:
         r.status = "submitted"
         r.submitted_at = datetime.now(LOCAL_TZ)
+        notification_service.resolve_keys(db, [f"report_remind:{user.id}:{body.date.isoformat()}"])
     db.flush()
     return DailyReportOut(
         date=body.date,

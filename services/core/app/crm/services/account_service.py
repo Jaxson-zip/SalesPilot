@@ -24,7 +24,7 @@ from app.crm.schemas.account import (
     TeamItem,
     TempPassword,
 )
-from app.crm.services import notification_service
+from app.crm.services import notification_service, transfer_service
 
 RULE_SELF = "account_self"
 RULE_LAST_ADMIN = "last_admin"
@@ -167,8 +167,12 @@ def update_account(
     role = data.role or Role(user.role)
     team_id = data.team_id if "team_id" in data.model_fields_set else user.team_id
     if data.role is not None or "team_id" in data.model_fields_set:
+        old_team = user.team_id
         user.team_id = _team_for(db, role, team_id)
         user.role = role.value
+        if user.team_id is not None and user.team_id != old_team:
+            # 名下客户和进行中的业务跟人走，否则新主管看不到、审批还找原主管
+            transfer_service.move_member_team(db, user.id, user.team_id)
     if data.name is not None:
         user.name = data.name.strip()
     if data.active is not None and data.active != user.active:

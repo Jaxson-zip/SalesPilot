@@ -22,6 +22,7 @@ from app.crm.models import (
     Contact,
     Contract,
     Customer,
+    Expense,
     Followup,
     Opportunity,
     PaymentPlan,
@@ -216,3 +217,40 @@ def handover(db: Session, user: CurrentUser, data: HandoverIn) -> HandoverResult
             "/customers",
         )
     return result
+
+
+# ---------- 成员调团队 ----------
+
+OPEN_EXPENSE_STATUSES = ("draft", "pending_approval", "rejected")
+
+
+def move_member_team(db: Session, user_id: uuid.UUID, team_id: uuid.UUID) -> int:
+    """成员调到别的团队：名下客户和进行中的业务跟人走，新团队主管才看得到、审批才找新主管。
+
+    已成交的合同、回款计划和提成留在原团队（业绩记在原团队）。返回跟着走的客户数。
+    """
+    owner = {"owner_id": user_id, "team_id": team_id}
+    customers = db.scalars(
+        select(Customer).where(Customer.owner_id == user_id).with_for_update()
+    ).all()
+    for customer in customers:
+        move_customer(db, customer, owner)
+    # 不挂在客户下的：没关联客户的草稿报价、报销单，以及它们待审批的审批单
+    quote_ids = _ids(
+        db,
+        select(Quote.id).where(Quote.owner_id == user_id, Quote.status.in_(OPEN_QUOTE_STATUSES)),
+    )
+    expense_ids = _ids(
+        db,
+        select(Expense.id).where(
+            Expense.owner_id == user_id, Expense.status.in_(OPEN_EXPENSE_STATUSES)
+        ),
+    )
+    team = {"team_id": team_id}
+    db.execute(update(Quote).where(Quote.id.in_(quote_ids)).values(**team))
+    db.execute(update(Expense).where(Expense.id.in_(expense_ids)).values(**team))
+    db.execute(update(Task).where(Task.owner_id == user_id, Task.done.is_(False)).values(**team))
+    pending = Approval.target_id.in_([*quote_ids, *expense_ids]) & (Approval.status == "pending")
+    db.execute(update(Approval).where(pending).values(**team))
+    db.flush()
+    return len(customers)

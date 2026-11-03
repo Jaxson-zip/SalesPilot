@@ -168,7 +168,7 @@ def update_competitor(
 
 
 def delete_competitor(db: Session, user: CurrentUser, competitor_id: uuid.UUID) -> None:
-    """软删除：商机上的历史标注和战绩统计不受影响。"""
+    """软删除：记录保留，但商机上不再显示这个竞品的标注，战卡和战绩统计也不再出现。"""
     _require_admin(user)
     c = db.get(Competitor, competitor_id)
     if c is None or not c.enabled:

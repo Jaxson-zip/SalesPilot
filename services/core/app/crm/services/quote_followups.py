@@ -9,7 +9,7 @@ from app.common.auth import CurrentUser
 from app.common.errors import BizError
 from app.crm.models import Quote, Task
 from app.crm.schemas.task import TaskCreate
-from app.crm.services import task_service
+from app.crm.services import notification_service, task_service
 from app.crm.services.codes import LOCAL_TZ, local_today
 from app.rules.loader import RuleSet
 
@@ -18,16 +18,19 @@ FOLLOWUP_TITLE = "跟进报价 {code}：确认客户意见"
 
 def close_followups(db: Session, quote: Quote, reason: str) -> None:
     """客户已答复：发送时建的跟进任务自动完成，不再按到期提醒。"""
-    tasks = db.scalars(
-        select(Task).where(
-            Task.done.is_(False),
-            Task.customer_id == quote.customer_id,
-            Task.title == FOLLOWUP_TITLE.format(code=quote.code),
+    tasks = list(
+        db.scalars(
+            select(Task).where(
+                Task.done.is_(False),
+                Task.customer_id == quote.customer_id,
+                Task.title == FOLLOWUP_TITLE.format(code=quote.code),
+            )
         )
     )
     for task in tasks:
         task.done, task.done_at = True, datetime.now(UTC)
         task.note = "\n".join(filter(None, [task.note, f"{reason}，自动完成"]))
+    notification_service.resolve_tasks(db, [t.id for t in tasks])
 
 
 def schedule_followup(db: Session, user: CurrentUser, quote: Quote, rules: RuleSet) -> str:

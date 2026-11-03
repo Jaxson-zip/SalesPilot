@@ -132,7 +132,8 @@ export const REDRAFT_REPORT_CONFIRM: ConfirmCopy = {
 export function deleteContactConfirm(name: string): ConfirmCopy {
   return {
     title: `删除联系人「${name}」？`,
-    description: "删除后，历史报销单里的参与人记录不受影响；客户动态会记录这次删除。",
+    description:
+      "已审批的报销单里仍保留这位参与人的名字；还在草稿、待审批或被驳回的报销单用到 TA 时不能删除。客户动态会记录这次删除。",
     confirmLabel: "确认删除",
     destructive: true,
   }

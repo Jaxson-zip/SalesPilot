@@ -2,9 +2,16 @@ import { describe, expect, it } from "vitest"
 
 import { notificationMeta } from "@/lib/notifications"
 import { isPublicPath } from "@/lib/session"
-import { canShareQuote, shareMessage, shareUrl, viewSummary } from "@/lib/share"
+import { canShareQuote, isExpiredShare, shareMessage, shareUrl, viewSummary } from "@/lib/share"
 
 describe("报价分享链接", () => {
+  it("已关闭、客户已拒绝的报价打开时显示已失效（回归：旧链接仍像有效报价）", () => {
+    expect(isExpiredShare("closed")).toBe(true)
+    expect(isExpiredShare("rejected")).toBe(true)
+    expect(isExpiredShare("sent")).toBe(false)
+    expect(isExpiredShare("accepted")).toBe(false)
+  })
+
   it("审批通过后才能分享", () => {
     expect(canShareQuote("approved")).toBe(true)
     expect(canShareQuote("sent")).toBe(true)

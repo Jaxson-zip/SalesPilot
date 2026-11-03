@@ -7,6 +7,11 @@ export function canShareQuote(status: string, expired = false): boolean {
   return !expired && (SHAREABLE_STATUSES as readonly string[]).includes(status)
 }
 
+/** 客户打开链接时显示「已失效」：已关闭（输单 / 被新版本替代 / 退回公海）或客户已拒绝 */
+export function isExpiredShare(status: string): boolean {
+  return status === "closed" || status === "rejected"
+}
+
 /** 后端只给路径（/share/q/xxx），按当前打开的域名拼成完整链接 */
 export function shareUrl(origin: string, path: string): string {
   return `${origin.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`

@@ -15,7 +15,7 @@ from app.common.permissions import ensure_role, ensure_same_team
 from app.common.scope import ensure_visible
 from app.crm.models import Commission, Contract, Payment
 from app.crm.schemas.finance import ContractItem, PaymentIn, PaymentRecord
-from app.crm.services import activity_service, contract_service, lookup
+from app.crm.services import activity_service, contract_service, lookup, notification_service
 from app.crm.services.codes import local_today
 from app.rules import confirm_commission
 
@@ -39,6 +39,15 @@ def _apply(db: Session, contract: Contract, delta: int) -> None:
     for c in db.scalars(select(Commission).where(Commission.contract_id == contract.id)):
         c.confirmed = confirm_commission(c.estimated, contract.paid_amount, contract.amount)
     db.flush()
+    # 收齐的期次：「回款将到期」「回款逾期」提醒不再有效
+    paid = [
+        p.id
+        for p, s in contract_service.plan_states(db, [contract])[contract.id]
+        if s.status == "paid"
+    ]
+    notification_service.resolve_keys(
+        db, [f"{kind}:{i}" for i in paid for kind in ("payment_due", "payment_overdue")]
+    )
 
 
 def add_payment(

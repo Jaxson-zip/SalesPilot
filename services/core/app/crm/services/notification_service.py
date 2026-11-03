@@ -12,8 +12,9 @@
 import uuid
 from collections.abc import Iterable
 from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -166,3 +167,34 @@ def mark_read(
     db.flush()
     updated = int(getattr(result, "rowcount", 0) or 0)
     return NotificationReadResult(updated=updated, unread=count_unread(db, user.id))
+
+
+# ---------- 事情处理完，对应的提醒自动标为已读 ----------
+# 原来任务完成、回款收齐、日报提交、审批处理后，铃铛里的「逾期」「待审批」还一直是未读。
+
+
+def _resolve(db: Session, cond: Any) -> int:
+    stmt = update(Notification).where(Notification.read.is_(False), cond)
+    result = db.execute(stmt.values(read=True, read_at=datetime.now(UTC)))
+    return int(getattr(result, "rowcount", 0) or 0)
+
+
+def resolve_keys(db: Session, prefixes: Iterable[str]) -> int:
+    """dedupe_key 以这些前缀开头的未读提醒标为已读（所有接收人）。"""
+    conds = [Notification.dedupe_key.startswith(p, autoescape=True) for p in prefixes]
+    return _resolve(db, or_(*conds)) if conds else 0
+
+
+def resolve_tasks(db: Session, task_ids: Iterable[uuid.UUID]) -> int:
+    """任务完成、删除或改了到期时间：「今天到期」「已逾期」提醒不再有效。"""
+    ids = list(task_ids)
+    return resolve_keys(db, [f"{kind}:{i}" for i in ids for kind in ("task_due", "task_overdue")])
+
+
+def resolve_approval(db: Session, approval_id: uuid.UUID) -> int:
+    """审批已处理（通过 / 驳回 / 自动关闭）：所有主管的「待审批」「催办」提醒标为已读。"""
+    return _resolve(
+        db,
+        Notification.type.in_(("approval_pending", "approval_remind"))
+        & (Notification.link == f"/approvals?id={approval_id}"),
+    )

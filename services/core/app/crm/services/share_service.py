@@ -34,6 +34,7 @@ from app.rules.crm_calc import local_date
 
 SHAREABLE = ("approved", "sent", "accepted")
 RULE_SHARE_STATUS = "quote_share_status"
+EXPIRED_STATUSES = ("closed", "rejected")
 RULE_SHARE_EXPIRED = "quote_share_expired"
 
 
@@ -196,7 +197,8 @@ def public_quote(db: Session, token: str, count_view: bool = True) -> PublicQuot
         raise BizError(ErrorCode.NOT_FOUND, "链接已失效，请联系发送人重新获取")
     quote = db.get(Quote, share.quote_id)
     assert quote is not None
-    if count_view:
+    # 已关闭（输单 / 被新版本替代 / 退回公海）或客户已拒绝：页面显示「已失效」，不算客户在看
+    if count_view and quote.status not in EXPIRED_STATUSES:
         _record_view(db, share, quote)
     lines = quote_query.to_lines(quote_query.items_of(db, quote.id))
     opp = db.get(Opportunity, quote.opportunity_id) if quote.opportunity_id else None

@@ -12,10 +12,11 @@ import { FunnelChart } from "@/components/dashboard/FunnelChart"
 import { PipelineOverview } from "@/components/dashboard/PipelineOverview"
 import { TodoCard } from "@/components/dashboard/TodoCard"
 import { useSession } from "@/components/shell/SessionProvider"
-import { useDashboard } from "@/hooks/useDashboard"
+import { useDashboard, useTodoItems } from "@/hooks/useDashboard"
 import { usePermissions } from "@/hooks/usePermissions"
 import { formatFen, formatPercent } from "@/lib/format"
 import { todoSummary } from "@/lib/tasks"
+import { todoCounts } from "@/lib/todos"
 import { defaultScope } from "@/lib/views"
 
 function greeting(now: Date = new Date()): string {
@@ -50,7 +51,12 @@ export default function DashboardPage() {
   // 个人模式：只有自己，不叫「团队」
   const prefix = role === "admin" ? "全公司" : isLead && !solo ? "团队" : ""
   const loading = query.isPending
-  const summary = todoSummary(d?.tasks_today, d?.tasks_overdue)
+  // 与待办卡片同一口径：任务 + 回款 / 日报 / 待审批
+  const extra = todoCounts(useTodoItems(view).data ?? [])
+  const summary = todoSummary(
+    d?.tasks_today === undefined ? undefined : d.tasks_today + extra.today,
+    (d?.tasks_overdue ?? 0) + extra.overdue,
+  )
   // 主管 / 管理员看到的是团队（全公司）的任务，不是自己的
   const todo = summary && prefix ? `${prefix}${summary}` : summary
 

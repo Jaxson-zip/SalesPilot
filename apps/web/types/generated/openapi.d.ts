@@ -1127,6 +1127,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/dashboard/todos": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List Todos
+     * @description 待办里除任务以外的事项：待审批、今天的日报、逾期 / 今天到期的回款。
+     */
+    get: operations["list_todos_api_dashboard_todos_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/activities": {
     parameters: {
       query?: never
@@ -4204,6 +4224,26 @@ export interface components {
       message: string
       /** Data */
       data: components["schemas"]["TeamItem"][] | null
+      /**
+       * Request Id
+       * @default
+       */
+      request_id: string
+    }
+    /** ApiResponse[list[TodoItem]] */
+    ApiResponse_list_TodoItem__: {
+      /**
+       * Code
+       * @default 0
+       */
+      code: number
+      /**
+       * Message
+       * @default ok
+       */
+      message: string
+      /** Data */
+      data: components["schemas"]["TodoItem"][] | null
       /**
        * Request Id
        * @default
@@ -7929,6 +7969,35 @@ export interface components {
       /** Title */
       title: string
     }
+    /** TodoItem */
+    TodoItem: {
+      /**
+       * Kind
+       * @enum {string}
+       */
+      kind: "payment_overdue" | "payment_due" | "report" | "approval"
+      /** Title */
+      title: string
+      /**
+       * Subject
+       * @default
+       */
+      subject: string
+      /**
+       * Detail
+       * @default
+       */
+      detail: string
+      /** Due Date */
+      due_date: string | null
+      /**
+       * Overdue
+       * @default false
+       */
+      overdue: boolean
+      /** Link */
+      link: string
+    }
     /** TransferResult */
     TransferResult: {
       /** Transferred */
@@ -10705,6 +10774,39 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_Dashboard_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  list_todos_api_dashboard_todos_get: {
+    parameters: {
+      query?: {
+        view?: components["schemas"]["View"] | null
+      }
+      header?: {
+        authorization?: string | null
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_list_TodoItem__"]
         }
       }
       /** @description Validation Error */

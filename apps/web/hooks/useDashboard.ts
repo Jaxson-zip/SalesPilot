@@ -3,11 +3,13 @@
 import { useQuery } from "@tanstack/react-query"
 
 import { api } from "@/lib/api"
-import type { Activity, ActivityListParams, DashboardData, DataView, Paged } from "@/types/api"
+import type { Activity, ActivityListParams, DashboardData, DataView, Paged, TodoItem } from "@/types/api"
 
 export const dashboardKeys = {
   all: ["dashboard"] as const,
   data: (view: DataView) => ["dashboard", view] as const,
+  // 放在 dashboard 前缀下：登记回款、审批等已有的 invalidate(dashboardKeys.all) 会一并刷新
+  todos: (view: DataView) => ["dashboard", "todos", view] as const,
 }
 
 export const activityKeys = {
@@ -20,6 +22,14 @@ export function useDashboard(view: DataView) {
   return useQuery({
     queryKey: dashboardKeys.data(view),
     queryFn: ({ signal }) => api.get<DashboardData>("/api/dashboard", { view }, signal),
+  })
+}
+
+/** GET /api/dashboard/todos?view=：待办里除任务以外的事项 */
+export function useTodoItems(view: DataView) {
+  return useQuery({
+    queryKey: dashboardKeys.todos(view),
+    queryFn: ({ signal }) => api.get<TodoItem[]>("/api/dashboard/todos", { view }, signal),
   })
 }
 

@@ -66,6 +66,7 @@ export const responses = {
   Activity: true as Fits<S["ActivityOut"], T.Activity>,
   AttachmentOut: true as Fits<S["AttachmentOut"], T.AttachmentOut>,
   DashboardData: true as Fits<S["Dashboard"], T.DashboardData>,
+  TodoItem: true as Fits<S["TodoItem"], T.TodoItem>,
   OpportunityItem: true as Fits<S["OpportunityItem"], T.OpportunityItem>,
   OpportunityDetail: true as Fits<S["OpportunityDetail"], T.OpportunityDetail>,
   PipelineSummary: true as Fits<S["PipelineSummary"], T.PipelineSummary>,

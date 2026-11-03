@@ -80,6 +80,19 @@ export interface DashboardData {
   target_month?: number | null
 }
 
+/** 待办里除任务以外的事项（GET /api/dashboard/todos）：回款逾期 / 今天到期、今天的日报、待审批 */
+export type TodoKind = "payment_overdue" | "payment_due" | "report" | "approval"
+
+export interface TodoItem {
+  kind: TodoKind
+  title: string
+  subject?: string
+  detail?: string
+  due_date?: string | null
+  overdue?: boolean
+  link: string
+}
+
 export interface ActivityListParams {
   view: DataView
   subject_type?: string

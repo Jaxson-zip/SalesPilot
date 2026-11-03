@@ -3,6 +3,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { dashboardKeys } from "@/hooks/useDashboard"
 import { notifyError } from "@/hooks/notify"
 import { api } from "@/lib/api"
 
@@ -92,6 +93,8 @@ export function useSaveReport() {
     onSuccess: (data, body) => {
       qc.setQueryData(keys.daily(body.date), data)
       void qc.invalidateQueries({ queryKey: ["reports", "team"] })
+      // 工作台待办里的「提交今天的日报」提交后消失
+      if (body.submit) void qc.invalidateQueries({ queryKey: dashboardKeys.all })
       toast.success(body.submit ? "日报已提交" : "草稿已保存")
     },
     onError: notifyError,

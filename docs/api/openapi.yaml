@@ -2868,6 +2868,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/dashboard/todos:
+    get:
+      tags:
+      - dashboard
+      summary: List Todos
+      description: 待办里除任务以外的事项：待审批、今天的日报、逾期 / 今天到期的回款。
+      operationId: list_todos_api_dashboard_todos_get
+      parameters:
+      - name: view
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/View'
+          - type: 'null'
+          title: View
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_list_TodoItem__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/activities:
     get:
       tags:
@@ -8826,6 +8863,34 @@ components:
           default: ''
       type: object
       title: ApiResponse[list[TeamItem]]
+      required:
+      - code
+      - message
+      - data
+      - request_id
+    ApiResponse_list_TodoItem__:
+      properties:
+        code:
+          type: integer
+          title: Code
+          default: 0
+        message:
+          type: string
+          title: Message
+          default: ok
+        data:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/TodoItem'
+            type: array
+          - type: 'null'
+          title: Data
+        request_id:
+          type: string
+          title: Request Id
+          default: ''
+      type: object
+      title: ApiResponse[list[TodoItem]]
       required:
       - code
       - message
@@ -15730,6 +15795,50 @@ components:
       required:
       - title
       title: ThreadRename
+    TodoItem:
+      properties:
+        kind:
+          type: string
+          enum:
+          - payment_overdue
+          - payment_due
+          - report
+          - approval
+          title: Kind
+        title:
+          type: string
+          title: Title
+        subject:
+          type: string
+          title: Subject
+          default: ''
+        detail:
+          type: string
+          title: Detail
+          default: ''
+        due_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Due Date
+        overdue:
+          type: boolean
+          title: Overdue
+          default: false
+        link:
+          type: string
+          title: Link
+      type: object
+      required:
+      - kind
+      - title
+      - link
+      - subject
+      - detail
+      - due_date
+      - overdue
+      title: TodoItem
     TransferResult:
       properties:
         transferred:

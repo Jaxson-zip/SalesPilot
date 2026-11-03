@@ -7,6 +7,9 @@ import { ownerName } from "@/lib/format"
 /** 看板五列（输单不占列，拖到底部「输单」区域） */
 export const KANBAN_STAGES: OpportunityStage[] = STAGE_ORDER
 
+/** 手机端阶段标签：看板五列 + 输单（输单商机也要能查到） */
+export const LIST_STAGES: OpportunityStage[] = [...STAGE_ORDER, "lost"]
+
 export const FINAL_STAGES: OpportunityStage[] = ["won", "lost"]
 
 export function isFinalStage(stage: OpportunityStage): boolean {

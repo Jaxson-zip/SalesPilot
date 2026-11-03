@@ -11,7 +11,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core"
-import { CircleX, Plus } from "lucide-react"
+import { ChevronRight, CircleX, Plus } from "lucide-react"
 import { useState, type ReactNode } from "react"
 
 import { Tag } from "@/components/biz/Tag"
@@ -76,6 +76,45 @@ function LostZone({ visible }: { visible: boolean }) {
   )
 }
 
+/** 输单不占看板列，在看板下面单独列出（只读，点开看详情）；只剩输单商机时（例如按输单筛选）自动展开 */
+function LostSection({
+  items,
+  autoOpen,
+  onOpen,
+  showOwner,
+}: {
+  items: OpportunityItem[]
+  autoOpen: boolean
+  onOpen: (opp: OpportunityItem) => void
+  showOwner: boolean
+}) {
+  const [open, setOpen] = useState<boolean | null>(null)
+  if (items.length === 0) return null
+  const shown = open ?? autoOpen
+  return (
+    <section aria-label="输单商机" className="mt-4 border-t border-zinc-100 pt-3">
+      <button
+        type="button"
+        aria-expanded={shown}
+        onClick={() => setOpen(!shown)}
+        className="mb-1 flex h-8 items-center gap-1.5 rounded-md px-1 hover:bg-zinc-50"
+      >
+        <ChevronRight className={cn("size-4 text-zinc-400 transition-transform", shown && "rotate-90")} />
+        <Tag color={STAGE_META.lost.color}>{STAGE_META.lost.label}</Tag>
+        <span className="text-zinc-400 tabular-nums">{items.length}</span>
+        <span className="text-xs text-zinc-400 tabular-nums">{formatFen(sumAmount(items))}</span>
+      </button>
+      {shown ? (
+        <div className="grid grid-cols-5 gap-3 p-1">
+          {items.map((o) => (
+            <OpportunityCardBody key={o.id} opp={o} onOpen={() => onOpen(o)} showOwner={showOwner} />
+          ))}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
 /** ≥1024：五列等分看板（dnd-kit 拖拽切换阶段，不横向滚动） */
 export function KanbanBoard({ groups, loading, onOpen, onCreate, canDrag, onMove, showOwner = true }: BoardProps) {
   const [active, setActive] = useState<OpportunityItem | null>(null)
@@ -136,6 +175,9 @@ export function KanbanBoard({ groups, loading, onOpen, onCreate, canDrag, onMove
           </div>
         ))}
       </div>
+      {loading ? null : (
+        <LostSection items={groups.lost} autoOpen={all.length === 0} onOpen={onOpen} showOwner={showOwner} />
+      )}
       <LostZone visible={active !== null} />
       <DragOverlay>
         {active ? <OpportunityCardBody opp={active} className="shadow-lg" showOwner={showOwner} /> : null}

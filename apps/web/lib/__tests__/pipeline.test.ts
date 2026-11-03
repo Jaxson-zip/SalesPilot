@@ -6,6 +6,8 @@ import {
   funnelWidths,
   groupByStage,
   isStage,
+  KANBAN_STAGES,
+  LIST_STAGES,
   normalizeFunnel,
   stageBarState,
   sumAmount,
@@ -34,6 +36,14 @@ describe("groupByStage / sumAmount", () => {
     expect(g.won).toHaveLength(1)
     expect(g.lost).toHaveLength(0)
     expect(sumAmount(g.lead)).toBe(150)
+  })
+
+  it("输单商机有地方显示（回归：筛选输单显示 4 条，看板各列都是空的）", () => {
+    const g = groupByStage([opp("1", "lost"), opp("2", "lead")])
+    expect(g.lost.map((o) => o.id)).toEqual(["1"])
+    // 看板五列不含输单（输单在看板下面单独列出）；手机端标签要包含输单
+    expect(KANBAN_STAGES).not.toContain("lost")
+    expect(LIST_STAGES).toEqual([...KANBAN_STAGES, "lost"])
   })
 })
 

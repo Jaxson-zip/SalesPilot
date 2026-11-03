@@ -48,10 +48,12 @@ function NewQuote() {
   // 从商机进来：带上客户和商机的产品线
   if (!seeded && fromOpp.data) {
     setSeeded(true)
+    // 已输单的商机不能再出报价（后端拦）：不自动关联，只带客户
+    if (fromOpp.data.stage === "lost") setOppId(null)
     setCustomer(fromOpp.data.customer)
     if (fromOpp.data.product_line) setPicked(fromOpp.data.product_line.pack)
   }
-  const oppItems = (opps.data?.items ?? []).filter((o) => o.customer.id === customer?.id)
+  const oppItems = (opps.data?.items ?? []).filter((o) => o.customer.id === customer?.id && o.stage !== "lost")
   const opp = oppItems.find((o) => o.id === oppId)
   const pack = picked || opp?.product_line?.pack || fallback
   const packOptions = lines

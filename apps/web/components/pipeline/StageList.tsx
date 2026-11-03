@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { OpportunityCardBody } from "@/components/pipeline/OpportunityCard"
 import { formatFen } from "@/lib/format"
 import { STAGE_META } from "@/lib/labels"
-import { KANBAN_STAGES, sumAmount, type StageGroups } from "@/lib/pipeline"
+import { LIST_STAGES, sumAmount, type StageGroups } from "@/lib/pipeline"
 import { cn } from "@/lib/utils"
 import type { OpportunityItem, OpportunityStage } from "@/types/api"
 
@@ -33,7 +33,7 @@ export function StageList({
   return (
     <>
       <div className="sticky top-0 z-10 flex flex-wrap gap-1.5 border-b border-zinc-100 bg-white px-3 py-2.5">
-        {KANBAN_STAGES.map((s) => (
+        {LIST_STAGES.map((s) => (
           <button
             key={s}
             type="button"

@@ -171,6 +171,9 @@ export function OpportunitySheet({
   const detail = useOpportunity(opp?.id ?? null)
   const suggestions = useOpportunitySuggestions(opp?.id ?? null)
   const o = detail.data ?? opp
+  // 赢单 / 输单后不再出报价、出方案（后端也会拦）；输单的待办已随输单自动完成，不再提示安排下一步
+  const open = o ? !isFinalStage(o.stage) : false
+  const lost = o?.stage === "lost"
   const [pasting, setPasting] = useState(false)
   // 出方案直接发给 AI：带上这个商机的跟进记录（没有就用这个客户最近的）
   // 跟进记录还没读到时按钮先转圈，免得发出「还没有跟进记录」；读失败就不带这部分
@@ -209,7 +212,7 @@ export function OpportunitySheet({
                 粘贴纪要
               </Button>
             ) : null}
-            {editable ? (
+            {editable && open ? (
               <Button variant="outline" asChild>
                 <Link href={`/quotes/new?opp=${encodeURIComponent(o.id)}`}>
                   <FilePlus />
@@ -217,7 +220,7 @@ export function OpportunitySheet({
                 </Link>
               </Button>
             ) : null}
-            {editable && notes.isPending ? (
+            {!open ? null : editable && notes.isPending ? (
               <Button disabled>
                 <Loader2 className="animate-spin" />
                 出方案
@@ -266,13 +269,15 @@ export function OpportunitySheet({
           <MeddicCard oppId={o.id} editable={editable} />
           <CompetitorsCard oppId={o.id} editable={editable} />
           {/* U9：去掉固定文字的「下一步建议」，换成真实的下一步任务（v3 §12） */}
-          <SubjectTasks
-            subjectType="opportunity"
-            subjectId={o.id}
-            subjectName={o.name}
-            editable={editable}
-            focusId={focusTaskId}
-          />
+          {lost ? null : (
+            <SubjectTasks
+              subjectType="opportunity"
+              subjectId={o.id}
+              subjectName={o.name}
+              editable={editable}
+              focusId={focusTaskId}
+            />
+          )}
           {detail.isPending ? (
             <Skeleton className="h-24 w-full" />
           ) : detail.isError ? (

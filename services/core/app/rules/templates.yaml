@@ -117,12 +117,14 @@ learn_prompts:
   - { title: 竞品打法, prompt: "我们主要有哪些竞品？分别怎么应对？" }
 
 # AI 工作台的示例问题（按角色）
+# 占位符按本人负责的数据填（app/crm/services/prompt_fill.py）：{customer} {contact} 最近更新、有联系人的客户；
+# {opp_customer} {opp_name} {next_stage} 最近更新的进行中商机。缺数据用 fallback，没有 fallback 就不显示
 ai_prompts:
   sales:
     - { title: 出方案报价, prompt: "给明理律所出一份 Qwen3-32B 私有化方案，50 人并发，做合同审查，预算 40 万以内", pack_example: true }
-    - { title: 对话报销, prompt: "昨晚请明理律所王律师吃饭花了 860 元，一共 4 个人，帮我报销" }
-    - { title: 推进商机, prompt: "把星河设计的商机推进到商务谈判" }
-    - { title: 记跟进, prompt: "帮我记一下：今天和明理律所王律师通了电话，对方希望下周看演示" }
+    - { title: 对话报销, prompt: "昨晚请{customer}的{contact}吃饭花了 860 元，一共 4 个人，帮我报销", fallback: "昨晚请客户吃饭花了 860 元，一共 4 个人，帮我报销" }
+    - { title: 推进商机, prompt: "把{opp_customer}的「{opp_name}」推进到{next_stage}" }
+    - { title: 记跟进, prompt: "帮我记一下：今天和{customer}的{contact}通了电话，对方希望下周看演示", fallback: "帮我记一下：今天和客户通了电话，对方希望下周看演示" }
   manager:
     - { title: 团队漏斗, prompt: "团队现在的商机漏斗是什么情况？" }
     - { title: 待审批, prompt: "列出现在等我审批的报价和报销" }

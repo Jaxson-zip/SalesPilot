@@ -51,6 +51,23 @@ def test_ai_prompts_by_role(client: TestClient) -> None:
     assert "全公司漏斗" in titles(ADMIN_H)
 
 
+def test_advance_prompt_follows_own_open_deal(client: TestClient, tracker: Tracker) -> None:
+    """回归：「推进商机」示例写死星河设计，商机输单后仍然推荐推进它。"""
+    from tests.api.test_deal_closeout_api import _lose
+    from tests.api.test_opportunities_api import new_opp
+
+    def advance() -> str | None:
+        prompts = client.get("/api/templates", headers=SALES_H).json()["data"]["ai_prompts"]
+        return next((p["prompt"] for p in prompts if p["title"] == "推进商机"), None)
+
+    opp = new_opp(client, tracker)  # 最近更新的进行中商机，阶段是线索
+    assert advance() == f"把深圳明理律师事务所的「{opp['name']}」推进到需求确认"
+    _lose(client, opp["id"])
+    assert opp["name"] not in (advance() or "")
+    manager = client.get("/api/templates", headers=MANAGER_H).json()["data"]["ai_prompts"]
+    assert all("{" not in p["prompt"] for p in manager)
+
+
 def test_solution_prompt_follows_pack(client: TestClient) -> None:
     """出方案示例卡片标了 pack_example，每个行业包都给出自己的例句（前端按当前行业包替换）。"""
     prompts = client.get("/api/templates", headers=SALES_H).json()["data"]["ai_prompts"]

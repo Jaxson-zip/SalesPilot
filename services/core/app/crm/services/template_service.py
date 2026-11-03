@@ -8,9 +8,12 @@ from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
+from app.common.auth import CurrentUser
 from app.crm.schemas.finance import EXPENSE_TYPE_LABELS, ExpenseType, TransportMode
 from app.crm.schemas.task import TaskType
+from app.crm.services import prompt_fill
 from app.crm.services.rule_notes import RuleNotes, rule_notes
 from app.packs.registry import list_packs
 from app.rules import RuleSet, load_rules
@@ -142,8 +145,10 @@ def quote_terms(pack_id: str | None) -> list[str]:
     return [_fill(t, values) for t in texts]
 
 
-def get_templates(role: Role) -> Templates:
+def get_templates(db: Session, user: CurrentUser) -> Templates:
     raw, rules = _raw(), load_rules()
+    role: Role = user.role.value  # type: ignore[assignment]
+    prompts = raw.get("ai_prompts", {}).get(role, [])
     values = _placeholders(rules)
     expense = raw.get("expense", {})
     return Templates(
@@ -157,7 +162,8 @@ def get_templates(role: Role) -> Templates:
         contract_terms=[str(t).format(**values) for t in raw.get("contract_terms", [])],
         rule_notes=RuleNotes.model_validate(rule_notes(rules)),
         ai_prompts=[
-            PromptTemplate.model_validate(p) for p in raw.get("ai_prompts", {}).get(role, [])
+            PromptTemplate.model_validate(p)
+            for p in prompt_fill.fill(prompts, prompt_fill.user_values(db, user.id))
         ],
         learn_prompts=[PromptTemplate.model_validate(p) for p in raw.get("learn_prompts", [])],
     )

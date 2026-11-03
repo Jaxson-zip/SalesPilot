@@ -29,5 +29,5 @@ def precheck_expense(body: ExpensePrecheckIn, user: CurrentUserDep) -> ApiRespon
 
 
 @router.get("/templates", response_model=ApiResponse[template_service.Templates])
-def get_templates(user: CurrentUserDep) -> ApiResponse[template_service.Templates]:
-    return ok(template_service.get_templates(user.role.value))
+def get_templates(user: CurrentUserDep, db: DbDep) -> ApiResponse[template_service.Templates]:
+    return ok(template_service.get_templates(db, user))

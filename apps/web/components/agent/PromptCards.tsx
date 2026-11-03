@@ -59,7 +59,7 @@ export function promptCardsFrom(templates: PromptTemplate[], packExample?: strin
 }
 
 /**
- * 欢迎页的示例问题：按角色来自 /api/templates（rules/templates.yaml），
+ * 欢迎页的示例问题：按角色来自 /api/templates（rules/templates.yaml），客户和商机按本人的数据填写，
  * 只放 AI 工具真正做得到的事（不放「算我这个月提成」这类没有数据来源的问题）。
  * learn：学习问答模式的引导问题，只放知识库和系统配置能回答的。
  */
@@ -73,7 +73,7 @@ export function PromptCards({
   /** 当前出方案用的行业包 */
   packId?: string | null
 }) {
-  const query = useTemplates()
+  const query = useTemplates({ fresh: true })
   const packs = usePacks()
   if (query.isPending) return <Skeleton className="mt-4 h-24 w-full" />
   const example = packs.data?.find((p) => p.id === packId)?.example_prompt

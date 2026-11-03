@@ -1,7 +1,6 @@
 """跟进记录 service：Agent 记跟进、客户详情的跟进列表与手工新建（接口契约 §8）。"""
 
 import uuid
-from datetime import datetime
 
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -14,6 +13,7 @@ from app.common.scope import can_see, ensure_visible
 from app.crm.models import Customer, Followup, Opportunity
 from app.crm.schemas.common import Page
 from app.crm.schemas.dashboard import FollowupIn, FollowupItem, FollowupType
+from app.crm.schemas.fields import PastTime
 from app.crm.services import activity_service
 
 
@@ -22,7 +22,7 @@ class FollowupCreate(BaseModel):
     opportunity_id: uuid.UUID | None = None
     type: FollowupType = "phone"
     content: str = Field(min_length=1, max_length=2000)
-    occurred_at: datetime | None = None
+    occurred_at: PastTime | None = None
 
 
 class FollowupOut(BaseModel):

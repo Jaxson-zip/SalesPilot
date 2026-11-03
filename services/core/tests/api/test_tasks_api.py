@@ -104,6 +104,7 @@ def test_only_owner_can_edit_task(client: TestClient, tracker: Tracker) -> None:
     assert missing.json()["code"] == 40401
 
 
+@pytest.mark.usefixtures("tasks_for_today")  # 回归：整套测试跨过北京时间 0 点时偶发失败
 def test_due_filters_and_dashboard(client: TestClient, tracker: Tracker) -> None:
     today = client.get("/api/tasks?due=today", headers=SALES_H).json()["data"]["items"]
     assert "给王律师发送修订版方案" in {t["title"] for t in today}

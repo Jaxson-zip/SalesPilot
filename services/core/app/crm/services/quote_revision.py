@@ -21,7 +21,7 @@ from app.crm.services import activity_service, quote_closing, quote_validity
 from app.crm.services.codes import next_code
 from app.crm.services.opportunity_service import apply_stage
 
-BEFORE_PROPOSAL = ("lead", "qualified")  # 出了报价单还停在这些阶段的商机推进到「方案报价」
+BEFORE_PROPOSAL = ("lead", "qualified")  # 报价发给客户时还停在这些阶段的商机推进到「方案报价」
 
 RULE_REVISE = "quote_revise_not_allowed"
 RULE_LINK = "quote_link_not_allowed"
@@ -114,8 +114,6 @@ def link(db: Session, user: CurrentUser, quote_id: uuid.UUID, data: QuoteLink) -
         assert opp is not None
         quote_validity.ensure_deal_open(db, opp.id, "关联报价")
         quote.opportunity_id, quote.customer_id = opp.id, opp.customer_id
-        if opp.stage in BEFORE_PROPOSAL:
-            apply_stage(db, user, opp, StageChange(stage="proposal"))
     elif data.customer_id is not None:
         ensure_owner(db.get(Customer, data.customer_id), user)
         quote.opportunity_id, quote.customer_id = None, data.customer_id
@@ -124,3 +122,15 @@ def link(db: Session, user: CurrentUser, quote_id: uuid.UUID, data: QuoteLink) -
     customer = db.get(Customer, quote.customer_id)
     msg = f"关联客户「{customer.name if customer else '—'}」"
     activity_service.record(db, user, "quote", quote.id, "link", msg, subject=quote)
+
+
+def advance_deal(db: Session, user: CurrentUser, quote: Quote, source: str = "manual") -> str:
+    """报价发给客户：商机还在线索 / 需求确认的推进到「方案报价」，返回追加到动态里的说明。
+
+    回归：原来新建报价（哪怕只是草稿）就推进，商机赢率从 10% 跳到 50%，客户其实还没看到方案。
+    谈判中的不往回退。"""
+    opp = db.get(Opportunity, quote.opportunity_id) if quote.opportunity_id else None
+    if opp is None or opp.stage not in BEFORE_PROPOSAL:
+        return ""
+    apply_stage(db, user, opp, StageChange(stage="proposal"), source)
+    return "；商机推进到「方案报价」"

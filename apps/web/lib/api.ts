@@ -142,9 +142,30 @@ export async function withReauth<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
-/** 通用请求：自动带 token 与 X-Request-ID；401 时尝试重新登录一次 */
+/** 正在进行中的写请求：同一个写请求（方法 + 地址 + 请求体都相同）还没返回时，再发一次直接复用 */
+const inflight = new Map<string, Promise<unknown>>()
+
+/** 写请求的去重键；GET、上传、带 signal 的请求不去重（返回 null） */
+export function writeKey(path: string, opts: RequestOptions): string | null {
+  const method = opts.method ?? "GET"
+  if (method === "GET" || opts.signal) return null
+  if (typeof FormData !== "undefined" && opts.body instanceof FormData) return null
+  return `${method} ${withQuery(path, opts.query)} ${JSON.stringify(opts.body ?? null)}`
+}
+
+/**
+ * 通用请求：自动带 token 与 X-Request-ID；401 时尝试重新登录一次。
+ * 回归：快速双击「创建报价单」时，两次点击都在按钮变成「保存中」之前发出，生成了两张一样的报价。
+ * 相同的写请求在第一次返回前不会再发第二次，所有按钮都受益。
+ */
 export function apiFetch<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-  return withReauth(() => send<T>(path, opts))
+  const key = writeKey(path, opts)
+  if (key === null) return withReauth(() => send<T>(path, opts))
+  const running = inflight.get(key)
+  if (running) return running as Promise<T>
+  const p = withReauth(() => send<T>(path, opts)).finally(() => inflight.delete(key))
+  inflight.set(key, p)
+  return p
 }
 
 export const api = {

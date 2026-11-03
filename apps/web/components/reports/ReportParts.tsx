@@ -45,10 +45,14 @@ export function DateInput({ value, onChange }: { value: string; onChange: (v: st
   )
 }
 
+/** 统计口径（与 core report_service._deal_counts 一致） */
+export const STATS_NOTE =
+  "新建报价：当天新建的报价单张数（含 AI 生成，提交、发送不重复计）；阶段推进：商机阶段变化次数，含报价发给客户后的自动推进。"
+
 export function StatLine({ s }: { s: DailyStats }) {
   return (
     <span className="text-xs text-zinc-500 tabular-nums">
-      跟进 {s.followups} · 报价 {s.quotes} · 阶段推进 {s.stage_changes} · 完成任务 {s.tasks_done}
+      跟进 {s.followups} · 新建报价 {s.quotes} · 阶段推进 {s.stage_changes} · 完成任务 {s.tasks_done}
       {s.ai_actions ? ` · AI 代办 ${s.ai_actions}` : ""}
     </span>
   )
@@ -84,7 +88,7 @@ export function Facts({ facts }: { facts: DailyFacts }) {
   const s = facts.stats
   const tiles = [
     { label: "跟进", value: s.followups },
-    { label: "报价", value: s.quotes },
+    { label: "新建报价", value: s.quotes },
     { label: "阶段推进", value: s.stage_changes },
     { label: "完成任务", value: s.tasks_done },
   ]
@@ -102,6 +106,7 @@ export function Facts({ facts }: { facts: DailyFacts }) {
           </div>
         ))}
       </div>
+      <p className="text-xs text-zinc-500">{STATS_NOTE}</p>
       {empty ? (
         <p className="text-zinc-400">这一天系统里还没有你的操作记录。</p>
       ) : (

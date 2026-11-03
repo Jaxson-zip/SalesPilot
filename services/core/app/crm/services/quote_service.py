@@ -157,8 +157,6 @@ def create_from_tier(
     activity_service.record(
         db, user, "quote", quote.id, "create", f"生成报价单 {quote.code}", "agent", quote
     )
-    if opp is not None and opp.stage in BEFORE_PROPOSAL:
-        apply_stage(db, user, opp, StageChange(stage="proposal"), "agent")
     return _to_out(quote, items)
 
 
@@ -349,10 +347,6 @@ def _mark_won(db: Session, user: CurrentUser, opportunity_id: uuid.UUID | None, 
         apply_stage(db, user, opp, StageChange(stage="won"), src)
 
 
-# 出了报价单还停在这些阶段的商机自动推进到「方案报价」（谈判中的不往回退）
-BEFORE_PROPOSAL = quote_revision.BEFORE_PROPOSAL
-
-
 def transition(
     db: Session, user: CurrentUser, quote_id: uuid.UUID, action: str, source: str = "manual"
 ) -> QuoteDetail:
@@ -392,6 +386,7 @@ def transition(
     if action == "send":
         content += quote_followups.schedule_followup(db, user, quote, rules_for(quote))
         content += quote_revision.supersede(db, user, quote)
+        content += quote_revision.advance_deal(db, user, quote, source)
     db.flush()
     activity_service.record(db, user, "quote", quote.id, action, content, source, quote)
     return get_quote(db, user, quote.id)

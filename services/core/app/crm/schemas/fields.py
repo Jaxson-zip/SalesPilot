@@ -2,20 +2,21 @@
 
 - 名称类必填字段：去掉首尾空格后不能为空（只填空格的「空名称」会被拒绝）
 - 电话：去掉首尾空格；空串视为没填；要像电话号码（数字、+、空格、横线、括号，可带分机）
-- 发生日期：不能晚于今天（北京时间）
+- 发生日期：不能晚于今天（北京时间）；发生时间不能晚于现在
+- 时间不带时区时按北京时间理解（原来按 UTC，「当天 00:00」存成了北京时间 08:00）
 - 网站：只接受 http / https 地址（javascript:、data: 等一律拒绝）；只写域名的补成 https://
 - 金额：不超过 100 亿元（多打了几个 0、以及超出数据库 bigint 时返回 500 的问题）
 - 计划日期（预计成交、任务截止）：2000 年以后、今天起 10 年以内（防 1900、2999 这类误填）
 """
 
 import re
-from datetime import date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Annotated
 from urllib.parse import urlsplit
 
 from pydantic import AfterValidator, BeforeValidator, Field
 
-from app.crm.services.codes import local_today
+from app.crm.services.codes import LOCAL_TZ, local_today
 
 # 手机 13800138000、+86 138 0013 8000、座机 0755-12345678、(010)12345678、400-800-1234 转 123
 _PHONE = re.compile(
@@ -83,6 +84,21 @@ def _not_future(v: date | None) -> date | None:
 
 PastDate = Annotated[date, AfterValidator(_not_future)]
 
+
+def _local(v: datetime | None) -> datetime | None:
+    return v.replace(tzinfo=LOCAL_TZ) if v is not None and v.tzinfo is None else v
+
+
+def _past_time(v: datetime | None) -> datetime | None:
+    v = _local(v)
+    # 允许几分钟误差：浏览器和服务器的时钟不完全一致
+    if v is not None and v > datetime.now(UTC) + timedelta(minutes=10):
+        raise ValueError("发生时间不能晚于现在")
+    return v
+
+
+PastTime = Annotated[datetime, AfterValidator(_past_time)]
+
 MAX_AMOUNT_FEN = 10**12  # 100 亿元
 
 
@@ -110,6 +126,7 @@ def _plan_date(v: date | None) -> date | None:
 
 
 def _plan_time(v: datetime | None) -> datetime | None:
+    v = _local(v)
     if v is not None:
         _plan_day(v.date())
     return v

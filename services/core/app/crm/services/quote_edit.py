@@ -17,7 +17,6 @@ from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_business_writer, ensure_owner
 from app.crm.models import Customer, Quote, QuoteItem
-from app.crm.schemas.opportunity import StageChange
 from app.crm.schemas.quote import (
     QUOTE_STATUS_LABELS,
     QuoteCreate,
@@ -27,8 +26,8 @@ from app.crm.schemas.quote import (
 )
 from app.crm.services import activity_service, quote_query, quote_validity
 from app.crm.services.codes import next_code
-from app.crm.services.opportunity_service import apply_stage, get_owned
-from app.crm.services.quote_service import BEFORE_PROPOSAL, get_quote, rules_for
+from app.crm.services.opportunity_service import get_owned
+from app.crm.services.quote_service import get_quote, rules_for
 from app.packs.base import PASSTHROUGH, BomItem, Catalog
 from app.packs.registry import get_pack
 from app.rules import load_rules
@@ -191,8 +190,6 @@ def create_manual(db: Session, user: CurrentUser, data: QuoteCreate) -> QuoteDet
     activity_service.record(
         db, user, "quote", quote.id, "create", f"新建报价单 {quote.code}", subject=quote
     )
-    if opp is not None and opp.stage in BEFORE_PROPOSAL:
-        apply_stage(db, user, opp, StageChange(stage="proposal"))
     return get_quote(db, user, quote.id)
 
 

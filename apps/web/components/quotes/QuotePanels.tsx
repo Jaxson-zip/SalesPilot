@@ -183,8 +183,8 @@ export function ApprovalRecords({ q }: { q: QuoteDetail }) {
               <span className="flex-1" />
               <span className="text-xs text-zinc-400">{a.decided_at ? formatRelative(a.decided_at) : ""}</span>
             </div>
-            <div className="text-zinc-700">触发原因：{a.reason}</div>
-            {a.comment ? <div className="text-zinc-500">审批意见：{a.comment}</div> : null}
+            <div className="whitespace-pre-line text-zinc-700">触发原因：{a.reason}</div>
+            {a.comment ? <div className="whitespace-pre-line text-zinc-500">审批意见：{a.comment}</div> : null}
           </div>
         )
       })}
@@ -204,7 +204,7 @@ export function QuoteTimeline({ quoteId, role }: { quoteId: string; role: Role }
           <Chip name={a.actor?.name ?? "AI"} />
           <div className="min-w-0 flex-1">
             <span className="text-zinc-500">{activityActionLabel(a.action, a.subject_type)}</span>
-            {a.content ? <div className="mt-0.5 break-words text-zinc-700">{a.content}</div> : null}
+            {a.content ? <div className="mt-0.5 break-words whitespace-pre-line text-zinc-700">{a.content}</div> : null}
           </div>
           <span className="shrink-0 text-xs text-zinc-400">{formatRelative(a.created_at)}</span>
         </div>

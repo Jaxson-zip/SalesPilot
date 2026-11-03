@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.crm.schemas.fields import ContactName, Phone, PhoneOrMasked
+from app.crm.schemas.fields import ContactName, PastTime, Phone, PhoneOrMasked
 from app.crm.schemas.opportunity import PipelineStage
 
 FollowupType = Literal["phone", "visit", "wechat", "email", "ai"]  # ai = Agent 记录
@@ -44,7 +44,7 @@ class ProductLineUpdate(BaseModel):
 class FollowupIn(BaseModel):
     type: Literal["phone", "visit", "wechat", "email"]
     content: str = Field(min_length=1, max_length=2000)
-    occurred_at: datetime | None = None
+    occurred_at: PastTime | None = None
     opportunity_id: uuid.UUID | None = None
 
 

@@ -33,6 +33,7 @@ import { localDate } from "@/lib/format"
 import {
   checkFromPolicy,
   checkFromPrecheck,
+  clearError,
   formFromExpense,
   lastRejection,
   missingAttachmentReason,
@@ -135,8 +136,12 @@ export function ExpenseSheet({
     setErrors({})
     update.mutate({ id: draftId, body: r.value }, { onSuccess: () => setEditing(false) })
   }
-  const set = <K extends keyof ExpenseFormValues>(k: K, v: ExpenseFormValues[K]) =>
+  const set = <K extends keyof ExpenseFormValues>(k: K, v: ExpenseFormValues[K]) => {
     setValues((prev) => ({ ...prev, [k]: v }))
+    // 改了哪项就清掉哪项的错误；换报销类型时必填项整套变了，错误全部清掉
+    // 回归：从客户招待切到住宿后，仍提示「招待对象必填」
+    setErrors((prev) => (k === "type" ? {} : clearError(prev, k)))
+  }
 
   /** 保存草稿，返回报销单 id；表单校验不通过或保存失败返回 null */
   const saveDraft = async (fromUpload = false): Promise<string | null> => {
@@ -227,7 +232,7 @@ export function ExpenseSheet({
     <FormSheet open={open} onOpenChange={(o) => !o && close()} dirty={dirty} title={title} footer={footer}>
       {rejection ? (
         <Alert tone="warn" title={`${rejection.approver?.name ?? "主管"}驳回了这张报销`}>
-          {rejection.comment || "没有写原因"}
+          <span className="whitespace-pre-line">{rejection.comment || "没有写原因"}</span>
           {editable ? <p className="mt-1 text-xs">按意见修改、补票据后，点「重新提交」</p> : null}
         </Alert>
       ) : null}
@@ -241,6 +246,7 @@ export function ExpenseSheet({
             setCustomer(c)
             // 换客户后，原来勾选的联系人和商机不再属于新客户
             setValues((prev) => ({ ...prev, customer_id: c?.id ?? null, contact_ids: [], opportunity_id: null }))
+            setErrors((prev) => clearError(prev, "customer_id"))
           }}
           templateId={templateId}
           onTemplate={(tpl, all) => {
@@ -266,7 +272,8 @@ export function ExpenseSheet({
       </FormField>
       {form ? (
         <PolicyCheckAlert
-          check={precheck.data ? checkFromPrecheck(precheck.data) : null}
+          // 改了表单、新结果还没回来时不显示上一次的结果（原来换类型后仍显示旧类型的校验）
+          check={precheck.data && !precheck.isPlaceholderData ? checkFromPrecheck(precheck.data) : null}
           checking={precheck.isFetching}
         />
       ) : exp ? (

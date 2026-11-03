@@ -99,7 +99,7 @@ function NewQuote() {
           title="报价明细"
           pack={pack}
           initial={[]}
-          saving={create.isPending}
+          saving={create.isPending || create.isSuccess}
           saveLabel="创建报价单"
           onSave={(body) =>
             create.mutate(

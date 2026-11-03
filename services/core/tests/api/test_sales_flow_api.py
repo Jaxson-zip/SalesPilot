@@ -52,13 +52,23 @@ def _stage(opp_id: str) -> str:
         return db.get(Opportunity, uuid.UUID(opp_id)).stage  # type: ignore[union-attr]
 
 
-def test_quote_moves_early_opportunity_to_proposal(client: TestClient, tracker: Tracker) -> None:
+def test_sent_quote_moves_early_opportunity_to_proposal(
+    client: TestClient, tracker: Tracker
+) -> None:
+    """回归：原来生成草稿报价就推进到方案报价（赢率 10% → 50%）；现在发给客户才推进。"""
     lead = new_opp(client, tracker)
-    _quote(tracker, lead["id"], stage="qualified")
+    quote = _quote(tracker, lead["id"], stage="qualified")
+    assert _stage(lead["id"]) == "qualified"  # 草稿不推进
+    with session_scope() as db:
+        db.get(Quote, quote.id).status = "approved"  # type: ignore[union-attr]
+    assert client.post(f"/api/quotes/{quote.id}/send", headers=SALES_H).json()["code"] == 0
     assert _stage(lead["id"]) == "proposal"
     # 谈判中的不往回退
     talking = new_opp(client, tracker)
-    _quote(tracker, talking["id"], stage="negotiation")
+    sent = _quote(tracker, talking["id"], stage="negotiation")
+    with session_scope() as db:
+        db.get(Quote, sent.id).status = "approved"  # type: ignore[union-attr]
+    client.post(f"/api/quotes/{sent.id}/send", headers=SALES_H)
     assert _stage(talking["id"]) == "negotiation"
 
 

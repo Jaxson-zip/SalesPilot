@@ -35,6 +35,18 @@ export interface ExpenseFormValues {
 
 export type ExpenseFormErrors = Partial<Record<Exclude<keyof ExpenseFormValues, "trip">, string>> & TripErrors
 
+/** 改了某一项后清掉相关的错误：改行程清掉所有行程错误；改客户也清掉「至少选 1 名参与人」 */
+export function clearError(errors: ExpenseFormErrors, field: keyof ExpenseFormValues): ExpenseFormErrors {
+  const next = { ...errors }
+  if (field === "trip") {
+    for (const k of ["from_city", "to_city", "transport_mode", "city", "check_in", "check_out"] as const) delete next[k]
+    return next
+  }
+  delete next[field]
+  if (field === "customer_id") delete next.contact_ids
+  return next
+}
+
 export type FormResult<T> = { ok: true; value: T } | { ok: false; errors: ExpenseFormErrors }
 
 /** 其他人数：空串 = 0；非法 → null */

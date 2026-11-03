@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useActivities } from "@/hooks/useDashboard"
 import { useCreateFollowup, useFollowups } from "@/hooks/useFollowups"
-import { formatRelative, localDate } from "@/lib/format"
+import { followupOccurredAt, formatRelative, localDate } from "@/lib/format"
 import { FOLLOWUP_TYPE_LABEL } from "@/lib/labels"
 import { buildTimeline, type TimelineEntry } from "@/lib/timeline"
 import { QuickChips } from "@/components/biz/QuickChips"
@@ -51,7 +51,7 @@ export const FollowupComposer = forwardRef<
   const unfilled = isUnfilledTemplate(content)
   const save = () =>
     create.mutate(
-      { type, content: content.trim(), occurred_at: date ? `${date}T00:00:00` : undefined },
+      { type, content: content.trim(), occurred_at: followupOccurredAt(date) },
       { onSuccess: () => setContent("") },
     )
   return (
@@ -125,7 +125,8 @@ function Entry({ e, last }: { e: TimelineEntry; last: boolean }) {
           <span className="shrink-0 text-xs text-zinc-400">{formatRelative(e.at)}</span>
         </div>
         {e.content ? (
-          <div className="mt-1.5 rounded-lg border border-zinc-200 px-3 py-2.5 break-words text-zinc-700">
+          // 保留换行：多行跟进原来挤成一行
+          <div className="mt-1.5 rounded-lg border border-zinc-200 px-3 py-2.5 break-words whitespace-pre-wrap text-zinc-700">
             {e.content}
           </div>
         ) : null}

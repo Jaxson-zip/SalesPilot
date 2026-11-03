@@ -10,8 +10,8 @@ from pydantic import BaseModel, Field
 
 class DailyStats(BaseModel):
     followups: int = 0
-    quotes: int = 0  # 新建 / 提交报价
-    stage_changes: int = 0
+    quotes: int = 0  # 当天新建的报价单张数（含 AI 生成）
+    stage_changes: int = 0  # 商机阶段变化次数（含手动、AI、报价发出后自动推进）
     tasks_done: int = 0
     ai_actions: int = 0  # 通过 AI 工作台完成的操作
 

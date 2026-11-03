@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   attachmentSummary,
+  clearError,
   checkFromPolicy,
   checkFromPrecheck,
   formatBytes,
@@ -231,5 +232,15 @@ describe("v4：差旅类型", () => {
         unit: "night",
       }).unit,
     ).toBe("night")
+  })
+})
+
+// 回归：从客户招待切到住宿后，仍提示客户招待的必填项
+describe("clearError", () => {
+  it("改哪项清哪项；改客户连参与人的错误一起清；改行程清掉行程错误", () => {
+    const errors = { customer_id: "x", contact_ids: "y", reason: "z", city: "c", check_out: "d" }
+    expect(clearError(errors, "reason")).toEqual({ customer_id: "x", contact_ids: "y", city: "c", check_out: "d" })
+    expect(clearError(errors, "customer_id")).toEqual({ reason: "z", city: "c", check_out: "d" })
+    expect(clearError(errors, "trip")).toEqual({ customer_id: "x", contact_ids: "y", reason: "z" })
   })
 })

@@ -169,7 +169,7 @@ def test_create_quote_from_scratch(client: TestClient, tracker: Tracker) -> None
     assert q["list_price"] == 12_800_000 + 25_000_000 + 1_000_000
     assert q["total_cost"] == 11_200_000 + 21_800_000
     after = client.get(f"/api/opportunities/{opp['id']}", headers=SALES_H).json()["data"]
-    assert after["stage"] == "proposal"
+    assert after["stage"] == opp["stage"]  # 草稿不推进商机，发给客户才推进
 
 
 def test_create_quote_errors(client: TestClient, tracker: Tracker) -> None:

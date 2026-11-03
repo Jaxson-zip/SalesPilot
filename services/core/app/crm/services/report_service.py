@@ -12,12 +12,12 @@ from datetime import date, datetime, time, timedelta
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser, Role
 from app.common.errors import BizError, ErrorCode
-from app.crm.models import AuditLog, Customer, DailyReport, Followup, Task, User
+from app.crm.models import Activity, AuditLog, Customer, DailyReport, Followup, Quote, Task, User
 from app.crm.schemas.report import (
     DailyFacts,
     DailyReportIn,
@@ -50,6 +50,32 @@ def _check_date(d: date) -> None:
         raise BizError(ErrorCode.VALIDATION, "只能查看或填写最近 31 天的日报")
 
 
+def _deal_counts(
+    db: Session, user_id: uuid.UUID, start: datetime, end: datetime
+) -> tuple[int, int]:
+    """新建报价张数、商机阶段变化次数：按业务数据统计，不按操作日志。
+
+    回归：原来按操作日志数「新建 + 提交」，同一张报价算两次；报价发出后商机自动推进、
+    AI 推进的阶段不经过阶段接口，也没算进去。"""
+    quotes = db.scalar(
+        select(func.count())
+        .select_from(Quote)
+        .where(Quote.owner_id == user_id, Quote.created_at >= start, Quote.created_at < end)
+    )
+    stages = db.scalar(
+        select(func.count())
+        .select_from(Activity)
+        .where(
+            Activity.owner_id == user_id,
+            Activity.subject_type == "opportunity",
+            Activity.action == "stage_changed",
+            Activity.created_at >= start,
+            Activity.created_at < end,
+        )
+    )
+    return int(quotes or 0), int(stages or 0)
+
+
 def collect_facts(db: Session, user_id: uuid.UUID, d: date) -> DailyFacts:
     """当天的事实：操作日志（网页 + AI）、跟进内容、完成的任务、明天到期的任务。"""
     start, end = _range(d)
@@ -67,7 +93,6 @@ def collect_facts(db: Session, user_id: uuid.UUID, d: date) -> DailyFacts:
     )
     logs = [lg for lg in logs if not lg.action.startswith(SKIP_ACTIONS)]
     names = audit_service.target_names(db, [lg.target_id for lg in logs])
-    counts = Counter(lg.action for lg in logs)
     # 同一条文字只列一次；没有对象名的（如新建类操作）在后面标次数
     seen: Counter[str] = Counter()
     for lg in logs:
@@ -108,10 +133,11 @@ def collect_facts(db: Session, user_id: uuid.UUID, d: date) -> DailyFacts:
             .order_by(Task.due_at)
         )
     )
+    quotes, stage_changes = _deal_counts(db, user_id, start, end)
     stats = DailyStats(
         followups=len(followups),
-        quotes=sum(v for k, v in counts.items() if k in ("quote.create", "quote.submit")),
-        stage_changes=counts.get("opportunity.stage", 0),
+        quotes=quotes,
+        stage_changes=stage_changes,
         tasks_done=len(done),
         ai_actions=sum(1 for lg in logs if lg.source == "agent"),
     )

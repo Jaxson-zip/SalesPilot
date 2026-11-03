@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { displayHost, formatFen, formatPercent, formatRelative, localDate } from "@/lib/format"
+import { displayHost, followupOccurredAt, formatFen, formatPercent, formatRelative, localDate } from "@/lib/format"
 
 describe("formatFen（后端传分，前端格式化）", () => {
   it("整元不带小数，有分时保留两位", () => {
@@ -53,5 +53,18 @@ describe("localDate（回归：曾用 toISOString 导致东八区默认日期多
   it("按本地时区取日期", () => {
     expect(localDate(new Date(2026, 9, 26, 0, 30))).toBe("2026-10-26")
     expect(localDate(new Date(2026, 0, 5, 23, 59))).toBe("2026-01-05")
+  })
+})
+
+// 回归：跟进日期拼成「当天 00:00」不带时区，刚保存的跟进显示「15 小时前」
+describe("followupOccurredAt", () => {
+  const now = new Date(2026, 10, 3, 15, 30)
+  it("今天不传，由后端记为保存时间", () => {
+    expect(followupOccurredAt("2026-11-03", now)).toBeUndefined()
+    expect(followupOccurredAt("", now)).toBeUndefined()
+  })
+  it("补记往日：那天的此刻，带时区", () => {
+    const at = new Date(followupOccurredAt("2026-11-01", now) ?? "")
+    expect([at.getDate(), at.getHours(), at.getMinutes()]).toEqual([1, 15, 30])
   })
 })

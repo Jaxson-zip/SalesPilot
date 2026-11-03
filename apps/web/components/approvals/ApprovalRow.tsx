@@ -115,7 +115,7 @@ export function ApprovalRow({
           </div>
         </div>
 
-        <div className="mt-2 text-zinc-700">{a.reason}</div>
+        <div className="mt-2 whitespace-pre-line text-zinc-700">{a.reason}</div>
 
         {a.attachments.length ? (
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -140,7 +140,7 @@ export function ApprovalRow({
           </div>
         ) : null}
 
-        {a.comment ? <div className="mt-2 text-xs text-zinc-500">审批意见：{a.comment}</div> : null}
+        {a.comment ? <div className="mt-2 text-xs whitespace-pre-line text-zinc-500">审批意见：{a.comment}</div> : null}
         {/* 手机：按钮放最下面一行 */}
         <div className="mt-3 flex items-center justify-end gap-2 sm:hidden">{actions}</div>
       </div>

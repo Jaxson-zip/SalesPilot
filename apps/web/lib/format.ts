@@ -41,6 +41,18 @@ export function localDate(d: Date = new Date()): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+/**
+ * 跟进的发生时间：选的是今天就不传（后端记为保存时间）；补记往日的跟进取那天的此刻（带时区）。
+ * 回归：原来拼成「YYYY-MM-DDT00:00:00」（不带时区），后端按 UTC 零点存，刚保存的跟进显示「15 小时前」。
+ */
+export function followupOccurredAt(date: string, now: Date = new Date()): string | undefined {
+  if (!date || date === localDate(now)) return undefined
+  const [y, m, d] = date.split("-").map(Number)
+  const at = new Date(now)
+  at.setFullYear(y ?? now.getFullYear(), (m ?? 1) - 1, d ?? 1)
+  return Number.isNaN(at.getTime()) ? undefined : at.toISOString()
+}
+
 /** 负责人显示名；没有负责人（公海客户、负责人账号已删除）时显示「未分配」 */
 export function ownerName(owner: { name: string } | null | undefined): string {
   return owner?.name ?? "未分配"

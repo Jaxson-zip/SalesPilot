@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   approveConfirm,
-  EXPENSE_SUBMIT_CONFIRM,
+  expenseSubmitConfirm,
   paymentConfirm,
   quoteActionConfirm,
   stageConfirm,
@@ -61,7 +61,10 @@ describe("确认文案", () => {
   it("审批通过 / 报销提交 / 登记回款", () => {
     expect(approveConfirm("Q-1", "quote").confirmLabel).toBe("确认通过")
     expect(approveConfirm("E-1", "expense").description).toContain("E-1")
-    expect(EXPENSE_SUBMIT_CONFIRM.description).toContain("不能再修改票据")
+    expect(expenseSubmitConfirm(false).description).toContain("不能再修改票据")
+    // 回归：原来一律写「进入主管审批」，符合标准的其实直接通过
+    expect(expenseSubmitConfirm(false).description).toContain("符合标准直接通过")
+    expect(expenseSubmitConfirm(true).description).toContain("个人模式不用审批")
     expect(paymentConfirm("¥1,000", "C-1").description).toContain("¥1,000")
   })
 })

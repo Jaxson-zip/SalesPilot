@@ -11,7 +11,9 @@ import { QuoteEditor } from "@/components/quotes/QuoteAdjust"
 import { RoleGate } from "@/components/shell/RoleGate"
 import { useOpportunities, useOpportunity } from "@/hooks/useOpportunities"
 import { useDefaultPack, useProductLines } from "@/hooks/useProductLines"
+import { useCustomer } from "@/hooks/useCustomers"
 import { useCreateQuote } from "@/hooks/useQuotes"
+import { defaultQuoteOpportunity } from "@/lib/quote-actions"
 import type { CustomerBrief } from "@/types/api"
 
 const NO_OPP = "none"
@@ -34,12 +36,17 @@ export default function NewQuotePage() {
 
 function NewQuote() {
   const router = useRouter()
-  const oppParam = useSearchParams().get("opp")
+  const params = useSearchParams()
+  const oppParam = params.get("opp")
   const fromOpp = useOpportunity(oppParam)
+  // 从客户详情进来：只带客户（有商机参数时以商机为准）
+  const fromCustomer = useCustomer(oppParam ? "" : (params.get("customer") ?? ""))
   const [customer, setCustomer] = useState<CustomerBrief | null>(null)
   const [oppId, setOppId] = useState<string | null>(oppParam)
   const [picked, setPicked] = useState("")
   const [seeded, setSeeded] = useState(false)
+  /** 换了客户后，商机列表加载完按 defaultQuoteOpportunity 自动选一次；销售手动选过就不再改 */
+  const [autoOppFor, setAutoOppFor] = useState<string | null>(null)
   const lines = useProductLines().data ?? []
   const fallback = useDefaultPack().data?.pack ?? ""
   const opps = useOpportunities({ view: "mine", customer_id: customer?.id, page_size: 50 }, Boolean(customer))
@@ -53,7 +60,15 @@ function NewQuote() {
     setCustomer(fromOpp.data.customer)
     if (fromOpp.data.product_line) setPicked(fromOpp.data.product_line.pack)
   }
+  if (!seeded && fromCustomer.data) {
+    setSeeded(true)
+    setCustomer({ id: fromCustomer.data.id, name: fromCustomer.data.name })
+  }
   const oppItems = (opps.data?.items ?? []).filter((o) => o.customer.id === customer?.id && o.stage !== "lost")
+  if (customer && opps.data && !opps.isPlaceholderData && autoOppFor !== customer.id) {
+    setAutoOppFor(customer.id)
+    if (!oppId) setOppId(defaultQuoteOpportunity(oppItems))
+  }
   const opp = oppItems.find((o) => o.id === oppId)
   const pack = picked || opp?.product_line?.pack || fallback
   const packOptions = lines

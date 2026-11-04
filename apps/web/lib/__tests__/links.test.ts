@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { opportunityExpensesHref, subjectHref } from "@/lib/links"
+import { newQuoteForCustomerHref, opportunityExpensesHref, subjectHref } from "@/lib/links"
 
 describe("记录页链接", () => {
   it("按对象类型打开那一条", () => {
@@ -14,5 +14,12 @@ describe("记录页链接", () => {
 
   it("商机的跟单费用只看这一单", () => {
     expect(opportunityExpensesHref("o 1")).toBe("/expenses?opp=o%201")
+  })
+})
+
+// 客户详情的报价单页签原来只有「该客户还没有报价单」，没有入口
+describe("从客户新建报价", () => {
+  it("带上客户 id", () => {
+    expect(newQuoteForCustomerHref("c 1")).toBe("/quotes/new?customer=c%201")
   })
 })

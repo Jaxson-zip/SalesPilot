@@ -36,21 +36,56 @@ export function displayHost(url: string | null | undefined): string {
   return url.replace(/^https?:\/\//, "").replace(/\/$/, "")
 }
 
-/** 本地日期 YYYY-MM-DD（不能用 toISOString：那是 UTC，东八区凌晨会差一天） */
-export function localDate(d: Date = new Date()): string {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+/** 北京时间比 UTC 快 8 小时（没有夏令时） */
+const BEIJING_MS = 8 * 3_600_000
+const DAY_MS = 86_400_000
+
+/** 某个时刻在北京时间的钟面：用 getUTC* 读取年月日时分 */
+function beijing(d: Date): Date {
+  return new Date(d.getTime() + BEIJING_MS)
 }
 
 /**
- * 跟进的发生时间：选的是今天就不传（后端记为保存时间）；补记往日的跟进取那天的此刻（带时区）。
+ * 业务日期 YYYY-MM-DD：一律按北京时间（后端按北京时间算「今天」、逾期和日报日期）。
+ * 回归：原来取浏览器所在时区的日期，在海外时区（如太平洋时间）每天傍晚以后和后端差一天，
+ * 日报页查的是昨天、今天新建的报价和推进都显示 0。不能用 toISOString（那是 UTC）。
+ */
+export function localDate(d: Date = new Date()): string {
+  const b = beijing(d)
+  return `${b.getUTCFullYear()}-${pad(b.getUTCMonth() + 1)}-${pad(b.getUTCDate())}`
+}
+
+/** 北京时间的钟点 HH:mm */
+export function localClock(d: Date): string {
+  const b = beijing(d)
+  return `${pad(b.getUTCHours())}:${pad(b.getUTCMinutes())}`
+}
+
+/** 业务日期 + n 天（纯日期运算，不受浏览器时区影响） */
+export function addDays(date: string, n: number): string {
+  const [y, m, d] = date.split("-").map(Number)
+  return localDate(new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, (d ?? 1) + n) - BEIJING_MS))
+}
+
+/** 两个业务日期相差的天数（b - a） */
+export function daysBetween(a: string, b: string): number {
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / DAY_MS)
+}
+
+/** 业务日期 + 北京时间钟点 → 时刻；格式不对返回 null */
+export function beijingInstant(date: string, time: string): Date | null {
+  const d = new Date(`${date}T${time}+08:00`)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+/**
+ * 跟进的发生时间：选的是今天就不传（后端记为保存时间）；补记往日的跟进取那天北京时间的此刻（带时区）。
  * 回归：原来拼成「YYYY-MM-DDT00:00:00」（不带时区），后端按 UTC 零点存，刚保存的跟进显示「15 小时前」。
  */
 export function followupOccurredAt(date: string, now: Date = new Date()): string | undefined {
-  if (!date || date === localDate(now)) return undefined
-  const [y, m, d] = date.split("-").map(Number)
-  const at = new Date(now)
-  at.setFullYear(y ?? now.getFullYear(), (m ?? 1) - 1, d ?? 1)
-  return Number.isNaN(at.getTime()) ? undefined : at.toISOString()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date === localDate(now)) return undefined
+  const b = beijing(now)
+  return beijingInstant(date, `${localClock(now)}:${pad(b.getUTCSeconds())}`)?.toISOString()
 }
 
 /** 负责人显示名；没有负责人（公海客户、负责人账号已删除）时显示「未分配」 */

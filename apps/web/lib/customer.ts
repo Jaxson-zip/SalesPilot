@@ -85,3 +85,9 @@ export function toCustomerCreate(
   if (budget !== undefined) value.annual_budget = budget
   return { ok: true, value }
 }
+
+/** 选择客户时列表底部的新建入口：带上输入的名称 */
+export function createCustomerLabel(search: string): string {
+  const name = search.trim()
+  return name ? `新建客户「${name.length > 20 ? `${name.slice(0, 20)}…` : name}」` : "新建客户"
+}

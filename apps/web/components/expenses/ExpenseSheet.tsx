@@ -28,7 +28,8 @@ import {
 import { usePermissions } from "@/hooks/usePermissions"
 import { newRequestId } from "@/lib/api"
 import { pendingApprovalId } from "@/lib/approvals"
-import { EXPENSE_SUBMIT_CONFIRM } from "@/lib/confirm-texts"
+import { expenseSubmitConfirm } from "@/lib/confirm-texts"
+import { useSession } from "@/components/shell/SessionProvider"
 import { localDate } from "@/lib/format"
 import {
   checkFromPolicy,
@@ -99,6 +100,7 @@ export function ExpenseSheet({
   const precheck = useLivePrecheck(values, open && form)
 
   const { canCreate, canEdit, canApprove } = usePermissions()
+  const { solo } = useSession()
   const exp = detail.data
   // 主管从审批中心点进来核对票据后，直接回到审批那一条处理
   const approvalId = exp ? pendingApprovalId({ status: exp.status, approvals: exp.approvals ?? [] }, canApprove) : null
@@ -165,7 +167,7 @@ export function ExpenseSheet({
   }
   const doSubmit = () => {
     if (!draftId) return
-    ask({ ...EXPENSE_SUBMIT_CONFIRM, onConfirm: () => submitNow(draftId) })
+    ask({ ...expenseSubmitConfirm(solo), onConfirm: () => submitNow(draftId) })
   }
   const submitNow = (id: string) => {
     submit.mutate(id, {

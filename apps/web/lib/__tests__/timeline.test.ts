@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { activityActor, buildTimeline } from "@/lib/timeline"
+import { activityActor, buildTimeline, followupAction } from "@/lib/timeline"
 import type { Activity, FollowupItem } from "@/types/api"
 
 const followup: FollowupItem = {
@@ -48,6 +48,18 @@ describe("buildTimeline", () => {
     expect(list[2].icon).toBe("stage")
   })
 
+  // 回归：客户时间线看不到报价发出、客户接受、回款这些关键节点
+  it("名下商机 / 报价 / 合同的动态注明是哪一个；客户自己的动态不加", () => {
+    const list = buildTimeline(
+      [],
+      [
+        { ...act("a1", "send", "2026-11-04T01:00:00Z", undefined, "quote"), subject_name: "Q-2026-013" },
+        { ...act("a2", "create", "2026-11-03T01:00:00Z"), subject_name: "走查科技" },
+      ],
+    )
+    expect(list.map((e) => e.action)).toEqual(["发送了报价单 · Q-2026-013", "创建了客户"])
+  })
+
   it("没有 occurred_at 时用 created_at；agent 记录显示为 AI", () => {
     const [e] = buildTimeline([{ ...followup, occurred_at: null, source: "agent" }], [])
     expect(e.at).toBe(followup.created_at)
@@ -72,5 +84,18 @@ describe("activityActor：系统操作不算 AI", () => {
   it("老数据：没有操作人仍算 AI；有人的算本人", () => {
     expect(activityActor(act("a1", "create", "2026-10-29T01:00:00Z", null))).toBe("ai")
     expect(activityActor(act("a2", "create", "2026-10-29T01:00:00Z"))).toBe("user")
+  })
+})
+
+describe("followupAction：注明联系人和商机", () => {
+  const f = { id: "f1", type: "phone", content: "x", source: "manual", occurred_at: null, created_at: "" } as const
+  it("选了联系人和商机", () => {
+    expect(followupAction({ ...f, contact_name: "王律师", opportunity_name: "私有化部署" })).toBe(
+      "记录了电话 · 王律师 · 私有化部署",
+    )
+  })
+  it("只选了商机 / 都没选", () => {
+    expect(followupAction({ ...f, opportunity_name: "私有化部署" })).toBe("记录了电话 · 私有化部署")
+    expect(followupAction(f)).toBe("记录了电话")
   })
 })

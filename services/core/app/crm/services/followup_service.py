@@ -10,7 +10,7 @@ from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_owner
 from app.common.scope import can_see, ensure_visible
-from app.crm.models import Customer, Followup, Opportunity
+from app.crm.models import Contact, Customer, Followup, Opportunity
 from app.crm.schemas.common import Page
 from app.crm.schemas.dashboard import FollowupIn, FollowupItem, FollowupType
 from app.crm.schemas.fields import PastTime
@@ -20,6 +20,7 @@ from app.crm.services import activity_service
 class FollowupCreate(BaseModel):
     customer_id: uuid.UUID
     opportunity_id: uuid.UUID | None = None
+    contact_id: uuid.UUID | None = None
     type: FollowupType = "phone"
     content: str = Field(min_length=1, max_length=2000)
     occurred_at: PastTime | None = None
@@ -52,12 +53,21 @@ def _check_opportunity(
         raise BizError(ErrorCode.VALIDATION, "商机不属于该客户")
 
 
+def _check_contact(db: Session, customer: Customer, contact_id: uuid.UUID | None) -> None:
+    if contact_id is None:
+        return
+    contact = db.get(Contact, contact_id)
+    if contact is None or contact.customer_id != customer.id:
+        raise BizError(ErrorCode.VALIDATION, "联系人不属于该客户")
+
+
 def _create(db: Session, user: CurrentUser, data: FollowupCreate, source: str) -> Followup:
     """写跟进：只有客户负责人本人可以（管理员 role_forbidden，主管写销售的客户 not_owner）。"""
     customer = db.get(Customer, data.customer_id)
     ensure_owner(customer, user)
     assert customer is not None
     _check_opportunity(db, user, customer, data.opportunity_id)
+    _check_contact(db, customer, data.contact_id)
     followup = Followup(
         **data.model_dump(), source=source, owner_id=customer.owner_id, team_id=customer.team_id
     )
@@ -82,11 +92,27 @@ def add_followup(
     )
 
 
-def _to_item(f: Followup) -> FollowupItem:
+Names = tuple[dict[uuid.UUID, str], dict[uuid.UUID, str]]
+
+
+def _names(db: Session, followups: list[Followup]) -> Names:
+    """跟进关联的商机名、联系人名（一次查出，避免逐条查询）。"""
+    opp_ids = {f.opportunity_id for f in followups if f.opportunity_id}
+    contact_ids = {f.contact_id for f in followups if f.contact_id}
+    opps = db.execute(select(Opportunity.id, Opportunity.name).where(Opportunity.id.in_(opp_ids)))
+    contacts = db.execute(select(Contact.id, Contact.name).where(Contact.id.in_(contact_ids)))
+    return {i: n for i, n in opps}, {i: n for i, n in contacts}
+
+
+def _to_item(f: Followup, names: Names = ({}, {})) -> FollowupItem:
+    opp_names, contact_names = names
     return FollowupItem(
         id=f.id,
         customer_id=f.customer_id,
         opportunity_id=f.opportunity_id,
+        opportunity_name=opp_names.get(f.opportunity_id) if f.opportunity_id else None,
+        contact_id=f.contact_id,
+        contact_name=contact_names.get(f.contact_id) if f.contact_id else None,
         type=f.type,
         content=f.content,
         source="agent" if f.source == "agent" else "manual",
@@ -102,7 +128,7 @@ def create_for_customer(
         db, user, FollowupCreate(customer_id=customer_id, **data.model_dump()), "manual"
     )
     db.refresh(followup)
-    return _to_item(followup)
+    return _to_item(followup, _names(db, [followup]))
 
 
 def list_for_customer(
@@ -117,4 +143,6 @@ def list_for_customer(
         .order_by(func.coalesce(Followup.occurred_at, Followup.created_at).desc(), Followup.id)
         .limit(limit)
     )
-    return Page[FollowupItem](items=[_to_item(f) for f in db.scalars(stmt)], total=total)
+    rows = list(db.scalars(stmt))
+    names = _names(db, rows)
+    return Page[FollowupItem](items=[_to_item(f, names) for f in rows], total=total)

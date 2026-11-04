@@ -15,8 +15,12 @@ import {
 } from "@/lib/tasks"
 
 // 2026-10-26 是周一
-const MON = new Date(2026, 9, 26, 9, 30)
-const iso = (y: number, m: number, d: number, h = 10, mi = 0) => new Date(y, m - 1, d, h, mi).toISOString()
+const pad = (n: number) => String(n).padStart(2, "0")
+/** 北京时间的时刻（测试与运行环境的时区无关） */
+const bj = (y: number, m: number, d: number, h = 10, mi = 0) =>
+  new Date(`${y}-${pad(m)}-${pad(d)}T${pad(h)}:${pad(mi)}:00+08:00`)
+const MON = bj(2026, 10, 26, 9, 30)
+const iso = (y: number, m: number, d: number, h = 10, mi = 0) => bj(y, m, d, h, mi).toISOString()
 
 describe("到期快捷选项", () => {
   it("今天 / 明天", () => {
@@ -25,16 +29,32 @@ describe("到期快捷选项", () => {
   })
   it("下周一：周一 → 7 天后；周日 → 明天；周三 → 下周一", () => {
     expect(dueShortcutDate("next_monday", MON)).toBe("2026-11-02")
-    expect(dueShortcutDate("next_monday", new Date(2026, 10, 1))).toBe("2026-11-02")
-    expect(dueShortcutDate("next_monday", new Date(2026, 9, 28))).toBe("2026-11-02")
+    expect(dueShortcutDate("next_monday", bj(2026, 11, 1))).toBe("2026-11-02")
+    expect(dueShortcutDate("next_monday", bj(2026, 10, 28))).toBe("2026-11-02")
   })
   it("跨月", () => {
-    expect(dueShortcutDate("tomorrow", new Date(2026, 9, 31))).toBe("2026-11-01")
+    expect(dueShortcutDate("tomorrow", bj(2026, 10, 31))).toBe("2026-11-01")
+  })
+})
+
+// 回归：浏览器在海外时区（太平洋时间 11-03 08:35 = 北京 11-04 00:35）时，「今天」取成了 11-03，和后端差一天
+describe("按北京时间算日期，与浏览器时区无关", () => {
+  const pacificMorning = new Date("2026-11-03T08:35:00-08:00")
+  it("今天 / 明天取北京日期", () => {
+    expect(dueShortcutDate("today", pacificMorning)).toBe("2026-11-04")
+    expect(dueShortcutDate("tomorrow", pacificMorning)).toBe("2026-11-05")
+  })
+  it("到期文案按北京时间的日期和钟点", () => {
+    expect(dueText(iso(2026, 11, 4, 10, 0), false, pacificMorning)).toBe("今天 10:00")
+    expect(dueDayLabel(iso(2026, 11, 3, 23, 0), pacificMorning)).toBe("昨天")
+  })
+  it("填的时间按北京时间理解", () => {
+    expect(toDueIso("2026-11-04", "10:00")).toBe("2026-11-04T02:00:00.000Z")
   })
 })
 
 describe("toDueIso", () => {
-  it("本地日期 + 时间 → ISO", () => {
+  it("业务日期 + 时间 → ISO", () => {
     expect(toDueIso("2026-10-27", "15:30")).toBe(iso(2026, 10, 27, 15, 30))
   })
   it("时间为空用默认 10:00；格式不对返回 null", () => {

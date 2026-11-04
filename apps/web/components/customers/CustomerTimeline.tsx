@@ -12,12 +12,14 @@ import { VoiceButton } from "@/components/biz/VoiceButton"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useActivities } from "@/hooks/useDashboard"
-import { useCreateFollowup, useFollowups } from "@/hooks/useFollowups"
+import { useContacts, useCreateFollowup, useFollowups } from "@/hooks/useFollowups"
+import { useOpportunities } from "@/hooks/useOpportunities"
 import { followupOccurredAt, formatRelative, localDate } from "@/lib/format"
 import { FOLLOWUP_TYPE_LABEL } from "@/lib/labels"
 import { buildTimeline, type TimelineEntry } from "@/lib/timeline"
 import { QuickChips } from "@/components/biz/QuickChips"
 import { useTemplates } from "@/hooks/useTemplates"
+import { defaultQuoteOpportunity } from "@/lib/quote-actions"
 import { insertTemplate, isUnfilledTemplate } from "@/lib/templates"
 import { cn } from "@/lib/utils"
 import { defaultScope } from "@/lib/views"
@@ -37,7 +39,39 @@ const TYPE_OPTIONS: { value: FollowupType; label: string }[] = (["phone", "visit
   (t) => ({ value: t, label: FOLLOWUP_TYPE_LABEL[t] }),
 )
 
-/** 写跟进：内容 + 类型 Select + 日期 DatePicker + 保存 */
+const NONE = "none"
+
+/**
+ * 这次跟进联系的是谁、关于哪一单（2026-11-04 走查：时间线上看不出来）。
+ * 客户只有一个进行中的商机时默认选上；销售改过就不再覆盖，保存后保留，方便连续记同一单。
+ */
+function useFollowupTargets(customerId: string) {
+  const [contactId, setContactId] = useState(NONE)
+  const [oppId, setOppId] = useState(NONE)
+  const [autoFor, setAutoFor] = useState<string | null>(null)
+  const contacts = useContacts(customerId).data ?? []
+  const opps = useOpportunities({ view: "mine", customer_id: customerId, page_size: 50 })
+  const oppItems = (opps.data?.items ?? []).filter((o) => o.customer.id === customerId)
+  if (opps.data && !opps.isPlaceholderData && autoFor !== customerId) {
+    setAutoFor(customerId)
+    setOppId(defaultQuoteOpportunity(oppItems) ?? NONE)
+  }
+  return {
+    contactId,
+    setContactId,
+    oppId,
+    setOppId,
+    contactOptions: [{ value: NONE, label: "不指定联系人" }, ...contacts.map((c) => ({ value: c.id, label: c.name }))],
+    oppOptions: [{ value: NONE, label: "不关联商机" }, ...oppItems.map((o) => ({ value: o.id, label: o.name }))],
+    body: {
+      // 选中的联系人刚被删掉时不再带上，免得保存被拦
+      contact_id: contacts.some((c) => c.id === contactId) ? contactId : undefined,
+      opportunity_id: oppId === NONE ? undefined : oppId,
+    },
+  }
+}
+
+/** 写跟进：内容 + 类型 Select + 日期 DatePicker + 联系人 / 商机 + 保存 */
 export const FollowupComposer = forwardRef<
   HTMLTextAreaElement,
   { customerId: string; customerName: string; canAi?: boolean }
@@ -47,11 +81,12 @@ export const FollowupComposer = forwardRef<
   const [type, setType] = useState<FollowupType>("phone")
   const [date, setDate] = useState(() => localDate())
   const create = useCreateFollowup(customerId)
+  const targets = useFollowupTargets(customerId)
   const templates = useTemplates().data?.followup ?? []
   const unfilled = isUnfilledTemplate(content)
   const save = () =>
     create.mutate(
-      { type, content: content.trim(), occurred_at: followupOccurredAt(date) },
+      { type, content: content.trim(), occurred_at: followupOccurredAt(date), ...targets.body },
       { onSuccess: () => setContent("") },
     )
   return (
@@ -85,6 +120,29 @@ export const FollowupComposer = forwardRef<
         <div className="w-36">
           <DatePicker value={date} onChange={setDate} size="sm" />
         </div>
+        {/* 没有联系人 / 商机时不显示对应的选择框 */}
+        {targets.contactOptions.length > 1 ? (
+          <div className="w-32">
+            <SimpleSelect
+              value={targets.contactId}
+              onChange={targets.setContactId}
+              options={targets.contactOptions}
+              size="sm"
+              ariaLabel="联系人"
+            />
+          </div>
+        ) : null}
+        {targets.oppOptions.length > 1 ? (
+          <div className="w-44">
+            <SimpleSelect
+              value={targets.oppId}
+              onChange={targets.setOppId}
+              options={targets.oppOptions}
+              size="sm"
+              ariaLabel="关联商机"
+            />
+          </div>
+        ) : null}
         <VoiceButton value={content} onChange={(v) => setContent(v.slice(0, 2000))} />
         {canAi ? (
           <Button variant="ghost" size="sm" className="text-ai" onClick={() => setPasting(true)}>
@@ -154,6 +212,7 @@ export function CustomerTimeline({
     subject_type: "customer",
     subject_id: customerId,
     limit: 50,
+    related: true,
   })
   if (followups.isPending || activities.isPending)
     return (

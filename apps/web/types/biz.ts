@@ -98,6 +98,8 @@ export interface ActivityListParams {
   subject_type?: string
   subject_id?: string
   limit?: number
+  /** 只对客户有效：带上客户名下商机、报价、合同的里程碑（客户时间线用） */
+  related?: boolean
 }
 
 /* ---------- 商机（§2） ---------- */

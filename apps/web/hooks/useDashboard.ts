@@ -51,6 +51,7 @@ export function useActivities(params: ActivityListParams, enabled = true) {
             subject_type: params.subject_type,
             subject_id: params.subject_id,
             limit: params.limit ?? 20,
+            related: params.related,
           },
           signal,
         ),

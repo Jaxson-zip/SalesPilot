@@ -1,6 +1,7 @@
 "use client"
 
 import { Building2, Clock, Contact, FileText, Globe, Hand, PencilLine, Sparkles, Target, Undo2 } from "lucide-react"
+import Link from "next/link"
 import { useParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
@@ -17,11 +18,13 @@ import { CustomerTimeline, FollowupComposer } from "@/components/customers/Custo
 import { DealSuggestions } from "@/components/biz/DealSuggestions"
 import { ReleaseDialog } from "@/components/customers/ReleaseDialog"
 import { useSession } from "@/components/shell/SessionProvider"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useClaimCustomer, useCustomer } from "@/hooks/useCustomers"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useQuotes } from "@/hooks/useQuotes"
 import { useCustomerSuggestions } from "@/hooks/useSuggestions"
+import { newQuoteForCustomerHref } from "@/lib/links"
 import { aiPrefillHref, solutionPrompt } from "@/lib/thread-history"
 import { defaultScope } from "@/lib/views"
 import type { Role } from "@/types/api"
@@ -29,7 +32,7 @@ import type { Role } from "@/types/api"
 import { quoteColumns } from "../../quotes/columns"
 
 /** 客户的报价单：契约的 /api/quotes 没有 customer_id 参数，这里同时传参并在前端兜底过滤 */
-function CustomerQuotes({ customerId, role }: { customerId: string; role: Role }) {
+function CustomerQuotes({ customerId, role, canCreate }: { customerId: string; role: Role; canCreate: boolean }) {
   const q = useQuotes({ view: defaultScope(role), customer_id: customerId, page_size: 50 })
   if (q.isError && !q.data) return <QueryError error={q.error} onRetry={() => void q.refetch()} feature="报价单" />
   const items = (q.data?.items ?? []).filter((x) => x.customer?.id === customerId)
@@ -41,7 +44,19 @@ function CustomerQuotes({ customerId, role }: { customerId: string; role: Role }
         getRowId={(x) => x.id}
         loading={q.isPending}
         total={items.length}
-        empty={<EmptyState icon={FileText} title="该客户还没有报价单" />}
+        empty={
+          <EmptyState
+            icon={FileText}
+            title="该客户还没有报价单"
+            action={
+              canCreate ? (
+                <Button asChild size="sm">
+                  <Link href={newQuoteForCustomerHref(customerId)}>新建报价</Link>
+                </Button>
+              ) : undefined
+            }
+          />
+        }
       />
     </div>
   )
@@ -161,7 +176,9 @@ export default function CustomerDetailPage() {
                 value: "quotes",
                 label: "报价单",
                 icon: FileText,
-                content: <CustomerQuotes customerId={cust.id} role={role} />,
+                content: (
+                  <CustomerQuotes customerId={cust.id} role={role} canCreate={canCreate && canEdit(cust.owner?.id)} />
+                ),
               },
               {
                 value: "intel",

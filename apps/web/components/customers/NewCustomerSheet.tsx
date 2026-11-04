@@ -17,7 +17,7 @@ import {
   type CustomerFormErrors,
   type CustomerFormValues,
 } from "@/lib/customer"
-import type { CustomerLevel } from "@/types/api"
+import type { CustomerBrief, CustomerLevel } from "@/types/api"
 import { changedFrom } from "@/lib/form-dirty"
 
 const LEVEL_OPTIONS: { value: CustomerLevel; label: string }[] = [
@@ -31,10 +31,24 @@ const SIZE_SELECT = SIZE_OPTIONS.map((x) => ({ value: x, label: x }))
 
 type TextKey = "name" | "address" | "website"
 
-/** 新建客户 Sheet：名称、行业、等级、规模、地址、网站、年度预算；成功后刷新列表并打开客户详情 */
-export function NewCustomerSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+/**
+ * 新建客户 Sheet：名称、行业、等级、规模、地址、网站、年度预算。
+ * 默认成功后打开客户详情；传了 onCreated（在新建商机、报价、报销里顺手建客户）就交回新客户、留在原表单。
+ */
+export function NewCustomerSheet({
+  open,
+  onOpenChange,
+  initialName = "",
+  onCreated,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  /** 预填的客户名称（选择客户时输入、没搜到的名字） */
+  initialName?: string
+  onCreated?: (c: CustomerBrief) => void
+}) {
   const router = useRouter()
-  const [v, setV] = useState<CustomerFormValues>(EMPTY_CUSTOMER_FORM)
+  const [v, setV] = useState<CustomerFormValues>(() => ({ ...EMPTY_CUSTOMER_FORM, name: initialName }))
   const [errors, setErrors] = useState<CustomerFormErrors>({})
   const create = useCreateCustomer()
   const similar = useSimilarCustomers(open ? v.name : "")
@@ -54,7 +68,8 @@ export function NewCustomerSheet({ open, onOpenChange }: { open: boolean; onOpen
     create.mutate(r.value, {
       onSuccess: (c) => {
         close()
-        router.push(`/customers/${encodeURIComponent(c.id)}`)
+        if (onCreated) onCreated({ id: c.id, name: c.name })
+        else router.push(`/customers/${encodeURIComponent(c.id)}`)
       },
     })
   }

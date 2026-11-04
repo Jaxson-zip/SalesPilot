@@ -42,6 +42,10 @@ class Followup(OwnedMixin, Base):
     opportunity_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("opportunities.id"), nullable=True
     )
+    # 跟进的是谁：联系人删除后置空，跟进内容保留
+    contact_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("contacts.id", ondelete="SET NULL"), nullable=True
+    )
     type: Mapped[str] = mapped_column(String(20))  # phone / visit / wechat / email / ai
     content: Mapped[str] = mapped_column(Text)
     occurred_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

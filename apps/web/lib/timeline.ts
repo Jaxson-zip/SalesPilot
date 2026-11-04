@@ -13,13 +13,20 @@ export interface TimelineEntry {
   icon: "phone" | "visit" | "wechat" | "email" | "ai" | "stage" | "activity"
 }
 
+/** 跟进的动作文案：注明联系的是谁、关于哪一单，如「记录了电话 · 王律师 · 私有化部署」 */
+export function followupAction(f: FollowupItem): string {
+  const isAi = f.source === "agent" || f.type === "ai"
+  const base = isAi ? "根据聊天摘要自动记录" : `记录了${FOLLOWUP_TYPE_LABEL[f.type] ?? "跟进"}`
+  return [base, f.contact_name, f.opportunity_name].filter(Boolean).join(" · ")
+}
+
 function followupEntry(f: FollowupItem, fallbackActor: string): TimelineEntry {
   const isAi = f.source === "agent" || f.type === "ai"
   return {
     key: `f-${f.id}`,
     kind: "followup",
     actor: isAi ? "AI" : (f.owner?.name ?? fallbackActor),
-    action: isAi ? "根据聊天摘要自动记录" : `记录了${FOLLOWUP_TYPE_LABEL[f.type] ?? "跟进"}`,
+    action: followupAction(f),
     content: f.content,
     at: f.occurred_at ?? f.created_at,
     icon: isAi ? "ai" : f.type,
@@ -39,7 +46,11 @@ function activityEntry(a: Activity): TimelineEntry {
     key: `a-${a.id}`,
     kind: "activity",
     actor: by === "system" ? "系统" : isAi ? "AI" : (a.actor?.name ?? "—"),
-    action: activityActionLabel(a.action, a.subject_type),
+    // 客户时间线里带上的商机 / 报价 / 合同动态：注明是哪一个（如「发送了报价单 · Q-2026-013」）
+    action:
+      a.subject_type !== "customer" && a.subject_name
+        ? `${activityActionLabel(a.action, a.subject_type)} · ${a.subject_name}`
+        : activityActionLabel(a.action, a.subject_type),
     content: a.content,
     at: a.created_at,
     icon: isAi ? "ai" : a.action === "stage_changed" ? "stage" : "activity",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { EMPTY_CUSTOMER_FORM, toCustomerCreate } from "@/lib/customer"
+import { createCustomerLabel, EMPTY_CUSTOMER_FORM, toCustomerCreate } from "@/lib/customer"
 
 describe("toCustomerCreate", () => {
   it("名称必填", () => {
@@ -30,5 +30,14 @@ describe("toCustomerCreate", () => {
       expect(r.errors.annual_budget).toBeDefined()
       expect(r.errors.industry).toBe("不能超过 50 个字")
     }
+  })
+})
+
+// 回归：新建商机 / 报价 / 报销时客户还没建，只能关掉表单去客户页
+describe("选择客户时的新建入口", () => {
+  it("带上输入的名称，太长截断；没输入只写「新建客户」", () => {
+    expect(createCustomerLabel("  走查科技 ")).toBe("新建客户「走查科技」")
+    expect(createCustomerLabel("")).toBe("新建客户")
+    expect(createCustomerLabel("一".repeat(25))).toBe(`新建客户「${"一".repeat(20)}…」`)
   })
 })

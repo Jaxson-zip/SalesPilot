@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest"
 
-import { displayHost, followupOccurredAt, formatFen, formatPercent, formatRelative, localDate } from "@/lib/format"
+import {
+  addDays,
+  displayHost,
+  followupOccurredAt,
+  formatFen,
+  formatPercent,
+  formatRelative,
+  localDate,
+} from "@/lib/format"
 
 describe("formatFen（后端传分，前端格式化）", () => {
   it("整元不带小数，有分时保留两位", () => {
@@ -49,22 +57,31 @@ describe("displayHost", () => {
   })
 })
 
-describe("localDate（回归：曾用 toISOString 导致东八区默认日期多一天）", () => {
-  it("按本地时区取日期", () => {
-    expect(localDate(new Date(2026, 9, 26, 0, 30))).toBe("2026-10-26")
-    expect(localDate(new Date(2026, 0, 5, 23, 59))).toBe("2026-01-05")
+describe("localDate（业务日期按北京时间）", () => {
+  it("回归：曾用 toISOString（UTC），东八区凌晨差一天", () => {
+    expect(localDate(new Date("2026-10-26T00:30:00+08:00"))).toBe("2026-10-26")
+    expect(localDate(new Date("2026-01-05T23:59:00+08:00"))).toBe("2026-01-05")
+  })
+  it("回归：浏览器在太平洋时间时，取的是浏览器日期，和后端差一天", () => {
+    expect(localDate(new Date("2026-11-03T08:35:00-08:00"))).toBe("2026-11-04")
+    expect(localDate(new Date("2026-11-03T15:59:00Z"))).toBe("2026-11-03")
+    expect(localDate(new Date("2026-11-03T16:00:00Z"))).toBe("2026-11-04")
+  })
+  it("日期加减跨月跨年", () => {
+    expect(addDays("2026-10-31", 1)).toBe("2026-11-01")
+    expect(addDays("2027-01-01", -1)).toBe("2026-12-31")
+    expect(addDays("2026-11-04", -31)).toBe("2026-10-04")
   })
 })
 
 // 回归：跟进日期拼成「当天 00:00」不带时区，刚保存的跟进显示「15 小时前」
 describe("followupOccurredAt", () => {
-  const now = new Date(2026, 10, 3, 15, 30)
+  const now = new Date("2026-11-03T15:30:00+08:00")
   it("今天不传，由后端记为保存时间", () => {
     expect(followupOccurredAt("2026-11-03", now)).toBeUndefined()
     expect(followupOccurredAt("", now)).toBeUndefined()
   })
-  it("补记往日：那天的此刻，带时区", () => {
-    const at = new Date(followupOccurredAt("2026-11-01", now) ?? "")
-    expect([at.getDate(), at.getHours(), at.getMinutes()]).toEqual([1, 15, 30])
+  it("补记往日：那天北京时间的此刻，带时区", () => {
+    expect(followupOccurredAt("2026-11-01", now)).toBe(new Date("2026-11-01T15:30:00+08:00").toISOString())
   })
 })

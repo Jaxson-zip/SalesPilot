@@ -1,9 +1,12 @@
 import { Alert } from "@/components/biz/Alert"
 import type { PolicyCheckView } from "@/lib/expense"
 import { formatFen } from "@/lib/format"
+import { useSession } from "@/components/shell/SessionProvider"
+import { expenseOverTitle } from "@/lib/confirm-texts"
 
 /** PolicyCheckAlert：展示 core 返回的制度校验结果（数字全部来自后端规则计算） */
 export function PolicyCheckAlert({ check, checking }: { check: PolicyCheckView | null; checking?: boolean }) {
+  const { solo } = useSession()
   if (!check) {
     return checking ? <Alert tone="info" title="正在校验报销制度…" /> : null
   }
@@ -26,7 +29,7 @@ export function PolicyCheckAlert({ check, checking }: { check: PolicyCheckView |
   if (check.over) {
     return (
       // 没有超出金额也要审批：「其他」类费用制度里没有标准
-      <Alert tone="warn" title={check.over_amount ? "超出报销标准，需主管审批" : "需主管审批"}>
+      <Alert tone="warn" title={expenseOverTitle(check.over_amount, solo)}>
         {text}
       </Alert>
     )

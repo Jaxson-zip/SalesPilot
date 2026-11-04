@@ -7,7 +7,7 @@ owner_id / team_id 跟随被操作对象（subject）的负责人，因此动态
 import uuid
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
@@ -87,6 +87,35 @@ def _to_out(row: Any) -> ActivityOut:
     )
 
 
+# 客户时间线里带上的商机 / 报价 / 合同里程碑；改字段、提交审批等内部步骤不显示
+CUSTOMER_MILESTONES: dict[str, tuple[Any, tuple[str, ...]]] = {
+    "opportunity": (Opportunity, ("create", "stage_changed")),
+    "quote": (Quote, ("send", "viewed", "accept", "reject")),
+    "contract": (
+        Contract,
+        ("payment", "payment_reverse", "invoice_request", "invoice_issue", "invoice_void"),
+    ),
+}
+
+
+def _customer_related(customer_id: uuid.UUID) -> ColumnElement[bool]:
+    """客户本身的动态 + 这个客户名下商机、报价、合同的里程碑。
+
+    回归：客户时间线原来只查挂在客户上的动态，报价发出、客户接受、回款、开票都看不到。
+    """
+    conds = [and_(Activity.subject_type == "customer", Activity.subject_id == customer_id)]
+    for subject_type, (model, actions) in CUSTOMER_MILESTONES.items():
+        ids = select(model.id).where(model.customer_id == customer_id)
+        conds.append(
+            and_(
+                Activity.subject_type == subject_type,
+                Activity.action.in_(actions),
+                Activity.subject_id.in_(ids),
+            )
+        )
+    return or_(*conds)
+
+
 def list_activities(
     db: Session,
     user: CurrentUser,
@@ -94,15 +123,19 @@ def list_activities(
     subject_type: str | None = None,
     subject_id: uuid.UUID | None = None,
     limit: int = 20,
+    related: bool = False,
 ) -> list[ActivityOut]:
-    """动态流：按数据范围过滤，最新的在前。"""
+    """动态流：按数据范围过滤，最新的在前；related 只对客户有效，带上名下商机等的里程碑。"""
     stmt = select(Activity, User.name.label("actor_name")).outerjoin(
         User, User.id == Activity.actor_id
     )
-    if subject_type:
-        stmt = stmt.where(Activity.subject_type == subject_type)
-    if subject_id:
-        stmt = stmt.where(Activity.subject_id == subject_id)
+    if related and subject_type == "customer" and subject_id:
+        stmt = stmt.where(_customer_related(subject_id))
+    else:
+        if subject_type:
+            stmt = stmt.where(Activity.subject_type == subject_type)
+        if subject_id:
+            stmt = stmt.where(Activity.subject_id == subject_id)
     stmt = apply_scope(stmt, Activity, user, view)
     stmt = stmt.order_by(Activity.created_at.desc(), Activity.id).limit(min(limit, MAX_LIMIT))
     return _with_names(db, [_to_out(r) for r in db.execute(stmt).all()])

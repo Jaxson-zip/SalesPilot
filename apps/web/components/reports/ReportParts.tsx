@@ -16,13 +16,12 @@ import {
 } from "@/hooks/useReports"
 import { usePushFlags, usePushSummary } from "@/hooks/useWecom"
 import { copyText } from "@/lib/clipboard"
+import { addDays, localDate as businessDate } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-/** 本地日期 yyyy-mm-dd（服务端按北京时间算「当天」） */
+/** 日报日期 yyyy-mm-dd：按北京时间（与服务端的「当天」一致），offset 为相对今天的天数 */
 export function localDate(offset = 0): string {
-  const d = new Date(Date.now() + offset * 86_400_000)
-  const pad = (n: number) => String(n).padStart(2, "0")
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  return addDays(businessDate(), offset)
 }
 
 export const STATUS: Record<ReportStatus, { label: string; color: "gray" | "yellow" | "green" }> = {

@@ -2947,6 +2947,13 @@ paths:
           minimum: 1
           default: 20
           title: Limit
+      - name: related
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Related
       - name: authorization
         in: header
         required: false
@@ -11611,6 +11618,12 @@ components:
             format: uuid
           - type: 'null'
           title: Opportunity Id
+        contact_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Contact Id
       type: object
       required:
       - type
@@ -11632,6 +11645,22 @@ components:
             format: uuid
           - type: 'null'
           title: Opportunity Id
+        opportunity_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Opportunity Name
+        contact_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Contact Id
+        contact_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Contact Name
         type:
           type: string
           enum:
@@ -11668,6 +11697,9 @@ components:
       - source
       - occurred_at
       - created_at
+      - opportunity_name
+      - contact_id
+      - contact_name
       title: FollowupItem
     FollowupTemplate:
       properties:

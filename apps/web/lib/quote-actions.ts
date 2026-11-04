@@ -87,3 +87,12 @@ export function quoteToBom(
     client_costs: q.client_costs ?? [],
   }
 }
+
+/**
+ * 新建报价、写跟进时默认关联的商机：客户只有一个进行中的商机就直接选上，有多个让销售自己选。
+ * 回归：从客户详情点「新建报价」，客户只有一个商机也要手动再选一次。
+ */
+export function defaultQuoteOpportunity(opps: { id: string; stage: string }[]): string | null {
+  const open = opps.filter((o) => o.stage !== "won" && o.stage !== "lost")
+  return open.length === 1 ? open[0].id : null
+}

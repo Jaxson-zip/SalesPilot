@@ -10,7 +10,7 @@ from app.common.auth import Role
 from app.common.db import session_scope
 from app.crm.models import ProductLine
 from app.crm.services.demo import DEMO_USERS, demo_id
-from seed.data import C_MINGLI, C_PC3H, PL_IT
+from seed.data import C_HNZZ, C_MINGLI, C_PC3H, PL_IT
 from tests.api.conftest import ADMIN_H, MANAGER_H, SALES_H, Tracker
 from tests.api.test_opportunities_api import new_opp
 
@@ -81,6 +81,30 @@ def test_followups(client: TestClient, tracker: Tracker) -> None:
 def test_followup_opportunity_must_match_customer(client: TestClient) -> None:
     body = {"type": "phone", "content": "测试", "opportunity_id": str(demo_id("opp:hnzz"))}
     r = client.post(f"/api/customers/{C_MINGLI}/followups", json=body, headers=SALES_H)
+    assert r.json()["code"] == 40001
+
+
+def test_followup_records_contact_and_deal(client: TestClient, tracker: Tracker) -> None:
+    """写跟进时选联系人和商机，列表里带回名字（2026-11-04 走查：看不出联系的是谁、哪一单）。"""
+    opp = new_opp(client, tracker)
+    url = f"/api/customers/{C_MINGLI}/followups"
+    body = {"type": "phone", "content": "测试-确认预算", "opportunity_id": opp["id"],
+            "contact_id": str(demo_id("contact:mingli:wang"))}  # fmt: skip
+    r = client.post(url, json=body, headers=SALES_H).json()["data"]
+    tracker.followups.append(uuid.UUID(r["id"]))
+    assert (r["contact_name"], r["opportunity_name"]) == ("王律师", opp["name"])
+    items = client.get(f"{url}?limit=50", headers=SALES_H).json()["data"]["items"]
+    saved = next(f for f in items if f["id"] == r["id"])
+    assert saved["contact_name"] == "王律师" and saved["opportunity_id"] == opp["id"]
+
+
+def test_followup_contact_must_match_customer(client: TestClient) -> None:
+    other = str(demo_id("contact:mingli:wang"))
+    body = {"type": "phone", "content": "测试", "contact_id": other}
+    r = client.post(f"/api/customers/{C_HNZZ}/followups", json=body, headers=SALES_H)
+    assert r.json()["code"] == 40001
+    missing = {**body, "contact_id": str(uuid.uuid4())}
+    r = client.post(f"/api/customers/{C_MINGLI}/followups", json=missing, headers=SALES_H)
     assert r.json()["code"] == 40001
 
 

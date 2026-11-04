@@ -41,3 +41,8 @@ export function subjectHref(type: string, id: string): string | null {
       return null
   }
 }
+
+/** 新建报价：从客户进来带上客户（客户详情「报价单」页签的入口） */
+export function newQuoteForCustomerHref(customerId: string): string {
+  return `/quotes/new?customer=${encodeURIComponent(customerId)}`
+}

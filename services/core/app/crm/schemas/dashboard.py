@@ -46,12 +46,16 @@ class FollowupIn(BaseModel):
     content: str = Field(min_length=1, max_length=2000)
     occurred_at: PastTime | None = None
     opportunity_id: uuid.UUID | None = None
+    contact_id: uuid.UUID | None = None
 
 
 class FollowupItem(BaseModel):
     id: uuid.UUID
     customer_id: uuid.UUID
     opportunity_id: uuid.UUID | None
+    opportunity_name: str | None = None
+    contact_id: uuid.UUID | None = None
+    contact_name: str | None = None
     type: FollowupType
     content: str
     source: Literal["manual", "agent"]

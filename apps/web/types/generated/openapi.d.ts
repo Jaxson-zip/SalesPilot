@@ -5722,6 +5722,8 @@ export interface components {
       occurred_at?: string | null
       /** Opportunity Id */
       opportunity_id?: string | null
+      /** Contact Id */
+      contact_id?: string | null
     }
     /** FollowupItem */
     FollowupItem: {
@@ -5737,6 +5739,12 @@ export interface components {
       customer_id: string
       /** Opportunity Id */
       opportunity_id: string | null
+      /** Opportunity Name */
+      opportunity_name: string | null
+      /** Contact Id */
+      contact_id: string | null
+      /** Contact Name */
+      contact_name: string | null
       /**
        * Type
        * @enum {string}
@@ -10843,6 +10851,7 @@ export interface operations {
         subject_type?: string | null
         subject_id?: string | null
         limit?: number
+        related?: boolean
       }
       header?: {
         authorization?: string | null

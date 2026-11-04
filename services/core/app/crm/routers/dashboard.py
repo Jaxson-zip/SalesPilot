@@ -40,6 +40,9 @@ def list_activities(
     subject_type: Annotated[str | None, Query(max_length=20)] = None,
     subject_id: uuid.UUID | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    related: bool = False,
 ) -> ApiResponse[Page[ActivityOut]]:
-    items = activity_service.list_activities(db, user, view, subject_type, subject_id, limit)
+    items = activity_service.list_activities(
+        db, user, view, subject_type, subject_id, limit, related
+    )
     return ok(Page[ActivityOut](items=items, total=len(items)))

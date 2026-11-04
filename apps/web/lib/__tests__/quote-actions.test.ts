@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   availableQuoteActions,
+  defaultQuoteOpportunity,
   canCopyRevision,
   primaryQuoteAction,
   quoteToBom,
@@ -83,5 +84,25 @@ describe("quoteToBom", () => {
     expect(bom.title).toBe("标准版 · 物料清单")
     expect(bom.items[0]).toEqual({ name: "GPU 服务器", quantity: "2 台", cost: 200, price: 300 })
     expect(bom.totals.map((t) => t.value)).toEqual(["¥262,500", "¥372,000", "29.4%", "¥14,880"])
+  })
+})
+
+// 回归：从客户详情新建报价，客户只有一个进行中的商机也要再手动选
+describe("新建报价默认关联的商机", () => {
+  it("只有一个进行中的商机就选上；多个或没有时不选；已赢单 / 输单不算", () => {
+    expect(defaultQuoteOpportunity([{ id: "a", stage: "lead" }])).toBe("a")
+    expect(
+      defaultQuoteOpportunity([
+        { id: "a", stage: "lead" },
+        { id: "b", stage: "proposal" },
+      ]),
+    ).toBeNull()
+    expect(
+      defaultQuoteOpportunity([
+        { id: "a", stage: "won" },
+        { id: "b", stage: "negotiation" },
+      ]),
+    ).toBe("b")
+    expect(defaultQuoteOpportunity([])).toBeNull()
   })
 })

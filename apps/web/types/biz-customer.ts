@@ -10,6 +10,10 @@ export interface FollowupItem {
   id: string
   customer_id?: string
   opportunity_id?: string | null
+  opportunity_name?: string | null
+  /** 这次跟进联系的是谁（联系人删除后为空） */
+  contact_id?: string | null
+  contact_name?: string | null
   type: FollowupType | "ai"
   content: string
   source: ActivitySource
@@ -23,6 +27,7 @@ export interface FollowupCreate {
   content: string
   occurred_at?: string
   opportunity_id?: string
+  contact_id?: string
 }
 
 /** 联系人在采购决策中的角色（B7，对应 Salesforce 的 Contact Role） */

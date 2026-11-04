@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
 import { usePackDetail } from "@/hooks/useProductLines"
 import { useAdjustQuote } from "@/hooks/useQuotes"
+import { useSession } from "@/components/shell/SessionProvider"
+import { quoteApprovalHint } from "@/lib/confirm-texts"
 import { formatFen, formatPercent } from "@/lib/format"
 import { yuanToFen } from "@/lib/money"
 import {
@@ -74,6 +76,7 @@ export function QuoteEditor({
   saveLabel: string
   onSave: (body: QuoteItemsPatch) => void
 }) {
+  const { solo } = useSession()
   const [rows, setRows] = useState<DraftRow[]>(initial)
   const [discount, setDiscount] = useState(initialDiscount)
   const detail = usePackDetail(pack).data
@@ -289,9 +292,7 @@ export function QuoteEditor({
             ) : (
               <Check className="mt-px size-3.5 shrink-0" />
             )}
-            <span>
-              {approval.length ? `提交后要主管审批：${approval.join("；")}` : "按现在的价格提交会自动通过，不用审批"}
-            </span>
+            <span>{quoteApprovalHint(approval, solo)}</span>
           </p>
         ) : null}
         {preview.onlyPassthrough ? (

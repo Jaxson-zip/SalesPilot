@@ -67,10 +67,36 @@ export function approveConfirm(code: string, targetType: "quote" | "expense"): C
   }
 }
 
-export const EXPENSE_SUBMIT_CONFIRM: ConfirmCopy = {
-  title: "提交报销审批",
-  description: "提交后进入主管审批，不能再修改票据或撤回。",
-  confirmLabel: "确认提交",
+/**
+ * 提交报销：符合标准的直接通过，超标的才进主管审批；个人模式不用审批（与 core expense_service 一致）。
+ * 回归：原来一律写「提交后进入主管审批」，符合标准的报销其实直接通过了。
+ */
+export function expenseSubmitConfirm(solo: boolean): ConfirmCopy {
+  const flow = solo
+    ? "个人模式不用审批，提交后直接通过，超标的会记一条提醒。"
+    : "提交后系统按报销制度校验：符合标准直接通过，超标的进入主管审批。"
+  return { title: "提交报销", description: `${flow}提交后不能再修改票据或撤回。`, confirmLabel: "确认提交" }
+}
+
+/** 报价提交前的审批预判（个人模式没有主管，触发的规则只记提醒） */
+export function quoteApprovalHint(reasons: string[], solo: boolean): string {
+  if (!reasons.length) return "按现在的价格提交会自动通过，不用审批"
+  return solo
+    ? `个人模式不用审批，提交后直接通过，会记下提醒：${reasons.join("；")}`
+    : `提交后要主管审批：${reasons.join("；")}`
+}
+
+/** 草稿报价上的审批规则说明 */
+export function quoteDraftRule(solo: boolean): string {
+  return solo
+    ? "个人模式不用审批：提交后直接通过；毛利低于底线或折扣超权限时会记一条提醒。"
+    : "毛利达标自动通过；低于底线或折扣超权限时进入主管审批。"
+}
+
+/** 报销超标提示的标题 */
+export function expenseOverTitle(overAmount: number, solo: boolean): string {
+  if (solo) return overAmount ? "超出报销标准（个人模式不用审批，会记下提醒）" : "制度里没有标准（个人模式不用审批）"
+  return overAmount ? "超出报销标准，需主管审批" : "需主管审批"
 }
 
 export function paymentConfirm(amountText: string, code: string): ConfirmCopy {

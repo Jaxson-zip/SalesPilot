@@ -33,9 +33,12 @@ import { defaultScope } from "@/lib/views"
 import type { QuoteDetail, QuoteRef, Role } from "@/types/api"
 import { PackName } from "@/components/biz/PackName"
 import { RuleHint } from "@/components/biz/RuleHint"
+import { useSession } from "@/components/shell/SessionProvider"
+import { quoteDraftRule } from "@/lib/confirm-texts"
 
 /** 左侧字段面板顶部的规则提示：阈值由 core 判断，这里只展示结果 */
 function RuleAlert({ q }: { q: QuoteDetail }) {
+  const { solo } = useSession()
   const pending = q.approvals.find((a) => a.status === "pending")
   const last = q.approvals[q.approvals.length - 1]
   if (pending)
@@ -59,7 +62,7 @@ function RuleAlert({ q }: { q: QuoteDetail }) {
   if (q.status === "draft")
     return (
       <Alert tone="info" title="提交后按业务规则自动判断">
-        毛利达标自动通过；低于底线或折扣超权限时进入主管审批。
+        {quoteDraftRule(solo)}
         <span className="ml-1 inline-block align-middle">
           <RuleHint noteKey="quote" label="查看审批规则" variant="link" align="start" />
         </span>

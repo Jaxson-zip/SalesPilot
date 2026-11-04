@@ -1,5 +1,5 @@
 /** 任务与下一步（契约 v3 §12）的纯函数：到期快捷选项、到期文案、商机卡片上的「下一步」 */
-import { localDate } from "@/lib/format"
+import { addDays, beijingInstant, daysBetween, localClock, localDate } from "@/lib/format"
 import { isFinalStage } from "@/lib/pipeline"
 import type { OpportunityItem, TaskType } from "@/types/api"
 
@@ -26,22 +26,19 @@ export const DUE_SHORTCUTS: { value: DueShortcut; label: string }[] = [
 /** 新建任务默认的到期时间 */
 export const DEFAULT_DUE_TIME = "10:00"
 
-const DAY_MS = 86_400_000
+const WEEKDAY = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+const pad = (n: number) => String(n).padStart(2, "0")
 
-function startOfDay(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
-}
-
-/** 快捷选项 → 本地日期 YYYY-MM-DD；「下周一」= 下一个周一（今天是周一时为 7 天后） */
+/** 快捷选项 → 业务日期 YYYY-MM-DD（北京时间）；「下周一」= 下一个周一（今天是周一时为 7 天后） */
 export function dueShortcutDate(kind: DueShortcut, now: Date = new Date()): string {
-  const base = startOfDay(now)
-  if (kind === "today") return localDate(base)
-  if (kind === "tomorrow") return localDate(new Date(base.getFullYear(), base.getMonth(), base.getDate() + 1))
-  const delta = (8 - base.getDay()) % 7 || 7
-  return localDate(new Date(base.getFullYear(), base.getMonth(), base.getDate() + delta))
+  const today = localDate(now)
+  if (kind === "today") return today
+  if (kind === "tomorrow") return addDays(today, 1)
+  const delta = (8 - weekday(today)) % 7 || 7
+  return addDays(today, delta)
 }
 
-/** 本地日期 + 时间（HH:mm）→ ISO 8601（UTC）；格式不对返回 null */
+/** 业务日期 + 北京时间（HH:mm）→ ISO 8601（UTC）；格式不对返回 null */
 export function toDueIso(date: string, time: string): string | null {
   const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
   const tm = /^(\d{1,2}):(\d{2})$/.exec(time || DEFAULT_DUE_TIME)
@@ -49,24 +46,25 @@ export function toDueIso(date: string, time: string): string | null {
   const h = Number(tm[1])
   const mi = Number(tm[2])
   if (h > 23 || mi > 59) return null
-  const d = new Date(Number(dm[1]), Number(dm[2]) - 1, Number(dm[3]), h, mi)
-  return Number.isNaN(d.getTime()) ? null : d.toISOString()
+  return beijingInstant(date, `${pad(h)}:${pad(mi)}`)?.toISOString() ?? null
 }
 
-const WEEKDAY = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
-const pad = (n: number) => String(n).padStart(2, "0")
+function weekday(date: string): number {
+  return new Date(`${date}T00:00:00Z`).getUTCDay()
+}
 
-/** 到期日的相对说法：今天 / 明天 / 昨天 / 周X（7 天内）/ MM-DD */
+/** 到期日的相对说法（按北京时间的日期）：今天 / 明天 / 昨天 / 周X（7 天内）/ MM-DD */
 export function dueDayLabel(iso: string, now: Date = new Date()): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return "—"
-  const diff = Math.round((startOfDay(d).getTime() - startOfDay(now).getTime()) / DAY_MS)
+  const day = localDate(d)
+  const today = localDate(now)
+  const diff = daysBetween(today, day)
   if (diff === 0) return "今天"
   if (diff === 1) return "明天"
   if (diff === -1) return "昨天"
-  if (diff > 1 && diff < 7) return WEEKDAY[d.getDay()]
-  const md = `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-  return d.getFullYear() === now.getFullYear() ? md : `${d.getFullYear()}-${md}`
+  if (diff > 1 && diff < 7) return WEEKDAY[weekday(day)]
+  return day.slice(0, 4) === today.slice(0, 4) ? day.slice(5) : day
 }
 
 /** 任务列表里的到期文案：「明天 10:00」；逾期：「已逾期 · 10-24」 */
@@ -75,7 +73,7 @@ export function dueText(iso: string, overdue: boolean, now: Date = new Date()): 
   if (Number.isNaN(d.getTime())) return "—"
   const day = dueDayLabel(iso, now)
   if (overdue) return `已逾期 · ${day}`
-  return `${day} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  return `${day} ${localClock(d)}`
 }
 
 /** 逾期：以后端的 overdue 为准；后端没给时按当前时间判断 */

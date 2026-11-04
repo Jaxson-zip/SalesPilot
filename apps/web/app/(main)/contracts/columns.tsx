@@ -58,23 +58,35 @@ export function contractColumns(
       id: "code",
       label: "合同编号",
       icon: Hash,
-      width: "w-[150px]",
+      // 编号后面跟开票标签：150px 时「开票申请中」「待开票 3 期」被截成「开票申请」「待开票 3」
+      width: "w-[210px]",
       cell: (c) =>
         onOpenPlan ? (
-          <span className="inline-flex min-w-0 items-center gap-1.5">
-            <button type="button" className="font-medium hover:underline" onClick={() => onOpenPlan(c)}>
+          <span className="inline-flex min-w-0 items-center gap-1.5 whitespace-nowrap">
+            <button type="button" className="shrink-0 font-medium hover:underline" onClick={() => onOpenPlan(c)}>
               {c.code}
             </button>
             {/* 有期次申请了开票、等主管登记 */}
             {c.invoice_requested ? (
-              <button type="button" onClick={() => onOpenPlan(c)} title="有开票申请等主管登记">
+              <button
+                type="button"
+                className="shrink-0"
+                onClick={() => onOpenPlan(c)}
+                title={
+                  c.invoice_pending
+                    ? `有开票申请等主管登记；另有 ${c.invoice_pending} 期还没申请开票`
+                    : "有开票申请等主管登记"
+                }
+              >
                 <Tag color="orange">开票申请中</Tag>
               </button>
             ) : null}
-            {/* 已收过款或已到期、还没申请开票的期次（回款收齐了也可能还要开票） */}
-            {c.invoice_pending ? (
+            {/* 已收过款或已到期、还没申请开票的期次（回款收齐了也可能还要开票）。
+                两个标签放不下：有申请中的只显示「开票申请中」，待开票期数写在提示里 */}
+            {c.invoice_pending && !c.invoice_requested ? (
               <button
                 type="button"
+                className="shrink-0"
                 onClick={() => onOpenPlan(c)}
                 title={`${c.invoice_pending} 期已收款或已到期，还没申请开票`}
               >

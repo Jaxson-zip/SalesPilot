@@ -20,7 +20,7 @@ from app.agent.tools import LEARN_TOOL_NAMES, TOOLS, ToolContext, tools_for
 from app.common.auth import Role
 from app.common.db import session_scope
 from app.crm.models import AgentThread
-from app.crm.services import settings_service
+from app.crm.services import catalog_service
 from app.crm.services.demo import DEMO_USERS
 from app.packs.registry import list_packs
 from app.rag import retriever
@@ -108,7 +108,7 @@ def _keys(value: Any) -> set[str]:
 
 
 def _catalog() -> list[Any]:
-    return [row for pack in list_packs().values() for row in settings_service.catalog_rows(pack)]
+    return [row for pack in list_packs().values() for row in catalog_service.catalog_rows(pack)]
 
 
 def test_business_overview_has_catalog_rules_and_no_cost() -> None:

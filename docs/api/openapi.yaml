@@ -9552,6 +9552,15 @@ components:
         overridden:
           type: boolean
           title: Overridden
+        deal_price:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Deal Price
+        deal_quotes:
+          type: integer
+          title: Deal Quotes
+          default: 0
       type: object
       required:
       - sku
@@ -9564,6 +9573,8 @@ components:
       - default_price
       - overridden
       - specs
+      - deal_price
+      - deal_quotes
       title: CatalogRow
     ChatIn:
       properties:

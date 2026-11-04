@@ -11,6 +11,7 @@
 import logging
 import re
 import uuid
+from contextvars import ContextVar
 from datetime import date, datetime, time, timedelta
 from typing import Any, Literal
 
@@ -183,6 +184,23 @@ def write(db: Session, user: CurrentUser | None, entry: AuditEntry) -> None:
         )
     )
     db.flush()
+
+
+# 中间件为每个要记录的请求放一个空列表；业务代码用 note() 写一句「改了什么」，成功时写进 detail
+_notes: ContextVar[list[str] | None] = ContextVar("audit_notes", default=None)
+
+
+def begin_notes() -> list[str]:
+    notes: list[str] = []
+    _notes.set(notes)
+    return notes
+
+
+def note(text: str) -> None:
+    """给本次请求的操作日志补一句说明（如「售价 ¥3,000 → ¥1,000」）；不在被记录的请求里时忽略。"""
+    notes = _notes.get()
+    if notes is not None and text:
+        notes.append(text)
 
 
 def record(user: CurrentUser | None, entry: AuditEntry) -> None:

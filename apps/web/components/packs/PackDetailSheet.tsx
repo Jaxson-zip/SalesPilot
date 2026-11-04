@@ -124,12 +124,23 @@ function CatalogRow({ packId, it }: { packId: string; it: PackCatalogItem }) {
               <RotateCcw className="size-3" />
               恢复默认
             </button>
+            <Link
+              href={`/settings/audit?category=pack.&q=${encodeURIComponent(it.sku)}`}
+              className="text-zinc-600 hover:text-zinc-900 hover:underline"
+            >
+              改价记录
+            </Link>
           </div>
         ) : null}
       </div>
       <div className="shrink-0 text-right tabular-nums">
         <div className="font-medium">{formatFen(it.price)}</div>
         <div className="text-xs text-zinc-400">成本 {formatFen(it.cost)}</div>
+        {it.deal_price != null ? (
+          <div className="text-xs text-zinc-500">
+            近期成交 {formatFen(it.deal_price)}（{it.deal_quotes} 单）
+          </div>
+        ) : null}
       </div>
       <Button
         variant="ghost"
@@ -152,7 +163,7 @@ function Catalog({ packId, items }: { packId: string; items: PackDetail["catalog
   return (
     <div className="space-y-2">
       <p className="text-xs text-zinc-500">
-        改价后，新的方案和报价立即按新价格计算，已生成的报价单不变。增删物料需要配置器支持，仍由开发维护。
+        改价后，新的方案和报价立即按新价格计算，已生成的报价单不变；每次改价都记在操作日志里。「近期成交」是近期客户接受的报价里的均价（已扣整单折扣），可以对照着调价。增删物料需要配置器支持，仍由开发维护。
       </p>
       <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200">
         {items.map((it) => (

@@ -4627,6 +4627,13 @@ export interface components {
       default_price: number
       /** Overridden */
       overridden: boolean
+      /** Deal Price */
+      deal_price: number | null
+      /**
+       * Deal Quotes
+       * @default 0
+       */
+      deal_quotes: number
     }
     /** ChatIn */
     ChatIn: {

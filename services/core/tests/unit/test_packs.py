@@ -158,3 +158,24 @@ def test_missing_labels_never_show_root() -> None:
     assert missing_labels("llm_deploy", ["__root__", "unknown_field"]) == [ROOT_MISSING_LABEL]
     labels = missing_labels("llm_deploy", ["model_name", "concurrency"])
     assert all("_" not in label for label in labels)
+
+
+class TestItOfficeInfra:
+    """回归：行业包描述写着「电脑、网络与存储设备」，配置器原来只配电脑。"""
+
+    def _tiers(self, text: str) -> dict[str, dict[str, int]]:
+        cfg = get_configurator("it_office")
+        req = cfg.requirement_model.model_validate(cfg.draft_requirement(text))
+        return {t.tier: {i.sku: i.qty for i in t.items} for t in cfg.configure(req)}
+
+    def test_network_by_seats_and_nas_by_designers(self) -> None:
+        tiers = self._tiers("30 名行政，12 名设计")  # 42 座
+        std = tiers["standard"]
+        assert std["NET-SW-24"] == 2 and std["NET-AP"] == 3  # 42/24、42/20 向上取整
+        assert std["NAS-4BAY"] == 2  # 12/10 向上取整
+        assert "NAS-4BAY" not in tiers["economy"]
+
+    def test_no_network_when_customer_has_one(self) -> None:
+        tiers = self._tiers("20 名行政，已有网络")
+        assert all("NET-SW-24" not in t and "NET-AP" not in t for t in tiers.values())
+        assert all("NAS-4BAY" not in t for t in tiers.values())  # 没有设计岗位

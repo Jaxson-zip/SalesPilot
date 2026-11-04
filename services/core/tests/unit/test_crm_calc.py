@@ -138,3 +138,15 @@ class TestTaskDue:
         assert not is_task_overdue(NOW - timedelta(hours=2), False, NOW)  # 今天早些时候：今天到期
         assert is_task_overdue(NOW - timedelta(days=1), False, NOW)
         assert not is_task_overdue(NOW - timedelta(days=1), True, NOW)  # 已完成不算逾期
+
+
+# ---------- 产品目录：近期成交价 ----------
+
+
+def test_deal_unit_price_weights_by_qty_and_applies_discount() -> None:
+    from app.rules.crm_calc import deal_unit_price
+
+    # 2 台按 1000 元 9 折（共 1800）+ 1 台按 700 元不打折 → (1800 + 700) / 3
+    assert deal_unit_price([(100_000, 2, 0.1), (70_000, 1, 0.0)]) == round(250_000 / 3)
+    assert deal_unit_price([]) is None
+    assert deal_unit_price([(100_000, 0, 0.0)]) is None

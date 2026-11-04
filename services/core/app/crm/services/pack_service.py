@@ -15,8 +15,8 @@ from app.crm.models import Opportunity, ProductLine
 from app.crm.schemas.common import Page
 from app.crm.schemas.dashboard import ProductLineItem, ProductLineUpdate
 from app.crm.schemas.opportunity import FINAL_STAGES
-from app.crm.services import settings_service
-from app.crm.services.settings_service import CatalogRow
+from app.crm.services import catalog_service, settings_service
+from app.crm.services.catalog_service import CatalogRow
 from app.packs.registry import PackInfo, get_pack, list_packs
 from app.rag.loaders import LOADERS
 from app.rules.loader import load_raw_rules
@@ -109,7 +109,7 @@ def get_pack_detail(pack_id: str, db: Session | None = None) -> PackDetail:
         version=pack.version,
         sample_data=pack.sample_data,
         example_prompt=pack.example_prompt,
-        catalog=settings_service.catalog_rows(pack),
+        catalog=catalog_service.catalog_rows(pack, db),
         rules=load_raw_rules(pack.rules_file, scope=pack.id),
         knowledge=_knowledge(pack, counts),
     )

@@ -1,8 +1,13 @@
-# 企业办公 IT 行业包规则（最小版本）
+# 企业办公 IT 行业包规则
 # 毛利底线沿用通用规则；某个行业要单独设置时，在「行业包配置 → 业务规则」里改
 
 pack:
+  # 网络设备按座位数配：每 N 个座位 1 台交换机 / 1 个无线 AP（向上取整）
+  seats_per_switch: 24
+  seats_per_ap: 20
+  # 共享存储：每 N 个设计岗位 1 台 NAS（向上取整），只在 nas 为 true 的档位配
+  designers_per_nas: 10
   tiers:
-    economy:  {office: PC-OFFICE-E, design: PC-DESIGN-E, monitor_for_design: false, warranty: false}
-    standard: {office: PC-OFFICE-S, design: PC-DESIGN-S, monitor_for_design: true,  warranty: false}
-    premium:  {office: PC-OFFICE-S, design: PC-DESIGN-P, monitor_for_design: true,  warranty: true}
+    economy:  {office: PC-OFFICE-E, design: PC-DESIGN-E, monitor_for_design: false, warranty: false, nas: false}
+    standard: {office: PC-OFFICE-S, design: PC-DESIGN-S, monitor_for_design: true,  warranty: false, nas: true}
+    premium:  {office: PC-OFFICE-S, design: PC-DESIGN-P, monitor_for_design: true,  warranty: true,  nas: true}

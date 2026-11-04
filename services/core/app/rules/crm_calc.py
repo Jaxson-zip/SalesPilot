@@ -139,3 +139,14 @@ def day_bounds(now: datetime) -> tuple[datetime, datetime]:
 def is_task_overdue(due_at: datetime, done: bool, now: datetime) -> bool:
     """未完成且到期日早于今天（北京时间）即逾期；今天到期的不算逾期。"""
     return not done and local_date(due_at) < local_date(now)
+
+
+# ---------- 产品目录：近期成交价 ----------
+
+
+def deal_unit_price(lines: list[tuple[int, int, float]]) -> int | None:
+    """按数量加权的成交单价（分）：每行 (明细单价, 数量, 整单折扣率)，单价扣掉整单折扣。"""
+    qty = sum(q for _, q, _ in lines)
+    if qty <= 0:
+        return None
+    return round(sum(price * q * (1 - discount) for price, q, discount in lines) / qty)

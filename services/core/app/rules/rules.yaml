@@ -54,6 +54,7 @@ pipeline:
 
 quote:
   valid_days: 30              # 报价有效期：创建日 + N 天
+  deal_price_days: 180        # 产品目录里的「近期成交均价」统计最近 N 天接受的报价
   followup_days: 3            # 发送报价后自动建跟进任务，N 天后到期；0 表示不建
 
 payment:

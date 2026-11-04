@@ -1,8 +1,14 @@
 id: it_office
 name: 企业办公 IT
 description: 按岗位与人数配置电脑、网络与存储设备
-version: 1.0.0
+version: 1.1.0
 # 产品目录价格、知识库为演示用示例资料；换成真实资料后改为 false
 sample_data: true
 # AI 工作台「出方案报价」示例卡片的例句
 example_prompt: "星河设计新招 20 个设计师，帮他们配电脑和显示器，预算 30 万以内"
+
+# 管理员可以在「行业包配置 → 业务规则」里修改的参数（默认值在 rules.yaml 的 pack 段）
+settings:
+  - {key: pack.seats_per_switch, label: 每台交换机覆盖座位数, group: 网络, kind: int, unit: 座, min: 1, max: 48, help: 座位数除以该值向上取整，得到交换机台数}
+  - {key: pack.seats_per_ap, label: 每个无线 AP 覆盖座位数, group: 网络, kind: int, unit: 座, min: 1, max: 100, help: 座位数除以该值向上取整，得到 AP 个数}
+  - {key: pack.designers_per_nas, label: 每台 NAS 服务设计岗位数, group: 存储, kind: int, unit: 人, min: 1, max: 100, help: 标准版和高配版给设计岗位配共享存储}

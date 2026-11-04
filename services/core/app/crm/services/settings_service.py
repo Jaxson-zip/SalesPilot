@@ -1,4 +1,6 @@
-"""网页上维护的配置（仅管理员）：通用业务规则、行业包参数、产品价格、行业包知识库文档。
+"""网页上维护的配置（仅管理员）：通用业务规则、行业包参数、行业包知识库文档。
+
+产品价格在 catalog_service。
 
 文件（rules.yaml / catalog.json / knowledge/）是默认值，网页上的改动存在 config_overrides 表，
 保存后立即生效；每一项都可以「恢复默认」（删除这条改动）。
@@ -25,8 +27,7 @@ from app.crm.services.settings_fields import (
     pack_fields,
 )
 from app.llm.client import embed_texts
-from app.packs.base import Catalog, CatalogItem
-from app.packs.registry import PackInfo, get_pack
+from app.packs.registry import get_pack
 from app.rag.chunking import dedupe, embedding_text
 from app.rag.ingest import EMBED_BATCH, uploaded_knowledge_dir
 from app.rag.loaders import LOADERS, load_file
@@ -219,77 +220,6 @@ def update_pack_settings(
     _require_admin(user)
     _update(db, user, pack_id, pack_fields(get_pack(pack_id)), body)
     return get_pack_settings(db, user, pack_id)
-
-
-# ---------- 产品目录 ----------
-
-CATALOG_FIELDS = ("name", "unit", "cost", "price")
-
-
-class CatalogRow(CatalogItem):
-    default_cost: int
-    default_price: int
-    overridden: bool
-
-
-class CatalogEdit(BaseModel):
-    name: str | None = None
-    unit: str | None = None
-    cost: int | None = None
-    price: int | None = None
-
-
-def catalog_rows(pack: PackInfo) -> list[CatalogRow]:
-    path = pack.path / "catalog.json"
-    if not path.exists():
-        return []
-    defaults = {i.sku: i for i in Catalog.from_file(path).all()}
-    edited = overrides.nested(pack.id, "catalog").get("catalog", {})
-    return [
-        CatalogRow(
-            **i.model_dump(),
-            default_cost=defaults[i.sku].cost,
-            default_price=defaults[i.sku].price,
-            overridden=i.sku in edited,
-        )
-        for i in Catalog.from_file(path, scope=pack.id).all()
-    ]
-
-
-def update_catalog_item(
-    db: Session, user: CurrentUser, pack_id: str, sku: str, body: CatalogEdit | None
-) -> list[CatalogRow]:
-    """改名称 / 单位 / 成本 / 售价（分）；body 为 None 时恢复默认。
-
-    物料的增删依赖配置器的选型逻辑，仍在文件里维护。
-    """
-    _require_admin(user)
-    pack = get_pack(pack_id)
-    path = pack.path / "catalog.json"
-    items = {i.sku: i for i in Catalog.from_file(path).all()} if path.exists() else {}
-    base = items.get(sku)
-    if base is None:
-        raise BizError(ErrorCode.NOT_FOUND, f"产品不存在：{sku}")
-    key = f"catalog.{sku}"
-    if body is None:
-        _save(db, user, pack_id, {key: None}, {})
-        return catalog_rows(pack)
-    current = {
-        **base.model_dump(),
-        **overrides.nested(pack_id, "catalog").get("catalog", {}).get(sku, {}),
-    }
-    merged = {**current, **body.model_dump(exclude_none=True)}
-    if not str(merged["name"]).strip() or not str(merged["unit"]).strip():
-        raise _invalid("name", "名称和单位不能为空")
-    if merged["cost"] < 0 or merged["price"] <= 0:
-        raise _invalid("price", "成本不能为负数，售价必须大于 0")
-    diff = {
-        f: (str(merged[f]).strip() if f in ("name", "unit") else int(merged[f]))
-        for f in CATALOG_FIELDS
-        if merged[f] != getattr(base, f)
-    }
-    _save(db, user, pack_id, {key: diff or None}, {})
-    return catalog_rows(pack)
 
 
 # ---------- 行业包知识库：上传 / 删除 ----------

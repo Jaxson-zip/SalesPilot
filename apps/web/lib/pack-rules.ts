@@ -19,6 +19,10 @@ export interface PackCatalogItem {
   default_price?: number
   /** 是否在网页上改过 */
   overridden?: boolean
+  /** 近期客户接受的报价里的成交均价（分，已扣整单折扣）；没有成交为 null */
+  deal_price?: number | null
+  /** 统计到的报价单数 */
+  deal_quotes?: number
 }
 
 export interface PackKnowledgeDoc {

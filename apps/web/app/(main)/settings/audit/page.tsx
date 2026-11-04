@@ -2,7 +2,8 @@
 
 import { Bot, ChevronLeft, ChevronRight, ScrollText, Search } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { Suspense, useState } from "react"
 
 import { EmptyState } from "@/components/biz/EmptyState"
 import { SimpleSelect } from "@/components/biz/FormControls"
@@ -91,10 +92,15 @@ function Row({ item }: { item: AuditItem }) {
   )
 }
 
+/** 地址里可以带初始筛选：?category=pack.&q=SKU（产品目录的「改价记录」链接） */
 function AuditContent() {
-  const [text, setText] = useState("")
+  const params = useSearchParams()
+  const initialCategory = params.get("category")
+  const [text, setText] = useState(params.get("q") ?? "")
   const q = useDebounced(text.trim(), 300)
-  const [category, setCategory] = useState<string>(NO_LOGIN)
+  const [category, setCategory] = useState<string>(
+    CATEGORIES.find((c) => c.value === initialCategory)?.value ?? NO_LOGIN,
+  )
   const [result, setResult] = useState<"all" | "ok" | "failed">("all")
   const [source, setSource] = useState<"all" | "web" | "agent">("all")
   const [page, setPage] = useState(1)
@@ -217,7 +223,11 @@ export default function AuditPage() {
   return (
     <PageFrame title="操作日志" icon={ScrollText}>
       <RoleGate roles={["manager", "admin"]} lockedText="操作日志仅主管和管理员可以查看">
-        {role === "manager" || role === "admin" ? <AuditContent /> : null}
+        {role === "manager" || role === "admin" ? (
+          <Suspense fallback={null}>
+            <AuditContent />
+          </Suspense>
+        ) : null}
       </RoleGate>
     </PageFrame>
   )

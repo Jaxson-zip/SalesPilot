@@ -1,4 +1,4 @@
-"""企业办公 IT 需求 schema：按岗位人数配置电脑。"""
+"""企业办公 IT 需求 schema：按岗位人数配置电脑，可选是否配网络设备。"""
 
 from typing import ClassVar
 
@@ -11,6 +11,7 @@ class ItOfficeRequirement(BaseModel):
 
     office_staff: int = Field(default=0, ge=0, le=10000, description="行政 / 普通办公人数")
     designers: int = Field(default=0, ge=0, le=10000, description="设计岗位人数")
+    network: bool = Field(default=True, description="是否配交换机和无线 AP（客户已有网络时为否）")
     budget: int | None = Field(default=None, ge=0, description="预算（分）")
 
     @model_validator(mode="after")
@@ -23,4 +24,5 @@ class ItOfficeRequirement(BaseModel):
 FIELD_LABELS: dict[str, str] = {
     "office_staff": "普通办公人数",
     "designers": "设计岗位人数",
+    "network": "是否配网络设备",
 }

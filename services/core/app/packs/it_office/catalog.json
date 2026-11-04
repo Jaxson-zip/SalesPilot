@@ -8,6 +8,9 @@
     {"sku": "PC-DESIGN-P", "name": "设计工作站 RTX 4090 / 128G", "category": "hardware", "unit": "台", "cost": 2100000, "price": 2750000, "specs": {"role": "design", "level": "premium"}},
     {"sku": "MON-27-4K", "name": "27 英寸 4K 显示器", "category": "hardware", "unit": "台", "cost": 180000, "price": 250000, "specs": {}},
     {"sku": "SVC-INSTALL", "name": "上门安装与系统部署", "category": "service", "unit": "台", "cost": 8000, "price": 20000, "specs": {}},
-    {"sku": "SVC-WARRANTY-3Y", "name": "三年上门保修", "category": "service", "unit": "台", "cost": 30000, "price": 60000, "specs": {}}
+    {"sku": "SVC-WARRANTY-3Y", "name": "三年上门保修", "category": "service", "unit": "台", "cost": 30000, "price": 60000, "specs": {}},
+    {"sku": "NET-SW-24", "name": "24 口千兆交换机（含 4 个万兆上联）", "category": "hardware", "unit": "台", "cost": 120000, "price": 180000, "specs": {"ports": 24}},
+    {"sku": "NET-AP", "name": "企业级 Wi-Fi 6 无线 AP", "category": "hardware", "unit": "个", "cost": 60000, "price": 95000, "specs": {}},
+    {"sku": "NAS-4BAY", "name": "4 盘位 NAS 共享存储（4×8TB）", "category": "hardware", "unit": "台", "cost": 600000, "price": 850000, "specs": {"capacity_tb": 32}}
   ]
 }

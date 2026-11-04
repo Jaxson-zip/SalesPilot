@@ -31,6 +31,9 @@ describe("errorMessage", () => {
     expect(errorMessage(err(40301, 403, { rule: "not_owner" }))).toBe("只有负责人本人可以修改这条记录")
     expect(errorMessage(err(40301, 403, { rule: "other" }))).toBe("当前角色无权执行该操作")
     expect(errorMessage(err(40301, 403, { rule: "privacy" }))).toBe("后端消息")
+    // 回归：登录被拒时显示服务端的原因，原来一律显示「当前角色无权执行该操作」
+    for (const rule of ["demo_password", "account_inactive", "demo_off"])
+      expect(errorMessage(err(40301, 403, { rule }))).toBe("后端消息")
   })
   it("普通 Error 与 meta", () => {
     expect(errorMessage(new Error("断网"))).toBe("断网")

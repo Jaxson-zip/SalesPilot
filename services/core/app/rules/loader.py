@@ -96,6 +96,7 @@ class OrgRules(BaseModel):
 class QuoteRules(BaseModel):
     valid_days: int = 30
     followup_days: int = 3
+    deal_price_days: int = 180
 
 
 class PrivacyRules(BaseModel):

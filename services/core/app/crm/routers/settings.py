@@ -7,10 +7,9 @@ from fastapi import APIRouter, File, UploadFile
 from app.common.auth import CurrentUserDep
 from app.common.response import ApiResponse, ok
 from app.crm.routers.deps import DbDep
-from app.crm.services import settings_service
+from app.crm.services import catalog_service, settings_service
+from app.crm.services.catalog_service import CatalogEdit, CatalogRow
 from app.crm.services.settings_service import (
-    CatalogEdit,
-    CatalogRow,
     KnowledgeUploadOut,
     SettingsOut,
     SettingsUpdate,
@@ -45,14 +44,14 @@ def update_pack_settings(
 def update_catalog_item(
     pack_id: str, sku: str, body: CatalogEdit, user: CurrentUserDep, db: DbDep
 ) -> ApiResponse[list[CatalogRow]]:
-    return ok(settings_service.update_catalog_item(db, user, pack_id, sku, body))
+    return ok(catalog_service.update_catalog_item(db, user, pack_id, sku, body))
 
 
 @router.delete("/packs/{pack_id}/catalog/{sku}", response_model=ApiResponse[list[CatalogRow]])
 def reset_catalog_item(
     pack_id: str, sku: str, user: CurrentUserDep, db: DbDep
 ) -> ApiResponse[list[CatalogRow]]:
-    return ok(settings_service.update_catalog_item(db, user, pack_id, sku, None))
+    return ok(catalog_service.update_catalog_item(db, user, pack_id, sku, None))
 
 
 @router.post("/packs/{pack_id}/knowledge", response_model=ApiResponse[KnowledgeUploadOut])

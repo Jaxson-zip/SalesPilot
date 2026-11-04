@@ -12,7 +12,7 @@ from sqlalchemy import select
 from app.agent.tools.base import ToolContext, ToolResult, ToolSpec
 from app.crm.models import Competitor, ProductLine
 from app.crm.schemas.opportunity import STAGE_LABELS, STAGES
-from app.crm.services import settings_service
+from app.crm.services import catalog_service
 from app.crm.services.rule_notes import CATEGORY_LABELS, rule_notes
 from app.packs.registry import list_packs
 from app.rules.loader import load_rules
@@ -35,7 +35,7 @@ def _products(db: Any) -> list[dict[str, Any]]:
         if pack is None:
             continue
         catalog: dict[str, list[str]] = {}
-        for row in settings_service.catalog_rows(pack):
+        for row in catalog_service.catalog_rows(pack):
             label = CATEGORY_LABELS.get(row.category, row.category)
             item = f"{row.name}（{row.unit}，目录价 ¥{row.price / 100:,.0f}）"
             catalog.setdefault(label, []).append(item)

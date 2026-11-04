@@ -59,6 +59,8 @@ class AuditMiddleware:
             return
         status = {"code": 500}
         body: dict[str, Any] = {"chunks": [], "size": 0}
+        # 同步接口在线程池里跑，拿到的是上下文的副本；列表对象是同一个，业务代码写进去这里看得到
+        notes = audit_service.begin_notes()
 
         async def capture(message: Message) -> None:
             if message["type"] == "http.response.start":
@@ -83,7 +85,7 @@ class AuditMiddleware:
                 target_id=target or data_id,
                 status=status["code"] if code in (0, None) else code,
                 ok=ok,
-                detail=None if ok else msg,
+                detail=("；".join(notes)[:500] or None) if ok else msg,
                 ip=_ip(scope),
                 request_id=get_request_id() or None,
             )

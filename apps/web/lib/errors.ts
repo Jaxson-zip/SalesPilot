@@ -17,6 +17,12 @@ const FORBIDDEN_MESSAGES: Record<string, string> = {
   not_owner: "只有负责人本人可以修改这条记录",
 }
 
+/**
+ * 40301 时由服务端说明具体原因的 rule：数据安全限制（如「当前角色不能导出客户」）、
+ * 登录被拒（演示账号用公开初始密码、账号停用、演示入口关闭）。
+ */
+const SERVER_EXPLAINED = new Set(["privacy", "demo_password", "account_inactive", "demo_off"])
+
 function ruleOf(data: unknown): string | null {
   if (typeof data === "object" && data !== null && "rule" in data) {
     const rule = (data as { rule: unknown }).rule
@@ -46,7 +52,7 @@ export function errorMessage(err: unknown): string {
     }
     case ErrorCode.FORBIDDEN: {
       const rule = ruleOf(err.data)
-      if (rule === "privacy") return err.message // 数据安全限制：服务端给出具体原因（如「当前角色不能导出客户」）
+      if (rule && SERVER_EXPLAINED.has(rule) && err.message) return err.message
       return (rule && FORBIDDEN_MESSAGES[rule]) || "当前角色无权执行该操作"
     }
     case ErrorCode.DUPLICATE:

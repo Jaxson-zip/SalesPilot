@@ -1,15 +1,17 @@
 """网页上维护的配置：通用规则、行业包参数、产品价格、知识库上传（需要数据库）。"""
 
+import uuid
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 from app.common.db import session_scope
-from app.crm.models import ConfigOverride
+from app.crm.models import AuditLog, ConfigOverride, Quote, QuoteItem
 from app.packs.registry import get_configurator
 from app.rules import load_rules, overrides
 from tests.api.conftest import ADMIN_H, MANAGER_H, SALES_H
@@ -127,6 +129,69 @@ def test_catalog_price_edit_and_reset(client: TestClient) -> None:
     res = client.delete("/api/packs/llm_deploy/catalog/SRV-L20-4", headers=ADMIN_H).json()
     row = next(r for r in res["data"] if r["sku"] == "SRV-L20-4")
     assert row["price"] == 26_200_000 and not row["overridden"]
+
+
+def _catalog_audit(action: str) -> str | None:
+    with session_scope() as db:
+        row = db.scalars(
+            select(AuditLog).where(AuditLog.action == action).order_by(AuditLog.created_at.desc())
+        ).first()
+        return row.detail if row else None
+
+
+def test_catalog_edit_records_old_and_new_price(client: TestClient) -> None:
+    """回归：改价的操作日志只记了谁改的，没记从多少改成多少，查不到价格历史。"""
+    url = "/api/packs/llm_deploy/catalog/SRV-L20-4"
+    assert client.put(url, json={"price": 30_000_000}, headers=ADMIN_H).json()["code"] == 0
+    assert _catalog_audit("pack.catalog") == "GPU 服务器 4× L20 48G：售价 ¥262,000.00 → ¥300,000.00"
+    assert client.delete(url, headers=ADMIN_H).json()["code"] == 0
+    assert _catalog_audit("pack.catalog_reset") == (
+        "GPU 服务器 4× L20 48G：售价 ¥300,000.00 → ¥262,000.00"
+    )
+    # 被拒的请求照常记失败原因
+    assert client.put(url, json={"price": 1}, headers=SALES_H).json()["code"] == 40301
+
+
+def _row(client: TestClient, sku: str) -> dict:
+    detail = client.get("/api/packs/it_office", headers=SALES_H).json()["data"]
+    return next(r for r in detail["catalog"] if r["sku"] == sku)
+
+
+def test_catalog_shows_recent_deal_price(client: TestClient) -> None:
+    before = _row(client, "MON-27-4K")
+    with session_scope() as db:
+        q = Quote(
+            code=f"Q-DEAL-{uuid.uuid4().hex[:6]}",
+            pack="it_office",
+            tier="standard",
+            status="accepted",
+            discount_rate=0.1,
+            updated_at=datetime.now(UTC),
+        )
+        db.add(q)
+        db.flush()
+        db.add(
+            QuoteItem(
+                quote_id=q.id,
+                sku="MON-27-4K",
+                name="显示器",
+                unit="台",
+                qty=4,
+                unit_cost=180_000,
+                unit_price=240_000,
+                category="hardware",
+            )
+        )
+        quote_id = q.id
+    try:
+        after = _row(client, "MON-27-4K")
+        assert after["deal_quotes"] == before["deal_quotes"] + 1
+        if before["deal_quotes"] == 0:
+            assert after["deal_price"] == 216_000  # 2400 元 9 折
+    finally:
+        with session_scope() as db:
+            db.execute(delete(QuoteItem).where(QuoteItem.quote_id == quote_id))
+            db.execute(delete(Quote).where(Quote.id == quote_id))
 
 
 def test_knowledge_upload_and_delete(

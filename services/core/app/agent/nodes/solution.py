@@ -343,6 +343,7 @@ def make_save_quote(deps: AgentDeps) -> Node:
         result = call_tool(deps, "generate_quote", args, confirmed=True)  # confirm 节点之后
         log = log_tool(state, "generate_quote", result)
         if result.ok:
+            emit("artifact", {"type": "bom", "data": tier})  # 换成实际生成的档位
             emit("artifact", {"type": "quote", "data": result.data})
         # 确认卡片按执行结果显示「已完成 · 查看报价单」或失败原因（原来一直停在「正在执行…」）
         # 只推给界面、不写进 state：state 里的 action_result 会让 respond 改用固定的执行结果文案
@@ -352,6 +353,6 @@ def make_save_quote(deps: AgentDeps) -> Node:
         )
         if not result.ok:
             return {"error": tool_error(result), "tool_log": log}
-        return {"quote": result.data, "tool_log": log}
+        return {"quote": result.data, "saved_tier": tier, "tool_log": log}
 
     return save_quote

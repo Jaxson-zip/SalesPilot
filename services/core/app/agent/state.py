@@ -51,6 +51,8 @@ class AgentState(TypedDict):
     confirm_id: NotRequired[str | None]
     decision: NotRequired[str | None]
     quote: NotRequired[dict[str, Any] | None]
+    # 实际生成报价单的档位（含调整后的数量）：确认后的物料清单按它显示，不再回到推荐档
+    saved_tier: NotRequired[dict[str, Any] | None]
     tool_log: NotRequired[list[dict[str, Any]]]  # 本轮工具结果摘要，respond 用
     error: NotRequired[dict[str, Any] | None]
     # function calling 循环（tool_agent）
@@ -76,6 +78,7 @@ def turn_reset() -> dict[str, Any]:
         "hint": None,
         "decision": None,
         "quote": None,
+        "saved_tier": None,
         "tool_log": [],
         "error": None,
         "scratch": [],

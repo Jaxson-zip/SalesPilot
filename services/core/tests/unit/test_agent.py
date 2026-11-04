@@ -178,9 +178,14 @@ class TestSolutionFlow:
         assert exc.value.code == 40001
         run = service.prepare_resume(deps, "approve", saver, economy["tier"])
         resumed = list(iter_graph_events(run.graph, run.payload, run.config, run.thread_id))
-        quote = next(e for e in resumed if e["event"] == "artifact")["data"]["data"]
+        arts = {e["data"]["type"]: e["data"]["data"] for e in resumed if e["event"] == "artifact"}
+        quote = arts["quote"]
         assert quote["total_price"] == economy["total_price"]
         assert quote["total_price"] != next(t for t in tiers if t.get("recommended"))["total_price"]
+        # 回归：确认后物料清单和卡片回到推荐档，看起来像生成了推荐档；回复里也要写明是哪一档
+        assert arts["bom"]["tier"] == economy["tier"]
+        text = "".join(e["data"]["text"] for e in resumed if e["event"] == "message.delta")
+        assert economy["name"] in text
 
     def test_approve_with_adjusted_items(self, tool_ctx: ToolContext, fake_quotes: None) -> None:
         """销售在方案卡上删一项、改一项数量：报价单按调整后的物料重新算价；不合法的调整 40001。"""
@@ -368,3 +373,18 @@ def test_reply_context_uses_chinese_step_names() -> None:
     state = {"tool_log": [{"tool": "check_margin", "summary": "毛利达标"}], "messages": []}
     last = _llm_messages(state, "草稿")[-1].content  # type: ignore[arg-type]
     assert "毛利校验：毛利达标" in last and "- check_margin" not in last
+
+
+def test_retried_margin_check_replaces_earlier_result() -> None:
+    """回归：经济版第一次毛利 21.8% 不达标、重配后 25.1% 达标，回复却按作废的 21.8%「更正」数字。"""
+    from app.agent.nodes.common import log_tool
+    from app.agent.nodes.respond import _llm_messages
+    from app.agent.tools.base import ToolResult
+
+    state: dict = {"tool_log": [], "messages": []}
+    for summary in ("economy 毛利 21.8% < 25%", "全部档位毛利达标"):
+        state["tool_log"] = log_tool(state, "check_margin", ToolResult(ok=True, summary=summary))
+    state["tool_log"] = log_tool(state, "generate_quote", ToolResult(ok=True, summary="已创建"))
+    assert [e["tool"] for e in state["tool_log"]] == ["check_margin", "generate_quote"]
+    last = _llm_messages(state, "草稿")[-1].content  # type: ignore[arg-type]
+    assert "21.8%" not in last and "全部档位毛利达标" in last

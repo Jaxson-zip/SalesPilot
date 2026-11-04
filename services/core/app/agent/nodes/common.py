@@ -61,12 +61,20 @@ def call_tool(
     return result
 
 
+# 毛利不达标会回到配置重做：重做后的结果取代上一次的，否则回复会引用作废的数字
+# （回归：经济版第一次 21.8% 不达标、重配后 25.1%，回复却「更正」成 21.8%）
+RETRIED_TOOLS = frozenset({"configure_solution", "check_margin"})
+
+
 def log_tool(state: AgentState, name: str, result: ToolResult) -> list[dict[str, Any]]:
     """把工具结果摘要追加到本轮日志，respond 节点据此生成回复；制度检索的出处一并记下。"""
     entry: dict[str, Any] = {"tool": name, "ok": result.ok, "summary": result.summary}
     if refs := sources_of(name, result):
         entry["sources"] = refs
-    return [*state.get("tool_log", []), entry]
+    log = state.get("tool_log", [])
+    if name in RETRIED_TOOLS:
+        log = [e for e in log if e.get("tool") != name]
+    return [*log, entry]
 
 
 def tool_error(result: ToolResult) -> dict[str, Any]:

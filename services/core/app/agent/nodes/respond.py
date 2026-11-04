@@ -55,7 +55,10 @@ def template_reply(state: AgentState) -> str:
     if quote := state.get("quote"):
         price = _yuan(quote["total_price"])
         status = QUOTE_STATUS_LABELS.get(quote["status"], quote["status"])
-        return f"报价单 {quote['code']} 已创建，总价 {price}，状态：{status}。"
+        # 写明是哪一档：销售在卡片上另选了档位时，模型原来会说「金额不是推荐的标准版」
+        tier = state.get("saved_tier") or {}
+        which = f"（{tier['name']}）" if tier.get("name") else ""
+        return f"报价单 {quote['code']}{which} 已创建，总价 {price}，状态：{status}。"
     if state.get("intent") == "solution":
         return _solution_text(state)
     log = state.get("tool_log", [])
@@ -92,7 +95,7 @@ def turn_artifacts(state: Mapping[str, Any]) -> list[dict[str, Any]]:
     tiers = state.get("tiers") or []
     if state.get("intent") == "solution" and tiers:
         arts.append({"type": "solution_tiers", "data": tiers})
-        arts.append({"type": "bom", "data": recommended_tier(tiers)})
+        arts.append({"type": "bom", "data": state.get("saved_tier") or recommended_tier(tiers)})
     if quote := state.get("quote"):
         arts.append({"type": "quote", "data": quote})
     if res := state.get("action_result"):

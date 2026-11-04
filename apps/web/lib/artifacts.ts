@@ -151,3 +151,18 @@ export function bomToCsv(bom: BomData): string {
 export function safeFileName(title: string): string {
   return title.replace(/[\/:*?"<>|\s·]+/g, "-").replace(/^-+|-+$/g, "") || "物料清单"
 }
+
+/**
+ * 确认生成报价后，方案卡和确认卡显示哪一档。
+ * 报价单推回来之前，物料清单还是推荐档，用点确认时卡片上的档位（decided）；
+ * 推回之后以后端的物料清单为准（实际生成的档位，含调整后的数量；打开历史会话也一样）。
+ * 回归：销售另选经济版并生成后，卡片回到推荐的标准版，看起来像生成了标准版。
+ */
+export function savedTierOf(
+  artifacts: { type: string; data: unknown }[],
+  decided?: CoreSolutionTier,
+): CoreSolutionTier | undefined {
+  if (!artifacts.some((a) => a.type === "quote")) return decided
+  const bom = [...artifacts].reverse().find((a) => a.type === "bom")
+  return bom && isCoreTier(bom.data) ? bom.data : decided
+}

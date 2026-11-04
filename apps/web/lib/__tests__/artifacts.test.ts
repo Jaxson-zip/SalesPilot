@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest"
 
-import { isCoreQuote, isCoreTier, isCoreTiers, toBomData, toTierCards, type CoreSolutionTier } from "@/lib/artifacts"
+import {
+  isCoreQuote,
+  isCoreTier,
+  isCoreTiers,
+  savedTierOf,
+  toBomData,
+  toTierCards,
+  type CoreSolutionTier,
+} from "@/lib/artifacts"
 
 /** 与 core 实际推送的结构一致（services/core/app/packs/base.py SolutionTier） */
 const standard: CoreSolutionTier = {
@@ -95,5 +103,20 @@ describe("toBomData · 软件外包成本构成", () => {
       { label: "上线后 AI 调用费（客户付）", value: "¥105/月" },
     ])
     expect(toBomData(standard).totals).toHaveLength(3)
+  })
+})
+
+describe("savedTierOf：确认后按实际生成的档位显示", () => {
+  const economy: CoreSolutionTier = { ...standard, tier: "economy", name: "经济版", recommended: false }
+  it("报价单推回前用点确认时的档位，不回到推荐档", () => {
+    expect(savedTierOf([{ type: "bom", data: standard }], economy)?.tier).toBe("economy")
+  })
+  it("报价单推回后以后端的物料清单为准（含打开历史会话）", () => {
+    const arts = [
+      { type: "bom", data: economy },
+      { type: "quote", data: {} },
+    ]
+    expect(savedTierOf(arts)?.tier).toBe("economy")
+    expect(savedTierOf(arts, standard)?.tier).toBe("economy")
   })
 })

@@ -16,7 +16,7 @@ import { useSmoothText } from "@/hooks/useSmoothText"
 import { actionResultOf } from "@/lib/action-result"
 import { splitFollowUps } from "@/lib/agent-mode"
 import type { AgentArtifact, AssistantTurn } from "@/lib/agent-reducer"
-import { isCoreTier, isCoreTiers, type CoreSolutionTier } from "@/lib/artifacts"
+import { isCoreTier, isCoreTiers, savedTierOf, type CoreSolutionTier } from "@/lib/artifacts"
 import { adjustTier, changedQty, type QtyEdits } from "@/lib/bom-adjust"
 import { previewRows } from "@/lib/interrupt-preview"
 import { cn } from "@/lib/utils"
@@ -93,6 +93,10 @@ export function AiMessage({
   const { picked, setPicked, editsByTier, setEditsByTier } = draft
   const canPick = pending && !readonly && !busy && tiers.length > 1
   const pickedTier = picked ? tiers.find((t) => t.tier === picked) : undefined
+  // 确认后：先用点确认时卡片上的档位，后端推回实际生成的物料清单后以它为准
+  const [decidedTier, setDecidedTier] = useState<CoreSolutionTier>()
+  // 打开历史会话时没有 interrupt，按报价单和物料清单判断
+  const saved = pending ? undefined : savedTierOf(turn.artifacts, decidedTier)
   const canEdit = pending && !readonly && !busy
   const baseTier = pickedTier ?? tiers.find((t) => t.recommended) ?? tiers[0]
   const edits = (baseTier && editsByTier[baseTier.tier]) || {}
@@ -101,7 +105,7 @@ export function AiMessage({
   }
   const changes = baseTier ? changedQty(baseTier, edits) : {}
   const adjusted = baseTier && Object.keys(changes).length ? adjustTier(baseTier, edits) : undefined
-  const shownTier = adjusted ?? pickedTier
+  const shownTier = adjusted ?? pickedTier ?? saved
   // 改过物料的档位：档位卡片上的价格是原方案，标出来
   const adjustedTiers = tiers
     .filter((t) => Object.keys(changedQty(t, editsByTier[t.tier] ?? {})).length > 0)
@@ -122,6 +126,7 @@ export function AiMessage({
   const decide = (decision: ResumeDecision) => {
     draft.clear()
     if (decision !== "approve") return onDecide(decision)
+    setDecidedTier(adjusted ?? pickedTier)
     const tier = pickedTier && !pickedTier.recommended ? pickedTier.tier : undefined
     onDecide(decision, tier, adjusted ? changes : undefined)
   }
@@ -179,7 +184,7 @@ export function AiMessage({
                       artifact={a.type === "bom" && shownTier ? { ...a, data: shownTier } : a}
                       onConfirmRequirement={onConfirmRequirement}
                       readonly={readonly || busy}
-                      selectedTier={pickedTier?.tier}
+                      selectedTier={pickedTier?.tier ?? shownTier?.tier}
                       onSelectTier={canPick ? pick : undefined}
                       adjustedTiers={canEdit ? adjustedTiers : undefined}
                     />

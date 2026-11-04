@@ -29,7 +29,8 @@ export function Providers({ children }: { children: ReactNode }) {
       <SessionProvider>
         <TooltipProvider delayDuration={300}>
           {children}
-          <Toaster theme="light" position="bottom-right" />
+          {/* 顶部居中：放右下角会挡住侧边表单底部的提交按钮（如报销上传发票后的「已上传」） */}
+          <Toaster theme="light" position="top-center" />
         </TooltipProvider>
       </SessionProvider>
     </QueryClientProvider>

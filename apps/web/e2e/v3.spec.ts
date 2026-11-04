@@ -189,9 +189,7 @@ test("v3：通知铃铛——销售提交超标报销后，主管收到待审批
   const bell = page.getByRole("button", { name: /通知，\d+ 条未读/ })
   await expect(bell).toBeVisible()
   await bell.click()
-  await page
-    .getByText(new RegExp(`待审批.*${draft.code}`))
-    .first()
-    .click()
+  // 按通知条目的按钮找：getByText 的正则会匹配到工作台正文（「待我审批」卡片 + 团队动态里的单号拼起来也符合）
+  await page.getByRole("button", { name: new RegExp(`待审批：报销单 ${draft.code}`) }).click()
   await expect(page).toHaveURL(/\/expenses|\/approvals/)
 })

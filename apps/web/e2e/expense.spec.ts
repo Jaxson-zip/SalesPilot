@@ -53,7 +53,7 @@ test("新建报销：勾选参与人自动算人数 → 选票据自动保存草
 
   await expect(submit).toBeEnabled()
   await submit.click()
-  const confirm = page.getByRole("alertdialog", { name: "提交报销审批" })
+  const confirm = page.getByRole("alertdialog", { name: "提交报销" })
   await confirm.getByRole("button", { name: "确认提交" }).click()
   await expect(page.getByText("超出报销标准，已提交主管审批")).toBeVisible()
 

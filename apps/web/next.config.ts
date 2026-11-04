@@ -7,8 +7,16 @@ import type { NextConfig } from "next"
  */
 const coreUrl = (process.env.CORE_INTERNAL_URL ?? "http://localhost:8000").replace(/\/$/, "")
 
+/**
+ * 代理等 core 响应的上限。Next 默认 30 秒，和 core 等模型的 LLM_TIMEOUT_SECONDS（30）一样长：
+ * 模型一慢，core 还没来得及回退到模板 / 规则结果，代理就先断开返回 500。
+ * 取 60 秒，与 Nginx 默认的 proxy_read_timeout 一致。
+ */
+export const PROXY_TIMEOUT_MS = 60_000
+
 const nextConfig: NextConfig = {
   output: "standalone",
+  experimental: { proxyTimeout: PROXY_TIMEOUT_MS },
   // 关闭 gzip，避免 SSE（/api/agent/chat）被压缩缓冲导致无法逐字输出
   compress: false,
   async rewrites() {

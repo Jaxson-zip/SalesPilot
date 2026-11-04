@@ -23,12 +23,13 @@ test.describe("审查 v8：全局搜索、审批批量处理", () => {
   test("审批：筛选类型、汇总金额、全选后显示批量操作（不实际提交）", async ({ page }) => {
     await loginAs(page, "manager")
     await page.goto("/approvals")
-    await expect(page.getByText(/共 \d+ 条 · 合计/)).toBeVisible()
+    // 汇总按报价、报销分开写金额（不再混成一个「合计」）
+    await expect(page.getByText(/共 \d+ 条 · 报价/)).toBeVisible()
     const types = page.getByRole("group", { name: "审批类型" })
     await types.getByRole("button", { name: /报销/ }).click()
     await expect(types.getByRole("button", { name: /报销/ })).toHaveAttribute("aria-pressed", "true")
     await page.getByRole("checkbox", { name: "全选" }).click()
-    await expect(page.getByText(/已选 \d+ 条 · 合计/)).toBeVisible()
+    await expect(page.getByText(/已选 \d+ 条 · 报销/)).toBeVisible()
     await expect(page.getByRole("button", { name: /批量通过/ })).toBeVisible()
     await page.getByRole("checkbox", { name: "全选" }).click()
     await expect(page.getByRole("button", { name: /批量通过/ })).toHaveCount(0)

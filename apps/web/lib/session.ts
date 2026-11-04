@@ -1,6 +1,6 @@
-import { api, setUnauthorizedHandler } from "@/lib/api"
+import { api, isApiError, setUnauthorizedHandler } from "@/lib/api"
 import { readStorage, setToken, STORAGE_KEYS, writeStorage } from "@/lib/storage"
-import type { CurrentUser, MockLoginData, Role } from "@/types/api"
+import { ErrorCode, type CurrentUser, type MockLoginData, type Role } from "@/types/api"
 
 /** 演示账户（与原型 USERS 一致）；can 是登录页上的一句话说明，login 是登录名 */
 export const DEMO_USERS: Record<Role, { name: string; title: string; scope: string; can: string; login: string }> = {
@@ -147,3 +147,13 @@ setUnauthorizedHandler(async () => {
   }
   return false
 })
+
+/**
+ * 登录是否已核实（之后才渲染页面、发业务请求）：/api/me 成功；或失败但不是 401（网络、服务不可用，交给页面显示错误）。
+ * 401 和没有 token 都不算：这时会回登录页，不能让页面先发一批请求（回归：通知、模板、报销三个接口各 401 一次）。
+ */
+export function sessionVerified(authed: boolean, hasUser: boolean, error: unknown): boolean {
+  if (!authed) return false
+  if (hasUser) return true
+  return error != null && !(isApiError(error) && error.code === ErrorCode.UNAUTHORIZED)
+}

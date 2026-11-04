@@ -7,6 +7,8 @@ test.describe("业务规则与行业包（网页维护）", () => {
   test("业务规则：改毛利底线 → 显示已修改与默认值 → 恢复默认", async ({ page }) => {
     await loginAs(page, "admin")
     await page.goto("/settings/rules")
+    // 第一组是「工作方式」（个人模式开关），先切到报价与审批
+    await page.getByRole("tablist", { name: "规则分组" }).getByRole("tab", { name: /报价与审批/ }).click()
     const group = page.getByRole("region", { name: "报价与审批" })
     await expect(group).toContainText("毛利底线")
     await group.getByRole("button", { name: "编辑报价与审批" }).click()

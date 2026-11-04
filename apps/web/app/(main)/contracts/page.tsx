@@ -64,7 +64,8 @@ function StatStrip({ s, loading }: { s: ContractSummary | undefined; loading: bo
         <div key={it.k} className="min-w-0 px-3 py-3 sm:px-5 sm:py-4">
           <div className="truncate text-zinc-500 max-sm:text-xs">{it.k}</div>
           {loading ? (
-            <Skeleton className="mt-2 h-6 w-28" />
+            // 手机 320px 一行三格时每格不到 112px，骨架不能超出格子
+            <Skeleton className="mt-2 h-6 w-28 max-w-full" />
           ) : (
             <div className="mt-1 truncate text-base font-semibold tabular-nums sm:text-xl">{it.v}</div>
           )}

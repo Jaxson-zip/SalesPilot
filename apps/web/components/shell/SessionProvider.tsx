@@ -17,6 +17,7 @@ import {
   mockLogin,
   passwordLogin,
   profileOf,
+  sessionVerified,
   storeProfile,
   storeRole,
   type Profile,
@@ -34,6 +35,8 @@ interface SessionValue {
   userId: string | null
   /** 管理员新建 / 重置密码后，登录要先改密码 */
   mustChangePassword: boolean
+  /** 登录已由 /api/me 核实：之前不渲染页面，免得各页面带着空 token / 过期 token 先发一批请求，全部 401 */
+  ready: boolean
   /** 个人模式：一个人接单，隐藏团队相关页面 */
   solo: boolean
   /** 能改系统配置（管理员；个人模式下的主管） */
@@ -147,6 +150,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const userId = fresh?.id ?? null
   const user = fresh ? profileOf(fresh) : (stored ?? DEMO_USERS[role])
   const mustChangePassword = Boolean(fresh?.must_change_password)
+  // 核实过一次就一直算就绪：切换角色时 /api/me 换了 key，不要把整个页面收起来
+  // /api/me 不是 401 的失败（网络、服务不可用）也放行，由各页面显示错误；401 会直接回登录页
+  const [verified, setVerified] = useState(false)
+  if (!verified && sessionVerified(authed, Boolean(me.data), me.error)) setVerified(true)
+  const ready = verified
   const solo = Boolean(fresh?.solo_mode)
   const canConfigure = canConfigurePacks(role, solo)
   const name = user.name
@@ -160,6 +168,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       isLead: role !== "sales",
       userId,
       mustChangePassword,
+      ready,
       solo,
       canConfigure,
       switchRole,
@@ -169,6 +178,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       signOut,
     }),
     [
+      ready,
       role,
       name,
       title,

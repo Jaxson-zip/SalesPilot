@@ -51,6 +51,8 @@ test.describe("v7：工作台动态与业务规则布局", () => {
   test("业务规则按分组切换，一次只显示一组", async ({ page }) => {
     await loginAs(page, "admin")
     await page.goto("/settings/rules")
+    // 第一组是「工作方式」（个人模式开关），先切到报价与审批
+    await page.getByRole("tablist", { name: "规则分组" }).getByRole("tab", { name: /报价与审批/ }).click()
     await expect(page.getByRole("region", { name: "报价与审批" })).toBeVisible()
     await page.getByRole("tablist", { name: "规则分组" }).getByRole("tab", { name: /回款/ }).click()
     const group = page.getByRole("region", { name: "回款" })

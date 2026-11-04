@@ -23,10 +23,10 @@ async function mingliId(api: Api): Promise<string> {
 /** 在日期选择器里选当前月份的某一天（日历默认打开当前月） */
 async function pickDay(page: Page, label: string, day: number): Promise<void> {
   await page.getByRole("button", { name: label }).click()
-  await page
-    .getByRole("grid")
-    .getByRole("button", { name: new RegExp(`月${day}日`) })
-    .click()
+  // 住宿日期不能晚于今天：每月 1–12 号跑时，本月的 10、12 号还没到，退到上个月再选
+  const target = () => page.getByRole("grid").getByRole("button", { name: new RegExp(`月${day}日`) })
+  if (await target().isDisabled()) await page.locator(".rdp-button_previous").click()
+  await target().click()
   await expect(page.getByRole("grid")).toHaveCount(0) // 等日历收起动画结束，再打开下一个
 }
 

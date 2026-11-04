@@ -16,7 +16,10 @@ const SIDEBAR_VARS = { "--sidebar-width": "220px", "--sidebar-width-icon": "56px
 export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useSidebarPreference()
   const [searchOpen, setSearchOpen] = useState(false)
-  const { mustChangePassword } = useSession()
+  const { mustChangePassword, ready } = useSession()
+  // 登录核实之前只显示底色：侧栏（通知）、页面（列表、模板）都等核实后再请求
+  // 回归：没登录或 token 已失效时打开页面，通知 / 模板 / 报销三个接口先各 401 一次，才跳登录页
+  if (!ready) return <div className="bg-app h-dvh" aria-busy="true" />
   return (
     <SidebarProvider
       open={open}

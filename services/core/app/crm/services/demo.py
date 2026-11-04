@@ -12,6 +12,7 @@ def demo_id(key: str) -> uuid.UUID:
 
 
 TEAM_SOUTH_ID = demo_id("team:south")
+TEAM_EAST_ID = demo_id("team:east")
 
 DEMO_USERS: dict[Role, CurrentUser] = {
     Role.SALES: CurrentUser(
@@ -29,10 +30,23 @@ EXTRA_SALES = CurrentUser(
 )
 
 
+# 第二个团队（软件外包）：演示主管只看本团队、两个团队的数据互相隔离
+EAST_MANAGER = CurrentUser(
+    id=demo_id("user:east:manager"), name="陈静", role=Role.MANAGER, team_id=TEAM_EAST_ID
+)
+EAST_SALES = [
+    CurrentUser(id=demo_id("user:east:sales1"), name="刘洋", role=Role.SALES, team_id=TEAM_EAST_ID),
+    CurrentUser(id=demo_id("user:east:sales2"), name="赵婷", role=Role.SALES, team_id=TEAM_EAST_ID),
+]
+
+
 # 演示账户的登录名（迁移 0019 和种子数据共用；初始密码见 DEMO_PASSWORD）
 DEMO_LOGINS: dict[uuid.UUID, str] = {
     DEMO_USERS[Role.SALES].id: "zhangchen",
     DEMO_USERS[Role.MANAGER].id: "liwei",
     DEMO_USERS[Role.ADMIN].id: "zhoumin",
     EXTRA_SALES.id: "wanglei",
+    EAST_MANAGER.id: "chenjing",
+    EAST_SALES[0].id: "liuyang",
+    EAST_SALES[1].id: "zhaoting",
 }

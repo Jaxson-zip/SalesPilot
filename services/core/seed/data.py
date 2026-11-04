@@ -4,16 +4,30 @@ from datetime import date
 from typing import Any
 
 from app.common.auth import Role
-from app.crm.services.demo import DEMO_USERS, EXTRA_SALES, TEAM_SOUTH_ID, demo_id
+from app.crm.services.demo import (
+    DEMO_USERS,
+    EAST_MANAGER,
+    EAST_SALES,
+    EXTRA_SALES,
+    TEAM_EAST_ID,
+    TEAM_SOUTH_ID,
+    demo_id,
+)
 
 SALES = DEMO_USERS[Role.SALES]
 MANAGER = DEMO_USERS[Role.MANAGER]
 ADMIN = DEMO_USERS[Role.ADMIN]
-USERS = [SALES, MANAGER, ADMIN, EXTRA_SALES]
+USERS = [SALES, MANAGER, ADMIN, EXTRA_SALES, EAST_MANAGER, *EAST_SALES]
 
 TEAM: dict[str, Any] = {"id": TEAM_SOUTH_ID, "name": "华南销售组"}
+TEAM_EAST: dict[str, Any] = {"id": TEAM_EAST_ID, "name": "华东销售组"}
 # 本月签约额目标（分）
-TARGETS = [(DEMO_USERS[Role.SALES], 80_000_000), (EXTRA_SALES, 50_000_000)]
+TARGETS = [
+    (DEMO_USERS[Role.SALES], 80_000_000),
+    (EXTRA_SALES, 50_000_000),
+    (EAST_SALES[0], 40_000_000),
+    (EAST_SALES[1], 30_000_000),
+]
 
 PL_LLM = demo_id("product_line:llm")
 PL_IT = demo_id("product_line:it")
@@ -220,5 +234,88 @@ FOLLOWUPS: list[dict[str, Any]] = [
         "type": "ai",
         "source": "agent",
         "content": "根据会议纪要更新了商机阶段：需求确认 → 方案报价。",
+    },
+]
+
+
+# ---------- 华东销售组（软件外包）：只放几条，演示团队之间的数据隔离 ----------
+
+C_QINGHE = demo_id("customer:qinghe")
+C_HENGYUAN = demo_id("customer:hengyuan")
+C_ZHIXING = demo_id("customer:zhixing")
+LIU, ZHAO = EAST_SALES
+
+
+def _customer(cid: Any, name: str, industry: str, size: str, address: str, owner: Any) -> dict:
+    return {
+        "id": cid,
+        "name": name,
+        "industry": industry,
+        "level": "B",
+        "size": size,
+        "address": address,
+        "website": None,
+        "annual_budget": None,
+        "tags": [],
+        "owner": owner,
+    }
+
+
+CUSTOMERS += [
+    _customer(C_QINGHE, "杭州青禾电商", "零售电商", "150 人", "杭州市余杭区", LIU),
+    _customer(C_HENGYUAN, "苏州恒远精密制造", "制造业", "900 人", "苏州工业园区", ZHAO),
+    _customer(C_ZHIXING, "上海知行教育科技", "教育", "80 人", "上海市徐汇区", LIU),
+]
+
+OPPORTUNITIES += [
+    {
+        "id": demo_id("opp:qinghe"),
+        "customer_id": C_QINGHE,
+        "name": "会员小程序",
+        "stage": "proposal",
+        "amount": 18_000_000,
+        "win_rate": 50,
+        "expected_close_date": date(2026, 12, 10),
+        "product_line_id": PL_SOFTWARE,
+        "owner": LIU,
+    },
+    {
+        "id": demo_id("opp:hengyuan"),
+        "customer_id": C_HENGYUAN,
+        "name": "MES 数据看板",
+        "stage": "qualified",
+        "amount": 32_000_000,
+        "win_rate": 25,
+        "expected_close_date": date(2026, 12, 20),
+        "product_line_id": PL_SOFTWARE,
+        "owner": ZHAO,
+    },
+    {
+        "id": demo_id("opp:zhixing"),
+        "customer_id": C_ZHIXING,
+        "name": "在线题库系统",
+        "stage": "lead",
+        "amount": 25_000_000,
+        "win_rate": 10,
+        "expected_close_date": date(2027, 1, 15),
+        "product_line_id": PL_SOFTWARE,
+        "owner": LIU,
+    },
+]
+
+FOLLOWUPS += [
+    {
+        "id": demo_id("fu:qinghe:1"),
+        "customer_id": C_QINGHE,
+        "type": "visit",
+        "source": "manual",
+        "content": "和运营总监聊了会员积分、优惠券和小程序商城，希望春节前上线。",
+    },
+    {
+        "id": demo_id("fu:hengyuan:1"),
+        "customer_id": C_HENGYUAN,
+        "type": "phone",
+        "source": "manual",
+        "content": "生产部想把 MES 的良率、停机数据做成车间大屏，下周现场看设备。",
     },
 ]

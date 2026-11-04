@@ -31,7 +31,9 @@ def test_users_team_and_admin(client: TestClient) -> None:
     as_all = client.get("/api/users?scope=all", headers=SALES_H).json()["data"]
     assert as_all["total"] == 3
     admin = client.get("/api/users?scope=all", headers=ADMIN_H).json()["data"]
-    assert "周敏" in {u["name"] for u in admin["items"]} and admin["total"] == 4
+    assert (
+        "周敏" in {u["name"] for u in admin["items"]} and admin["total"] == 7
+    )  # 两个团队 6 人 + 管理员
     assert client.get("/api/users?scope=bad", headers=SALES_H).json()["code"] == 40001
 
 

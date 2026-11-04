@@ -1,12 +1,15 @@
 "use client"
 
+import { useState } from "react"
+
 import { ChipMultiSelect, FixedChip } from "@/components/biz/ChipMultiSelect"
 import { CustomerCombobox } from "@/components/biz/CustomerCombobox"
 import { DatePicker, FormField, MoneyInput, SimpleSelect } from "@/components/biz/FormControls"
 import { useSession } from "@/components/shell/SessionProvider"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { useContacts } from "@/hooks/useFollowups"
+import { useContacts, useSaveContact } from "@/hooks/useFollowups"
 import { ExpenseGuidePanel, ExpenseTemplatePicker } from "@/components/expenses/ExpenseGuide"
 import { TripFields } from "@/components/expenses/TripFields"
 import { useOpportunities } from "@/hooks/useOpportunities"
@@ -59,6 +62,57 @@ function OpportunityField({
   )
 }
 
+/** 客户还没有要选的联系人时，在表单里直接加一个（只填姓名），加完自动选中 */
+function QuickAddContact({ customerId, onAdded }: { customerId: string; onAdded: (id: string) => void }) {
+  const save = useSaveContact(customerId)
+  const [name, setName] = useState<string | null>(null)
+  if (name === null)
+    return (
+      <button
+        type="button"
+        className="text-xs text-zinc-600 hover:text-zinc-900 hover:underline"
+        onClick={() => setName("")}
+      >
+        + 新增联系人
+      </button>
+    )
+  const add = () =>
+    name.trim() &&
+    save.mutate(
+      { body: { name: name.trim() } },
+      {
+        onSuccess: (c) => {
+          onAdded(c.id)
+          setName(null)
+        },
+      },
+    )
+  return (
+    <div className="flex items-center gap-2">
+      <Input
+        autoFocus
+        value={name}
+        aria-label="新联系人姓名"
+        placeholder="联系人姓名，如：孙总监"
+        className="h-8"
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault()
+            add()
+          }
+        }}
+      />
+      <Button type="button" size="xs" onClick={add} disabled={!name.trim() || save.isPending}>
+        添加
+      </Button>
+      <Button type="button" size="xs" variant="ghost" onClick={() => setName(null)}>
+        取消
+      </Button>
+    </div>
+  )
+}
+
 /** 客户方参与人：所选客户的联系人（chip 多选） */
 function ContactsField({
   customerId,
@@ -75,7 +129,7 @@ function ContactsField({
 }) {
   const q = useContacts(customerId ?? "")
   const options = (q.data ?? []).map((c) => ({ value: c.id, label: c.name, hint: c.title }))
-  let empty = "还没有联系人，可在客户详情里添加"
+  let empty = "还没有联系人"
   if (!customerId) empty = "先选择关联客户"
   else if (q.isPending) empty = "加载联系人…"
   else if (q.isError) empty = "联系人加载失败"
@@ -89,6 +143,12 @@ function ContactsField({
         empty={empty}
         invalid={Boolean(error)}
       />
+      {customerId && !q.isPending && !q.isError ? (
+        <QuickAddContact
+          customerId={customerId}
+          onAdded={(id) => onChange("contact_ids", [...values.contact_ids, id])}
+        />
+      ) : null}
     </FormField>
   )
 }

@@ -35,7 +35,7 @@ from app.rules import calc_commission, check_expense_policy, check_margin, load_
 from app.rules.crm_calc import headcount_of
 from app.rules.loader import RuleSet
 from seed import business_data as bd
-from seed.data import MANAGER, SALES
+from seed.data import CUSTOMERS, MANAGER, SALES
 from seed.files import invoice_pdf, receipt_png
 from seed.workflow import seed_workflow
 
@@ -50,9 +50,19 @@ def _code(
 
 
 def seed_contacts(db: Session) -> None:
+    """联系人跟着客户的负责人走（华东团队的客户归刘洋、赵婷）。"""
+    owners = {c["id"]: c["owner"] for c in CUSTOMERS}
     for row in bd.CONTACTS:
         values = {k: v for k, v in row.items() if k != "key"}
-        db.merge(Contact(id=demo_id(f"contact:{row['key']}"), **values, **OWNER))
+        owner = owners[row["customer_id"]]
+        db.merge(
+            Contact(
+                id=demo_id(f"contact:{row['key']}"),
+                **values,
+                owner_id=owner.id,
+                team_id=owner.team_id,
+            )
+        )
 
 
 def closed_at() -> datetime:

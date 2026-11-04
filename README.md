@@ -83,6 +83,10 @@ docker compose exec core python -m seed   # 导入演示数据
 | 销售 · 王磊 | `wanglei` | 与张晨同组，验证销售之间数据隔离 |
 | 销售主管 · 李薇 | `liwei` | 审批、团队商机、登记回款、按人交接 |
 | 系统管理员 · 周敏 | `zhoumin` | 成员与团队、模型接入、行业包配置 |
+| 销售主管 · 陈静 | `chenjing` | 华东销售组（软件外包），只看得到本团队的数据 |
+| 销售 · 刘洋 / 赵婷 | `liuyang` / `zhaoting` | 华东销售组的销售，AI 出软件外包方案 |
+
+分享给别人试用前，恢复干净的演示数据并把演示账号密码统一为 `DEMO_PASSWORD`：`python -m seed --reset --reset-passwords`。
 
 接入大模型：在 `.env` 填至少一家厂商的 Key，或登录管理员后在「系统设置 → 模型接入」里配置。支持混元、DeepSeek、通义，以及任意 OpenAI 兼容接口。
 

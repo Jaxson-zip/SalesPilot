@@ -79,10 +79,12 @@ def _owned(row: dict[str, Any]) -> dict[str, Any]:
     return values
 
 
-def seed_org(db: Session) -> None:
+def seed_org(db: Session, reset_passwords: bool = False) -> None:
     for line in data.PRODUCT_LINES:
         db.merge(ProductLine(**line))
     db.merge(Team(id=data.TEAM["id"], name=data.TEAM["name"], default_product_line_id=data.PL_LLM))
+    east = data.TEAM_EAST
+    db.merge(Team(id=east["id"], name=east["name"], default_product_line_id=data.PL_SOFTWARE))
     db.flush()
     password = hash_password(get_settings().demo_password)
     for u in data.USERS:
@@ -90,10 +92,15 @@ def seed_org(db: Session) -> None:
         # 账号：已有登录名和密码的不覆盖（管理员可能改过）
         user.username = user.username or DEMO_LOGINS[u.id]
         user.password_hash = user.password_hash or password
+        if reset_passwords:  # 分享演示环境前：演示账号统一回到 DEMO_PASSWORD，不要求首次改密码
+            user.password_hash, user.must_change_password = password, False
     db.flush()
     team = db.get(Team, data.TEAM["id"])
     assert team is not None
     team.manager_id = data.MANAGER.id
+    east_team = db.get(Team, data.TEAM_EAST["id"])
+    assert east_team is not None
+    east_team.manager_id = data.EAST_MANAGER.id
 
 
 def seed_crm(db: Session) -> None:
@@ -130,12 +137,17 @@ def main() -> None:
         action="store_true",
         help="先清空客户、商机、报价、报销等业务数据，再导入演示数据",
     )
+    parser.add_argument(
+        "--reset-passwords",
+        action="store_true",
+        help="把演示账号的密码统一重置为 DEMO_PASSWORD（分享演示环境前用）",
+    )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
     with session_scope() as db:
         if args.reset:
             reset_business_data(db)
-        seed_org(db)
+        seed_org(db, reset_passwords=args.reset_passwords)
         seed_crm(db)
         db.flush()
         seed_business(db)

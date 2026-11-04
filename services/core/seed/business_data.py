@@ -7,7 +7,18 @@ from datetime import date
 from typing import Any
 
 from app.crm.services.demo import demo_id
-from seed.data import C_HNZZ, C_MINGLI, C_NANSHAN, C_XINGHE, C_YUEHAI, MANAGER, SALES
+from seed.data import (
+    C_HENGYUAN,
+    C_HNZZ,
+    C_MINGLI,
+    C_NANSHAN,
+    C_QINGHE,
+    C_XINGHE,
+    C_YUEHAI,
+    C_ZHIXING,
+    MANAGER,
+    SALES,
+)
 
 Q_HNZZ = demo_id("quote:hnzz")
 Q_YUEHAI = demo_id("quote:yuehai")
@@ -147,6 +158,14 @@ CONTACTS: list[dict[str, Any]] = [
      "phone": "137****3072", "is_decision_maker": True, "role": "decision_maker"},
     {"key": "xinghe:zhou", "customer_id": C_XINGHE, "name": "周总", "title": "创始人",
      "phone": "136****4096", "is_decision_maker": True, "role": "decision_maker"},
+    {"key": "qinghe:sun", "customer_id": C_QINGHE, "name": "孙总监", "title": "运营总监",
+     "phone": "135****5120", "is_decision_maker": True, "role": "decision_maker"},
+    {"key": "qinghe:he", "customer_id": C_QINGHE, "name": "何工", "title": "技术负责人",
+     "phone": "133****6144", "is_decision_maker": False, "role": "technical"},
+    {"key": "hengyuan:xu", "customer_id": C_HENGYUAN, "name": "徐经理", "title": "生产部经理",
+     "phone": "132****7168", "is_decision_maker": True, "role": "decision_maker"},
+    {"key": "zhixing:lin", "customer_id": C_ZHIXING, "name": "林校长", "title": "教学副总",
+     "phone": "131****8192", "is_decision_maker": True, "role": "decision_maker"},
 ]  # fmt: skip
 
 # 动态：hours_ago 用于排序展示；actor=None 表示 AI 写入

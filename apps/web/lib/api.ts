@@ -1,4 +1,3 @@
-import { getToken } from "@/lib/storage"
 import { ErrorCode, type ApiEnvelope } from "@/types/api"
 
 /** code ≠ 0 时抛出的错误，带后端错误码（§8.2） */
@@ -34,12 +33,17 @@ export function newRequestId(): string {
   return `req_${rand.slice(0, 20)}`
 }
 
-/** 公共请求头：Bearer token + X-Request-ID（§8.1、规则 9） */
+/** CSRF 防护：core 要求 Cookie 鉴权的写请求带这个请求头（跨站页面带不了自定义头） */
+export const CSRF_HEADER = "X-Requested-With"
+
+/**
+ * 公共请求头：X-Request-ID（§8.1、规则 9）+ CSRF 请求头。
+ * 登录态在 HttpOnly Cookie 里，同源 fetch 自动带上，JS 读不到也不用管 token。
+ */
 export function buildHeaders(extra?: HeadersInit, requestId: string = newRequestId()): Headers {
   const headers = new Headers(extra)
   headers.set("X-Request-ID", requestId)
-  const token = getToken()
-  if (token && !headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`)
+  headers.set(CSRF_HEADER, "XMLHttpRequest")
   return headers
 }
 
@@ -102,7 +106,7 @@ function withQuery(path: string, query?: Query): string {
   return s ? `${path}?${s}` : path
 }
 
-/** 401 时的处理钩子（由 session 注册：重新 mock 登录），避免 api ↔ session 循环依赖 */
+/** 401 时的处理钩子（由 session 注册：回登录页），避免 api ↔ session 循环依赖 */
 let unauthorizedHandler: (() => Promise<boolean>) | null = null
 export function setUnauthorizedHandler(fn: (() => Promise<boolean>) | null): void {
   unauthorizedHandler = fn
@@ -154,7 +158,7 @@ export function writeKey(path: string, opts: RequestOptions): string | null {
 }
 
 /**
- * 通用请求：自动带 token 与 X-Request-ID；401 时尝试重新登录一次。
+ * 通用请求：自动带登录 Cookie 与 X-Request-ID；401 时交给 session 处理（回登录页）。
  * 回归：快速双击「创建报价单」时，两次点击都在按钮变成「保存中」之前发出，生成了两张一样的报价。
  * 相同的写请求在第一次返回前不会再发第二次，所有按钮都受益。
  */
@@ -181,7 +185,7 @@ export const api = {
 
 /**
  * 带鉴权地下载文件并返回 object URL（附件预览）。
- * 附件接口需要 Bearer token，不能直接用 <a href>，也不能把 token 放进 URL。
+ * 附件接口需要登录；用 fetch 取回 blob 再预览，出错时能按统一响应显示错误信息。
  */
 export async function fetchBlobUrl(path: string): Promise<string> {
   const requestId = newRequestId()

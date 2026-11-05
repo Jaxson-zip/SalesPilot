@@ -4,7 +4,7 @@
 - 演示账户（`DEMO_LOGIN=true`）：按角色进入固定的演示用户，左下角可以切换；正式使用时关掉。
 - 正式模式下演示账号不能用公开的初始密码（DEMO_PASSWORD）登录，先用 `python -m seed.admin` 重置。
 - 访问口令（`ACCESS_CODE`）：公网部署时设置，两种登录都要先过口令；
-  已登录的用户切换演示账户时带着当前 token，不用再输口令。
+  已登录的用户切换演示账户时带着当前 token（Bearer 或登录 Cookie），不用再输口令。
 """
 
 import hmac
@@ -39,7 +39,8 @@ _lock = threading.Lock()
 
 
 class LoginResult(BaseModel):
-    token: str
+    # 脚本 / 测试用；浏览器里的登录不返回（token 只放在 HttpOnly Cookie 里）
+    token: str | None = None
     user: UserOut
 
 
@@ -108,20 +109,20 @@ def _clear(key: str) -> None:
         _failures.pop(key, None)
 
 
-def _has_valid_token(authorization: str | None) -> bool:
-    if not authorization or not authorization.lower().startswith("bearer "):
+def _has_valid_token(token: str | None) -> bool:
+    if not token:
         return False
     try:
-        verify_token(authorization[7:].strip())
+        verify_token(token)
     except BizError:
         return False
     return True
 
 
-def check_access(code: str | None, authorization: str | None, ip: str | None) -> None:
-    """配置了访问口令时：有有效 token（切换账户）或口令正确才放行。"""
+def check_access(code: str | None, token: str | None, ip: str | None) -> None:
+    """配置了访问口令时：有有效 token（已登录切换账户；Bearer 或 Cookie）或口令正确才放行。"""
     expected = get_settings().access_code
-    if not expected or _has_valid_token(authorization):
+    if not expected or _has_valid_token(token):
         return
     key = f"code:{ip or '-'}"
     _ensure_not_locked(key, "口令错误次数过多，请 10 分钟后再试", RULE_ACCESS_CODE)

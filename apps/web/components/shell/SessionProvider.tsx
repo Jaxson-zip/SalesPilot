@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
 import { api } from "@/lib/api"
@@ -12,7 +12,6 @@ import {
   getStoredRole,
   isPublicPath,
   LOGIN_PATH,
-  loginUrl,
   logout,
   mockLogin,
   passwordLogin,
@@ -23,7 +22,7 @@ import {
   type Profile,
 } from "@/lib/session"
 import { canConfigurePacks } from "@/lib/permissions"
-import { getToken } from "@/lib/storage"
+import { clearLegacyToken } from "@/lib/storage"
 import type { CurrentUser, Role } from "@/types/api"
 
 interface SessionValue {
@@ -35,7 +34,7 @@ interface SessionValue {
   userId: string | null
   /** 管理员新建 / 重置密码后，登录要先改密码 */
   mustChangePassword: boolean
-  /** 登录已由 /api/me 核实：之前不渲染页面，免得各页面带着空 token / 过期 token 先发一批请求，全部 401 */
+  /** 登录已由 /api/me 核实：之前不渲染页面，免得各页面在没登录 / 登录过期时先发一批请求，全部 401 */
   ready: boolean
   /** 个人模式：一个人接单，隐藏团队相关页面 */
   solo: boolean
@@ -47,7 +46,7 @@ interface SessionValue {
   signIn: (role: Role, accessCode?: string, login?: string) => Promise<void>
   /** 登录页：账号密码登录 */
   signInWithPassword: (username: string, password: string, accessCode?: string) => Promise<void>
-  /** 改自己的密码（换成新 token） */
+  /** 改自己的密码（core 换发新的登录 Cookie） */
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>
   /** 退出登录，回到登录页 */
   signOut: () => void
@@ -57,21 +56,20 @@ const SessionContext = createContext<SessionValue | null>(null)
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
-  const router = useRouter()
   const pathname = usePathname()
   const [role, setRole] = useState<Role>("sales")
   const [stored, setStored] = useState<Profile | null>(null)
   const [authed, setAuthed] = useState(false)
   const switching = useRef(false)
 
-  // 恢复上次的角色和用户；没有 token 时去登录页
+  // 恢复上次的角色和用户。登录态在 HttpOnly Cookie 里，JS 读不到：不是公开页面就用 /api/me 核实，
+  // 没登录或已失效时 /api/me 返回 401，由 session.ts 注册的 401 处理跳到登录页
   useEffect(() => {
+    clearLegacyToken()
     setRole(getStoredRole())
     setStored(getStoredProfile())
-    const has = Boolean(getToken())
-    setAuthed(has)
-    if (!has && !isPublicPath(pathname)) router.replace(loginUrl(window.location.pathname + window.location.search))
-  }, [pathname, router])
+    if (!isPublicPath(pathname)) setAuthed(true)
+  }, [pathname])
 
   const enter = useCallback(
     (user: CurrentUser | undefined, fallback: Role) => {
@@ -105,13 +103,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [queryClient],
   )
 
-  // 整页跳转：丢掉所有缓存和进行中的请求，避免它们 401 后又带着 next 跳一次
+  // 先让 core 清掉登录 Cookie，再整页跳转：丢掉所有缓存和进行中的请求，避免它们 401 后又带着 next 跳一次
   const signOut = useCallback(() => {
-    logout()
-    window.location.assign(LOGIN_PATH)
+    void logout().finally(() => window.location.assign(LOGIN_PATH))
   }, [])
 
-  // 先换到新 token 再切角色，避免用旧 token 拉到旧角色的 /api/me
+  // 先换到新的登录 Cookie 再切角色，避免用旧登录拉到旧角色的 /api/me
   const switchRole = useCallback(
     async (next: Role, login?: string) => {
       switching.current = true

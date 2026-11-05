@@ -17,16 +17,13 @@ export function writeStorage(key: string, value: string | null): void {
 }
 
 export const STORAGE_KEYS = {
-  token: "sp.token",
   role: "sp.role",
   sidebar: "sp.sidebar",
 } as const
 
-export function getToken(): string | null {
-  if (typeof window === "undefined") return null
-  return readStorage(STORAGE_KEYS.token)
-}
+/** 旧版本把 token 存在这里；现在登录态只在 HttpOnly Cookie 里，打开页面时顺手删掉旧值 */
+export const LEGACY_TOKEN_KEY = "sp.token"
 
-export function setToken(token: string | null): void {
-  writeStorage(STORAGE_KEYS.token, token)
+export function clearLegacyToken(): void {
+  if (typeof window !== "undefined") writeStorage(LEGACY_TOKEN_KEY, null)
 }

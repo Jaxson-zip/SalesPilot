@@ -94,23 +94,22 @@ export function artifactOf<T>(stream: string, type: string): T {
   throw new Error(`没有找到 artifact: ${type}`)
 }
 
-/** 让页面以某个角色打开（写入前端 session 用的 localStorage，再由页面自动 mock 登录） */
-/** 以演示账户登录：先拿 token 写进 localStorage（服务端配了访问口令时用 E2E_ACCESS_CODE） */
+/** 以演示账户登录：登录 Cookie 写进浏览器上下文，角色写进 localStorage（服务端配了访问口令时用 E2E_ACCESS_CODE） */
 export async function loginAs(page: Page, role: Role): Promise<void> {
   const res = await page.request.post("/api/auth/mock-login", {
     data: { role, access_code: process.env.E2E_ACCESS_CODE },
   })
   const body = (await res.json()) as Envelope<{ token: string }>
   expect(body.code, body.message).toBe(0)
+  // page.request 和页面共用 Cookie：上面的登录已经把 HttpOnly 登录 Cookie 写进了浏览器上下文
   await page.addInitScript(
-    ([r, token]) => {
-      // 每个 token 只写一次：之后页面里退出登录、切换账户不会被下一次导航覆盖回来
-      if (window.sessionStorage.getItem("e2e.token") === token) return
-      window.sessionStorage.setItem("e2e.token", token)
+    ([r, marker]) => {
+      // 每次 loginAs 只写一次角色：之后页面里退出登录、切换账户不会被下一次导航覆盖回来
+      if (window.sessionStorage.getItem("e2e.login") === marker) return
+      window.sessionStorage.setItem("e2e.login", marker)
       window.localStorage.setItem("sp.role", r)
-      window.localStorage.setItem("sp.token", token)
     },
-    [role, body.data.token] as const,
+    [role, `${role}:${Date.now()}:${Math.random()}`] as const,
   )
 }
 

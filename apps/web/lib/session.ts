@@ -1,5 +1,5 @@
 import { api, isApiError, setUnauthorizedHandler } from "@/lib/api"
-import { readStorage, setToken, STORAGE_KEYS, writeStorage } from "@/lib/storage"
+import { clearLegacyToken, readStorage, STORAGE_KEYS, writeStorage } from "@/lib/storage"
 import { ErrorCode, type CurrentUser, type MockLoginData, type Role } from "@/types/api"
 
 /** 演示账户（与原型 USERS 一致）；can 是登录页上的一句话说明，login 是登录名 */
@@ -114,13 +114,9 @@ export function storeProfile(profile: Profile | null): void {
   writeStorage(PROFILE_KEY, profile ? JSON.stringify(profile) : null)
 }
 
-/** 后端可能返回 token 或 access_token，两种都兼容 */
-function pickToken(data: MockLoginData & { access_token?: string }): string | null {
-  return data.token ?? data.access_token ?? null
-}
-
-function remember(data: MockLoginData & { access_token?: string }): MockLoginData {
-  setToken(pickToken(data))
+/** 登录成功：登录态由 core 写进 HttpOnly Cookie，这里只记角色和左下角显示的用户信息（不含 token） */
+function remember(data: MockLoginData): MockLoginData {
+  clearLegacyToken()
   if (data.user) {
     storeRole(data.user.role)
     storeProfile(profileOf(data.user))
@@ -132,9 +128,9 @@ function remember(data: MockLoginData & { access_token?: string }): MockLoginDat
 export const fetchAuthOptions = () =>
   api.get<{ access_code_required: boolean; demo_login: boolean }>("/api/auth/options")
 
-/** 演示账户：POST /api/auth/mock-login {role, username?, access_code}；已登录切换账户时带当前 token 即可 */
+/** 演示账户：POST /api/auth/mock-login {role, username?, access_code}；已登录切换账户时浏览器带着登录 Cookie，不用口令 */
 export async function mockLogin(role: Role, accessCode?: string, login?: string): Promise<MockLoginData> {
-  const data = await api.post<MockLoginData & { access_token?: string }>("/api/auth/mock-login", {
+  const data = await api.post<MockLoginData>("/api/auth/mock-login", {
     role,
     username: login,
     access_code: accessCode || undefined,
@@ -145,7 +141,7 @@ export async function mockLogin(role: Role, accessCode?: string, login?: string)
 
 /** 账号密码：POST /api/auth/login */
 export async function passwordLogin(username: string, password: string, accessCode?: string): Promise<MockLoginData> {
-  const data = await api.post<MockLoginData & { access_token?: string }>("/api/auth/login", {
+  const data = await api.post<MockLoginData>("/api/auth/login", {
     username,
     password,
     access_code: accessCode || undefined,
@@ -153,18 +149,24 @@ export async function passwordLogin(username: string, password: string, accessCo
   return remember(data)
 }
 
-/** 改自己的密码：成功后旧 token 作废，换成返回的新 token */
+/** 改自己的密码：成功后旧登录全部作废，core 写入新的登录 Cookie */
 export async function changePassword(oldPassword: string, newPassword: string): Promise<MockLoginData> {
-  const data = await api.post<MockLoginData & { access_token?: string }>("/api/auth/password", {
+  const data = await api.post<MockLoginData>("/api/auth/password", {
     old_password: oldPassword,
     new_password: newPassword,
   })
   return remember(data)
 }
 
-export function logout(): void {
-  setToken(null)
+/** 退出登录：POST /api/auth/logout 让 core 清掉 HttpOnly Cookie（JS 删不掉它）；请求失败也清本地信息 */
+export async function logout(): Promise<void> {
+  clearLegacyToken()
   storeProfile(null)
+  try {
+    await api.post<null>("/api/auth/logout")
+  } catch {
+    // 网络失败时 Cookie 留到过期；本地信息已清，回登录页后重新登录会覆盖
+  }
 }
 
 /** 去登录页，登录后回到当前页 */
@@ -174,7 +176,7 @@ export function loginUrl(next?: string): string {
 
 /** token 过期 / 失效 / 账号停用：回到登录页（登录页本身的 401 是账号密码或口令错误，交给页面显示） */
 setUnauthorizedHandler(async () => {
-  setToken(null)
+  clearLegacyToken()
   if (typeof window !== "undefined" && window.location.pathname !== LOGIN_PATH) {
     window.location.assign(loginUrl(window.location.pathname + window.location.search))
   }
@@ -183,7 +185,7 @@ setUnauthorizedHandler(async () => {
 
 /**
  * 登录是否已核实（之后才渲染页面、发业务请求）：/api/me 成功；或失败但不是 401（网络、服务不可用，交给页面显示错误）。
- * 401 和没有 token 都不算：这时会回登录页，不能让页面先发一批请求（回归：通知、模板、报销三个接口各 401 一次）。
+ * 401 和还没开始核实都不算：这时会回登录页，不能让页面先发一批请求（回归：通知、模板、报销三个接口各 401 一次）。
  */
 export function sessionVerified(authed: boolean, hasUser: boolean, error: unknown): boolean {
   if (!authed) return false

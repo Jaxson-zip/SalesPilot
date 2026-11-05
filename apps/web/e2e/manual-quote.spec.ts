@@ -3,8 +3,8 @@ import { expect, test, type Page } from "@playwright/test"
 import { loginAs } from "./helpers"
 
 async function authGet<T>(page: Page, path: string): Promise<T> {
-  const token = await page.evaluate(() => localStorage.getItem("sp.token"))
-  const res = await page.request.get(path, { headers: { Authorization: `Bearer ${token}` } })
+  // page.request 和页面共用登录 Cookie
+  const res = await page.request.get(path)
   return ((await res.json()) as { data: T }).data
 }
 

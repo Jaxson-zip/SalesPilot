@@ -43,14 +43,17 @@ def feature_for(path: str) -> str:
     return next((name for part, name in FEATURES if part in path), OTHER)
 
 
-def bind(path: str, authorization: str | None) -> Any:
-    """请求开始时调用；返回 token 供 reset。令牌无效时只记路径。"""
+def bind(path: str, token: str | None) -> Any:
+    """请求开始时调用（token 来自 Bearer 头或登录 Cookie）；返回 token 供 reset。
+
+    令牌无效时只记路径。
+    """
     from app.common.auth import decode_token  # 避免循环导入
 
     user_id = team_id = None
-    if authorization and authorization.lower().startswith("bearer "):
+    if token:
         try:
-            user = decode_token(authorization.split(" ", 1)[1].strip())
+            user = decode_token(token)
             user_id, team_id = user.id, user.team_id
         except Exception:
             pass

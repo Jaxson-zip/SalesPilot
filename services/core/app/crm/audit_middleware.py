@@ -1,7 +1,7 @@
 """操作日志中间件：网页上的每个写请求（含失败、被拒）记一条操作日志。
 
 纯 ASGI 中间件（不包装响应体，SSE 流式接口不受影响）；只看方法、路径和响应，
-不读请求体。用户身份从 Authorization 解析，令牌无效时记为匿名。
+不读请求体。用户身份从 Authorization 或登录 Cookie 解析，令牌无效时记为匿名。
 路径里没有对象 id 的（新建、催办这类 id 在请求体里的），从响应 data.id / data.target_id 取，
 日志才能定位到具体单据。
 """
@@ -10,9 +10,10 @@ import json
 from typing import Any
 
 from starlette.concurrency import run_in_threadpool
+from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from app.common.auth import CurrentUser, decode_token
+from app.common.auth import CurrentUser, decode_token, request_token
 from app.common.client_ip import resolve_client_ip
 from app.common.errors import BizError
 from app.common.request_id import get_request_id
@@ -24,15 +25,14 @@ CAPTURE_LIMIT = 16384
 
 
 def _user(scope: Scope) -> CurrentUser | None:
-    for key, value in scope.get("headers", []):
-        if key == b"authorization":
-            raw = value.decode("latin-1")
-            if raw.lower().startswith("bearer "):
-                try:
-                    return decode_token(raw.split(" ", 1)[1].strip())
-                except BizError:
-                    return None
-    return None
+    conn = HTTPConnection(scope)
+    token, _ = request_token(conn.headers.get("authorization"), conn.cookies)
+    if not token:
+        return None
+    try:
+        return decode_token(token)
+    except BizError:
+        return None
 
 
 def _ip(scope: Scope) -> str | None:

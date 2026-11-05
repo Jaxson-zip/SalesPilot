@@ -72,6 +72,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/auth/logout": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Logout
+     * @description 退出登录：清掉登录 Cookie（不要求已登录；token 本身到期前仍有效，改密码才会全部作废）。
+     */
+    post: operations["logout_api_auth_logout_post"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/me": {
     parameters: {
       query?: never
@@ -6112,7 +6132,7 @@ export interface components {
     /** LoginResult */
     LoginResult: {
       /** Token */
-      token: string
+      token: string | null
       user: components["schemas"]["UserOut"]
     }
     /**
@@ -8423,6 +8443,26 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  logout_api_auth_logout_post: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_NoneType_"]
         }
       }
     }

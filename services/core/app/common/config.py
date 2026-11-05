@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://crm:crm@localhost:5432/crm"
     jwt_secret: str = "change-me"
     jwt_expire_minutes: int = 60 * 24
+    # 登录 Cookie 的 Secure 标记：不写时按请求自动判断
+    # （HTTPS，或 nginx 传来 X-Forwarded-Proto: https 时加上）
+    cookie_secure: bool | None = None
     # 访问口令：公网演示时设置，登录页要先输入口令才能进入；为空表示不需要（本地开发）
     access_code: str | None = None
     # 登录页显示演示账户（一键进入、左下角切换）；正式使用时关掉，只能账号密码登录

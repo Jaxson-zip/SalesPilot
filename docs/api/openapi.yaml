@@ -111,6 +111,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/logout:
+    post:
+      tags:
+      - auth
+      summary: Logout
+      description: 退出登录：清掉登录 Cookie（不要求已登录；token 本身到期前仍有效，改密码才会全部作废）。
+      operationId: logout_api_auth_logout_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_NoneType_'
   /api/me:
     get:
       tags:
@@ -12343,14 +12357,16 @@ components:
     LoginResult:
       properties:
         token:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Token
         user:
           $ref: '#/components/schemas/UserOut'
       type: object
       required:
-      - token
       - user
+      - token
       title: LoginResult
     MaterialIn:
       properties:

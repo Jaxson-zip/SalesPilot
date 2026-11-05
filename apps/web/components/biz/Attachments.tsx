@@ -16,7 +16,7 @@ function isImage(a: Pick<AttachmentOut, "mime" | "file_name">): boolean {
   return a.mime.startsWith("image/") || /\.(png|jpe?g)$/i.test(a.file_name)
 }
 
-/** 带鉴权地打开附件（GET /api/attachments/{id}/file 需要 Bearer token） */
+/** 带鉴权地打开附件（GET /api/attachments/{id}/file 需要登录，登录 Cookie 由浏览器自动带上） */
 export async function openAttachment(a: AttachmentOut): Promise<void> {
   // 先同步打开窗口，避免异步之后被浏览器拦截弹窗
   const win = window.open("", "_blank")

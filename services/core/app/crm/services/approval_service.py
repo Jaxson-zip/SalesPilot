@@ -21,6 +21,7 @@ from app.crm.services import (
     activity_service,
     approval_hints,
     attachment_query,
+    audit_service,
     lookup,
     notification_service,
     quote_query,
@@ -224,7 +225,13 @@ def decide(
     approval.decided_at = datetime.now(UTC)
     notification_service.resolve_approval(db, approval.id)  # 其他主管的「待审批」提醒一并消掉
     _apply_to_target(db, user, approval, decision, source)
-    return to_items(db, [approval])[0]
+    item = to_items(db, [approval])[0]
+    # 回归：操作日志原来只写「审批 · 成功」，看不出批的哪张单、通过还是驳回
+    verb = "通过" if decision == "approve" else "驳回"
+    kind = "报价单" if item.target_type == "quote" else "报销"
+    reason = f"：{approval.comment}" if approval.comment else ""
+    audit_service.note(f"{verb}{kind} {item.target.code}{reason}")
+    return item
 
 
 def count_pending(db: Session, user: CurrentUser, view: View | None = None) -> int:

@@ -34,6 +34,7 @@ from app.crm.services import (
     approval_hints,
     approval_service,
     attachment_query,
+    audit_service,
     expense_participants,
     lookup,
 )
@@ -245,6 +246,9 @@ def delete_draft(db: Session, user: CurrentUser, expense_id: uuid.UUID) -> None:
     keys = [a.storage_key for a in files]
     for a in files:
         db.delete(a)
+    activity_service.remove_for(db, "expense", expense.id)
+    # 删除后日志里查不到单号，先记下来
+    audit_service.note(f"{expense.code} · ¥{expense.amount / 100:,.2f}")
     db.delete(expense)
     db.flush()
     for key in keys:

@@ -185,6 +185,11 @@ def _seed_payment_plan(db: Session, contract: Contract | None, rules: RuleSet, k
         )
         assert plan is not None
         plan.due_date = local_today() - timedelta(days=days_ago)
+        # 回归：只改了这一期，前面的预付款到期日反而比它晚
+        for earlier in db.scalars(
+            select(PaymentPlan).where(PaymentPlan.contract_id == contract.id, PaymentPlan.seq < seq)
+        ):
+            earlier.due_date = plan.due_date - timedelta(days=30 * (seq - earlier.seq))
     for seq, (status, days_ago) in INVOICE_DEMO.get(key, {}).items():
         plan = db.scalar(
             select(PaymentPlan).where(
@@ -302,7 +307,7 @@ def seed_expenses(db: Session) -> None:
 def seed_activities(db: Session) -> None:
     now = datetime.now(UTC)
     for row in bd.ACTIVITIES:
-        actor = row["actor"]
+        actor, owner = row["actor"], row.get("owner", SALES)
         db.merge(
             Activity(
                 id=demo_id(f"activity:{row['key']}"),
@@ -313,7 +318,8 @@ def seed_activities(db: Session) -> None:
                 action=row["action"],
                 content=row["content"],
                 created_at=now - timedelta(hours=row["hours_ago"]),
-                **OWNER,
+                owner_id=owner.id,
+                team_id=owner.team_id,
             )
         )
 

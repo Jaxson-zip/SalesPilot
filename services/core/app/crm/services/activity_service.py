@@ -7,7 +7,7 @@ owner_id / team_id 跟随被操作对象（subject）的负责人，因此动态
 import uuid
 from typing import Any
 
-from sqlalchemy import ColumnElement, and_, or_, select
+from sqlalchemy import ColumnElement, and_, delete, or_, select
 from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
@@ -45,6 +45,15 @@ def record(
     db.add(activity)
     db.flush()
     return activity
+
+
+def remove_for(db: Session, subject_type: str, subject_id: uuid.UUID) -> None:
+    """对象被删除时清掉它的动态，免得工作台上留着点不开的记录（删除本身记在操作日志里）。"""
+    db.execute(
+        delete(Activity).where(
+            Activity.subject_type == subject_type, Activity.subject_id == subject_id
+        )
+    )
 
 
 def record_system(

@@ -59,3 +59,29 @@ def test_reset_passwords_restores_demo_password() -> None:
         seed_org(db, reset_passwords=True)
         assert verify_password(get_settings().demo_password, user.password_hash)
         assert not user.must_change_password
+
+
+def test_east_sales_dashboard_has_activities(client: TestClient) -> None:
+    """回归：华东组销售登录后工作台「我的动态」是空的，演示数据只给张晨写了动态。"""
+    token = _login(client, "liuyang")["data"]["token"]
+    body = client.get(
+        "/api/activities", params={"view": "mine"}, headers={"Authorization": f"Bearer {token}"}
+    ).json()
+    contents = [a["content"] for a in body["data"]["items"]]
+    assert any("会员积分" in c for c in contents)
+    assert not any("明理" in (c or "") for c in contents)
+
+
+def test_demo_overdue_contract_periods_in_order() -> None:
+    """回归：演示逾期时只把第 2 期改到 5 天前，第 1 期预付款的到期日反而更晚。"""
+    from app.crm.models import PaymentPlan
+    from app.crm.services.demo import demo_id
+
+    with session_scope() as db:
+        plans = db.scalars(
+            select(PaymentPlan)
+            .where(PaymentPlan.contract_id == demo_id("contract:yuehai"))
+            .order_by(PaymentPlan.seq)
+        ).all()
+    dues = [p.due_date for p in plans]
+    assert len(dues) >= 3 and dues == sorted(dues)

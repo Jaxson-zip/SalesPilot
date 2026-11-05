@@ -16,8 +16,10 @@ from seed.data import (
     C_XINGHE,
     C_YUEHAI,
     C_ZHIXING,
+    LIU,
     MANAGER,
     SALES,
+    ZHAO,
 )
 
 Q_HNZZ = demo_id("quote:hnzz")
@@ -187,4 +189,14 @@ ACTIVITIES: list[dict[str, Any]] = [
     {"key": "nanshan:payment", "subject_type": "contract",
      "subject_id": demo_id("contract:nanshan"), "actor": MANAGER, "action": "payment",
      "content": "登记回款 ¥286,000，累计回款 100%", "hours_ago": 120},
+    # 华东组：原来没有动态，刘洋 / 赵婷登录后工作台「我的动态」是空的
+    {"key": "qinghe:visit", "subject_type": "customer", "subject_id": C_QINGHE, "actor": LIU,
+     "action": "followup.visit", "hours_ago": 9, "owner": LIU,
+     "content": "和运营总监聊了会员积分、优惠券和小程序商城，希望春节前上线。"},
+    {"key": "qinghe:stage", "subject_type": "opportunity", "subject_id": demo_id("opp:qinghe"),
+     "actor": LIU, "action": "stage_changed", "content": "需求确认 → 方案报价", "hours_ago": 8,
+     "owner": LIU},
+    {"key": "hengyuan:phone", "subject_type": "customer", "subject_id": C_HENGYUAN,
+     "actor": ZHAO, "action": "followup.phone", "hours_ago": 30, "owner": ZHAO,
+     "content": "生产部想把 MES 的良率、停机数据做成车间大屏，下周现场看设备。"},
 ]  # fmt: skip

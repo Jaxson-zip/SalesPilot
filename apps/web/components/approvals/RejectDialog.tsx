@@ -53,7 +53,9 @@ export function RejectDialog({
           maxLength={500}
           value={comment}
           aria-label="驳回原因"
-          placeholder="驳回原因（必填，员工会看到），例如：维保改为 1 年后重新提交"
+          placeholder={`驳回原因（必填，员工会看到），例如：${
+            approval?.target_type === "quote" ? "维保改为 1 年后重新提交" : "人均超标，请把参与人补齐后重新提交"
+          }`}
           onChange={(e) => setComment(e.target.value)}
         />
         <DialogFooter>

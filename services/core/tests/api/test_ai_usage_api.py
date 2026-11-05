@@ -32,7 +32,7 @@ def clean() -> Iterator[None]:
 def _bind_sales(path: str) -> object:
     from app.common.auth import issue_token
 
-    return usage.bind(path, f"Bearer {issue_token(SALES)}")
+    return usage.bind(path, issue_token(SALES))
 
 
 def test_feature_mapping() -> None:

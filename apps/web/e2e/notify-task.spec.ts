@@ -10,10 +10,8 @@ interface Task {
 }
 
 async function openOppTask(page: Page): Promise<Task> {
-  const token = await page.evaluate(() => localStorage.getItem("sp.token"))
-  const res = await page.request.get("/api/tasks?view=mine&status=open&subject_type=opportunity&page_size=50", {
-    headers: { Authorization: `Bearer ${token}` },
-  })
+  // page.request 和页面共用登录 Cookie
+  const res = await page.request.get("/api/tasks?view=mine&status=open&subject_type=opportunity&page_size=50")
   const items = ((await res.json()) as { data: { items: Task[] } }).data.items
   const t = items.find((x) => x.subject_type === "opportunity")
   if (!t) throw new Error("演示数据里没有商机上的未完成任务")

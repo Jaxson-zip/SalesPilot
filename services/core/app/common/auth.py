@@ -9,18 +9,26 @@ import logging
 import threading
 import time
 import uuid
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, Header
+from fastapi import Depends, Header, Request
 from pydantic import BaseModel
 
 from app.common.config import get_settings
 from app.common.errors import BizError, ErrorCode
 
 JWT_ALGORITHM = "HS256"
+# 网页登录用 HttpOnly Cookie 保存 token（JS 读不到）；脚本 / 测试仍可用 Authorization: Bearer
+SESSION_COOKIE = "sp_session"
+# CSRF：Cookie 鉴权的写请求必须带这个自定义请求头。
+# 跨站页面带不了自定义头（需要 CORS 预检，core 不放行）
+CSRF_HEADER = "X-Requested-With"
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+RULE_CSRF = "csrf"
 
 
 class Role(StrEnum):
@@ -133,19 +141,55 @@ def verify_token(token: str) -> CurrentUser:
     return CurrentUser(id=claimed.id, name=account.name, role=account.role, team_id=account.team_id)
 
 
-def get_current_user(authorization: Annotated[str | None, Header()] = None) -> CurrentUser:
+def bearer_token(authorization: str | None) -> str | None:
+    """从 Authorization 头取 Bearer token；没有或格式不对返回 None。"""
     if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    return authorization.split(" ", 1)[1].strip() or None
+
+
+def request_token(authorization: str | None, cookies: Mapping[str, str]) -> tuple[str | None, bool]:
+    """取请求里的 token：Bearer 头优先，其次 HttpOnly Cookie。返回 (token, 是否来自 Cookie)。"""
+    token = bearer_token(authorization)
+    if token:
+        return token, False
+    cookie = cookies.get(SESSION_COOKIE) or None
+    return cookie, cookie is not None
+
+
+def check_csrf(method: str, headers: Mapping[str, str]) -> None:
+    """Cookie 鉴权的写请求必须带 X-Requested-With。
+
+    浏览器会自动带 Cookie，跨站伪造的请求却带不了自定义头。
+    """
+    if method.upper() not in SAFE_METHODS and not headers.get(CSRF_HEADER):
+        raise BizError(
+            ErrorCode.FORBIDDEN,
+            "请求缺少 X-Requested-With 请求头（CSRF 防护）",
+            {"rule": RULE_CSRF},
+        )
+
+
+def get_current_user(
+    request: Request, authorization: Annotated[str | None, Header()] = None
+) -> CurrentUser:
+    token, from_cookie = request_token(authorization, request.cookies)
+    if not token:
         raise BizError(ErrorCode.UNAUTHORIZED)
-    return verify_token(authorization.split(" ", 1)[1].strip())
+    if from_cookie:
+        check_csrf(request.method, request.headers)
+    return verify_token(token)
 
 
 CurrentUserDep = Annotated[CurrentUser, Depends(get_current_user)]
 
 
-def get_optional_user(authorization: Annotated[str | None, Header()] = None) -> CurrentUser | None:
+def get_optional_user(
+    request: Request, authorization: Annotated[str | None, Header()] = None
+) -> CurrentUser | None:
     """公开接口用：带了有效 token 返回登录用户，没带或无效返回 None（不报 401）。"""
     try:
-        return get_current_user(authorization)
+        return get_current_user(request, authorization)
     except BizError:
         return None
 

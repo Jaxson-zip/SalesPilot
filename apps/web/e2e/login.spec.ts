@@ -91,8 +91,7 @@ async function mockMustChange(page: Page) {
     changed = true
     const res = await r.fetch({ method: "GET", url: r.request().url().replace("/auth/password", "/me") })
     const me = await res.json()
-    const token = await page.evaluate(() => localStorage.getItem("sp.token"))
-    return r.fulfill(ok({ token, user: { ...me.data, must_change_password: false } }))
+    return r.fulfill(ok({ token: null, user: { ...me.data, must_change_password: false } }))
   })
   return passwordCalls
 }

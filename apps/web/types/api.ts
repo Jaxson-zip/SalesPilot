@@ -64,7 +64,8 @@ export interface MockLoginRequest {
 }
 
 export interface MockLoginData {
-  token: string
+  /** 浏览器里登录时为 null：token 只放在 HttpOnly Cookie 里；脚本 / 测试调用才返回 */
+  token?: string | null
   user?: CurrentUser
 }
 

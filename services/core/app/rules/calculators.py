@@ -196,7 +196,8 @@ def check_expense_policy(
             over_amount=0,
             need_approval=True,
             reason="「其他」类费用报销制度里没有标准，需主管审核",
-            rule_ref=r.expense.rule_ref,
+            # 回归：原来引用的是招待标准条款，「其他」类没有对应条款，只写制度名
+            rule_ref="《费用报销管理制度》",
         )
     per_person = amount // headcount
     limit = r.expense.entertainment_per_person

@@ -128,3 +128,9 @@ def test_pack_rules_override() -> None:
     rules = load_rules(get_pack("llm_deploy").rules_file)
     assert rules.margin.floor_rate == 0.25
     assert rules.commission.rates["hardware"] == 0.03
+
+
+def test_other_expense_cites_policy_not_entertainment_clause() -> None:
+    """回归：「其他」类 ¥0.01 的提示依据写成了「4.2 招待标准」。"""
+    r = check_expense_policy(1, 1, expense_type="other")
+    assert r.need_approval and r.rule_ref == "《费用报销管理制度》"

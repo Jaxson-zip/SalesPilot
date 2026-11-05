@@ -36,15 +36,10 @@ export function ConfirmAction({ request, onClose }: { request: ConfirmRequest | 
         <AlertDialogFooter>
           <AlertDialogCancel>取消</AlertDialogCancel>
           {request?.secondary ? (
-            <AlertDialogAction
-              className={buttonVariants({ variant: "outline" })}
-              onClick={() => {
-                request.secondary?.onClick()
-                onClose()
-              }}
-            >
+            // 回归：原来用 AlertDialogAction 叠 outline 样式，默认的白色文字没被覆盖，白底白字看不见
+            <AlertDialogCancel onClick={() => request.secondary?.onClick()}>
               {request.secondary.label}
-            </AlertDialogAction>
+            </AlertDialogCancel>
           ) : null}
           <AlertDialogAction
             className={request?.destructive ? buttonVariants({ variant: "destructive" }) : undefined}

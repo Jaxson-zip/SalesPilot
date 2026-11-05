@@ -84,17 +84,6 @@ _W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 
 # 解压后的正文上限：10 MB 的压缩包可以解出几百 MB（压缩炸弹），先看头里的大小再读
 MAX_DOCX_XML = 30 * 1024 * 1024
-# 损坏 / 加密 / 不支持的压缩方式等，zipfile 和 XML 解析会抛出各种异常，统一当作文件不合法
-_DOCX_ERRORS = (
-    zipfile.BadZipFile,
-    KeyError,
-    ElementTree.ParseError,
-    RuntimeError,  # 加密的压缩包
-    NotImplementedError,  # 不支持的压缩方式
-    ValueError,
-    EOFError,
-    OSError,
-)
 DOCX_BAD = "Word 文件无法读取（可能已损坏或加密），请另存为 .docx 后重试"
 
 
@@ -112,9 +101,15 @@ def _document_xml(content: bytes) -> bytes:
 
 def docx_text(content: bytes) -> str:
     """不依赖 python-docx：直接读 word/document.xml 的段落和表格文字。"""
+    # 上传的文件什么样都可能有：加密（RuntimeError）、不支持的压缩方式（NotImplementedError）、
+    # XML 声明了不存在的编码（LookupError）……逐个列举已漏过两次，
+    # 所以解析阶段的任何异常都按文件不合法处理
     try:
         root = ElementTree.fromstring(_document_xml(content))
-    except _DOCX_ERRORS as exc:
+    except BizError:
+        raise
+    except Exception as exc:
+        logger.info("docx unreadable: %s", type(exc).__name__)
         raise _invalid(DOCX_BAD) from exc
     paras = []
     for p in root.iter(f"{_W}p"):

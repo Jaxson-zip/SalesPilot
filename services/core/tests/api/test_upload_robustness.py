@@ -45,10 +45,21 @@ def _material(client: TestClient, name: str, data: bytes) -> dict:
         _patched_central(10, 99),  # 不支持的压缩方式（曾 NotImplementedError → 500）
         _patched_central(8, 1, bit_or=True),  # 标记为加密（曾 RuntimeError → 500）
         _docx(b"<?xml version='1.0'?><!DOCTYPE x [<!ENTITY a 'aaaa'>]><x>&a;</x>"),  # DTD 实体
+        # XML 声明了不存在的编码（曾 LookupError → 500）
+        _docx(b"<?xml version='1.0' encoding='xyz-unknown'?><a/>"),
+        _docx(b"<?xml version='1.0' encoding='utf-32'?><a/>"),  # 编码与内容不符
         b"\x00\x01 not a zip",
         b"PK\x05\x06" + b"\x00" * 18,  # 空压缩包
     ],
-    ids=["unsupported-compression", "encrypted", "dtd-entity", "garbage", "empty-zip"],
+    ids=[
+        "unsupported-compression",
+        "encrypted",
+        "dtd-entity",
+        "unknown-xml-encoding",
+        "mismatched-xml-encoding",
+        "garbage",
+        "empty-zip",
+    ],
 )
 def test_bad_docx_is_validation_error(client: TestClient, data: bytes) -> None:
     res = _material(client, "坏文件.docx", data)

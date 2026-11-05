@@ -25,6 +25,10 @@ dev = [
 
 [tool.uv]
 package = false
+# litellm 声明 filelock<4.0，但 3.x 有已知漏洞且只在 4.x 修复（4.2.1）。
+# filelock 只被 huggingface_hub（FileLock / SoftFileLock / Timeout，4.x 仍兼容）和 litellm 的 proxy CLI（网关不用）引用，
+# 所以强制升级；litellm 放开上限后删掉这一项。
+override-dependencies = ["filelock>=4.2.1"]
 
 [tool.ruff]
 line-length = 110

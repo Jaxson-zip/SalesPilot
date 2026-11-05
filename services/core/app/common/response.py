@@ -9,7 +9,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import DataError, OperationalError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.common.errors import BizError, ErrorCode, http_status_of
@@ -85,6 +85,15 @@ async def _db_unavailable_handler(_: Request, exc: Exception) -> JSONResponse:
     return error_response(ErrorCode.INTERNAL, "数据库不可用，请稍后重试")
 
 
+async def _bad_data_handler(_: Request, exc: Exception) -> JSONResponse:
+    """数据库拒收的输入（NUL 控制字符、数值超出范围、格式不对）：是输入的问题 → 40001，不是 500。"""
+    text = str(getattr(exc, "orig", exc)).splitlines()[0][:200]
+    logger.info("input rejected by database request_id=%s: %s", get_request_id(), text)
+    if "NUL" in text:
+        return error_response(ErrorCode.VALIDATION, "内容里有不可见的控制字符，请删除后重试")
+    return error_response(ErrorCode.VALIDATION, "数据格式不对或数值超出范围，请检查后重试")
+
+
 async def _unhandled_handler(request: Request, exc: Exception) -> JSONResponse:
     # 500 处理器位于最外层中间件，contextvar 已复位，从 request.state 取请求 ID
     rid = getattr(request.state, "request_id", "") or get_request_id()
@@ -99,4 +108,5 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(RequestValidationError, _validation_handler)
     app.add_exception_handler(StarletteHTTPException, _http_error_handler)
     app.add_exception_handler(OperationalError, _db_unavailable_handler)
+    app.add_exception_handler(DataError, _bad_data_handler)
     app.add_exception_handler(Exception, _unhandled_handler)

@@ -16,7 +16,13 @@ from typing import Literal
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field, field_validator
 
-from app.agent.materials import IMAGE_TYPES, MATERIAL_OPEN, MAX_BYTES, VISION_MODEL
+from app.agent.materials import (
+    IMAGE_TYPES,
+    MATERIAL_OPEN,
+    MAX_BYTES,
+    VISION_MODEL,
+    check_image,
+)
 from app.common.errors import BizError, ErrorCode
 from app.llm.client import get_chat_model, model_available
 from app.packs.base import SampleSummary, SampleType
@@ -94,6 +100,7 @@ def analyze(file_name: str, content: bytes, request_id: str | None = None) -> Sa
         raise _invalid("文件为空")
     if len(content) > MAX_BYTES:
         raise _invalid("图片不能超过 10 MB")
+    check_image(content, mime)
     if not model_available(VISION_MODEL, request_id):
         raise BizError(ErrorCode.MODEL_CAPABILITY, "图片识别模型未配置，暂时不能分析样例图片")
     url = f"data:{mime};base64,{base64.b64encode(content).decode()}"

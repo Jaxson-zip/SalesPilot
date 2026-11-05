@@ -6,6 +6,7 @@
 保存后立即生效；每一项都可以「恢复默认」（删除这条改动）。
 """
 
+import logging
 import math
 from pathlib import Path
 from typing import Any, BinaryIO
@@ -33,6 +34,8 @@ from app.rag.ingest import EMBED_BATCH, uploaded_knowledge_dir
 from app.rag.loaders import LOADERS, load_file
 from app.rules import overrides
 from app.rules.loader import RULES_FILE, RuleSet, deep_merge, load_raw_rules, read_yaml
+
+logger = logging.getLogger(__name__)
 
 # ---------- 读取 ----------
 
@@ -250,7 +253,11 @@ def _read_upload(file_name: str, stream: BinaryIO) -> tuple[str, bytes]:
 
 def _ingest(db: Session, target: Path, pack_id: str) -> tuple[int, int]:
     """切块、去重、向量化入库；返回（读出的块数，新入库的块数）。"""
-    chunks = load_file(target, f"pack:{pack_id}", pack_id)
+    try:
+        chunks = load_file(target, f"pack:{pack_id}", pack_id)
+    except Exception as exc:  # 损坏 / 加密的 PDF、Excel：是文件的问题，不是模型服务的问题
+        logger.info("knowledge file unreadable: %s", type(exc).__name__)
+        raise _invalid("file", "文档无法读取，请确认文件没有损坏或加密") from exc
     hashes = [c.content_hash for c in chunks]
     existing = set(db.scalars(select(KbChunk.content_hash).where(KbChunk.content_hash.in_(hashes))))
     fresh = dedupe(chunks, existing)
@@ -293,7 +300,8 @@ def upload_knowledge(
         raise
     except Exception as exc:
         target.unlink(missing_ok=True)
-        raise BizError(ErrorCode.UPSTREAM, f"文档入库失败：{exc}") from exc
+        logger.warning("knowledge ingest failed", exc_info=True)  # 原始异常只进日志，不回给页面
+        raise BizError(ErrorCode.UPSTREAM, "文档入库失败：向量模型暂时不可用，请稍后重试") from exc
     if not read:
         target.unlink(missing_ok=True)
         raise _invalid("file", "没有从文档里读出内容")

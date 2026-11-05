@@ -10,11 +10,12 @@
 
 import csv
 import io
+import logging
 import re
 import uuid
-import zipfile
 from collections import Counter
 from dataclasses import dataclass, field
+from decimal import ROUND_HALF_UP, Decimal
 from typing import BinaryIO, Literal
 
 from openpyxl import load_workbook
@@ -27,9 +28,16 @@ from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_business_writer
 from app.crm.models import Contact, Customer, User
 from app.crm.schemas.dashboard import CONTACT_ROLE_LABELS
-from app.crm.schemas.fields import WEBSITE_ERROR, normalize_website, phone_error
+from app.crm.schemas.fields import (
+    MAX_AMOUNT_FEN,
+    WEBSITE_ERROR,
+    normalize_website,
+    phone_error,
+)
 from app.crm.services import activity_service, notification_service
 from app.crm.services.customer_service import core_name, similar_names
+
+logger = logging.getLogger(__name__)
 
 MAX_BYTES = 2 * 1024 * 1024
 MAX_ROWS = 1000
@@ -106,15 +114,7 @@ def _cell(v: object) -> str:
 def _read_table(filename: str, content: bytes) -> list[list[str]]:
     is_xlsx = filename.lower().endswith(".xlsx") or content[:2] == b"PK"
     if is_xlsx:
-        try:
-            wb = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
-        except (zipfile.BadZipFile, KeyError, ValueError) as exc:
-            raise BizError(ErrorCode.VALIDATION, "Excel 文件打不开，请另存为 .xlsx 后重试") from exc
-        try:
-            sheet = wb.worksheets[0]
-            return [[_cell(c) for c in r] for r in sheet.iter_rows(values_only=True)]
-        finally:
-            wb.close()
+        return _read_xlsx(content)
     for encoding in ("utf-8-sig", "gb18030"):  # Excel 另存的 CSV 常是 GBK
         try:
             text = content.decode(encoding)
@@ -123,7 +123,27 @@ def _read_table(filename: str, content: bytes) -> list[list[str]]:
             continue
     else:
         raise BizError(ErrorCode.VALIDATION, "文件编码无法识别，请另存为 UTF-8 的 CSV 或 .xlsx")
-    return [[c.strip() for c in r] for r in csv.reader(io.StringIO(text))]
+    try:
+        return [[c.strip() for c in r] for r in csv.reader(io.StringIO(text))]
+    except csv.Error as exc:  # 单个格子超过 128 KB、引号不配对跨到文件末尾等
+        raise BizError(ErrorCode.VALIDATION, "CSV 格式有误：某个格子内容过长或引号不配对") from exc
+
+
+def _read_xlsx(content: bytes) -> list[list[str]]:
+    # 损坏、加密、不是 Excel 的压缩包，openpyxl 会抛出各种异常（解析到一半也可能），
+    # 统一按文件不合法处理
+    try:
+        wb = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+        try:
+            sheet = wb.worksheets[0]
+            return [[_cell(c) for c in r] for r in sheet.iter_rows(values_only=True)]
+        finally:
+            wb.close()
+    except BizError:
+        raise
+    except Exception as exc:
+        logger.info("xlsx import unreadable: %s", type(exc).__name__)
+        raise BizError(ErrorCode.VALIDATION, "Excel 文件打不开，请另存为 .xlsx 后重试") from exc
 
 
 def _header(cells: list[str]) -> tuple[dict[int, str], list[str]]:
@@ -169,12 +189,17 @@ def _parse(filename: str, stream: BinaryIO) -> tuple[list[_Parsed], list[str], l
 
 
 def _money(text: str) -> int | None:
-    """「50000」「5万」「1,200.5」→ 分；不合法返回 -1。"""
+    """「50000」「5万」「1,200.5」→ 分；不合法返回 -1，超过系统金额上限（100 亿元）返回 -2。
+
+    用 Decimal 计算：超长数字用 float 会溢出成 inf（round 时报错 → 500），或悄悄丢精度。
+    """
     m = _MONEY.match(text.replace(",", "").replace("，", ""))
-    if not m:
-        return -1
-    yuan = float(m.group(1)) * (10_000 if m.group(2) else 1)
-    return round(yuan * 100)
+    if not m or len(m.group(1)) > 20:
+        return -2 if m else -1
+    fen = Decimal(m.group(1)) * (10_000 if m.group(2) else 1) * 100
+    if fen > MAX_AMOUNT_FEN:
+        return -2
+    return int(fen.quantize(Decimal(1), rounding=ROUND_HALF_UP))
 
 
 def _check(p: _Parsed) -> None:
@@ -189,8 +214,13 @@ def _check(p: _Parsed) -> None:
     level = v.get("level", "").upper()
     if level and level not in {"A", "B", "C"}:
         p.errors.append("等级只能填 A、B、C")
-    if v.get("annual_budget") and _money(v["annual_budget"]) == -1:
+    budget = _money(v["annual_budget"]) if v.get("annual_budget") else 0
+    if budget == -1:
         p.errors.append("年度预算要填数字（元），可以写「5万」")
+    elif budget == -2:
+        p.errors.append("年度预算不能超过 100 亿元，请检查是否多填了几个 0")
+    if any("\x00" in text for text in v.values()):
+        p.errors.append("这一行含有不可见的控制字符，请在 Excel 里重新输入后再导出")
     role = v.get("contact_role", "")
     if role and role not in _ROLE_BY_LABEL:
         p.errors.append(f"联系人角色只能填：{'、'.join(_ROLE_BY_LABEL)}")

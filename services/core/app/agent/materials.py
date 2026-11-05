@@ -82,13 +82,40 @@ def _decode(content: bytes) -> str:
 _W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 
 
+# 解压后的正文上限：10 MB 的压缩包可以解出几百 MB（压缩炸弹），先看头里的大小再读
+MAX_DOCX_XML = 30 * 1024 * 1024
+# 损坏 / 加密 / 不支持的压缩方式等，zipfile 和 XML 解析会抛出各种异常，统一当作文件不合法
+_DOCX_ERRORS = (
+    zipfile.BadZipFile,
+    KeyError,
+    ElementTree.ParseError,
+    RuntimeError,  # 加密的压缩包
+    NotImplementedError,  # 不支持的压缩方式
+    ValueError,
+    EOFError,
+    OSError,
+)
+DOCX_BAD = "Word 文件无法读取（可能已损坏或加密），请另存为 .docx 后重试"
+
+
+def _document_xml(content: bytes) -> bytes:
+    with zipfile.ZipFile(io.BytesIO(content)) as z:
+        info = z.getinfo("word/document.xml")
+        if info.file_size > MAX_DOCX_XML:
+            raise _invalid("Word 文件内容太大，请拆分后上传")
+        xml = z.read(info)
+    # 正常的 .docx 没有 DTD；有就可能是实体膨胀攻击
+    if b"<!DOCTYPE" in xml or b"<!ENTITY" in xml:
+        raise _invalid(DOCX_BAD)
+    return xml
+
+
 def docx_text(content: bytes) -> str:
     """不依赖 python-docx：直接读 word/document.xml 的段落和表格文字。"""
     try:
-        with zipfile.ZipFile(io.BytesIO(content)) as z:
-            root = ElementTree.fromstring(z.read("word/document.xml"))
-    except (zipfile.BadZipFile, KeyError, ElementTree.ParseError) as exc:
-        raise _invalid("Word 文件无法读取，请确认是 .docx 格式") from exc
+        root = ElementTree.fromstring(_document_xml(content))
+    except _DOCX_ERRORS as exc:
+        raise _invalid(DOCX_BAD) from exc
     paras = []
     for p in root.iter(f"{_W}p"):
         text = "".join(t.text or "" for t in p.iter(f"{_W}t"))
@@ -105,7 +132,24 @@ def pdf_text(content: bytes) -> str:
         raise _invalid("PDF 无法读取（可能已加密或损坏）") from exc
 
 
+def _looks_like(content: bytes, mime: str) -> bool:
+    if mime == "image/png":
+        return content.startswith(b"\x89PNG\r\n\x1a\n")
+    if mime == "image/jpeg":
+        return content.startswith(b"\xff\xd8\xff")
+    if mime == "image/webp":
+        return content[:4] == b"RIFF" and content[8:12] == b"WEBP"
+    return False
+
+
+def check_image(content: bytes, mime: str) -> None:
+    """扩展名是图片但内容不是：不送给视觉模型（白花一次调用，还会报「识别失败」）。"""
+    if not _looks_like(content, mime):
+        raise _invalid("图片文件无法识别，请上传 png、jpg 或 webp 图片")
+
+
 def image_text(content: bytes, mime: str, request_id: str | None = None) -> str:
+    check_image(content, mime)
     if not model_available(VISION_MODEL, request_id):
         raise BizError(
             ErrorCode.MODEL_CAPABILITY, "图片识别模型未配置，请把截图里的文字直接粘贴到输入框"

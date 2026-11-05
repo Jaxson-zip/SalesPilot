@@ -88,9 +88,9 @@ export function QuoteShareButton({ q }: { q: QuoteDetail }) {
     <>
       <Popover>
         <PopoverTrigger asChild>
-          <Button size="sm" variant="outline" title="分享给客户" className="max-sm:w-8 max-sm:px-0">
+          <Button size="sm" variant="outline" title="分享给客户" className="max-xl:w-8 max-xl:px-0">
             <Link2 />
-            <span className="max-sm:hidden">分享给客户</span>
+            <span className="max-xl:hidden">分享给客户</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-80">

@@ -20,6 +20,8 @@ class MockLoginIn(BaseModel):
     """演示账户登录（DEMO_LOGIN 开启时可用）。"""
 
     role: Role
+    # 同一角色有多个演示账户（如华东组的陈静 / 刘洋）时指定登录名；不填进入该角色的默认演示账户
+    username: str | None = Field(default=None, max_length=50)
     # 服务端配置了 ACCESS_CODE 时必填（已登录切换账户时可以不带）
     access_code: str | None = Field(default=None, max_length=100)
 
@@ -63,7 +65,7 @@ def mock_login(
     authorization: Annotated[str | None, Header()] = None,
 ) -> ApiResponse[LoginResult]:
     auth_service.check_access(body.access_code, authorization, client_ip(request))
-    return ok(_logged_in(auth_service.demo_login(db, body.role)))
+    return ok(_logged_in(auth_service.demo_login(db, body.role, body.username)))
 
 
 @router.post("/auth/password", response_model=ApiResponse[LoginResult])

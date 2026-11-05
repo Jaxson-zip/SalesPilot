@@ -10,6 +10,7 @@
 import hmac
 import threading
 import time
+import uuid
 from collections import defaultdict, deque
 from datetime import UTC, datetime
 
@@ -166,14 +167,26 @@ def _default_demo_password(user: User, password: str) -> bool:
     return hmac.compare_digest(password.encode(), settings.demo_password.encode())
 
 
-def demo_login(db: Session, role: Role) -> LoginResult:
-    """演示账户：按角色进入固定的演示用户（DEMO_LOGIN=false 时关闭）。"""
+def _demo_user_id(role: Role, username: str | None) -> uuid.UUID:
+    """指定了登录名时只认演示账户（DEMO_LOGINS）里的、且角色一致的；不能借此一键登录真实账号。"""
+    if username is None:
+        return DEMO_USERS[role].id
+    ids = [uid for uid, login in DEMO_LOGINS.items() if login == username]
+    if not ids:
+        raise BizError(ErrorCode.VALIDATION, f"「{username}」不是演示账户", {"rule": "not_demo"})
+    return ids[0]
+
+
+def demo_login(db: Session, role: Role, username: str | None = None) -> LoginResult:
+    """演示账户：按角色（或指定的演示登录名）进入固定的演示用户（DEMO_LOGIN=false 时关闭）。"""
     if not get_settings().demo_login:
         raise BizError(
             ErrorCode.FORBIDDEN, "演示账户已关闭，请用账号密码登录", {"rule": "demo_off"}
         )
     demo = DEMO_USERS[role]
-    user = db.get(User, demo.id)
+    user = db.get(User, _demo_user_id(role, username))
+    if user is not None and user.role != role.value:
+        raise BizError(ErrorCode.VALIDATION, "演示账户的角色不一致", {"rule": "role_mismatch"})
     if user is None:  # 还没导入种子数据：按固定身份签发，和以前的假登录一致
         out = UserOut(id=demo.id, name=demo.name, role=demo.role, team_id=demo.team_id)
         return LoginResult(token=issue_token(demo), user=out)

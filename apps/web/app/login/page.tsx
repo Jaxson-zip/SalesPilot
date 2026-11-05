@@ -10,7 +10,7 @@ import { useSession } from "@/components/shell/SessionProvider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { errorMessage } from "@/lib/errors"
-import { DEMO_USERS, fetchAuthOptions, ROLES } from "@/lib/session"
+import { DEMO_ACCOUNTS, fetchAuthOptions, type DemoAccount } from "@/lib/session"
 import type { Role } from "@/types/api"
 
 const ROLE_ICONS: Record<Role, LucideIcon> = { sales: User, manager: UserCheck, admin: Shield }
@@ -66,9 +66,9 @@ export default function LoginPage() {
     if (Object.keys(found).length) return setErrors(found)
     void run("password", () => signInWithPassword(username.trim(), password, code.trim()))
   }
-  const enterDemo = (r: Role) => {
+  const enterDemo = (u: DemoAccount) => {
     if (codeMissing()) return
-    void run(r, () => signIn(r, code.trim()))
+    void run(u.login, () => signIn(u.role, code.trim(), u.login))
   }
 
   return (
@@ -142,15 +142,14 @@ export default function LoginPage() {
               <span id="demo-title">或用演示账户一键进入</span>
               <span className="h-px flex-1 bg-zinc-200" />
             </div>
-            {ROLES.map((r) => {
-              const u = DEMO_USERS[r]
-              const Icon = ROLE_ICONS[r]
+            {DEMO_ACCOUNTS.map((u) => {
+              const Icon = ROLE_ICONS[u.role]
               return (
                 <button
-                  key={r}
+                  key={u.login}
                   type="button"
                   disabled={pending !== null}
-                  onClick={() => enterDemo(r)}
+                  onClick={() => enterDemo(u)}
                   aria-label={`以${u.name}（${u.title}）进入`}
                   className="flex w-full items-start gap-3 rounded-lg border border-zinc-200 bg-white p-3 text-left transition-colors hover:border-zinc-400 disabled:opacity-60"
                 >
@@ -163,7 +162,7 @@ export default function LoginPage() {
                       <span className="text-sm text-zinc-500">
                         {u.title} · {u.scope}
                       </span>
-                      <span className="text-xs text-zinc-400">{pending === r ? "进入中…" : u.login}</span>
+                      <span className="text-xs text-zinc-400">{pending === u.login ? "进入中…" : u.login}</span>
                     </span>
                     <span className="mt-0.5 block text-xs text-zinc-500">{u.can}</span>
                   </span>

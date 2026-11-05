@@ -27,6 +27,38 @@ export const DEMO_USERS: Record<Role, { name: string; title: string; scope: stri
   },
 }
 
+/** 一键进入的演示账户：每个角色的默认账户 + 华东组（另一个团队、另一个行业包，演示团队之间数据隔离） */
+export interface DemoAccount {
+  role: Role
+  name: string
+  title: string
+  scope: string
+  can: string
+  login: string
+}
+
+export const DEMO_ACCOUNTS: DemoAccount[] = [
+  { role: "sales", ...DEMO_USERS.sales },
+  { role: "manager", ...DEMO_USERS.manager },
+  { role: "admin", ...DEMO_USERS.admin },
+  {
+    role: "manager",
+    name: "陈静",
+    title: "销售主管",
+    scope: "华东销售组",
+    can: "华东组（软件外包）的审批、团队看板和回款；看不到华南组的数据",
+    login: "chenjing",
+  },
+  {
+    role: "sales",
+    name: "刘洋",
+    title: "销售",
+    scope: "华东销售组",
+    can: "软件外包：AI 拆功能模块、估人天出报价",
+    login: "liuyang",
+  },
+]
+
 export const ROLE_TITLE: Record<Role, string> = { sales: "销售", manager: "销售主管", admin: "系统管理员" }
 
 /** 左下角显示的当前用户 */
@@ -100,10 +132,11 @@ function remember(data: MockLoginData & { access_token?: string }): MockLoginDat
 export const fetchAuthOptions = () =>
   api.get<{ access_code_required: boolean; demo_login: boolean }>("/api/auth/options")
 
-/** 演示账户：POST /api/auth/mock-login {role, access_code}；已登录切换账户时带当前 token 即可 */
-export async function mockLogin(role: Role, accessCode?: string): Promise<MockLoginData> {
+/** 演示账户：POST /api/auth/mock-login {role, username?, access_code}；已登录切换账户时带当前 token 即可 */
+export async function mockLogin(role: Role, accessCode?: string, login?: string): Promise<MockLoginData> {
   const data = await api.post<MockLoginData & { access_token?: string }>("/api/auth/mock-login", {
     role,
+    username: login,
     access_code: accessCode || undefined,
   })
   storeRole(role)

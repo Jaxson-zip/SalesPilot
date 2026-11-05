@@ -145,16 +145,25 @@ export function Crumb({
  * 标题行按钮（sm 32px）。<640 时只显示图标（文字放到 title 里）。
  * 每个视图最多 1 个 primary（黑色），放最右侧。
  */
+/** 标题行按钮在窄屏只留图标（Tailwind 要写完整类名，不能拼接） */
+export const COLLAPSE = {
+  sm: { button: "max-sm:w-8 max-sm:px-0", label: "max-sm:hidden" },
+  xl: { button: "max-xl:w-8 max-xl:px-0", label: "max-xl:hidden" },
+} as const
+
 export function FrameAction({
   icon: Icon,
   label,
   primary,
   href,
   onClick,
+  collapse = "sm",
 }: {
   icon?: LucideIcon
   label?: string
   primary?: boolean
+  /** 窄于多宽时只显示图标：按钮多的详情页用 xl，免得把面包屑挤没 */
+  collapse?: "sm" | "xl"
   href?: string
   onClick?: () => void
 }) {
@@ -162,10 +171,10 @@ export function FrameAction({
   const inner = (
     <>
       {Icon ? <Icon /> : null}
-      {label ? <span className={cn(Icon && "max-sm:hidden")}>{label}</span> : null}
+      {label ? <span className={cn(Icon && COLLAPSE[collapse].label)}>{label}</span> : null}
     </>
   )
-  const className = cn(Icon && label && "max-sm:w-8 max-sm:px-0")
+  const className = cn(Icon && label && COLLAPSE[collapse].button)
   const variant = primary ? "default" : iconOnly ? "ghost" : "outline"
   const size = iconOnly ? "icon-sm" : "sm"
   if (href) {

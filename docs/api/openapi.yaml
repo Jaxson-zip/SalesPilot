@@ -12524,6 +12524,12 @@ components:
       properties:
         role:
           $ref: '#/components/schemas/Role'
+        username:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Username
         access_code:
           anyOf:
           - type: string

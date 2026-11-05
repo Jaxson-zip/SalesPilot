@@ -85,3 +85,20 @@ def test_demo_overdue_contract_periods_in_order() -> None:
         ).all()
     dues = [p.due_date for p in plans]
     assert len(dues) >= 3 and dues == sorted(dues)
+
+
+def test_demo_login_by_username_enters_east_accounts(client: TestClient) -> None:
+    """演示切换原来只能按角色进张晨 / 李薇 / 周敏，华东组要输密码。"""
+    body = client.post("/api/auth/mock-login", json={"role": "sales", "username": "liuyang"})
+    user = body.json()["data"]["user"]
+    assert user["name"] == "刘洋" and user["role"] == "sales"
+    manager = client.post("/api/auth/mock-login", json={"role": "manager", "username": "chenjing"})
+    assert manager.json()["data"]["user"]["name"] == "陈静"
+
+
+def test_demo_login_by_username_rejects_mismatch(client: TestClient) -> None:
+    # 角色对不上、不是演示账户：都不能一键登录
+    wrong_role = client.post("/api/auth/mock-login", json={"role": "admin", "username": "liuyang"})
+    assert wrong_role.json()["code"] == 40001
+    not_demo = client.post("/api/auth/mock-login", json={"role": "sales", "username": "someone"})
+    assert not_demo.json()["code"] == 40001

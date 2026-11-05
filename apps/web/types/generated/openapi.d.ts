@@ -6179,6 +6179,8 @@ export interface components {
      */
     MockLoginIn: {
       role: components["schemas"]["Role"]
+      /** Username */
+      username?: string | null
       /** Access Code */
       access_code?: string | null
     }

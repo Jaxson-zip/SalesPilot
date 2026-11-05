@@ -42,9 +42,9 @@ interface SessionValue {
   /** 能改系统配置（管理员；个人模式下的主管） */
   canConfigure: boolean
   /** 切换演示账户：重新 mock 登录并刷新所有查询 */
-  switchRole: (role: Role) => Promise<void>
+  switchRole: (role: Role, login?: string) => Promise<void>
   /** 登录页：演示账户一键进入 */
-  signIn: (role: Role, accessCode?: string) => Promise<void>
+  signIn: (role: Role, accessCode?: string, login?: string) => Promise<void>
   /** 登录页：账号密码登录 */
   signInWithPassword: (username: string, password: string, accessCode?: string) => Promise<void>
   /** 改自己的密码（换成新 token） */
@@ -84,7 +84,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   )
 
   const signIn = useCallback(
-    async (next: Role, accessCode?: string) => enter((await mockLogin(next, accessCode)).user, next),
+    async (next: Role, accessCode?: string, login?: string) =>
+      enter((await mockLogin(next, accessCode, login)).user, next),
     [enter],
   )
 
@@ -112,10 +113,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   // 先换到新 token 再切角色，避免用旧 token 拉到旧角色的 /api/me
   const switchRole = useCallback(
-    async (next: Role) => {
+    async (next: Role, login?: string) => {
       switching.current = true
       try {
-        const data = await mockLogin(next)
+        const data = await mockLogin(next, undefined, login)
         setRole(next)
         setStored(data.user ? profileOf(data.user) : null)
       } finally {

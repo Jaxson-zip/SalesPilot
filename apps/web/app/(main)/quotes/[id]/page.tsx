@@ -20,7 +20,7 @@ import { useState } from "react"
 import { BomTable } from "@/components/agent/BomTable"
 import { RemindButton } from "@/components/approvals/RemindButton"
 import { useConfirmAction } from "@/components/biz/ConfirmAction"
-import { Crumb, FrameAction, PageFrame } from "@/components/biz/PageFrame"
+import { COLLAPSE, Crumb, FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { QueryError } from "@/components/biz/QueryStatus"
 import { RecordTabs } from "@/components/biz/RecordTabs"
 import { QuoteAdjust } from "@/components/quotes/QuoteAdjust"
@@ -102,10 +102,10 @@ export default function QuoteDetailPage() {
         disabled={action.isPending}
         onClick={() => run(a)}
         title={QUOTE_ACTIONS[a].label}
-        className="max-sm:w-8 max-sm:px-0"
+        className={COLLAPSE[a === primary ? "sm" : "xl"].button}
       >
         <Icon />
-        <span className="max-sm:hidden">{QUOTE_ACTIONS[a].label}</span>
+        <span className={COLLAPSE[a === primary ? "sm" : "xl"].label}>{QUOTE_ACTIONS[a].label}</span>
       </Button>
     )
   })
@@ -188,10 +188,20 @@ export default function QuoteDetailPage() {
         q ? (
           <>
             {approvalId ? (
-              <FrameAction icon={Stamp} label="去审批" href={`/approvals?id=${encodeURIComponent(approvalId)}`} />
+              <FrameAction
+                icon={Stamp}
+                label="去审批"
+                collapse="xl"
+                href={`/approvals?id=${encodeURIComponent(approvalId)}`}
+              />
             ) : null}
             {canPrintQuote(q.status) ? (
-              <FrameAction icon={Printer} label="打印报价单" href={`/quotes/${encodeURIComponent(q.id)}/print`} />
+              <FrameAction
+                icon={Printer}
+                label="打印报价单"
+                collapse="xl"
+                href={`/quotes/${encodeURIComponent(q.id)}/print`}
+              />
             ) : null}
             {canEdit(q.owner?.id) && canShareQuote(q.status, q.expired) ? <QuoteShareButton q={q} /> : null}
             {mine && q.status === "draft" && !q.customer ? <QuoteLinkButton quoteId={q.id} /> : null}
@@ -202,15 +212,15 @@ export default function QuoteDetailPage() {
                 disabled={copy.isPending}
                 onClick={() => copy.mutate(undefined, { onSuccess: (n) => router.push(`/quotes/${n.id}`) })}
                 title="复制为新版本"
-                className="max-sm:w-8 max-sm:px-0"
+                className={COLLAPSE.xl.button}
               >
                 <Copy />
-                <span className="max-sm:hidden">复制为新版本</span>
+                <span className={COLLAPSE.xl.label}>复制为新版本</span>
               </Button>
             ) : null}
             {buttons}
             {q && q.status === "pending_approval" && canEdit(q.owner?.id) ? (
-              <RemindButton targetType="quote" targetId={q.id} />
+              <RemindButton targetType="quote" targetId={q.id} collapse="xl" />
             ) : null}
           </>
         ) : null

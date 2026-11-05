@@ -93,15 +93,15 @@ function Members({
         </Button>
       </div>
       <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
-        <table className="w-full min-w-[720px] text-left text-sm" aria-label="成员列表">
+        <table className="w-full text-left text-sm" aria-label="成员列表">
           <thead className="border-b border-zinc-200 text-xs text-zinc-500">
             <tr>
               <th className="px-4 py-2 font-normal">姓名</th>
               <th className="py-2 font-normal">角色</th>
-              <th className="py-2 font-normal">团队</th>
+              <th className="py-2 font-normal max-sm:hidden">团队</th>
               <th className="py-2 font-normal">状态</th>
-              <th className="py-2 font-normal">最近登录</th>
-              <th className="py-2 text-right font-normal">名下客户</th>
+              <th className="py-2 font-normal max-lg:hidden">最近登录</th>
+              <th className="py-2 text-right font-normal max-md:hidden">名下客户</th>
               <th className="px-4 py-2 text-right font-normal">操作</th>
             </tr>
           </thead>
@@ -113,14 +113,14 @@ function Members({
                   <div className="text-xs text-zinc-400">{a.username ?? "未设置登录名"}</div>
                 </td>
                 <td className="py-2.5">{ROLE_TITLE[a.role]}</td>
-                <td className="py-2.5">{a.team_name ?? "—"}</td>
+                <td className="py-2.5 max-sm:hidden">{a.team_name ?? "—"}</td>
                 <td className="py-2.5">
                   <Status a={a} />
                 </td>
-                <td className="py-2.5 text-zinc-500">
+                <td className="py-2.5 text-zinc-500 max-lg:hidden">
                   {a.last_login_at ? formatRelative(a.last_login_at) : "从未登录"}
                 </td>
-                <td className="py-2.5 text-right tabular-nums">
+                <td className="py-2.5 text-right tabular-nums max-md:hidden">
                   {a.customers}
                   {!a.active && a.customers > 0 ? (
                     <Tag color="orange" className="ml-1.5">
@@ -129,7 +129,7 @@ function Members({
                   ) : null}
                 </td>
                 <td className="px-4 py-2.5">
-                  <div className="flex justify-end gap-1">
+                  <div className="flex justify-end gap-1 whitespace-nowrap">
                     <Button size="xs" variant="ghost" onClick={() => onEdit(a)} aria-label={`编辑${a.name}`}>
                       编辑
                     </Button>

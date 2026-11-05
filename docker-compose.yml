@@ -71,6 +71,9 @@ services:
       CORE_INTERNAL_URL: http://core:8000
     ports:
       - "3000:3000"
+    volumes:
+      # 历次版本的静态文件存档（发布时由流水线写入，nginx 在新版本里找不到时回退到这里）
+      - static_archive:/archive
     depends_on:
       core:
         condition: service_healthy
@@ -88,6 +91,7 @@ services:
       - ./infra/nginx/snippets:/etc/nginx/snippets:ro
       # 静态文件缓存放卷里：nginx 容器重建后旧版本 chunk 仍在
       - nginx_cache:/var/cache/nginx
+      - static_archive:/srv/static-archive:ro
     depends_on:
       web:
         condition: service_started
@@ -103,3 +107,4 @@ volumes:
   pgdata:
   uploads:
   nginx_cache:
+  static_archive:

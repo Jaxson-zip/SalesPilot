@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { notifyError } from "@/hooks/notify"
 import { dashboardKeys } from "@/hooks/useDashboard"
 import { api } from "@/lib/api"
+import { isExpenseDetailKey } from "@/lib/expense"
 import { serverQuery, type ServerListParams } from "@/lib/list-view"
 import type {
   AttachmentKind,
@@ -124,9 +125,11 @@ export function useDeleteExpense() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.delete<null>(`/api/expenses/${id}`),
-    onSuccess: () =>
+    // 已删掉的那张不再重新拉取（抽屉关闭前它的详情查询还挂着，重拉会 404）
+    onSuccess: (_data, id) =>
       Promise.all([
-        qc.invalidateQueries({ queryKey: expenseKeys.all }),
+        qc.removeQueries({ queryKey: expenseKeys.detail(id), exact: true }),
+        qc.invalidateQueries({ queryKey: expenseKeys.all, predicate: (q) => !isExpenseDetailKey(q.queryKey, id) }),
         qc.invalidateQueries({ queryKey: dashboardKeys.all }),
       ]),
     onError: notifyError,

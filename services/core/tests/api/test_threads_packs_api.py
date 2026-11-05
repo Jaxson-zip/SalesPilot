@@ -184,3 +184,9 @@ def test_running_thread_messages_stream_and_stop(
     assert body["running"] is None
     missing = client.post(f"/api/agent/threads/{threads[1]}/stop", headers=SALES_H)
     assert missing.json()["code"] == 40401
+
+
+def test_messages_unregistered_thread_404(client: TestClient) -> None:
+    """回归：演示数据重置后会话表清空，浏览器记住的旧会话仍能打开（内容还在 checkpoint 里）。"""
+    resp = client.get("/api/agent/threads/t_cleared_by_reset/messages", headers=SALES_H)
+    assert resp.json()["code"] == 40401

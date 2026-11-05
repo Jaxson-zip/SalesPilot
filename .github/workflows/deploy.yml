@@ -209,10 +209,17 @@ jobs:
             git reset --hard "$SHA"
             # 按 commit 固定版本的镜像打成 compose 默认用的 salespilot-*:latest：
             # 原来直接 pull salespilot-*:latest 会去 Docker Hub 镜像站找，根本不存在；打标签后手动 dc up -d 也用新镜像
+            dc="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+            # 静态文件存档：先存当前线上版本（还没换标签，latest 是旧镜像），再存新版本。
+            # 发布前打开的页面切换路由时会要旧版本的 chunk，新容器里没有，nginx 回退到存档（否则 404、点击没反应）
+            archive='mkdir -p /archive/_next/static && cp -r /app/.next/static/. /archive/_next/static/ && find /archive -type f -mtime +30 -delete'
+            if docker image inspect salespilot-web:latest >/dev/null 2>&1; then
+              $dc run --rm --no-deps -T --user 0 --entrypoint sh web -c "$archive"
+            fi
             for s in core web gateway; do
               docker tag "$IMG/salespilot-$s:$SHA" "salespilot-$s:latest"
             done
-            dc="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+            $dc run --rm --no-deps -T --user 0 --entrypoint sh web -c "$archive"
             $dc up -d
             # 核对每个服务实际跑的是本次镜像：曾出现 gateway 没被重建、还在跑旧镜像，部署却显示成功
             for s in core web gateway; do

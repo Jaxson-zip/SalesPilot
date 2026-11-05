@@ -66,9 +66,21 @@ KEEP_TABLES = (
 )
 
 
+# LangGraph 的会话存储（不在 ORM 里，由 PostgresSaver 建表）：会话表清空时一起清，
+# 否则旧对话内容还在、只是没有登记（回归：重置后 AI 工作台仍显示旧对话）
+CHECKPOINT_TABLES = ("checkpoints", "checkpoint_writes", "checkpoint_blobs")
+
+
 def reset_business_data(db: Session) -> None:
     db.execute(text(f"TRUNCATE {', '.join(RESET_TABLES)} RESTART IDENTITY CASCADE"))
-    logger.info("reset: truncated %d business tables", len(RESET_TABLES))
+    present = [
+        t for t in CHECKPOINT_TABLES if db.execute(text(f"select to_regclass('{t}')")).scalar()
+    ]
+    if present:
+        db.execute(text(f"TRUNCATE {', '.join(present)}"))
+    logger.info(
+        "reset: truncated %d business tables, %d checkpoint tables", len(RESET_TABLES), len(present)
+    )
 
 
 def _owned(row: dict[str, Any]) -> dict[str, Any]:

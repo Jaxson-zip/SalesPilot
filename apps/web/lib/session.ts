@@ -1,5 +1,5 @@
 import { api, isApiError, setUnauthorizedHandler } from "@/lib/api"
-import { clearLegacyToken, readStorage, STORAGE_KEYS, writeStorage } from "@/lib/storage"
+import { clearAiSessions, clearLegacyToken, readStorage, STORAGE_KEYS, writeStorage } from "@/lib/storage"
 import { ErrorCode, type CurrentUser, type MockLoginData, type Role } from "@/types/api"
 
 /** 演示账户（与原型 USERS 一致）；can 是登录页上的一句话说明，login 是登录名 */
@@ -161,6 +161,7 @@ export async function changePassword(oldPassword: string, newPassword: string): 
 /** 退出登录：POST /api/auth/logout 让 core 清掉 HttpOnly Cookie（JS 删不掉它）；请求失败也清本地信息 */
 export async function logout(): Promise<void> {
   clearLegacyToken()
+  clearAiSessions() // 回归：退出再登录，AI 工作台还是退出前的对话
   storeProfile(null)
   try {
     await api.post<null>("/api/auth/logout")

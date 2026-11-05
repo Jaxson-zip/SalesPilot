@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { usePathname } from "next/navigation"
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { flushSync } from "react-dom"
 
 import { api } from "@/lib/api"
 import {
@@ -114,8 +115,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       switching.current = true
       try {
         const data = await mockLogin(next, undefined, login)
-        setRole(next)
-        setStored(data.user ? profileOf(data.user) : null)
+        // 先把新角色渲染出来再刷新数据：否则只给上一个角色开的查询（如侧栏待审批）会带着新登录重拉，得到 403
+        flushSync(() => {
+          setRole(next)
+          setStored(data.user ? profileOf(data.user) : null)
+        })
       } finally {
         switching.current = false
         await queryClient.invalidateQueries()

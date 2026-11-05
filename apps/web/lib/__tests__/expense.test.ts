@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   attachmentSummary,
+  isExpenseDetailKey,
   clearError,
   checkFromPolicy,
   checkFromPrecheck,
@@ -242,5 +243,14 @@ describe("clearError", () => {
     expect(clearError(errors, "reason")).toEqual({ customer_id: "x", contact_ids: "y", city: "c", check_out: "d" })
     expect(clearError(errors, "customer_id")).toEqual({ reason: "z", city: "c", check_out: "d" })
     expect(clearError(errors, "trip")).toEqual({ customer_id: "x", contact_ids: "y", reason: "z" })
+  })
+})
+
+describe("isExpenseDetailKey（回归：删除草稿后不再重拉它的详情，避免 404）", () => {
+  it("只匹配被删的那张详情", () => {
+    expect(isExpenseDetailKey(["expenses", "detail", "e1"], "e1")).toBe(true)
+    expect(isExpenseDetailKey(["expenses", "detail", "e2"], "e1")).toBe(false)
+    expect(isExpenseDetailKey(["expenses", "list", { status: "draft" }], "e1")).toBe(false)
+    expect(isExpenseDetailKey(["quotes", "detail", "e1"], "e1")).toBe(false)
   })
 })

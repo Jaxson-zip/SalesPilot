@@ -171,9 +171,14 @@ def _read_only_graph(user: CurrentUser, thread_id: str, saver: BaseCheckpointSav
 def read_thread_messages(
     db: Session | None, user: CurrentUser, thread_id: str, saver: BaseCheckpointSaver
 ) -> ThreadMessages:
-    """别人的会话 40401（会话表或 checkpoint 任一显示归属他人）；还没有消息的会话返回空列表。"""
+    """别人的会话 40401（会话表或 checkpoint 任一显示归属他人）；还没有消息的会话返回空列表。
+    会话表里没有登记的也 40401：演示数据重置后会话表清空了，浏览器记住的旧会话不能再打开
+    （回归：重置后重新登录，AI 工作台还显示重置前的对话，会话记录里却找不到）。"""
     if db is not None:
-        ensure_owner(find_thread(db, thread_id), user)
+        row = find_thread(db, thread_id)
+        if row is None:
+            raise BizError(ErrorCode.NOT_FOUND, "会话不存在或已被清理")
+        ensure_owner(row, user)
     config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
     snapshot = _read_only_graph(user, thread_id, saver).get_state(config)
     owner = (snapshot.values or {}).get("user_id")

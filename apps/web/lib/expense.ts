@@ -256,3 +256,8 @@ export function checkFromPolicy(p: PolicyCheck): PolicyCheckView {
     unit: p.unit ?? "person",
   }
 }
+
+/** 查询 key 是否为某张报销单的详情（["expenses", "detail", id]）：删除后跳过它，避免重拉 404 */
+export function isExpenseDetailKey(key: readonly unknown[], id: string): boolean {
+  return key[0] === "expenses" && key[1] === "detail" && key[2] === id
+}

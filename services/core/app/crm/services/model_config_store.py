@@ -192,10 +192,23 @@ def invalid(message: str) -> BizError:
     return BizError(ErrorCode.VALIDATION, message)
 
 
+# 无论是否允许内网都不能访问：云厂商元数据（AWS / GCP / Azure 的 169.254.169.254、
+# 阿里云 100.100.100.200、AWS IPv6 fd00:ec2::254）、链路本地、组播、未指定地址
+_METADATA_HOSTS = {
+    ipaddress.ip_address("100.100.100.200"),
+    ipaddress.ip_address("fd00:ec2::254"),
+}
+
+
 def allow_private() -> bool:
-    settings = get_settings()
-    flag = settings.model_allow_private_base
-    return settings.demo_login if flag is None else flag
+    return get_settings().model_allow_private_base is True
+
+
+def always_blocked(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """云元数据、链路本地、组播、未指定地址：打开 MODEL_ALLOW_PRIVATE_BASE 也不允许。"""
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+    return ip in _METADATA_HOSTS or ip.is_link_local or ip.is_multicast or ip.is_unspecified
 
 
 def check_base(url: str) -> str:
@@ -206,14 +219,18 @@ def check_base(url: str) -> str:
     parts = urlsplit(url)
     if parts.scheme not in ("http", "https") or not parts.hostname:
         raise invalid("接口地址要以 http:// 或 https:// 开头")
-    if allow_private():
-        return url
+    private = allow_private()
     try:
         infos = socket.getaddrinfo(parts.hostname, parts.port or 443, proto=socket.IPPROTO_TCP)
     except (OSError, ValueError) as exc:
+        if private:  # 允许内网时只拦元数据地址；内网域名可能只在模型服务器那边解析得了
+            return url
         raise invalid(f"接口地址的域名解析不了：{parts.hostname}") from exc
     for info in infos:
-        if not ipaddress.ip_address(info[4][0]).is_global:
+        ip = ipaddress.ip_address(str(info[4][0]).split("%")[0])
+        if always_blocked(ip):
+            raise invalid("接口地址指向云服务器元数据或链路本地地址，一律禁止")
+        if not private and not ip.is_global:
             raise invalid(
                 "接口地址指向内网或本机，正式环境默认禁止。"
                 "自建模型请在服务器 .env 设置 MODEL_ALLOW_PRIVATE_BASE=true"

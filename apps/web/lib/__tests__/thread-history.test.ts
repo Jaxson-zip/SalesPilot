@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   aiPrefillHref,
+  chatTitle,
   opportunityPrompt,
   lastUserText,
   messagesToTurns,
@@ -107,5 +108,15 @@ describe("出方案带上下文", () => {
     expect(url.searchParams.get("prompt")).toBe("给「深职大」出一份方案：")
     expect(url.searchParams.get("opp")).toBe("o1")
     expect(new URL(aiPrefillHref("x"), "http://x").searchParams.has("opp")).toBe(false)
+  })
+})
+
+describe("chatTitle（回归：标题栏不再重复显示第一条问题）", () => {
+  it("没提问 → 新对话；默认标题（问题或其截断）→ 当前对话；改过名 → 新名字", () => {
+    expect(chatTitle(null)).toBe("新对话")
+    expect(chatTitle("给明理律所出方案，预算 40 万")).toBe("当前对话")
+    expect(chatTitle("给明理律所出方案，预算 40 万", "给明理律所出方案…")).toBe("当前对话")
+    expect(chatTitle("给明理律所出方案，预算 40 万", "新对话")).toBe("当前对话")
+    expect(chatTitle("给明理律所出方案，预算 40 万", "明理律所 · 私有化")).toBe("明理律所 · 私有化")
   })
 })

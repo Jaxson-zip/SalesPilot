@@ -30,7 +30,7 @@ const itemClass =
 
 function Kbd({ children }: { children: string }) {
   return (
-    <kbd className="ml-auto rounded border border-zinc-200 bg-white px-1 font-sans text-[10px] text-zinc-400 group-data-[collapsible=icon]:hidden">
+    <kbd className="ml-auto rounded border border-zinc-200 bg-white px-1 font-sans text-[10px] text-zinc-500 group-data-[collapsible=icon]:hidden">
       {children}
     </kbd>
   )
@@ -79,7 +79,7 @@ export function AppSidebar({ onSearch }: { onSearch: () => void }) {
   const pathname = usePathname()
   const { role, solo } = useSession()
   return (
-    <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0">
+    <Sidebar collapsible="icon" className="group-data-[side=left]:border-r-0" role="navigation" aria-label="主导航">
       <SidebarHeader className="px-2 pt-2.5 pb-1">
         <WorkspaceSwitcher />
       </SidebarHeader>
@@ -91,7 +91,7 @@ export function AppSidebar({ onSearch }: { onSearch: () => void }) {
               {group.label ? (
                 <>
                   <SidebarSeparator className="mx-2 mb-2 hidden group-data-[collapsible=icon]:block" />
-                  <SidebarGroupLabel className="h-7 px-2 text-xs font-normal text-zinc-400">
+                  <SidebarGroupLabel className="h-7 px-2 text-xs font-normal text-zinc-600">
                     {group.label}
                   </SidebarGroupLabel>
                 </>

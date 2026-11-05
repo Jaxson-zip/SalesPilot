@@ -11,15 +11,21 @@ import { fetchThreadMessages, threadKeys } from "@/hooks/useAgentThreads"
 import { useAiWorkbench } from "@/hooks/useAiWorkbench"
 import type { AgentMode } from "@/lib/agent-mode"
 import { readStorage, writeStorage } from "@/lib/storage"
+import { isApiError } from "@/lib/api"
 import { aiThreadHref } from "@/lib/thread-history"
+
+// 会话打不开（40401）：说清楚原因，页面换成新对话，而不是悄悄显示默认页
+const GONE_CODE = 40401
+const GONE_TITLE = "这条会话打不开"
+const GONE_DETAIL = "可能已被删除、演示数据已重置，或不属于当前账号。已为你打开新对话。"
 
 type ModeSession = ReturnType<typeof useAiWorkbench>
 
 export type AiSession = ModeSession & {
   /** 切换到另一种模式：显示那边上次的对话（没有就是空白），返回它的会话 id */
   switchMode: (mode: AgentMode) => string | null
-  /** 打开一条会话：按会话本身的模式放到对应那边并切过去 */
-  openThread: (id: string) => Promise<void>
+  /** 打开一条会话：按会话本身的模式放到对应那边并切过去；打不开（已删除 / 已重置 / 不属于本人）返回 false */
+  openThread: (id: string) => Promise<boolean>
   /** 刷新页面后回到这个模式上次的对话（会话已不存在时静默忽略） */
   restore: () => Promise<void>
   /** 切到某个模式并开一个新对话（从商机「出方案」带着上下文进来时用），返回那个模式的会话 */
@@ -117,7 +123,10 @@ export function AiSessionProvider({ children }: { children: ReactNode }) {
     async (id: string, quiet: boolean) => {
       const { sessions, active } = latest.current
       const here = MODES.find((m) => sessions[m].stream.threadId === id)
-      if (here) return select(here)
+      if (here) {
+        select(here)
+        return true
+      }
       try {
         const data = await sessions[active].loading(id, () =>
           qc.fetchQuery({
@@ -129,9 +138,13 @@ export function AiSessionProvider({ children }: { children: ReactNode }) {
         const mode = data.mode ?? "work"
         latest.current.sessions[mode].show(id, data)
         select(mode)
+        return true
       } catch (err) {
-        if (!quiet) notifyError(err)
-        else if (latest.current.userId) writeStorage(lastKey(latest.current.userId, active), null)
+        if (latest.current.userId) writeStorage(lastKey(latest.current.userId, active), null)
+        if (quiet) return false
+        if (isApiError(err) && err.code === GONE_CODE) toast.error(GONE_TITLE, { description: GONE_DETAIL })
+        else notifyError(err)
+        return false
       }
     },
     [qc, select],

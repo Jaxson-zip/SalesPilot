@@ -176,3 +176,16 @@ export function opportunityPrompt(o: OpportunityBrief): string {
 export function solutionPrompt(customer: string, opportunity?: string): string {
   return opportunity ? `给「${customer}」的「${opportunity}」商机出一份方案：` : `给「${customer}」出一份方案：`
 }
+
+/**
+ * 对话区标题栏：用户改过名就显示新名字；否则显示「当前对话」（还没提问时「新对话」）。
+ * 不再直接显示第一条问题——下面消息区紧接着就是这条问题，看起来像发了两遍。
+ * 服务端默认标题取自第一条问题（可能截断），所以「是问题的前缀」视为没改过名。
+ */
+export function chatTitle(firstQuestion: string | null, saved?: string | null): string {
+  const q = firstQuestion?.trim() ?? ""
+  if (!q) return "新对话"
+  const name = saved?.trim()
+  const derived = !name || name === "新对话" || q.startsWith(name.replace(/(…|\.\.\.)$/, ""))
+  return derived ? "当前对话" : name
+}

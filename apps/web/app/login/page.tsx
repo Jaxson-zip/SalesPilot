@@ -137,7 +137,7 @@ export default function LoginPage() {
 
         {demo ? (
           <section aria-labelledby="demo-title" className="space-y-2">
-            <div className="flex items-center gap-3 text-xs text-zinc-400">
+            <div className="flex items-center gap-3 text-xs text-zinc-500">
               <span className="h-px flex-1 bg-zinc-200" />
               <span id="demo-title">或用演示账户一键进入</span>
               <span className="h-px flex-1 bg-zinc-200" />
@@ -150,7 +150,6 @@ export default function LoginPage() {
                   type="button"
                   disabled={pending !== null}
                   onClick={() => enterDemo(u)}
-                  aria-label={`以${u.name}（${u.title}）进入`}
                   className="flex w-full items-start gap-3 rounded-lg border border-zinc-200 bg-white p-3 text-left transition-colors hover:border-zinc-400 disabled:opacity-60"
                 >
                   <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-zinc-100">
@@ -158,18 +157,21 @@ export default function LoginPage() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-baseline gap-x-2">
-                      <span className="font-medium text-zinc-900">{u.name}</span>
+                      <span className="font-medium text-zinc-900">
+                        <span className="sr-only">以</span>
+                        {u.name}
+                      </span>
                       <span className="text-sm text-zinc-500">
                         {u.title} · {u.scope}
                       </span>
-                      <span className="text-xs text-zinc-400">{pending === u.login ? "进入中…" : u.login}</span>
+                      <span className="text-xs text-zinc-500">{pending === u.login ? "进入中…" : u.login}</span>
                     </span>
                     <span className="mt-0.5 block text-xs text-zinc-500">{u.can}</span>
                   </span>
                 </button>
               )
             })}
-            <p className="pt-1 text-center text-xs text-zinc-400">
+            <p className="pt-1 text-center text-xs text-zinc-500">
               演示环境：数据为虚构的示例数据，可以随意操作；登录后可在左下角切换演示账户
             </p>
           </section>

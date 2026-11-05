@@ -216,7 +216,7 @@ function GridBody<T>({
         </tr>
       ))}
       {onAddRow ? (
-        <tr className="h-[34px] text-zinc-400">
+        <tr className="h-[34px] text-zinc-500">
           {selectable ? <td className="border-b border-zinc-100" /> : null}
           <td colSpan={columns.length} className={cn("border-b border-zinc-100 px-2", !selectable && "pl-3")}>
             <button type="button" onClick={onAddRow} className="inline-flex items-center gap-1.5 hover:text-zinc-700">

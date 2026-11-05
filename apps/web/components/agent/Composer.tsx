@@ -79,7 +79,7 @@ function MaterialChip({ material, onClear }: { material: MaterialOut; onClear?: 
         type="button"
         aria-label="移除材料"
         onClick={onClear}
-        className="rounded p-0.5 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700"
+        className="rounded p-0.5 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700"
       >
         <X className="size-3.5" />
       </button>
@@ -125,7 +125,7 @@ function SamplesChip({
         type="button"
         aria-label="移除样例图片"
         onClick={onClear}
-        className="rounded p-0.5 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-700"
+        className="rounded p-0.5 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-700"
       >
         <X className="size-3.5" />
       </button>
@@ -229,12 +229,12 @@ function ModelSelect({ model, onModelChange }: { model: string; onModelChange: (
           className="h-8 shrink-0 gap-1.5 rounded-full border-zinc-200 px-3 text-xs text-zinc-700 shadow-none hover:bg-zinc-50"
         >
           <Cpu className="size-3.5 text-zinc-500" />
-          <span className="text-zinc-400 max-sm:hidden">模型</span>
+          <span className="text-zinc-500 max-sm:hidden">模型</span>
           <SelectValue>
             {current ? (
               <>
                 {current.label}
-                {current.detail ? <span className="text-zinc-400 max-sm:hidden"> · {current.detail}</span> : null}
+                {current.detail ? <span className="text-zinc-500 max-sm:hidden"> · {current.detail}</span> : null}
               </>
             ) : (
               model

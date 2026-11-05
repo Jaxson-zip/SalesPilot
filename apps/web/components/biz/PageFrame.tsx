@@ -56,7 +56,7 @@ export function PageFrame({
   const siblings = navSiblings(pathname, role, solo)
   return (
     <div className="flex h-full min-w-0 flex-col">
-      <div className="mb-1.5 flex h-10 min-w-0 shrink-0 items-center gap-2">
+      <header className="mb-1.5 flex h-10 min-w-0 shrink-0 items-center gap-2">
         {isMobile ? (
           <Button
             variant="ghost"
@@ -70,6 +70,8 @@ export function PageFrame({
           </Button>
         ) : null}
         <div className="min-w-0 truncate">
+          {/* 每页一个一级标题（读屏按标题跳转）：面包屑 / 标签页时标题只给读屏 */}
+          {title && (crumb || siblings) ? <h1 className="sr-only">{title}</h1> : null}
           {crumb ??
             (siblings ? (
               <nav aria-label="页面切换" className="flex gap-1 overflow-x-auto">
@@ -92,10 +94,10 @@ export function PageFrame({
                 })}
               </nav>
             ) : (
-              <span className="inline-flex items-center gap-1.5 font-medium text-zinc-800">
+              <h1 className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-800">
                 {Icon ? <Icon className="size-4 text-zinc-500" /> : null}
                 {title}
-              </span>
+              </h1>
             ))}
         </div>
         <div className="flex-1" />
@@ -103,7 +105,7 @@ export function PageFrame({
           <NotificationBell />
           {actions}
         </div>
-      </div>
+      </header>
       <div
         className={cn(
           "flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-zinc-200 bg-white",

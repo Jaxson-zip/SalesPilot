@@ -60,7 +60,7 @@ export function UserMenu() {
               <LetterAvatar name={user.name} className="size-7 text-xs" />
               <span className="min-w-0 flex-1 text-left">
                 <span className="block truncate font-medium text-zinc-900">{user.name}</span>
-                <span className="block text-xs text-zinc-500">{user.title}</span>
+                <span className="block text-xs text-zinc-600">{user.title}</span>
               </span>
               <ChevronsUpDown className="size-3.5 text-zinc-400" />
             </SidebarMenuButton>

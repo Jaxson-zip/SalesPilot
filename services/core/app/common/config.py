@@ -39,7 +39,8 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = 30
     # 网页上填写的模型 Key 的加密密钥（openssl rand -hex 32）。没设置时退回用 JWT_SECRET 派生
     model_keys_secret: str = ""
-    # 模型接口地址可以指向内网 / 本机（自建 vLLM、Ollama）。不写时：演示模式允许，正式模式禁止
+    # 模型接口地址可以指向内网 / 本机（自建 vLLM、Ollama）。默认禁止，演示模式也一样：
+    # 演示站任何人都能一键进管理员，放开就能借服务器访问内网。云元数据地址始终禁止
     model_allow_private_base: bool | None = None
     upload_dir: str = "./data/uploads"
     default_pack: str = "llm_deploy"

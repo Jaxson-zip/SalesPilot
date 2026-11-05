@@ -48,10 +48,6 @@ function CommandDialog({
 }) {
   return (
     <Dialog {...props}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
       <DialogContent
         className={cn(
           "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0",
@@ -59,6 +55,11 @@ function CommandDialog({
         )}
         showCloseButton={showCloseButton}
       >
+        {/* 标题放在对话框里面：才会成为对话框的名称，关闭时也不会留在页面上 */}
+        <DialogHeader className="sr-only">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
         {children}
       </DialogContent>
     </Dialog>

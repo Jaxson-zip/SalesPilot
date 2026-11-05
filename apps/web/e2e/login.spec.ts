@@ -8,7 +8,7 @@ test("没登录打开业务页面会到登录页；演示账户一键进入后�
   await page.goto("/contracts")
   await expect(page).toHaveURL(/\/login\?next=%2Fcontracts/)
   await expect(page.getByLabel("访问口令")).toHaveCount(0) // 本地没配口令
-  await page.getByRole("button", { name: "以李薇（销售主管）进入" }).click()
+  await page.getByRole("button", { name: /以\s*李薇/ }).click()
   await expect(page).toHaveURL(/\/contracts$/)
   await expect(page.getByRole("button", { name: /李薇/ })).toBeVisible()
 })
@@ -50,7 +50,7 @@ test("配置了访问口令：必须输入口令，错误时提示（模拟接�
     })
   })
   await page.goto("/login")
-  const enter = page.getByRole("button", { name: "以张晨（销售）进入" })
+  const enter = page.getByRole("button", { name: /以\s*张晨/ })
   await enter.click()
   await expect(page.getByText("请输入访问口令")).toBeVisible()
   expect(bodies).toHaveLength(0)

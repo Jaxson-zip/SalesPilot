@@ -115,7 +115,7 @@ export function MsgActions({
           <button
             type="button"
             onClick={() => setAsking(false)}
-            className="h-8 shrink-0 px-1 text-xs text-zinc-400 hover:text-zinc-700"
+            className="h-8 shrink-0 px-1 text-xs text-zinc-500 hover:text-zinc-700"
           >
             不填了
           </button>

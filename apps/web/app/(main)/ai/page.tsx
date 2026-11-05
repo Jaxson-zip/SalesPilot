@@ -11,13 +11,14 @@ import { HistorySheet } from "@/components/agent/HistorySheet"
 import { Welcome } from "@/components/agent/Welcome"
 import { FrameAction, PageFrame } from "@/components/biz/PageFrame"
 import { PageTip } from "@/components/onboarding/PageTip"
+import { useAgentThreads } from "@/hooks/useAgentThreads"
 import { useOpportunity } from "@/hooks/useOpportunities"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useDefaultPack, usePackName } from "@/hooks/useProductLines"
 import { DEFAULT_PACK_LABEL } from "@/lib/agent-labels"
 import type { AgentMode } from "@/lib/agent-mode"
 import { takePastedMaterial } from "@/lib/materials"
-import { aiThreadHref } from "@/lib/thread-history"
+import { aiThreadHref, chatTitle } from "@/lib/thread-history"
 import { PAGE_TIPS } from "@/lib/onboarding"
 
 /**
@@ -47,7 +48,8 @@ function useThreadUrl(w: AiSession): { goNew: () => void; goMode: (mode: AgentMo
     const first = !mounted.current
     mounted.current = true
     if (t) {
-      if (t !== w.stream.threadId) void w.openThread(t)
+      // 打不开就把地址里失效的 t 去掉，留在空白新对话（否则看起来像按钮、切换都没反应）
+      if (t !== w.stream.threadId) void w.openThread(t).then((ok) => ok || router.replace("/ai", { scroll: false }))
     } else if (w.stream.threadId && !first) {
       w.newChat()
     } else if (first && !prompt && !mode) {
@@ -106,7 +108,10 @@ function useThreadUrl(w: AiSession): { goNew: () => void; goMode: (mode: AgentMo
 /** AI 方案工作台：居中会话 + 底部大输入框；会话记录在标题行「历史记录」打开的右侧面板里 */
 function AiWorkbench() {
   const w = useAiSession()
-  const { stream, input, setInput, model, setModel, title, send } = w
+  const { stream, input, setInput, model, setModel, send } = w
+  const threads = useAgentThreads()
+  const saved = threads.data?.items.find((t) => t.thread_id === stream.threadId)?.title
+  const title = chatTitle(w.title === "新对话" ? null : w.title, saved)
   const { canAiWrite } = usePermissions()
   const { goNew, goMode } = useThreadUrl(w)
   // 从商机进入：显示该商机产品线对应的行业包（锁定）；否则可以选，默认是团队默认产品线的行业包

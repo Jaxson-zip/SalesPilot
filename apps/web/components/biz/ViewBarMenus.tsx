@@ -82,7 +82,7 @@ export function FilterMenu({ filters, activeFilters, onFiltersChange }: ViewBarL
             <DropdownMenuSubTrigger>
               <span className="flex-1">{f.label}</span>
               {activeFilters[f.id]?.length ? (
-                <span className="text-xs text-zinc-400 tabular-nums">{activeFilters[f.id].length}</span>
+                <span className="text-xs text-zinc-500 tabular-nums">{activeFilters[f.id].length}</span>
               ) : null}
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="max-h-72 w-[180px] overflow-y-auto">

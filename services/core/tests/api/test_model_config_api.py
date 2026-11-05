@@ -34,6 +34,12 @@ KIMI = {
 }
 
 
+@pytest.fixture(autouse=True)
+def _allow_private_base(monkeypatch: pytest.MonkeyPatch) -> None:
+    """其余用例的域名（api.moonshot.cn 等）离线解析不了：默认按「允许内网」跑，不做 DNS 拦截。"""
+    monkeypatch.setattr(get_settings(), "model_allow_private_base", True)
+
+
 def _model(alias: str, kind: str = "chat", tools: bool = True, dims: int | None = None) -> dict:
     return {
         "alias": alias,
@@ -232,7 +238,9 @@ def test_private_base_blocked_in_production(
     monkeypatch.setattr(get_settings(), "model_allow_private_base", False)
     for url in ("http://127.0.0.1:11434/v1", "http://169.254.169.254/latest", "http://10.0.0.8/v1"):
         r = client.put(f"{URL}/custom/ollama", json={**KIMI, "api_base": url}, headers=ADMIN_H)
-        assert r.status_code == 400 and "MODEL_ALLOW_PRIVATE_BASE" in r.json()["message"]
+        message = r.json()["message"]
+        assert r.status_code == 400
+        assert "MODEL_ALLOW_PRIVATE_BASE" in message or "元数据" in message
     assert _put_builtin(client, base="http://127.0.0.1:8000/v1").status_code == 400
     monkeypatch.setattr(get_settings(), "model_allow_private_base", True)
     ok = client.put(
@@ -241,6 +249,27 @@ def test_private_base_blocked_in_production(
         headers=ADMIN_H,
     )
     assert ok.status_code == 200 and ok.json()["data"]["allow_private_base"] is True
+    # 打开内网也不能指向云元数据 / 链路本地
+    for url in (
+        "http://169.254.169.254/latest",
+        "http://100.100.100.200/latest/meta-data",
+        "http://[fe80::1]/v1",
+        "http://[::ffff:169.254.169.254]/x",
+    ):
+        r = client.put(f"{URL}/custom/ollama", json={**KIMI, "api_base": url}, headers=ADMIN_H)
+        assert r.status_code == 400 and "元数据" in r.json()["message"], url
+
+
+def test_private_base_blocked_by_default_even_in_demo(
+    client: TestClient, gateway: FakeGateway, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """回归：演示模式曾默认允许内网地址，演示站上任何人进管理员就能让服务器去访问内网。"""
+    monkeypatch.setattr(get_settings(), "demo_login", True)
+    monkeypatch.setattr(get_settings(), "model_allow_private_base", None)
+    r = client.put(
+        f"{URL}/custom/ollama", json={**KIMI, "api_base": "http://10.0.0.8/v1"}, headers=ADMIN_H
+    )
+    assert r.status_code == 400 and "MODEL_ALLOW_PRIVATE_BASE" in r.json()["message"]
 
 
 def test_custom_provider_lifecycle(client: TestClient, gateway: FakeGateway) -> None:

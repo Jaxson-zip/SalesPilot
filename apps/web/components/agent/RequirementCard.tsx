@@ -177,7 +177,7 @@ export function RequirementCard({
                     type="button"
                     aria-label={`删除 ${m.name}`}
                     onClick={() => setReq((r) => removeModule(r, i))}
-                    className="inline-flex size-6 items-center justify-center rounded text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                    className="inline-flex size-6 items-center justify-center rounded text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
                   >
                     <X className="size-3.5" />
                   </button>

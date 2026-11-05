@@ -35,7 +35,7 @@ function ViewSwitcher({
         >
           <List className="size-3.5 shrink-0 text-zinc-500" />
           <span className="truncate font-medium">{current?.label}</span>
-          {count !== undefined ? <span className="text-zinc-400 tabular-nums">· {count}</span> : null}
+          {count !== undefined ? <span className="text-zinc-500 tabular-nums">· {count}</span> : null}
           <ChevronDown className="size-3.5 shrink-0 text-zinc-400" />
         </button>
       </DropdownMenuTrigger>

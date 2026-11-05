@@ -44,7 +44,7 @@ async function checkDemoData(get: Get): Promise<void> {
   if (problems.length === 0) return
   throw new Error(
     `演示数据和用例的前提不一致：\n  - ${problems.join("\n  - ")}\n` +
-      "请先恢复演示数据：docker compose exec core python -m seed --reset",
+      "请先恢复演示数据：docker compose exec core python -m seed --reset（会要求输入 RESET 确认）",
   )
 }
 

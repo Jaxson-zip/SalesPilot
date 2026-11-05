@@ -87,6 +87,7 @@ docker compose exec core python -m seed   # 导入演示数据
 | 销售 · 刘洋 / 赵婷 | `liuyang` / `zhaoting` | 华东销售组的销售，AI 出软件外包方案 |
 
 分享给别人试用前，恢复干净的演示数据并把演示账号密码统一为 `DEMO_PASSWORD`：`python -m seed --reset --reset-passwords`。
+> `--reset` 会清空**所有**业务数据（包括试用者录入的），执行前列出要删的数量并要求输入 RESET；非交互运行需加 `--yes`。`--reset-passwords` 会让已登录的演示账号全部下线。部署流水线不会执行 seed。
 
 接入大模型：在 `.env` 填至少一家厂商的 Key，或登录管理员后在「系统设置 → 模型接入」里配置。支持混元、DeepSeek、通义，以及任意 OpenAI 兼容接口。
 

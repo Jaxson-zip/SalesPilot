@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useCustomers } from "@/hooks/useCustomers"
 import { useDebounced } from "@/hooks/useDebounced"
 import { usePermissions } from "@/hooks/usePermissions"
+import { comboLabel } from "@/lib/a11y"
 import { createCustomerLabel } from "@/lib/customer"
 import { defaultScope } from "@/lib/views"
 import { cn } from "@/lib/utils"
@@ -29,12 +30,15 @@ export function CustomerCombobox({
   disabled,
   invalid,
   placeholder = "搜索并选择客户",
+  ariaLabel = "客户",
 }: {
   value: CustomerBrief | null
   onChange: (v: CustomerBrief | null) => void
   disabled?: boolean
   invalid?: boolean
   placeholder?: string
+  /** 读屏名称：combobox 不会用按钮文字当名称（回归：无障碍扫描报「客户选择控件没有名称」，critical） */
+  ariaLabel?: string
 }) {
   const { role } = useSession()
   const { canCreate } = usePermissions()
@@ -54,6 +58,7 @@ export function CustomerCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-label={comboLabel(ariaLabel, value?.name ?? placeholder)}
           aria-invalid={invalid || undefined}
           disabled={disabled}
           className={cn("w-full justify-between font-normal", !value && "text-muted-foreground")}

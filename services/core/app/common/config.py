@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     scheduler_enabled: bool = True
     # 演示账户的初始密码（迁移 0019 和种子数据写入）
     demo_password: str = "demo2026"
+    # 构建时写入的版本（CI 传入提交 SHA），/api/health 返回，发布后核对线上跑的是哪个版本
+    app_version: str = "dev"
     llm_gateway_base: str = "http://localhost:8100/v1"
     llm_gateway_key: str = "change-me"
     llm_default_group: str = "chat-agent"

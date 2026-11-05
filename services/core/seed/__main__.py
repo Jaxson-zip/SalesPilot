@@ -10,16 +10,17 @@ from typing import Any
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from app.common.auth import CurrentUser
+from app.common.auth import CurrentUser, forget_user
 from app.common.config import get_settings
 from app.common.db import session_scope
 from app.common.errors import BizError
-from app.common.passwords import hash_password
+from app.common.passwords import hash_password, verify_password
 from app.crm.models import Customer, Followup, Opportunity, ProductLine, SalesTarget, Team, User
 from app.crm.services.demo import DEMO_LOGINS
 from app.crm.services.target_service import parse_month
 from seed import data
 from seed.business import seed_business
+from seed.guard import confirm_reset
 
 logger = logging.getLogger("seed")
 
@@ -86,14 +87,21 @@ def seed_org(db: Session, reset_passwords: bool = False) -> None:
     east = data.TEAM_EAST
     db.merge(Team(id=east["id"], name=east["name"], default_product_line_id=data.PL_SOFTWARE))
     db.flush()
-    password = hash_password(get_settings().demo_password)
+    demo_password = get_settings().demo_password
+    password = hash_password(demo_password)
     for u in data.USERS:
         user = db.merge(User(id=u.id, name=u.name, role=u.role.value, team_id=u.team_id))
         # 账号：已有登录名和密码的不覆盖（管理员可能改过）
         user.username = user.username or DEMO_LOGINS[u.id]
         user.password_hash = user.password_hash or password
         if reset_passwords:  # 分享演示环境前：演示账号统一回到 DEMO_PASSWORD，不要求首次改密码
+            changed = not verify_password(demo_password, user.password_hash)
             user.password_hash, user.must_change_password = password, False
+            if (
+                changed
+            ):  # 密码真的变了：之前签发的登录全部作废（回归：重置后旧 token 仍能以原身份访问）
+                user.token_version = (user.token_version or 0) + 1
+                forget_user(user.id)
     db.flush()
     team = db.get(Team, data.TEAM["id"])
     assert team is not None
@@ -140,12 +148,15 @@ def main() -> None:
     parser.add_argument(
         "--reset-passwords",
         action="store_true",
-        help="把演示账号的密码统一重置为 DEMO_PASSWORD（分享演示环境前用）",
+        help="把演示账号的密码统一重置为 DEMO_PASSWORD（分享演示环境前用），已登录的会被踢下线",
     )
+    parser.add_argument("--yes", action="store_true", help="--reset 不再询问（非交互运行时必须带）")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
     with session_scope() as db:
         if args.reset:
+            if not confirm_reset(db, args.yes):
+                raise SystemExit(1)
             reset_business_data(db)
         seed_org(db, reset_passwords=args.reset_passwords)
         seed_crm(db)

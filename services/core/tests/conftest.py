@@ -68,6 +68,7 @@ def _migrate_and_seed() -> None:
     """迁移到最新，并清空后重新导入演示数据，保证每次测试从同一个状态开始。"""
     from alembic import command
     from alembic.config import Config
+    from sqlalchemy import text
 
     from app.common.db import session_scope
     from seed.__main__ import reset_business_data, seed_crm, seed_org
@@ -79,6 +80,8 @@ def _migrate_and_seed() -> None:
     command.upgrade(cfg, "head")
     with session_scope() as db:
         reset_business_data(db)
+        # 用例用预先签发的 token（版本 0）；上次运行中途失败可能把版本号留在 1，一律归零
+        db.execute(text("update users set token_version = 0"))
         seed_org(db)
         seed_crm(db)
         db.flush()

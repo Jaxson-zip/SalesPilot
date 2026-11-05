@@ -17,6 +17,10 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 COPY . .
 
+# 版本号放在最后：每次提交都变，放前面会让依赖层缓存失效
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
+
 EXPOSE 8000
 
 # 启动时先迁移数据库，再启动服务

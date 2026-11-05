@@ -59,6 +59,35 @@ def test_reset_passwords_restores_demo_password() -> None:
         seed_org(db, reset_passwords=True)
         assert verify_password(get_settings().demo_password, user.password_hash)
         assert not user.must_change_password
+        user.token_version -= 1  # 其他用例用的是预先签发的 token，把这次重置带来的版本号加一撤回
+
+
+def test_reset_passwords_revokes_old_tokens(client: TestClient) -> None:
+    """回归：--reset-passwords 改了密码，之前登录拿到的 token 仍能以原身份访问。"""
+    uid = EAST_SALES[1].id
+    with session_scope() as db:
+        user = db.get(User, uid)
+        assert user is not None
+        version = user.token_version
+        user.password_hash = hash_password("Changed#2026x")
+    body = {"username": "zhaoting", "password": "Changed#2026x"}
+    token = client.post("/api/auth/login", json=body).json()["data"]["token"]
+    me = {"Authorization": f"Bearer {token}"}
+    try:
+        assert client.get("/api/me", headers=me).json()["code"] == 0
+        with session_scope() as db:
+            seed_org(db, reset_passwords=True)
+        assert client.get("/api/me", headers=me).json()["code"] == 40101
+        assert _login(client, "zhaoting")["code"] == 0
+        with session_scope() as db:  # 密码没变时再跑一次，不应把人踢下线
+            seed_org(db, reset_passwords=True)
+            user = db.get(User, uid)
+            assert user is not None and user.token_version == version + 1
+    finally:  # 其他用例用的是预先签发的 token，恢复版本号
+        with session_scope() as db:
+            user = db.get(User, uid)
+            assert user is not None
+            user.token_version = version
 
 
 def test_east_sales_dashboard_has_activities(client: TestClient) -> None:

@@ -21,7 +21,7 @@ export function ApprovalTrail({ approvals }: { approvals: ApprovalBrief[] }) {
               </span>
               <span className="flex-1" />
               {a.submitted_at ? (
-                <span className="text-xs text-zinc-400">{formatRelative(a.submitted_at)}提交</span>
+                <span className="text-xs text-zinc-500">{formatRelative(a.submitted_at)}提交</span>
               ) : null}
             </div>
             <div className="whitespace-pre-line text-zinc-700">触发原因：{a.reason}</div>

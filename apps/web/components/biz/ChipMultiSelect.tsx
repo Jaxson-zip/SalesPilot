@@ -60,12 +60,12 @@ export function ChipMultiSelect({
           >
             {on ? <Check className="size-3 shrink-0" /> : null}
             <span className="truncate">{o.label}</span>
-            {o.hint ? <span className={cn("truncate", on ? "text-white/70" : "text-zinc-400")}>{o.hint}</span> : null}
+            {o.hint ? <span className={cn("truncate", on ? "text-white/70" : "text-zinc-500")}>{o.hint}</span> : null}
           </button>
         )
       })}
-      {options.length === 0 && !fixed ? <span className="text-zinc-400">{empty}</span> : null}
-      {options.length === 0 && fixed && empty ? <span className="text-xs text-zinc-400">{empty}</span> : null}
+      {options.length === 0 && !fixed ? <span className="text-zinc-500">{empty}</span> : null}
+      {options.length === 0 && fixed && empty ? <span className="text-xs text-zinc-500">{empty}</span> : null}
     </div>
   )
 }

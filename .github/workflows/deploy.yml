@@ -132,7 +132,9 @@ jobs:
           tags: |
             ghcr.io/${{ steps.prep.outputs.owner_lc }}/${{ matrix.image_name }}:latest
             ghcr.io/${{ steps.prep.outputs.owner_lc }}/${{ matrix.image_name }}:${{ github.sha }}
-          build-args: ${{ matrix.build_args }}
+          build-args: |
+            ${{ matrix.build_args }}
+            APP_VERSION=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
@@ -202,6 +204,7 @@ jobs:
             for s in core web gateway; do docker image inspect "$IMG/salespilot-$s:$SHA" >/dev/null; done
             # 服务器上不改入库文件（HTTPS 配置由 docker-compose.prod.yml 挂载），直接对齐远端；.env、证书不在版本库里，不受影响
             # 对齐到本次构建的提交（不是 origin/main 的最新）：compose 配置、迁移和镜像是同一个版本
+            old=$(git rev-parse HEAD)
             git fetch origin main
             git reset --hard "$SHA"
             # 按 commit 固定版本的镜像打成 compose 默认用的 salespilot-*:latest：
@@ -222,12 +225,18 @@ jobs:
                 [ "$want" = "$have" ] || { echo "$s 镜像仍不一致" >&2; exit 1; }
               fi
             done
+            # nginx 配置是单文件挂载：git reset 换成了新文件，运行中的容器仍读旧的，必须重建才生效。
+            # 先用新配置做语法检查（同一网络，能解析 web / core），不通过就不动线上 nginx
+            if ! git diff --quiet "$old" "$SHA" -- infra/nginx docker-compose.yml docker-compose.prod.yml; then
+              $dc run --rm --no-deps -T nginx nginx -t
+              $dc up -d --force-recreate --no-deps nginx
+            fi
             $dc exec -T core alembic upgrade head
             $dc ps
-            # 业务就绪检查：数据库连通、会话存在 Postgres（/health status=ok），最多等 3 分钟
-            ready='import json,sys,urllib.request; d=json.load(urllib.request.urlopen("http://localhost:8000/health"))["data"]; print(d); sys.exit(0 if d["status"]=="ok" else 1)'
+            # 业务就绪检查：数据库连通、会话存在 Postgres（/health status=ok），且跑的正是本次提交（version=SHA），最多等 3 分钟
+            ready='import json,sys,urllib.request; d=json.load(urllib.request.urlopen("http://localhost:8000/health"))["data"]; print(d); sys.exit(0 if d["status"]=="ok" and d.get("version")==sys.argv[1] else 1)'
             for i in $(seq 1 36); do
-              if $dc exec -T core python -c "$ready"; then exit 0; fi
+              if $dc exec -T core python -c "$ready" "$SHA"; then exit 0; fi
               sleep 5
             done
             echo "core 未就绪" >&2

@@ -2385,6 +2385,47 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/health": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Health
+     * @description 服务存活即返回 code=0。数据库不可用，或会话存储退回到内存（重启会丢会话）时
+     *     status=degraded；发布流水线的就绪检查要求 status=ok。
+     */
+    get: operations["health_api_health_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/readyz": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Readyz
+     * @description 就绪检查：内容同 /api/health，没就绪时 HTTP 503，外部监控 / 负载均衡只看状态码即可。
+     */
+    get: operations["readyz_api_readyz_get"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -5850,6 +5891,11 @@ export interface components {
        * @default false
        */
       persistent: boolean
+      /**
+       * Version
+       * @default dev
+       */
+      version: string
     }
     /** HistoryMessage */
     HistoryMessage: {
@@ -13736,6 +13782,46 @@ export interface operations {
     }
   }
   health_health_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_Health_"]
+        }
+      }
+    }
+  }
+  health_api_health_get: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_Health_"]
+        }
+      }
+    }
+  }
+  readyz_api_readyz_get: {
     parameters: {
       query?: never
       header?: never

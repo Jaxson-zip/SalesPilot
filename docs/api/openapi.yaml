@@ -6411,6 +6411,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse_Health_'
+  /api/health:
+    get:
+      tags:
+      - health
+      summary: Health
+      description: '服务存活即返回 code=0。数据库不可用，或会话存储退回到内存（重启会丢会话）时
+
+        status=degraded；发布流水线的就绪检查要求 status=ok。'
+      operationId: health_api_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Health_'
+  /api/readyz:
+    get:
+      tags:
+      - health
+      summary: Readyz
+      description: 就绪检查：内容同 /api/health，没就绪时 HTTP 503，外部监控 / 负载均衡只看状态码即可。
+      operationId: readyz_api_readyz_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Health_'
 components:
   schemas:
     AccountCreate:
@@ -11870,12 +11900,17 @@ components:
           type: boolean
           title: Persistent
           default: false
+        version:
+          type: string
+          title: Version
+          default: dev
       type: object
       required:
       - status
       - db
       - checkpointer
       - persistent
+      - version
       title: Health
     HistoryMessage:
       properties:

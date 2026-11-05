@@ -4,7 +4,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
@@ -117,8 +117,13 @@ def create_app() -> FastAPI:
     )
     for router in routers:
         app.include_router(router)
+    # /health 给容器内部（compose healthcheck）用；/api/health 经 nginx 对外，供监控和发布核对版本
+    for path in ("/health", "/api/health"):
+        app.add_api_route(
+            path, health, methods=["GET"], response_model=ApiResponse[Health], tags=["health"]
+        )
     app.add_api_route(
-        "/health", health, methods=["GET"], response_model=ApiResponse[Health], tags=["health"]
+        "/api/readyz", readyz, methods=["GET"], response_model=ApiResponse[Health], tags=["health"]
     )
     return app
 
@@ -128,6 +133,7 @@ class Health(BaseModel):
     db: bool
     checkpointer: str
     persistent: bool = False  # 会话存在 Postgres（进程重启不丢）
+    version: str = "dev"  # 构建时的提交 SHA
 
 
 async def health(request: Request) -> ApiResponse[Health]:
@@ -137,7 +143,17 @@ async def health(request: Request) -> ApiResponse[Health]:
     kind = getattr(request.app.state, "checkpointer_kind", "unknown")
     persistent = is_persistent()
     status = "ok" if db_ok and persistent else "degraded"
-    return ok(Health(status=status, db=db_ok, checkpointer=kind, persistent=persistent))
+    version = get_settings().app_version
+    out = Health(status=status, db=db_ok, checkpointer=kind, persistent=persistent, version=version)
+    return ok(out)
+
+
+async def readyz(request: Request, response: Response) -> ApiResponse[Health]:
+    """就绪检查：内容同 /api/health，没就绪时 HTTP 503，外部监控 / 负载均衡只看状态码即可。"""
+    body = await health(request)
+    if body.data is None or body.data.status != "ok":
+        response.status_code = 503
+    return body
 
 
 app = create_app()

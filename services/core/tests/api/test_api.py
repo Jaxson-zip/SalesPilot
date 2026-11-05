@@ -5,8 +5,10 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
+from app import main
 from app.agent import service
 from app.common.auth import Role
+from app.common.config import get_settings
 from tests.conftest import auth_header
 
 
@@ -175,3 +177,19 @@ def test_agent_models_when_gateway_down(
 def test_agent_models_requires_login(client: TestClient) -> None:
     r = client.get("/api/agent/models")
     assert r.status_code == 401 and r.json()["code"] == 40101
+
+
+def test_public_health_reports_version_and_readyz_status(client: TestClient) -> None:
+    """/api/health 经 nginx 对外，带版本号；/api/readyz 没就绪时返回 503（外部监控只看状态码）。"""
+    health = client.get("/api/health").json()["data"]
+    assert health["version"] == get_settings().app_version
+    ready = client.get("/api/readyz")
+    assert ready.status_code == (200 if health["status"] == "ok" else 503)
+
+
+def test_readyz_returns_503_when_db_down(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(main, "check_db", lambda: False)
+    r = client.get("/api/readyz")
+    assert r.status_code == 503 and r.json()["data"]["status"] == "degraded"

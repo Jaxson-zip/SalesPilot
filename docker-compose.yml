@@ -86,6 +86,8 @@ services:
     volumes:
       - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./infra/nginx/snippets:/etc/nginx/snippets:ro
+      # 静态文件缓存放卷里：nginx 容器重建后旧版本 chunk 仍在
+      - nginx_cache:/var/cache/nginx
     depends_on:
       web:
         condition: service_started
@@ -100,3 +102,4 @@ services:
 volumes:
   pgdata:
   uploads:
+  nginx_cache:

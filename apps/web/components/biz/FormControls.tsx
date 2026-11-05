@@ -10,6 +10,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { comboLabel } from "@/lib/a11y"
 import { cn } from "@/lib/utils"
 
 /** 表单字段：标签 + 控件 + 提示 / 错误 */
@@ -32,7 +33,7 @@ export function FormField({
     <div className="min-w-0 space-y-1.5">
       <label htmlFor={htmlFor} className="text-sm font-medium">
         {label}
-        {required ? <span className="ml-0.5 text-red-500">*</span> : null}
+        {required ? <span className="ml-0.5 text-red-600">*</span> : null}
       </label>
       {children}
       {error ? (
@@ -100,6 +101,7 @@ export function DatePicker({
 }) {
   const [open, setOpen] = useState(false)
   const date = value ? parseISO(value) : undefined
+  const shown = date ? format(date, "yyyy-MM-dd") : placeholder
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -107,11 +109,11 @@ export function DatePicker({
           variant="outline"
           size={size}
           disabled={disabled}
-          aria-label={ariaLabel}
+          aria-label={ariaLabel ? comboLabel(ariaLabel, shown) : undefined}
           className={cn("w-full justify-start font-normal", !value && "text-muted-foreground")}
         >
           <CalendarDays className="text-zinc-500" />
-          {date ? format(date, "yyyy-MM-dd") : placeholder}
+          {shown}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">

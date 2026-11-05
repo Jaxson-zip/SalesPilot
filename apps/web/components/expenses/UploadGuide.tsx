@@ -84,7 +84,7 @@ export function UploadGuide({ type }: { type: ExpenseType }) {
             <SampleCard key={s.key} sample={s} />
           ))}
         </div>
-        <p className="text-xs text-zinc-400">样例带水印，仅用于说明需要看清哪些信息</p>
+        <p className="text-xs text-zinc-500">样例带水印，仅用于说明需要看清哪些信息</p>
       </div>
     </InfoPopover>
   )

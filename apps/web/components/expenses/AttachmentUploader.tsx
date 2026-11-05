@@ -141,7 +141,7 @@ export function AttachmentUploader({
             onDelete={editable ? () => remove.mutate(a.id) : undefined}
           />
         ))}
-        {!editable && attachments.length === 0 ? <div className="text-zinc-400">没有票据</div> : null}
+        {!editable && attachments.length === 0 ? <div className="text-zinc-500">没有票据</div> : null}
         {attachments.length > 0 ? (
           <p className="text-xs text-zinc-500">
             已上传 ≠ 已验真：系统只检查文件格式和票据类型，不核验发票真伪；主管审批时会逐张核对。

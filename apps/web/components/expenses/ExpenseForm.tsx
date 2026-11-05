@@ -283,7 +283,12 @@ export function ExpenseForm({
         error={errors.customer_id}
         hint={isEntertainment ? undefined : "出差拜访的客户，选填"}
       >
-        <CustomerCombobox value={customer} onChange={onCustomerChange} invalid={Boolean(errors.customer_id)} />
+        <CustomerCombobox
+          value={customer}
+          onChange={onCustomerChange}
+          invalid={Boolean(errors.customer_id)}
+          ariaLabel="关联客户"
+        />
       </FormField>
       {values.customer_id ? (
         <OpportunityField customerId={values.customer_id} value={values.opportunity_id} onChange={onChange} />

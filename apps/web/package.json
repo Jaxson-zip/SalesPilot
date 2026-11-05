@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "e2e:reset": "docker compose -f ../../docker-compose.yml exec -T core python -m seed --reset",
+    "e2e:reset": "docker compose -f ../../docker-compose.yml exec -T core python -m seed --reset --yes",
     "gen:api": "openapi-typescript ../../docs/api/openapi.yaml -o types/generated/openapi.d.ts --default-non-nullable false && prettier --write types/generated/openapi.d.ts"
   },
   "dependencies": {

@@ -73,7 +73,7 @@ export function ExpenseGuidePanel({ guides, type, example }: { guides: Guide[]; 
 function GuideRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex min-w-0 gap-2">
-      <dt className="w-16 shrink-0 text-zinc-400">{label}</dt>
+      <dt className="w-16 shrink-0 text-zinc-500">{label}</dt>
       <dd className="min-w-0 break-words">{value}</dd>
     </div>
   )

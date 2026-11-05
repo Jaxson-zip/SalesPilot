@@ -63,6 +63,12 @@ def update_expense(
     return ok(expense_service.update_expense(db, user, expense_id, body))
 
 
+@router.delete("/expenses/{expense_id}", response_model=ApiResponse[None])
+def delete_expense(expense_id: uuid.UUID, user: CurrentUserDep, db: DbDep) -> ApiResponse[None]:
+    expense_service.delete_draft(db, user, expense_id)
+    return ok(None)
+
+
 @router.post("/expenses/{expense_id}/submit", response_model=Detail)
 def submit_expense(expense_id: uuid.UUID, user: CurrentUserDep, db: DbDep) -> Detail:
     return ok(expense_service.submit_expense(db, user, expense_id))

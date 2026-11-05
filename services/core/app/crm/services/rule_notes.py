@@ -71,7 +71,8 @@ def expense_note(rules: RuleSet) -> RuleNote:
     if hotel := e.hotel:
         tier1, other = _yuan(hotel.per_night_tier1), _yuan(hotel.per_night)
         items.append(RuleItem(label="差旅住宿", value=f"一线城市 {tier1}/晚，其他 {other}/晚"))
-    items.append(RuleItem(label="差旅交通 / 其他", value="实报实销"))
+    items.append(RuleItem(label="差旅交通", value="实报实销"))
+    items.append(RuleItem(label="其他费用", value="没有标准，每笔都需主管审批"))
     return RuleNote(
         title="报销标准",
         items=items,

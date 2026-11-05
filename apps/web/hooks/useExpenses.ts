@@ -119,6 +119,20 @@ export function useDeleteAttachment() {
   })
 }
 
+/** DELETE /api/expenses/{id}（仅从未提交过的草稿，票据一并删除） */
+export function useDeleteExpense() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.delete<null>(`/api/expenses/${id}`),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: expenseKeys.all }),
+        qc.invalidateQueries({ queryKey: dashboardKeys.all }),
+      ]),
+    onError: notifyError,
+  })
+}
+
 /** POST /api/expenses/{id}/submit */
 export function useSubmitExpense() {
   const qc = useQueryClient()

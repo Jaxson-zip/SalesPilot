@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 /**
  * 右侧 Sheet（与原型一致）：四周留 8px、圆角浮层，≥640 宽 440px，<640 占满屏幕（仍留 8px）。
  * 结构：标题行 48px（标题 + 关闭）+ 可滚动内容 + 底部按钮。新建表单与记录预览共用。
- * dirty：表单有没保存的内容时，按 Esc、点遮罩、点 ✕ 先确认再关闭（底部「取消」是明确放弃，不再问）。
+ * dirty：表单有没保存的内容时，按 Esc、点遮罩、点 ✕ 先确认再关闭；saveDraft 给了时，确认框里多一个「保存草稿」。
  */
 const PANEL_CLASS = [
   "gap-0 overflow-hidden rounded-lg border border-zinc-200 p-0 shadow-xl",
@@ -28,9 +28,11 @@ export function FormSheet({
   footer,
   wide,
   dirty,
+  saveDraft,
   children,
 }: {
   dirty?: boolean
+  saveDraft?: () => void
   /** 内容是表格时加宽到 640px */
   wide?: boolean
   open: boolean
@@ -43,7 +45,11 @@ export function FormSheet({
   const { ask, dialog } = useConfirmAction()
   const change = (next: boolean) => {
     if (next || !dirty) return onOpenChange(next)
-    ask({ ...DISCARD_FORM_CONFIRM, onConfirm: () => onOpenChange(false) })
+    ask({
+      ...DISCARD_FORM_CONFIRM,
+      secondary: saveDraft ? { label: "保存草稿", onClick: saveDraft } : undefined,
+      onConfirm: () => onOpenChange(false),
+    })
   }
   return (
     <Sheet open={open} onOpenChange={change}>

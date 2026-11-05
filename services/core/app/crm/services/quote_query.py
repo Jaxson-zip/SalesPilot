@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.common.auth import CurrentUser
 from app.common.scope import View, apply_scope
-from app.crm.models import Approval, Customer, Quote, QuoteItem
+from app.crm.models import Approval, Customer, Quote, QuoteItem, Team
 from app.crm.schemas.quote import ApprovalBrief, QuoteLine, QuoteListItem
 from app.crm.services import lookup, quote_validity
 from app.crm.services.listing import FacetOption, SortKey, customer_facet, order, value_facet
@@ -154,15 +154,22 @@ def approvals_of(db: Session, target_type: str, target_id: uuid.UUID) -> list[Ap
         .order_by(Approval.created_at)
     )
     rows = list(db.scalars(stmt).all())
-    approvers = lookup.users(db, (a.approver_id for a in rows))
+    managers = {
+        t.id: t.manager_id
+        for t in db.scalars(select(Team).where(Team.id.in_({a.team_id for a in rows if a.team_id})))
+    }
+    handler_of = {a.id: managers.get(a.team_id) if a.team_id else None for a in rows}
+    users = lookup.users(db, [*(a.approver_id for a in rows), *handler_of.values()])
     return [
         ApprovalBrief(
             id=a.id,
             status=a.status,  # type: ignore[arg-type]
             reason=a.reason,
-            approver=lookup.pick(approvers, a.approver_id),
+            approver=lookup.pick(users, a.approver_id),
             comment=a.comment,
             decided_at=a.decided_at,
+            submitted_at=a.created_at,
+            handler=lookup.pick(users, handler_of[a.id]) if a.status == "pending" else None,
         )
         for a in rows
     ]

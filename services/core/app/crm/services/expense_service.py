@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.common import storage
 from app.common.auth import CurrentUser
 from app.common.errors import BizError, ErrorCode
 from app.common.permissions import ensure_business_writer, ensure_owner
@@ -229,6 +230,25 @@ def update_expense(
     content = f"修改报销单：¥{data.amount / 100:,.2f}，{data.reason}"
     activity_service.record(db, user, "expense", expense.id, "update", content, "manual", expense)
     return get_expense(db, user, expense.id)
+
+
+def delete_draft(db: Session, user: CurrentUser, expense_id: uuid.UUID) -> None:
+    """删除还没提交过的草稿（连同票据文件）；提交过的、被驳回的有审批记录，不能删。"""
+    expense = load_owned(db, user, expense_id)
+    if expense.status != "draft":
+        raise BizError(
+            ErrorCode.RULE_VIOLATION,
+            "只有草稿可以删除；已提交或被驳回的报销单有审批记录，需要保留",
+            {"rule": RULE_NOT_EDITABLE, "status": expense.status},
+        )
+    files = attachment_query.rows_for(db, "expense", expense.id)
+    keys = [a.storage_key for a in files]
+    for a in files:
+        db.delete(a)
+    db.delete(expense)
+    db.flush()
+    for key in keys:
+        storage.remove(key)
 
 
 def load_owned(db: Session, user: CurrentUser, expense_id: uuid.UUID) -> Expense:

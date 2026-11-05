@@ -252,6 +252,10 @@ export interface ApprovalBrief {
   approver: UserBrief | null
   comment: string | null
   decided_at: string | null
+  /** 提交审批的时间 */
+  submitted_at?: string | null
+  /** 待审批时由谁处理（团队主管） */
+  handler?: UserBrief | null
 }
 
 export interface QuoteDetail extends QuoteItem {

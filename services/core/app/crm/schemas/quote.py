@@ -63,6 +63,9 @@ class ApprovalBrief(BaseModel):
     approver: UserBrief | None
     comment: str | None
     decided_at: datetime | None
+    # 提交审批的时间；待审批时由谁处理（团队主管）
+    submitted_at: datetime | None = None
+    handler: UserBrief | None = None
 
 
 class QuoteListItem(BaseModel):

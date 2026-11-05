@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
+import { ApprovalTrail } from "@/components/approvals/ApprovalTrail"
 import { Alert } from "@/components/biz/Alert"
 import { Chip } from "@/components/biz/Chip"
 import { EmptyState } from "@/components/biz/EmptyState"
@@ -27,7 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useActivities } from "@/hooks/useDashboard"
 import { contractHref } from "@/lib/contract"
 import { formatFen, formatPercent, formatRelative, ownerName } from "@/lib/format"
-import { activityActionLabel, APPROVAL_STATUS_META, labelOf, QUOTE_STATUS_META } from "@/lib/labels"
+import { activityActionLabel, labelOf, QUOTE_STATUS_META } from "@/lib/labels"
 import { opportunityHref } from "@/lib/links"
 import { defaultScope } from "@/lib/views"
 import type { QuoteDetail, QuoteRef, Role } from "@/types/api"
@@ -174,25 +175,7 @@ function QuoteRefLink({ prefix, r }: { prefix: string; r: QuoteRef }) {
 export function ApprovalRecords({ q }: { q: QuoteDetail }) {
   if (q.approvals.length === 0)
     return <EmptyState icon={Stamp} title="没有审批记录" description="毛利达标的报价提交后自动通过，不产生审批。" />
-  return (
-    <div className="divide-y divide-zinc-100 rounded-lg border border-zinc-200">
-      {q.approvals.map((a) => {
-        const m = labelOf(APPROVAL_STATUS_META, a.status)
-        return (
-          <div key={a.id} className="space-y-1.5 px-4 py-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Tag color={m.color}>{m.label}</Tag>
-              {a.approver ? <Chip name={a.approver.name} /> : <span className="text-zinc-400">待主管处理</span>}
-              <span className="flex-1" />
-              <span className="text-xs text-zinc-400">{a.decided_at ? formatRelative(a.decided_at) : ""}</span>
-            </div>
-            <div className="whitespace-pre-line text-zinc-700">触发原因：{a.reason}</div>
-            {a.comment ? <div className="whitespace-pre-line text-zinc-500">审批意见：{a.comment}</div> : null}
-          </div>
-        )
-      })}
-    </div>
-  )
+  return <ApprovalTrail approvals={q.approvals} />
 }
 
 export function QuoteTimeline({ quoteId, role }: { quoteId: string; role: Role }) {

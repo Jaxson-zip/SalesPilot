@@ -49,7 +49,7 @@ expense:
       standard: "一线城市（{tier1_cities}）每晚 {per_night_tier1} 元，其他城市每晚 {per_night} 元"
       must: "填写住宿城市和入住 / 离店日期，系统按晚数核对标准"
     other:
-      standard: "实报实销"
+      standard: "制度里没有标准，不论金额大小每笔都需主管审批"
       must: "事由写清用途，必要时关联客户或商机"
 
 followup:

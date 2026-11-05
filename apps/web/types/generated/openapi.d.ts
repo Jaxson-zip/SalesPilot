@@ -1780,7 +1780,8 @@ export interface paths {
     /** Update Expense */
     put: operations["update_expense_api_expenses__expense_id__put"]
     post?: never
-    delete?: never
+    /** Delete Expense */
+    delete: operations["delete_expense_api_expenses__expense_id__delete"]
     options?: never
     head?: never
     patch?: never
@@ -4271,6 +4272,9 @@ export interface components {
       comment: string | null
       /** Decided At */
       decided_at: string | null
+      /** Submitted At */
+      submitted_at: string | null
+      handler: components["schemas"]["UserBrief"] | null
     }
     /** ApprovalDecision */
     ApprovalDecision: {
@@ -12374,6 +12378,39 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["ApiResponse_ExpenseDetail_"]
+        }
+      }
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"]
+        }
+      }
+    }
+  }
+  delete_expense_api_expenses__expense_id__delete: {
+    parameters: {
+      query?: never
+      header?: {
+        authorization?: string | null
+      }
+      path: {
+        expense_id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ApiResponse_NoneType_"]
         }
       }
       /** @description Validation Error */

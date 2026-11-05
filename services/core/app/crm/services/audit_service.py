@@ -100,6 +100,7 @@ ROUTES: dict[tuple[str, str], tuple[str, str]] = {
     ("POST", "/api/contracts/{id}/payment-plan/{seq}/invoice"): ("payment.invoice", "开票"),
     ("POST", "/api/expenses"): ("expense.create", "新建报销"),
     ("POST", "/api/expenses/{id}/submit"): ("expense.submit", "提交报销"),
+    ("DELETE", "/api/expenses/{id}"): ("expense.delete", "删除报销草稿"),
     ("POST", "/api/expenses/{id}/attachments"): ("attachment.upload", "上传票据"),
     ("DELETE", "/api/attachments/{id}"): ("attachment.delete", "删除票据"),
     ("POST", "/api/approvals/{id}/decide"): ("approval.decide", "审批"),

@@ -4900,6 +4900,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - expenses
+      summary: Delete Expense
+      operationId: delete_expense_api_expenses__expense_id__delete
+      parameters:
+      - name: expense_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Expense Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_NoneType_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/expenses/{expense_id}/submit:
     post:
       tags:
@@ -8938,6 +8972,16 @@ components:
             format: date-time
           - type: 'null'
           title: Decided At
+        submitted_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Submitted At
+        handler:
+          anyOf:
+          - $ref: '#/components/schemas/UserBrief'
+          - type: 'null'
       type: object
       required:
       - id
@@ -8946,6 +8990,8 @@ components:
       - approver
       - comment
       - decided_at
+      - submitted_at
+      - handler
       title: ApprovalBrief
     ApprovalDecision:
       properties:

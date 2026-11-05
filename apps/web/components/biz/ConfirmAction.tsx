@@ -17,6 +17,8 @@ import type { ConfirmCopy } from "@/lib/confirm-texts"
 
 export interface ConfirmRequest extends ConfirmCopy {
   onConfirm: () => void
+  /** 第三个选择（如放弃前「保存草稿」）：显示在「取消」和确认按钮之间 */
+  secondary?: { label: string; onClick: () => void }
 }
 
 /**
@@ -33,6 +35,17 @@ export function ConfirmAction({ request, onClose }: { request: ConfirmRequest | 
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>取消</AlertDialogCancel>
+          {request?.secondary ? (
+            <AlertDialogAction
+              className={buttonVariants({ variant: "outline" })}
+              onClick={() => {
+                request.secondary?.onClick()
+                onClose()
+              }}
+            >
+              {request.secondary.label}
+            </AlertDialogAction>
+          ) : null}
           <AlertDialogAction
             className={request?.destructive ? buttonVariants({ variant: "destructive" }) : undefined}
             onClick={() => {

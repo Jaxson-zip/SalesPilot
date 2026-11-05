@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import { ApprovalTrail } from "@/components/approvals/ApprovalTrail"
 import { RemindButton } from "@/components/approvals/RemindButton"
 import { Alert } from "@/components/biz/Alert"
 import { useConfirmAction } from "@/components/biz/ConfirmAction"
@@ -22,13 +23,14 @@ import {
   useCreateExpense,
   useExpense,
   useExpensePrecheck,
+  useDeleteExpense,
   useSubmitExpense,
   useUpdateExpense,
 } from "@/hooks/useExpenses"
 import { usePermissions } from "@/hooks/usePermissions"
 import { newRequestId } from "@/lib/api"
 import { pendingApprovalId } from "@/lib/approvals"
-import { expenseSubmitConfirm } from "@/lib/confirm-texts"
+import { DISCARD_FORM_CONFIRM, expenseSubmitConfirm } from "@/lib/confirm-texts"
 import { useSession } from "@/components/shell/SessionProvider"
 import { localDate } from "@/lib/format"
 import {
@@ -94,6 +96,7 @@ export function ExpenseSheet({
   const detail = useExpense(open ? draftId : null)
   const create = useCreateExpense()
   const submit = useSubmitExpense()
+  const remove = useDeleteExpense()
   const update = useUpdateExpense()
   const { ask, dialog } = useConfirmAction()
   const form = !draftId || editing
@@ -180,10 +183,47 @@ export function ExpenseSheet({
     })
   }
 
+  // 回归：填了金额、事由后点「取消」直接清空，没有提醒
+  const cancelNew = () =>
+    dirty
+      ? ask({
+          ...DISCARD_FORM_CONFIRM,
+          secondary: { label: "保存草稿", onClick: () => void saveDraft() },
+          onConfirm: close,
+        })
+      : close()
+  const cancelEdit = () =>
+    dirty
+      ? ask({
+          ...DISCARD_FORM_CONFIRM,
+          title: "放弃这次修改？",
+          confirmLabel: "放弃修改",
+          secondary: { label: "保存修改", onClick: saveEdit },
+          onConfirm: () => setEditing(false),
+        })
+      : setEditing(false)
+
+  // 只有从未提交过的草稿能删；被驳回的有审批记录，保留
+  const removeDraft = () =>
+    exp &&
+    ask({
+      title: `删除草稿 ${exp.code}？`,
+      description: "草稿和已上传的票据会一起删除，无法恢复。",
+      confirmLabel: "删除草稿",
+      destructive: true,
+      onConfirm: () =>
+        remove.mutate(exp.id, {
+          onSuccess: () => {
+            toast.success("草稿已删除")
+            close()
+          },
+        }),
+    })
+
   const title = !draftId ? "新建报销" : exp ? `报销 ${exp.code}` : "报销"
   const footer = !draftId ? (
     <>
-      <Button variant="outline" onClick={close}>
+      <Button variant="outline" onClick={cancelNew}>
         取消
       </Button>
       <Button onClick={() => void saveDraft()} disabled={create.isPending}>
@@ -192,7 +232,7 @@ export function ExpenseSheet({
     </>
   ) : editing ? (
     <>
-      <Button variant="outline" onClick={() => setEditing(false)} disabled={update.isPending}>
+      <Button variant="outline" onClick={cancelEdit} disabled={update.isPending}>
         取消修改
       </Button>
       <Button onClick={saveEdit} disabled={update.isPending}>
@@ -201,9 +241,15 @@ export function ExpenseSheet({
     </>
   ) : editable ? (
     <>
-      <Button variant="outline" onClick={startEdit} disabled={!exp} className="mr-auto">
+      <Button variant="outline" onClick={startEdit} disabled={!exp}>
         修改
       </Button>
+      {exp?.status === "draft" ? (
+        <Button variant="ghost" onClick={removeDraft} disabled={remove.isPending} className="text-red-600">
+          删除草稿
+        </Button>
+      ) : null}
+      <span className="mr-auto" />
       <Button variant="outline" onClick={close}>
         稍后提交
       </Button>
@@ -231,7 +277,14 @@ export function ExpenseSheet({
   )
 
   return (
-    <FormSheet open={open} onOpenChange={(o) => !o && close()} dirty={dirty} title={title} footer={footer}>
+    <FormSheet
+      open={open}
+      onOpenChange={(o) => !o && close()}
+      dirty={dirty}
+      saveDraft={!draftId ? () => void saveDraft() : editing ? saveEdit : undefined}
+      title={title}
+      footer={footer}
+    >
       {rejection ? (
         <Alert tone="warn" title={`${rejection.approver?.name ?? "主管"}驳回了这张报销`}>
           <span className="whitespace-pre-line">{rejection.comment || "没有写原因"}</span>
@@ -285,6 +338,11 @@ export function ExpenseSheet({
         <Alert tone="info" title="暂时无法实时校验报销制度">
           提交时 core 仍会按制度校验
         </Alert>
+      ) : null}
+      {exp && (exp.approvals ?? []).length > 0 && !form ? (
+        <FormField label="审批记录">
+          <ApprovalTrail approvals={exp.approvals ?? []} />
+        </FormField>
       ) : null}
       {draftId && editable && missing ? (
         <div className="flex items-start gap-1.5 text-red-600">

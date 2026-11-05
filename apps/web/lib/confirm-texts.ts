@@ -96,7 +96,7 @@ export function quoteDraftRule(solo: boolean): string {
 /** 报销超标提示的标题 */
 export function expenseOverTitle(overAmount: number, solo: boolean): string {
   if (solo) return overAmount ? "超出报销标准（个人模式不用审批，会记下提醒）" : "制度里没有标准（个人模式不用审批）"
-  return overAmount ? "超出报销标准，需主管审批" : "需主管审批"
+  return overAmount ? "超出报销标准，需主管审批" : "制度里没有标准，不论金额大小都需主管审批"
 }
 
 export function paymentConfirm(amountText: string, code: string): ConfirmCopy {

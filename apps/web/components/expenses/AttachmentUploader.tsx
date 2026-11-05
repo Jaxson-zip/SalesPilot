@@ -142,6 +142,11 @@ export function AttachmentUploader({
           />
         ))}
         {!editable && attachments.length === 0 ? <div className="text-zinc-400">没有票据</div> : null}
+        {attachments.length > 0 ? (
+          <p className="text-xs text-zinc-500">
+            已上传 ≠ 已验真：系统只检查文件格式和票据类型，不核验发票真伪；主管审批时会逐张核对。
+          </p>
+        ) : null}
       </div>
     </div>
   )

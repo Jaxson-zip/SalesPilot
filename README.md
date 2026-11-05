@@ -2,6 +2,8 @@
 
 **会干活的销售 CRM。** 销售说一句话，AI 去查客户、记跟进、推商机、出报价、提报销；每一笔写入都先给你确认。价格、毛利、提成、报销标准由规则代码计算，不交给大模型。
 
+**在线体验：https://crm.jaxson.bond** —— 打开后在登录页点任一演示账户即可进入，不需要注册（数据为虚构示例，可以随意操作）。
+
 ![工作台](docs/images/dashboard.jpg)
 
 ## 为什么做这个
@@ -67,7 +69,27 @@ AI 按行业包估算配置，给出高 / 中 / 低三档方案，毛利不达�
 
 ## 快速开始
 
-需要 Docker（含 Compose v2）。Windows 下请访问 `127.0.0.1`，不要用 `localhost`。
+### 环境要求
+
+| 用途 | 需要 |
+|---|---|
+| 一键启动（推荐） | Docker Desktop / Docker Engine，含 Compose v2；空闲内存 ≥ 4 GB |
+| 本地开发（可选） | Python 3.12 + [uv](https://docs.astral.sh/uv/)、Node.js 20 + pnpm 9、Docker（只跑数据库和网关） |
+| 大模型（可选） | 混元 / DeepSeek / 通义 / 硅基流动任意一家的 API Key；**不填也能启动**，AI 退回规则模式，其余功能不受影响 |
+
+### 端口
+
+| 服务 | 端口 | 说明 |
+|---|---|---|
+| web | 3000 | 前端页面，`/api/*` 代理到 core |
+| core | 8000 | 业务接口；Swagger 文档 http://127.0.0.1:8000/docs |
+| gateway | 8100 | 模型网关（只给 core 调用） |
+| db | 5432 | PostgreSQL 16 + pgvector |
+| nginx | 8080 | 与线上相同的入口（`docker compose --profile prod up -d` 时启动） |
+
+### 启动
+
+Windows 下请访问 `127.0.0.1`，不要用 `localhost`（可能解析到 IPv6 而卡住）。
 
 ```bash
 cp .env.example .env                 # 不填模型 Key 也能启动，AI 会退回规则模式
@@ -93,6 +115,27 @@ docker compose exec core python -m seed   # 导入演示数据
 
 正式部署：设 `DEMO_LOGIN=false` 关闭演示账户，修改所有密钥和默认密码，只对外暴露 nginx。步骤见 [上线部署指南](docs/上线部署指南.md)。
 
+### 联调
+
+启动后按顺序确认各层都通了：
+
+```bash
+docker compose ps                                   # 5 个服务都是 running / healthy
+curl -s http://127.0.0.1:8000/api/health            # core：{"code":0,...,"data":{"status":"ok","db":true,...}}
+curl -s http://127.0.0.1:8100/health                # gateway
+curl -s http://127.0.0.1:3000/api/health            # web → core 代理
+```
+
+然后用演示账户登录，带 token 调业务接口（完整示例、请求 / 响应样例和错误码见 [接口说明](docs/api/接口说明.md#4-用-curl-联调)）：
+
+```bash
+TOKEN=$(curl -s -X POST http://127.0.0.1:8000/api/auth/mock-login -H 'Content-Type: application/json' \
+  -H 'X-Requested-With: fetch' -d '{"role":"sales"}' | jq -r .data.token)
+curl -s "http://127.0.0.1:8000/api/customers?page_size=2" -H "Authorization: Bearer $TOKEN"
+```
+
+自动化联调：`tests/e2e/` 用 HTTP 把「客户 → 商机 → 报价 → 审批 → 合同 → 回款 → 提成」和报销、权限隔离整条跑一遍；`apps/web/e2e/` 用浏览器跑同样的流程。命令见下方「开发」，结果见 [测试与联调报告](docs/测试与联调报告.md)。
+
 ## 架构
 
 ```
@@ -115,7 +158,7 @@ docker compose exec core python -m seed   # 导入演示数据
 - **权限在服务端。** 销售看自己、主管看本团队、管理员看全部，在 service 层统一过滤；界面上无权的按钮直接隐藏。
 - **模型可替换。** core 只认网关；换厂商、加模型只改网关配置或在网页上配置。
 
-更多：[架构设计](docs/架构设计.md) · [架构图](docs/架构图.html) · [接口契约](docs/api/业务模块接口契约.md) · [OpenAPI](docs/api/openapi.yaml)（运行时 http://127.0.0.1:8000/docs） · [功能说明](docs/功能说明.md)
+更多：[架构设计](docs/架构设计.md) · [架构图](docs/架构图.html) · [接口说明（示例 + 错误码）](docs/api/接口说明.md) · [OpenAPI](docs/api/openapi.yaml)（运行时 http://127.0.0.1:8000/docs） · [逐版接口契约](docs/api/业务模块接口契约.md) · [功能说明](docs/功能说明.md)
 
 ## 开发
 
@@ -155,3 +198,16 @@ infra/              nginx、git hooks
 tests/e2e           接口端到端测试
 docs/               架构、接口契约、部署、功能说明
 ```
+
+## 提交材料对照
+
+| 要求 | 位置 |
+|---|---|
+| 在线链接 / 本地启动说明 | 在线：https://crm.jaxson.bond ；本地：上方「快速开始」（环境要求、端口、启动、联调） |
+| 源代码仓库 | https://github.com/Jaxson-zip/SalesPilot |
+| 环境配置（不含真实 Key） | [.env.example](.env.example)：每一项都有说明，Key 全部留空；真实 `.env` 已在 `.gitignore` 中 |
+| 接口契约 | [接口说明](docs/api/接口说明.md)（路径、请求 / 响应示例、错误码）· [OpenAPI](docs/api/openapi.yaml)（130 个接口，有测试保证与代码一致）· Swagger：http://127.0.0.1:8000/docs |
+| 单元 / 接口 / 联调测试 | core `services/core/tests`（unit + api）· gateway `services/gateway/tests`（录制样本，不连外网）· 前端 `apps/web/lib/__tests__` · 接口端到端 `tests/e2e` · 浏览器端到端 `apps/web/e2e`；汇总见 [测试与联调报告](docs/测试与联调报告.md) |
+| Dockerfile / 容器启动 | `services/core/Dockerfile`、`services/gateway/Dockerfile`、`apps/web/Dockerfile`、[docker-compose.yml](docker-compose.yml)（开发）、[docker-compose.prod.yml](docker-compose.prod.yml)（线上）、`infra/nginx`；CI/CD 见 `.github/workflows` |
+| AI Coding 使用记录 | [docs/ai-log](docs/ai-log/README.md)：每个任务的任务卡、AI 写错的地方、怎么发现、怎么修；AI 协作规范 [AGENTS.md](AGENTS.md)；提交信息用 `[AI]` / `[AI-fix]` 区分 |
+| 技术规范文档 | [开发规范](docs/开发规范.md) · [架构设计](docs/架构设计.md)（模块职责、关键技术决策）· [架构图](docs/架构图.html) · [模型兼容矩阵](docs/模型兼容矩阵.md) · [知识库构建说明](docs/知识库构建说明.md) · [上线部署指南](docs/上线部署指南.md) |

@@ -43,6 +43,8 @@ Thumbs.db
 *.pdf
 # 知识库演示文档要进仓库：CI 测试和线上镜像都靠它（曾被上一条规则漏掉，线上知识库缺这份）
 !services/core/seed/knowledge/**/*.pdf
+# 页面上「下载样例」用的 PDF 也要进仓库（同样被漏掉过，线上 404；apps/web/lib/__tests__/public-samples.test.ts 会检查）
+!apps/web/public/samples/*.pdf
 /.audit/
 
 # AI 评估输出（每次运行重新生成；需要留档的报告复制到 docs/eval/）
